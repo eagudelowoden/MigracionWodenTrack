@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, NotFoundException, BadRequestExcepti
 import { OdooService } from '../odoo/odoo.service';
 import { getFechaColombia, decimalToMinutes } from '../common/utils/fecha.utils';
 
+
 @Injectable()
 export class UsuariosService {
   constructor(private readonly odoo: OdooService) {}
@@ -36,6 +37,9 @@ export class UsuariosService {
     const emp = employees[0];
     const cargoRaw = emp.job_id ? emp.job_id[1] : 'SIN CARGO';
     const cargo = cargoRaw.toUpperCase();
+    const { ahoraStr } = getFechaColombia();
+    const nowCol = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+    const currentMinutes = nowCol.getHours() * 60 + nowCol.getMinutes();
 
     // 3. LÓGICA DE ROLES (Tu lógica original de Node.js)
     const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
@@ -86,83 +90,150 @@ export class UsuariosService {
     };
   }
 
+  // async attendance(employee_id: number) {
+  //   const { inicioDia, ahoraStr } = getFechaColombia();
+  //   const now = new Date();
+  //   const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  //   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  //   const uid = await this.odoo.authenticate();
+
+  //   // 1. Buscar última asistencia abierta
+  //   const lastAtt = await this.odoo.executeKw<any[]>(
+  //     'hr.attendance',
+  //     'search_read',
+  //     [[
+  //       ['employee_id', '=', employee_id],
+  //       ['check_out', '=', false],
+  //     ]],
+  //     { fields: ['id'], limit: 1 },
+  //     uid,
+  //   );
+
+  //   const isCheckOut = lastAtt && lastAtt.length > 0;
+
+  //   // 2. Lógica de Mallas (Horarios)
+  //   const contracts = await this.odoo.executeKw<any[]>(
+  //     'hr.contract',
+  //     'search_read',
+  //     [[['employee_id', '=', employee_id], ['state', '=', 'open']]],
+  //     { fields: ['resource_calendar_id'], limit: 1 },
+  //     uid,
+  //   );
+
+  //   const calId = contracts?.length ? contracts[0].resource_calendar_id[0] : null;
+
+  //   const mallas = await this.odoo.executeKw<any[]>(
+  //     'resource.calendar.attendance',
+  //     'search_read',
+  //     [[
+  //       ['calendar_id', '=', calId],
+  //       ['dayofweek', '=', dayOfWeekOdoo.toString()],
+  //     ]],
+  //     { fields: ['hour_from', 'hour_to'] },
+  //     uid,
+  //   );
+
+  //   let estado = 'A TIEMPO';
+  //   if (mallas?.length) {
+  //     const h = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
+  //     if (!isCheckOut) {
+  //       if (currentMinutes > decimalToMinutes(h.hour_from) + 5) estado = 'TARDE';
+  //     } else {
+  //       if (currentMinutes < decimalToMinutes(h.hour_to)) estado = 'SALIDA ANTICIPADA';
+  //     }
+  //   }
+
+  //   // 3. Escribir en Odoo
+  //   if (isCheckOut) {
+  //     await this.odoo.executeKw(
+  //       'hr.attendance',
+  //       'write',
+  //       [[lastAtt[0].id], { check_out: ahoraStr, x_studio_salida: estado }],
+  //       {},
+  //       uid,
+  //     );
+  //     return { status: 'success', type: 'out', message: estado };
+  //   } else {
+  //     await this.odoo.executeKw(
+  //       'hr.attendance',
+  //       'create',
+  //       [{
+  //         employee_id,
+  //         check_in: ahoraStr,
+  //         x_studio_comentario: estado,
+  //       }],
+  //       {},
+  //       uid,
+  //     );
+  //     return { status: 'success', type: 'in', message: estado };
+  //   }
+  // }
   async attendance(employee_id: number) {
-    const { inicioDia, ahoraStr } = getFechaColombia();
-    const now = new Date();
-    const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { inicioDia, ahoraStr } = getFechaColombia();
+  const now = new Date();
+  const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    const uid = await this.odoo.authenticate();
+  // --- CONFIGURACIÓN DEL SWITCH ---
+  // Puedes usar una variable de entorno o un booleano directo
+  const ENVIAR_CAMPOS_STUDIO = process.env.ENABLE_STUDIO_FIELDS === 'false'; 
 
-    // 1. Buscar última asistencia abierta
-    const lastAtt = await this.odoo.executeKw<any[]>(
+  const uid = await this.odoo.authenticate();
+
+  // 1. Buscar última asistencia abierta (Lógica igual...)
+  const lastAtt = await this.odoo.executeKw<any[]>(
+    'hr.attendance',
+    'search_read',
+    [[['employee_id', '=', employee_id], ['check_out', '=', false]]],
+    { fields: ['id'], limit: 1 },
+    uid,
+  );
+
+  const isCheckOut = lastAtt && lastAtt.length > 0;
+
+  // 2. Lógica de Mallas/Horarios (Lógica igual...)
+  // ... (aquí calculas la variable 'estado')
+  let estado = 'A TIEMPO'; 
+  // ... (tu lógica de mallas que ya tienes)
+
+  // 3. Escribir en Odoo con el Switch
+  if (isCheckOut) {
+    // Construcción dinámica del objeto para WRITE (Salida)
+    const updateData: any = { check_out: ahoraStr };
+    
+    if (ENVIAR_CAMPOS_STUDIO) {
+      updateData.x_studio_salida = estado;
+    }
+
+    await this.odoo.executeKw(
       'hr.attendance',
-      'search_read',
-      [[
-        ['employee_id', '=', employee_id],
-        ['check_out', '=', false],
-      ]],
-      { fields: ['id'], limit: 1 },
+      'write',
+      [[lastAtt[0].id], updateData],
+      {},
       uid,
     );
+    return { status: 'success', type: 'out', message: estado };
 
-    const isCheckOut = lastAtt && lastAtt.length > 0;
+  } else {
+    // Construcción dinámica del objeto para CREATE (Entrada)
+    const createData: any = {
+      employee_id,
+      check_in: ahoraStr,
+    };
 
-    // 2. Lógica de Mallas (Horarios)
-    const contracts = await this.odoo.executeKw<any[]>(
-      'hr.contract',
-      'search_read',
-      [[['employee_id', '=', employee_id], ['state', '=', 'open']]],
-      { fields: ['resource_calendar_id'], limit: 1 },
-      uid,
-    );
-
-    const calId = contracts?.length ? contracts[0].resource_calendar_id[0] : null;
-
-    const mallas = await this.odoo.executeKw<any[]>(
-      'resource.calendar.attendance',
-      'search_read',
-      [[
-        ['calendar_id', '=', calId],
-        ['dayofweek', '=', dayOfWeekOdoo.toString()],
-      ]],
-      { fields: ['hour_from', 'hour_to'] },
-      uid,
-    );
-
-    let estado = 'A TIEMPO';
-    if (mallas?.length) {
-      const h = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
-      if (!isCheckOut) {
-        if (currentMinutes > decimalToMinutes(h.hour_from) + 5) estado = 'TARDE';
-      } else {
-        if (currentMinutes < decimalToMinutes(h.hour_to)) estado = 'SALIDA ANTICIPADA';
-      }
+    if (ENVIAR_CAMPOS_STUDIO) {
+      createData.x_studio_comentario = estado;
     }
 
-    // 3. Escribir en Odoo
-    if (isCheckOut) {
-      await this.odoo.executeKw(
-        'hr.attendance',
-        'write',
-        [[lastAtt[0].id], { check_out: ahoraStr, x_studio_salida: estado }],
-        {},
-        uid,
-      );
-      return { status: 'success', type: 'out', message: estado };
-    } else {
-      await this.odoo.executeKw(
-        'hr.attendance',
-        'create',
-        [{
-          employee_id,
-          check_in: ahoraStr,
-          x_studio_comentario: estado,
-        }],
-        {},
-        uid,
-      );
-      return { status: 'success', type: 'in', message: estado };
-    }
+    await this.odoo.executeKw(
+      'hr.attendance',
+      'create',
+      [createData],
+      {},
+      uid,
+    );
+    return { status: 'success', type: 'in', message: estado };
   }
+}
 }
