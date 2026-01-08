@@ -3,7 +3,10 @@
 </template>
 
 <script setup>
-// No necesitas lógica aquí, el router se encarga
+import { useInactividad } from './composables/useInactividad';
+
+// Configurar para 10 minutos de inactividad
+useInactividad(10);
 </script>
 
 <style>
