@@ -175,4 +175,70 @@ export class UsuariosService {
       return { status: 'success', type: 'in', message: estado };
     }
   }
+
+  // Agrega esto dentro de la clase UsuariosService
+
+async getAllMallas() {
+  const uid = await this.odoo.authenticate();
+  const now = new Date();
+  // Obtener día de la semana para Odoo (0=Lunes, 6=Domingo)
+  const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
+
+  // 1. Obtener todos los empleados activos
+  const employees = await this.odoo.executeKw<any[]>(
+    'hr.employee',
+    'search_read',
+    [[['active', '=', true]]],
+    { fields: ['id', 'name', 'identification_id', 'resource_calendar_id'], order: 'name asc' },
+    uid,
+  );
+
+  // 2. Extraer IDs de calendarios únicos para hacer una sola consulta (Optimización)
+  const calendarIds = [...new Set(employees.map(e => e.resource_calendar_id?.[0]).filter(id => !!id))];
+
+  // 3. Traer todos los horarios de esos calendarios para hoy
+  const allMallas = await this.odoo.executeKw<any[]>(
+    'resource.calendar.attendance',
+    'search_read',
+    [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
+    { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
+    uid,
+  );
+
+  // 4. Mapear los datos para el formato que espera tu tabla de Vue
+  return employees.map(emp => {
+    const mallaEmp = allMallas.find(m => m.calendar_id[0] === emp.resource_calendar_id?.[0]);
+    
+    let horario = 'No programado';
+    let jornada = 'N/A';
+
+    if (mallaEmp) {
+      const hDesde = this.formatDecimal(mallaEmp.hour_from);
+      const hHasta = this.formatDecimal(mallaEmp.hour_to);
+      horario = `${hDesde} - ${hHasta}`;
+      
+      // Traducir jornada
+      const period = mallaEmp.day_period;
+      jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
+    }
+
+    return {
+      nombre: emp.name,
+      cc: emp.identification_id || 'S/N',
+      malla: emp.resource_calendar_id ? emp.resource_calendar_id[1] : 'Sin Malla',
+      jornada: jornada,
+      horario: horario
+    };
+  });
+}
+
+// Función auxiliar para convertir 8.5 a "08:30"
+private formatDecimal(decimal: number): string {
+  const hrs = Math.floor(decimal);
+  const mins = Math.round((decimal - hrs) * 60);
+  return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+
+  
 }

@@ -59,25 +59,46 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import axios from 'axios'; // Asegúrate de tener instalado axios
 import '../../assets/css/modulo-mallas.css';
 
 defineProps({
   isDark: Boolean
 });
 
-// Datos de ejemplo (Luego esto vendrá de tu API o del Excel)
-const mallasData = ref([
-  { nombre: 'Juan Perez', cc: '10203040', malla: 'Operaciones A', jornada: 'Diurna', horario: '06:00 - 14:00' },
-  { nombre: 'Maria Lopez', cc: '52637485', malla: 'Logística B', jornada: 'Nocturna', horario: '22:00 - 06:00' },
-  { nombre: 'Carlos Ruiz', cc: '10987654', malla: 'Operaciones A', jornada: 'Tarde', horario: '14:00 - 22:00' },
-]);
+// 1. Iniciamos con un array vacío
+const mallasData = ref([]);
+const isLoading = ref(true);
+
+// 2. Función para traer los datos reales de Odoo
+const fetchMallasDesdeOdoo = async () => {
+  try {
+    isLoading.value = true;
+    
+    // Cambia esta URL por la ruta real de tu API NestJS
+    const response = await axios.get('http://localhost:8082/usuarios/mallas');
+    
+    // Asignamos los datos recibidos a nuestra variable reactiva
+    mallasData.value = response.data;
+  } catch (error) {
+    console.error("Error cargando mallas:", error);
+    // Opcional: podrías mostrar una notificación de error aquí
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 3. Ejecutar la carga apenas se abra el componente
+onMounted(() => {
+  fetchMallasDesdeOdoo();
+});
 
 const handleFileUpload = (event) => {
   const file = event.target.files[0];
   if (file) {
     console.log("Procesando archivo:", file.name);
-    // Aquí irá tu lógica de XLSX
+    // Tu lógica para procesar Excel si fuera necesario
   }
 };
 </script>
