@@ -6,7 +6,7 @@
 import { useInactividad } from './composables/useInactividad';
 
 // Configurar para 10 minutos de inactividad
-useInactividad(10);
+useInactividad(1);
 </script>
 
 <style>
