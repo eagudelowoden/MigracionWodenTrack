@@ -1,16 +1,19 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { OdooModule } from './odoo/odoo.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { AppController } from './app.controller'; // <--- IMPORTANTE: Importar el controlador
+import { AppService } from './app.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Esto permite usar ConfigService en cualquier lugar sin volver a importarlo
+      isGlobal: true,
     }),
     OdooModule,
     UsuariosModule,
   ],
+  controllers: [AppController], // <--- ¡AQUÍ ESTÁ EL TRUCO! Debe estar en esta lista
+  providers: [AppService],
 })
 export class AppModule {}
