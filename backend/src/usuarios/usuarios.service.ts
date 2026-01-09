@@ -40,7 +40,8 @@ export class UsuariosService {
     const cargo = cargoRaw.toUpperCase();
 
     // 2. LÓGICA DE ROLES
-    const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
+    //const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
+    const palabrasAdmin = ['DESARROLLADOR'];
     const esSubalterno = ['AUXILIAR', 'PRACTICANTE', 'ANALISTA', 'APRENDIZ', 'ASISTENTE', 'INSPECTOR']
       .some((word) => cargo.includes(word));
 
