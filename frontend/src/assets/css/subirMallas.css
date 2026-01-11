@@ -1,0 +1,114 @@
+
+/* Estilos del Modal */
+.animate-in {
+  animation: modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Badges de Jornada */
+.jornada-badge.mañana {
+  background: #E3F2FD;
+  color: #1976D2;
+  border: 1px solid #BBDEFB;
+}
+.btn-download-excel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  /* Fondo sutil para que no sea un bloque verde sólido */
+  background: rgba(33, 115, 70, 0.1); 
+  color: #2ecc71; /* Un verde más brillante y neón para el icono */
+  border: 1px dashed rgba(46, 204, 113, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-download-excel:hover:not(:disabled) {
+  background: rgba(46, 204, 113, 0.2);
+  border-style: solid;
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
+}
+
+.btn-download-excel i {
+  font-size: 1.2rem;
+}
+
+/* Si está cargando, que se vea naranja como tu tema */
+.btn-download-excel .fa-spin {
+  color: #FF8F00;
+}
+
+.jornada-badge.tarde {
+  background: #FFF3E0;
+  color: #E65100;
+  border: 1px solid #FFE0B2;
+}
+
+.jornada-badge.noche {
+  background: #F3E5F5;
+  color: #7B1FA2;
+  border: 1px solid #E1BEE7;
+}
+
+/* Botón de Excel */
+.btn-download-template {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background-color: #217346;
+  color: white;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-download-template:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(33, 115, 70, 0.3);
+}
+
+/* Botón Subir */
+.btn-upload {
+  background: #000;
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.btn-upload:hover {
+  background: #FF8F00;
+  transform: translateY(-2px);
+}
+
+.search-input {
+  width: 200px;
+  padding: 0.7rem 1rem 0.7rem 2.5rem;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  outline: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}

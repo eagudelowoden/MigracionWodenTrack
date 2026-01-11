@@ -69,6 +69,9 @@
 </template>
 
 <script setup>
+
+import { CargueMallas } from '../../../composables/adminLogica/cargueMallas.js';
+uploadFile
 import { ref } from 'vue';
 import axios from 'axios';
 
