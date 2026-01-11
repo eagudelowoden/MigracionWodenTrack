@@ -25,25 +25,35 @@
   box-shadow: 0 6px 20px rgba(255, 143, 0, 0.4);
 }
 
-/* Estilos de la Tabla */
+/* --- CAMBIO AQUÍ: Contenedor con Scroll Interno --- */
 .table-wrapper {
   border-radius: 20px;
-  overflow: hidden;
+  /* Altura máxima para que aparezca el scroll interno */
+  max-height: 500px; 
+  overflow-y: auto;
+  overflow-x: auto;
   border: 1px solid rgba(150, 150, 150, 0.1);
+  position: relative; /* Importante para el scroll sticky */
 }
 
 .mesh-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* Cambiado a separate para que el sticky funcione bien con bordes */
+  border-spacing: 0;
   font-size: 12px;
 }
 
+/* --- CAMBIO AQUÍ: Encabezado Fijo (Sticky) --- */
 .mesh-table th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   padding: 1rem;
   text-transform: uppercase;
   font-weight: 900;
   font-size: 10px;
   letter-spacing: 1px;
+  border-bottom: 2px solid rgba(150, 150, 150, 0.1);
 }
 
 .mesh-table td {
@@ -51,14 +61,35 @@
   border-bottom: 1px solid rgba(150, 150, 150, 0.05);
 }
 
-/* Temas */
+/* Temas con soporte para Sticky Header */
 .light-mode { background: white; color: #1e293b; }
-.light-mode th { background: #f8fafc; color: #64748b; }
+.light-mode th { 
+  background: #f8fafc; /* Color sólido necesario para que no se transparente el texto al hacer scroll */
+  color: #64748b; 
+}
 
-.dark-mode { background: rgba(30, 41, 59, 0.5); color: #f1f5f9; }
-.dark-mode th { background: rgba(15, 23, 42, 0.5); color: #FF8F00; }
+.dark-mode { 
+  background: #1e293b; /* Color sólido recomendado para el scroll */
+  color: #f1f5f9; 
+}
+.dark-mode th { 
+  background: #0f172a; /* Fondo oscuro sólido para el encabezado fijo */
+  color: #FF8F00; 
+}
 
-/* Badges */
+/* Personalización de la barra de scroll (Opcional pero recomendado) */
+.table-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #FF8F00;
+  border-radius: 10px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Badges y otros */
 .malla-tag {
   background: rgba(150, 150, 150, 0.1);
   padding: 4px 8px;
@@ -87,8 +118,57 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 .mesh-table th,
 .mesh-table td {
   text-align: center;
   vertical-align: middle;
 }
+/* --- Estilos del Buscador --- */
+.search-input {
+  padding: 0.5rem 1rem 0.5rem 2.2rem;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  width: 250px;
+  outline: none;
+  transition: all 0.2s;
+  border: 1px solid rgba(150, 150, 150, 0.2);
+}
+.light-search { background: #f8fafc; color: #1e293b; }
+.dark-search { background: rgba(255,255,255,0.05); color: white; }
+.search-input:focus { border-color: #FF8F00; }
+
+/* --- Estilos del Scroll y Header Fijo --- */
+.table-wrapper {
+  max-height: 550px; /* AQUÍ LIMITAS EL TAMAÑO */
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: 20px;
+  position: relative;
+  border: 1px solid rgba(150, 150, 150, 0.1);
+}
+
+.mesh-table {
+  width: 100%;
+  border-collapse: separate; /* Necesario para que el sticky funcione bien */
+  border-spacing: 0;
+}
+
+.mesh-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: inherit;
+  padding: 1rem;
+  font-size: 10px;
+  border-bottom: 2px solid rgba(150, 150, 150, 0.1);
+}
+
+/* Colores de fondo para el Header según el modo */
+.light-mode thead th { background: #f8fafc; color: #64748b; }
+.dark-mode thead th { background: #1e293b; color: #FF8F00; }
+
+/* Scrollbar personalizada */
+.table-wrapper::-webkit-scrollbar { width: 6px; }
+.table-wrapper::-webkit-scrollbar-thumb { background: #FF8F00; border-radius: 10px; }
