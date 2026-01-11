@@ -3,7 +3,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) { }
+  constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post('login')
   async login(@Body() body: any) {
@@ -19,5 +19,10 @@ export class UsuariosController {
   @Get('mallas')
   async getMallas() {
     return await this.usuariosService.getAllMallas();
+  }
+
+  @Get('reporte-novedades')
+  async getReporte() {
+    return await this.usuariosService.getReporteNovedades();
   }
 }

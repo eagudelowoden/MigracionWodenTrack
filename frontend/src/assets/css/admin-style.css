@@ -208,3 +208,36 @@
 }
 .status-tarde { color: #ef4444; }
 .status-ok { color: #10b981; }
+
+/* Asegura que el layout ocupe toda la pantalla */
+.admin-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden; /* Evita scroll en el body */
+}
+
+/* Área de contenido principal donde se cargan los módulos */
+main.flex-1 {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 0; /* Importante para evitar que el contenido empuje el layout */
+}
+
+/* El div que envuelve AttendanceModule y MeshModule */
+.module-container {
+    flex: 1;
+    overflow-y: auto; /* Habilita el scroll vertical para bajar en la lista */
+    padding: 1.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+/* Personalización del scroll para Chrome/Safari */
+.module-container::-webkit-scrollbar {
+    width: 6px;
+}
+.module-container::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 10px;
+}

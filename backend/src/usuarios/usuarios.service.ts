@@ -229,6 +229,51 @@ async getAllMallas() {
   });
 }
 
+async getReporteNovedades() {
+  const uid = await this.odoo.authenticate();
+
+  // 1. Consultamos hr.attendance SIN FILTRO DE FECHA
+  const attendances = await this.odoo.executeKw<any[]>(
+    'hr.attendance',
+    'search_read',
+    [[]], // ARRAY VACÍO = TRAER TODOS
+    {
+      fields: [
+        'employee_id', 
+        'check_in', 
+        'check_out', 
+        'x_studio_comentario', 
+        'x_studio_salida'
+      ],
+      order: 'check_in desc', // Los más recientes primero
+      limit: 100,             // Traer los últimos 100 para que sea rápido
+    },
+    uid,
+  );
+
+  // 2. Mapeo seguro
+  return attendances.map(att => {
+    const estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
+    
+    // Separamos fecha y hora para que se vea mejor en la tabla
+    const formatFecha = (fechaStr: string) => {
+      if (!fechaStr) return '--:--';
+      const partes = fechaStr.split(' ');
+      // Retornamos "Fecha | Hora" o solo "Hora" según prefieras
+      return partes[1]; 
+    };
+
+    return {
+      id: att.id,
+      empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+      check_in: formatFecha(att.check_in),
+      check_out: formatFecha(att.check_out),
+      estado: estadoFinal.toUpperCase(),
+      fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A' // Por si quieres filtrar por fecha luego
+    };
+  });
+}
+
 // Función auxiliar para convertir 8.5 a "08:30"
 private formatDecimal(decimal: number): string {
   const hrs = Math.floor(decimal);

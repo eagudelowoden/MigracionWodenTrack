@@ -51,13 +51,10 @@
         </div>
       </header>
 
-      <div class="flex-1 p-4 md:p-6 overflow-y-auto">
+      <div class="flex-1 p-4 md:p-6">
         <AttendanceModule 
           v-if="currentModule === 'novedades'"
           :isDark="isDark"
-          :reportData="filteredReport"
-          v-model:search="searchQuery"
-          @download="downloadExcelReport"
         />
 
         <MeshModule 
