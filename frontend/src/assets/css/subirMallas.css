@@ -112,3 +112,142 @@
   outline: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
+/* Card de Estadísticas */
+.stat-card {
+  background: rgba(255, 143, 0, 0.05);
+  border: 1px solid rgba(255, 143, 0, 0.1);
+  padding: 0.75rem 1.5rem;
+  border-radius: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.stat-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.5;
+}
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-style: italic;
+}
+
+/* Input de Búsqueda */
+.search-input-premium {
+  border: 1px solid rgba(0,0,0,0.05);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Botones */
+.action-btn-excel {
+  background: #217346;
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  border: none;
+}
+.action-btn-excel:hover {
+  background: #1a5a37;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(33, 115, 70, 0.2);
+}
+
+.btn-upload-premium {
+  background: #000;
+  color: #fff;
+  padding: 0.8rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+.btn-upload-premium:hover {
+  background: #FF8F00;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 143, 0, 0.2);
+}
+
+/* Badges de Jornada Rediseñados */
+.jornada-badge-new {
+  padding: 0.4rem 1rem;
+  border-radius: 2rem;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  display: inline-block;
+}
+.jornada-badge-new.diurna { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.2); }
+.jornada-badge-new.tarde { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+.jornada-badge-new.nocturna { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
+
+/* Tabla */
+.table-container-premium {
+  backdrop-blur: 10px;
+}
+/* Stats Compactas */
+.stat-compact {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: rgba(255, 143, 0, 0.1);
+  padding: 4px 12px;
+  border-radius: 10px;
+}
+.stat-val { font-weight: 900; color: #FF8F00; font-size: 14px; }
+  .stat-lab { font-size: 9px; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
+
+/* Botones Mini */
+.btn-mini {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: none;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.btn-excel { background: #217346; color: white; }
+.btn-upload { background: #000; color: white; }
+
+/* Badges Mini */
+.badge-mini {
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.badge-mini.diurna { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-color: rgba(56, 189, 248, 0.2); }
+.badge-mini.tarde { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border-color: rgba(251, 191, 36, 0.2); }
+.badge-mini.nocturna { background: rgba(167, 139, 250, 0.1); color: #a78bfa; border-color: rgba(167, 139, 250, 0.2); }
+
+/* Contenedor de Tabla con Scroll Invisible */
+.table-wrapper-mini::-webkit-scrollbar {
+  height: 4px;
+}
+.table-wrapper-mini::-webkit-scrollbar-thumb {
+  background: rgba(255, 143, 0, 0.3);
+  border-radius: 10px;
+}
+
+/* Evitar desborde de texto */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

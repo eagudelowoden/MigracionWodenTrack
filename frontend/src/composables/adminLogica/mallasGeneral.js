@@ -50,34 +50,49 @@ export function useMallasGeneral() {
   };
 
   // --- Subir Archivo ---
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
+const handleFileUpload = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    try {
-      isUploading.value = true;
-      uploadErrors.value = [];
-      const response = await axios.post(`${NEST_API_URL}/contracts-upload/import`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+  const formData = new FormData();
+  formData.append('file', file);
 
-      if (response.data.success) {
-        uploadSuccessMessage.value = response.data.message;
-        mallasData.value = []; // Limpiamos para efecto visual
-        setTimeout(() => fetchMallasDesdeOdoo(), 1000);
-      } else {
-        uploadErrors.value = response.data.errors || [];
-      }
-      showResultModal.value = true;
-    } catch (error) {
-      alert("Error en el servidor de carga.");
-    } finally {
-      isUploading.value = false;
-      if (event.target) event.target.value = '';
+  try {
+    isUploading.value = true;
+    uploadErrors.value = [];
+    uploadSuccessMessage.value = '';
+
+    const response = await axios.post(`${NEST_API_URL}/contracts-upload/import`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    console.log("Respuesta del servidor:", response.data); // MIRA ESTO EN LA CONSOLA (F12)
+
+    if (response.data.success) {
+      uploadSuccessMessage.value = response.data.message;
+      if (typeof fetchMallasDesdeOdoo === 'function') fetchMallasDesdeOdoo();
+    } else {
+      // Mapeo flexible: intenta leer 'fila' o 'row', 'campo' o 'field', etc.
+      const rawErrors = response.data.errors || [];
+      uploadErrors.value = rawErrors.map(err => ({
+        fila: err.fila || err.row || err.linea || '?',
+        campo: err.campo || err.field || err.column || 'General',
+        error: err.error || err.message || err.err || 'Error sin descripción'
+      }));
     }
-  };
+  } catch (error) {
+    console.error("Fallo de red o servidor:", error);
+    uploadErrors.value = [{ 
+      fila: '!', 
+      campo: 'RED', 
+      error: error.response?.data?.message || 'No se pudo conectar con el servidor.' 
+    }];
+  } finally {
+    isUploading.value = false;
+    showResultModal.value = true;
+    if (event.target) event.target.value = '';
+  }
+};
 
   // --- Filtro ---
   const filteredMallas = computed(() => {
