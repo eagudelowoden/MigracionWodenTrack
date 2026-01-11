@@ -154,10 +154,8 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-// Importamos el composable
-import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral.js';
-// Estilos
+import { ref, onMounted, computed } from 'vue';
+import axios from 'axios';
 import '../../assets/css/modulo-mallas.css';
 import '../../assets/css/subirMallas.css';
 
@@ -165,22 +163,118 @@ const props = defineProps({
   isDark: Boolean
 });
 
-// EJECUTAMOS EL COMPOSABLE Y DESESTRUCTURAMOS
-const {
-  searchQuery,
-  isLoading,
-  isLoadingDownload,
-  isUploading,
-  uploadErrors,
-  uploadSuccessMessage,
-  showResultModal,
-  filteredMallas,
-  fetchMallasDesdeOdoo,
-  downloadMallaTemplate,
-  handleFileUpload
-} = useMallasGeneral();
+// --- Estados de Datos ---
+const mallasData = ref([]);
+const searchQuery = ref('');
+const isLoading = ref(true);
+const isLoadingDownload = ref(false);
 
-// Solo dejamos el onMounted para disparar la carga inicial
+// --- Estados de Carga (Upload) ---
+const isUploading = ref(false);
+const uploadErrors = ref([]);
+const uploadSuccessMessage = ref('');
+const showResultModal = ref(false);
+
+// --- URLs ---
+const NEST_API_URL = 'http://localhost:8082';
+
+// --- Obtener Datos Actualizados ---
+const fetchMallasDesdeOdoo = async () => {
+  try {
+    isLoading.value = true;
+    // Agregamos un timestamp (?t=...) para romper la caché del navegador
+    const response = await axios.get(`${NEST_API_URL}/usuarios/mallas?t=${Date.now()}`);
+    mallasData.value = response.data;
+  } catch (error) {
+    console.error("Error cargando mallas:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// --- Lógica de Reportes (Descargar Plantilla) ---
+const downloadMallaTemplate = async () => {
+  try {
+    isLoadingDownload.value = true;
+    const response = await axios.get(`${NEST_API_URL}/reports/mallas/template`, {
+      responseType: 'blob',
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const fecha = new Date().toISOString().slice(0, 10);
+    link.setAttribute('download', `plantilla_mallas_woden_${fecha}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar:', error);
+    alert('No se pudo conectar con el servidor de reportes.');
+  } finally {
+    isLoadingDownload.value = false;
+  }
+};
+
+// --- Lógica de Subida (Cargue Masivo) ---
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    isUploading.value = true;
+    uploadErrors.value = [];
+    uploadSuccessMessage.value = '';
+
+    const response = await axios.post(`${NEST_API_URL}/contracts-upload/import`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    if (response.data.success) {
+      uploadSuccessMessage.value = response.data.message;
+      
+      // FIX DE ACTUALIZACIÓN: 
+      // 1. Limpiamos la tabla visualmente para mostrar el estado de carga
+      mallasData.value = [];
+      
+      // 2. Esperamos un segundo para que el commit de Odoo sea leído correctamente
+      setTimeout(async () => {
+        await fetchMallasDesdeOdoo();
+      }, 1000);
+
+    } else {
+      uploadErrors.value = response.data.errors || [];
+    }
+    showResultModal.value = true;
+
+  } catch (error) {
+    console.error("Error al subir:", error);
+    const apiError = error.response?.data?.message || "Error en el servidor de carga.";
+    alert(`Error: ${apiError}`);
+  } finally {
+    isUploading.value = false;
+    // Limpiamos el input para permitir subir el mismo archivo otra vez si es necesario
+    if (event.target) event.target.value = ''; 
+  }
+};
+
+// --- Filtrado Dinámico ---
+const filteredMallas = computed(() => {
+  if (!searchQuery.value) return mallasData.value;
+  const query = searchQuery.value.toLowerCase();
+  return mallasData.value.filter(persona => {
+    return (
+      persona.nombre?.toLowerCase().includes(query) ||
+      persona.cc?.toString().includes(query) ||
+      persona.malla?.toLowerCase().includes(query)
+    );
+  });
+});
+
 onMounted(() => {
   fetchMallasDesdeOdoo();
 });

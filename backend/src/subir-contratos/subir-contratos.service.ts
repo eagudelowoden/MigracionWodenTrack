@@ -2,65 +2,64 @@ import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
 
-interface OdooLoadResponse {
-  ids: number[] | false;
-  messages: Array<{
-    type: string;
-    message: string;
-    rows: { from: number; to: number };
-    field: string;
-  }>;
-}
-
 @Injectable()
 export class SubirContratosService {
   private readonly logger = new Logger(SubirContratosService.name);
 
   constructor(private readonly odoo: OdooService) {}
 
-  // Usamos 'any' para evitar conflictos de firmas de Buffer/Uint8Array en nodenext
   async processExcel(fileBuffer: any) {
     try {
-      // 1. Declaración e inicialización de workbook (Soluciona ts(2304))
       const workbook = new ExcelJS.Workbook();
-
-      // 2. Carga segura del buffer (Soluciona ts(2345))
-      await workbook.xlsx.load(fileBuffer as any);
-
+      await workbook.xlsx.load(fileBuffer);
+      
+      // Intentamos obtener la primera hoja
       const worksheet = workbook.getWorksheet(1);
+
+      // SOLUCIÓN AL ERROR ts(18048): Validación de existencia
       if (!worksheet) {
         throw new Error('No se encontró la hoja de trabajo en el archivo Excel.');
       }
 
+      // Definición de campos técnicos para asegurar la actualización
       const technicalFields = [
-        'id', 'company_id', 'employee_id', 'state', 
-        'date_end', 'date_start', 'resource_calendar_id', 'job_id'
+        'id',                   // Col 1: ID Externo (Obligatorio para actualizar)
+        'company_id',           // Col 2
+        'employee_id',          // Col 3
+        'state',                // Col 4
+        'date_end',             // Col 5
+        'date_start',           // Col 6
+        'resource_calendar_id', // Col 7: Campo de la Malla/Horario
+        'job_id'                // Col 8
       ];
 
       const rowsForOdoo: any[][] = [];
 
+      // Ahora TypeScript sabe que 'worksheet' no es undefined aquí
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return; // Saltar encabezado
 
-        rowsForOdoo.push([
-          row.getCell(1).text?.trim() || '',
-          row.getCell(2).text?.trim() || '',
-          row.getCell(3).text?.trim() || '',
-          this.mapState(row.getCell(4).text || ''),
-          this.formatDate(row.getCell(5).value),
-          this.formatDate(row.getCell(6).value),
-          row.getCell(7).text?.trim() || '',
-          row.getCell(8).text?.trim() || '',
-        ]);
+        const rowData = [
+          row.getCell(1).text?.trim() || '', // ID Externo (__export__)
+          row.getCell(2).text?.trim() || '', 
+          row.getCell(3).text?.trim() || '', 
+          this.mapState(row.getCell(4).text || ''), 
+          this.formatDate(row.getCell(5).value),    
+          this.formatDate(row.getCell(6).value),    
+          row.getCell(7).text?.trim() || '', // El nombre de la Malla
+          row.getCell(8).text?.trim() || '',        
+        ];
+
+        // Solo procesar si tiene el ID Externo para garantizar la actualización
+        if (rowData[0]) {
+          rowsForOdoo.push(rowData);
+        }
       });
 
       return await this.uploadToOdoo(technicalFields, rowsForOdoo);
-
     } catch (error: any) {
-      this.logger.error(`Error procesando Excel: ${error.message}`);
-      throw new InternalServerErrorException(
-        `Fallo en lectura de archivo: ${error.message}`
-      );
+      this.logger.error(`Error: ${error.message}`);
+      throw new InternalServerErrorException(`Fallo en procesamiento: ${error.message}`);
     }
   }
 
@@ -76,9 +75,7 @@ export class SubirContratosService {
 
   private formatDate(value: any): string {
     if (!value) return '';
-    if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
-    }
+    if (value instanceof Date) return value.toISOString().split('T')[0];
     return value.toString().trim();
   }
 
@@ -86,35 +83,29 @@ export class SubirContratosService {
     try {
       const uid = await this.odoo.authenticate();
 
-      const result = await this.odoo.executeKw<OdooLoadResponse>(
+      // Uso de contexto para forzar la actualización del registro existente
+      const result = await this.odoo.executeKw<any>(
         'hr.contract',
         'load',
         [fields, rows],
-        {},
+        {
+          context: {
+            import_file: true,
+            import_compat: true, // Crucial para buscar mallas por nombre
+            tracking_disable: true,
+          }
+        },
         uid
       );
 
-      if (result.messages?.length) {
-        return {
-          success: false,
-          message: 'Odoo detectó errores en los datos',
-          errors: result.messages.map(m => ({
-            fila: m.rows.from,
-            campo: m.field,
-            error: m.message,
-          })),
-        };
-      }
-
       return {
-        success: true,
-        message: 'Sincronización masiva completada con éxito',
+        success: !result.messages?.some((m: any) => m.type === 'error'),
+        message: result.ids ? 'Sincronización completada' : 'Error en Odoo',
         total_procesados: result.ids ? result.ids.length : 0,
-        odoo_ids: result.ids,
+        errors: result.messages || []
       };
     } catch (error: any) {
-      this.logger.error(`Error cargando a Odoo: ${error.message}`);
-      throw new InternalServerErrorException('Error de comunicación con Odoo.');
+      throw new InternalServerErrorException(`Error Odoo: ${error.message}`);
     }
   }
 }

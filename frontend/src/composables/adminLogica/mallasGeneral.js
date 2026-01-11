@@ -1,4 +1,3 @@
-// src/composables/adminLogica/mallasGeneral.js
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
@@ -12,12 +11,13 @@ export function useMallasGeneral() {
   const uploadSuccessMessage = ref('');
   const showResultModal = ref(false);
 
-  const NEST_API_URL = 'http://localhost:8082';
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
-      const response = await axios.get(`${NEST_API_URL}/usuarios/mallas`);
+      // Añadimos un timestamp para evitar caché del navegador en la petición GET
+      const response = await axios.get(`${API_BASE_URL}/usuarios/mallas?t=${Date.now()}`);
       mallasData.value = response.data;
     } catch (error) {
       console.error("Error cargando mallas:", error);
@@ -29,7 +29,7 @@ export function useMallasGeneral() {
   const downloadMallaTemplate = async () => {
     try {
       isLoadingDownload.value = true;
-      const response = await axios.get(`${NEST_API_URL}/reports/mallas/template`, {
+      const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -57,21 +57,33 @@ export function useMallasGeneral() {
     try {
       isUploading.value = true;
       uploadErrors.value = [];
-      const response = await axios.post(`${NEST_API_URL}/contracts-upload/import`, formData, {
+      uploadSuccessMessage.value = '';
+
+      const response = await axios.post(`${API_BASE_URL}/contracts-upload/import`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
       if (response.data.success) {
         uploadSuccessMessage.value = response.data.message;
-        fetchMallasDesdeOdoo();
+        
+        // 1. Limpiamos la lista actual para forzar el estado de carga visual
+        mallasData.value = [];
+        
+        // 2. Pequeña espera para asegurar que Odoo actualizó los índices
+        setTimeout(async () => {
+          await fetchMallasDesdeOdoo();
+        }, 800); 
+
       } else {
-        uploadErrors.value = response.data.errors;
+        uploadErrors.value = response.data.errors || [];
       }
       showResultModal.value = true;
     } catch (error) {
+      console.error("Error al subir:", error);
       alert("Error en el servidor de carga.");
     } finally {
       isUploading.value = false;
-      event.target.value = '';
+      if (event.target) event.target.value = '';
     }
   };
 
@@ -85,10 +97,18 @@ export function useMallasGeneral() {
     );
   });
 
-  // IMPORTANTE: Retornar todo lo que el componente necesita usar
   return {
-    mallasData, searchQuery, isLoading, isLoadingDownload,
-    isUploading, uploadErrors, uploadSuccessMessage, showResultModal,
-    fetchMallasDesdeOdoo, downloadMallaTemplate, handleFileUpload, filteredMallas
+    mallasData,
+    searchQuery,
+    isLoading,
+    isLoadingDownload,
+    isUploading,
+    uploadErrors,
+    uploadSuccessMessage,
+    showResultModal,
+    fetchMallasDesdeOdoo,
+    downloadMallaTemplate,
+    handleFileUpload,
+    filteredMallas
   };
 }

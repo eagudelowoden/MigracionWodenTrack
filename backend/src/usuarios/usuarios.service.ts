@@ -177,26 +177,27 @@ export class UsuariosService {
   }
 
   // Agrega esto dentro de la clase UsuariosService
-
 async getAllMallas() {
   const uid = await this.odoo.authenticate();
   const now = new Date();
-  // Obtener día de la semana para Odoo (0=Lunes, 6=Domingo)
   const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
 
-  // 1. Obtener todos los empleados activos
-  const employees = await this.odoo.executeKw<any[]>(
-    'hr.employee',
+  // 1. OBTENER CONTRATOS EN LUGAR DE EMPLEADOS
+  // Esto asegura que leas el 'resource_calendar_id' que acabas de actualizar
+  const contracts = await this.odoo.executeKw<any[]>(
+    'hr.contract',
     'search_read',
-    [[['active', '=', true]]],
-    { fields: ['id', 'name', 'identification_id', 'resource_calendar_id'], order: 'name asc' },
+    [[['state', 'in', ['open', 'draft']], ['employee_id.active', '=', true]]],
+    { 
+      fields: ['employee_id', 'resource_calendar_id', 'job_id'], 
+      order: 'employee_id asc' 
+    },
     uid,
   );
 
-  // 2. Extraer IDs de calendarios únicos para hacer una sola consulta (Optimización)
-  const calendarIds = [...new Set(employees.map(e => e.resource_calendar_id?.[0]).filter(id => !!id))];
+  const calendarIds = [...new Set(contracts.map(c => c.resource_calendar_id?.[0]).filter(id => !!id))];
 
-  // 3. Traer todos los horarios de esos calendarios para hoy
+  // 2. Traer los horarios (igual que antes)
   const allMallas = await this.odoo.executeKw<any[]>(
     'resource.calendar.attendance',
     'search_read',
@@ -205,27 +206,23 @@ async getAllMallas() {
     uid,
   );
 
-  // 4. Mapear los datos para el formato que espera tu tabla de Vue
-  return employees.map(emp => {
-    const mallaEmp = allMallas.find(m => m.calendar_id[0] === emp.resource_calendar_id?.[0]);
+  // 3. Mapear desde contratos
+  return contracts.map(con => {
+    const mallaEmp = allMallas.find(m => m.calendar_id[0] === con.resource_calendar_id?.[0]);
     
     let horario = 'No programado';
     let jornada = 'N/A';
 
     if (mallaEmp) {
-      const hDesde = this.formatDecimal(mallaEmp.hour_from);
-      const hHasta = this.formatDecimal(mallaEmp.hour_to);
-      horario = `${hDesde} - ${hHasta}`;
-      
-      // Traducir jornada
+      horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
       const period = mallaEmp.day_period;
       jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
     }
 
     return {
-      nombre: emp.name,
-      cc: emp.identification_id || 'S/N',
-      malla: emp.resource_calendar_id ? emp.resource_calendar_id[1] : 'Sin Malla',
+      nombre: con.employee_id[1], // El nombre viene en el array del Many2one
+      cc: 'Consultando...', // Si necesitas la CC, podrías agregar 'employee_id.identification_id' a los fields si tu Odoo lo permite
+      malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
       jornada: jornada,
       horario: horario
     };
