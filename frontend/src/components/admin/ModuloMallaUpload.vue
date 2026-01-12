@@ -38,53 +38,107 @@
       </div>
     </div>
 
-    <div class="table-wrapper" :class="isDark ? 'dark-mode' : 'light-mode'">
-      <table class="mesh-table text-left w-full border-collapse">
-        <thead>
-          <tr class="text-[10px] uppercase opacity-50">
-            <th class="p-4">Nombre</th>
-            <th class="p-4">C.C.</th>
-            <th class="p-4">Nombre de Malla</th>
-            <th class="p-4 text-center">Jornada</th>
-            <th class="p-4 text-right">Horario</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(persona, index) in filteredMallas" :key="index" class="border-b border-white/5">
-            <td class="p-4 font-black uppercase text-[#FF8F00]">{{ persona.nombre }}</td>
-            <td class="p-4 font-mono opacity-80 text-xs">{{ persona.cc }}</td>
-            <td class="p-4">
-              <span
-                class="malla-tag text-[10px] font-bold py-1 px-3 bg-white/5 rounded-full border border-white/10 uppercase italic">
-                {{ persona.malla }}
-              </span>
-            </td>
-            <td class="p-4 text-center">
-              <span class="jornada-badge text-[9px] font-black uppercase py-1 px-3 rounded-lg"
-                :class="persona.jornada?.toLowerCase()">
-                {{ persona.jornada }}
-              </span>
-            </td>
-            <td class="p-4 text-right font-bold text-xs">{{ persona.horario }}</td>
-          </tr>
+<div class="table-wrapper overflow-hidden rounded-xl border transition-all duration-300"
+     :class="isDark ? 'bg-[#1a1d2d] border-[#2d324d] shadow-none' : 'bg-white border-slate-200 shadow-sm'">
+  
+  <table class="w-full border-separate border-spacing-0">
+    <thead>
+      <tr :class="isDark ? 'bg-[#252a41]' : 'bg-slate-50/50'">
+        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+            :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+          <div class="flex items-center gap-2"><i class="fas fa-user-circle text-[9px]"></i> Nombre</div>
+        </th>
+        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+            :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+          <div class="flex items-center gap-2"><i class="fas fa-fingerprint text-[9px]"></i> ID</div>
+        </th>
+        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+            :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+          <div class="flex items-center gap-2"><i class="fas fa-project-diagram text-[9px]"></i> Malla</div>
+        </th>
+        <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+            :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+          Jornada
+        </th>
+        <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+            :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+          <div class="flex items-center justify-end gap-2"><i class="fas fa-clock-rotate-left text-[9px]"></i> Horario</div>
+        </th>
+      </tr>
+    </thead>
+    
+    <tbody class="divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
+      
+      <tr v-if="isLoading" v-for="n in 5" :key="'loader-'+n">
+        <td colspan="5" class="p-4">
+          <div class="h-4 w-full rounded animate-pulse" :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
+        </td>
+      </tr>
 
-          <tr v-if="filteredMallas.length === 0 && !isLoading">
-            <td colspan="5" class="text-center py-20 opacity-50 italic uppercase font-bold text-[10px] tracking-widest">
-              {{ searchQuery ? `Sin resultados para "${searchQuery}"` : 'No hay datos disponibles' }}
-            </td>
-          </tr>
+      <tr v-else v-for="(persona, index) in filteredMallas" :key="index" 
+          class="group transition-colors duration-150"
+          :class="isDark ? 'hover:bg-[#252a41]' : 'hover:bg-slate-50/80'">
+        
+        <td class="px-4 py-3">
+          <span class="text-[12px] font-bold uppercase tracking-tight transition-colors"
+                :class="isDark ? 'text-slate-100' : 'text-black'">
+            {{ persona.nombre }}
+          </span>
+        </td>
 
-          <tr v-if="isLoading">
-            <td colspan="5" class="text-center py-20">
-              <div class="flex flex-col items-center gap-3">
-                <i class="fas fa-circle-notch fa-spin text-[#FF8F00] text-3xl"></i>
-                <span class="text-[10px] font-black uppercase opacity-60 tracking-[0.2em]">Sincronizando Odoo...</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <td class="px-4 py-3">
+          <span class="font-mono text-[11px] opacity-40 transition-opacity group-hover:opacity-100"
+                :class="isDark ? 'text-slate-400' : 'text-black'">
+            {{ persona.cc }}
+          </span>
+        </td>
+
+        <td class="px-4 py-3">
+          <span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold border italic uppercase"
+                :class="isDark 
+                  ? 'bg-white/5 border-white/10 text-slate-400' 
+                  : 'bg-slate-50 border-slate-200 text-slate-600'">
+            {{ persona.malla }}
+          </span>
+        </td>
+
+        <td class="px-4 py-3 text-center">
+          <span class="inline-flex items-center justify-center gap-1.5 w-24 py-1 rounded text-[9px] font-black uppercase tracking-wider border transition-all"
+                :class="[
+                  persona.jornada?.toLowerCase(),
+                  isDark ? 'bg-opacity-20 border-opacity-30' : 'bg-opacity-10 border-opacity-40'
+                ]">
+            <i :class="{
+              'fas fa-sun': persona.jornada?.toLowerCase().includes('mañana'),
+              'fas fa-cloud-sun': persona.jornada?.toLowerCase().includes('tarde'),
+              'fas fa-moon': persona.jornada?.toLowerCase().includes('noche'),
+              'fas fa-circle': !persona.jornada
+            }" class="text-[8px]"></i>
+            {{ persona.jornada }}
+          </span>
+        </td>
+
+        <td class="px-4 py-3 text-right">
+          <span class="text-xs font-bold font-mono tracking-tighter"
+                :class="isDark ? 'text-slate-100' : 'text-black'">
+            {{ persona.horario }}
+          </span>
+        </td>
+      </tr>
+
+      <tr v-if="filteredMallas.length === 0 && !isLoading">
+        <td colspan="5" class="py-16 text-center">
+          <div class="flex flex-col items-center gap-2" :class="isDark ? 'text-slate-500' : 'text-black/20'">
+            <i class="fas fa-folder-open text-2xl opacity-20"></i>
+            <span class="text-[10px] font-bold uppercase tracking-[0.2em]">
+               {{ searchQuery ? `Sin resultados para "${searchQuery}"` : 'Sin datos disponibles' }}
+            </span>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
     <div v-if="showResultModal"
       class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200">
