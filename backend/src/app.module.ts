@@ -6,6 +6,7 @@ import { AppController } from './app.controller'; // <--- IMPORTANTE: Importar e
 import { AppService } from './app.service';
 import { ReportsModule } from './reports/reports.module';
 import { SubirContratosModule } from './subir-contratos/subir-contratos.module';
+import { ApkModule } from './apk/apk.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SubirContratosModule } from './subir-contratos/subir-contratos.module';
     UsuariosModule,
     ReportsModule,
     SubirContratosModule,
+    ApkModule,
   ],
   controllers: [AppController], // <--- ¡AQUÍ ESTÁ EL TRUCO! Debe estar en esta lista
   providers: [AppService],
