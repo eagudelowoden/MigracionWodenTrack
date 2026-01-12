@@ -42,6 +42,7 @@ export class UsuariosService {
     // 2. LÓGICA DE ROLES
     //const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
     const palabrasAdmin = ['DESARROLLADOR'];
+    const esSuperAdmin = cargo.includes('DESARROLLADOR') || cargo.includes('GERENTE');
     const esSubalterno = ['AUXILIAR', 'PRACTICANTE', 'ANALISTA', 'APRENDIZ', 'ASISTENTE', 'INSPECTOR']
       .some((word) => cargo.includes(word));
 
@@ -91,6 +92,7 @@ export class UsuariosService {
       job: cargoRaw,
       role: rolAsignado,
       is_inside: isInside,
+      isSuperAdmin: esSuperAdmin, // Nueva bandera
       day_completed: dayCompleted,
     };
   }

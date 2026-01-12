@@ -18,7 +18,7 @@ export function adminOdoo() {
 
   const fetchReport = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/report`);
+      const res = await fetch(`${API_BASE_URL}/report`);
       const data = await res.json();
       report.value = data;
     } catch (err) {

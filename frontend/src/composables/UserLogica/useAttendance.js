@@ -1,4 +1,4 @@
-import { ref, reactive, onMounted, computed } from "vue"; // <-- Importante: añadir computed
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 export function useAttendance() {
@@ -48,11 +48,25 @@ export function useAttendance() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
+      
       if (res.ok && data.status === "success") {
         employee.value = data;
         localStorage.setItem("user_session", JSON.stringify(data));
         showToast(`Bienvenido ${data.name}`, "success");
-        router.push(data.role === "admin" ? "/admin" : "/marcacion");
+
+        // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA ---
+        if (data.isSuperAdmin) {
+          // Si eres Desarrollador/SuperAdmin, vas al selector de modo
+          router.push("/selector-perfil");
+        } else if (data.role === "admin") {
+          // Si solo eres Admin, vas al panel administrativo
+          router.push("/admin");
+        } else {
+          // Si eres usuario normal, vas a marcar
+          router.push("/marcacion");
+        }
+        // ----------------------------------------
+
       } else {
         showToast(data.message || "Credenciales inválidas", "error");
       }
@@ -64,7 +78,7 @@ export function useAttendance() {
   };
 
   const handleAttendance = async () => {
-    if (!employee.value || employee.value.day_completed) return; // Bloqueo de seguridad
+    if (!employee.value || employee.value.day_completed) return;
     loading.value = true;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance`, {
@@ -96,7 +110,7 @@ export function useAttendance() {
     localStorage.removeItem("user_session");
     form.usuario = "";
     form.password = "";
-    router.push("/");
+    router.push("/login");
   };
 
   onMounted(() => {

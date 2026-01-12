@@ -3,8 +3,9 @@ import LoginView from '../views/LoginView.vue'
 import MarcacionView from '../views/MarcacionView.vue'
 import AdminView from '../views/AdminView.vue'
 import SuperAdminView from '../views/SuperAdmin.vue'
-// 1. Importa la nueva vista del repositorio/descarga
-import DownloadView from '../views/Public/DownloadView.vue' 
+import DownloadView from '../views/Public/DownloadView.vue'
+// 1. Importa la nueva vista de selección
+import SelectorPerfilView from '../views/Public/SelectorPerfil.vue' 
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -12,10 +13,17 @@ const routes = [
   { path: '/marcacion', name: 'Marcacion', component: MarcacionView },
   { path: '/admin', name: 'Admin', component: AdminView },
   { path: '/super-admin', name: 'SuperAdmin', component: SuperAdminView },
-  // 2. Ruta pública para descargar la APK
-{ 
-    path: '/download', // <--- Cámbialo aquí para que coincida con tu URL
-    alias: '/descargar', // Opcional: Esto permite que AMBAS funcionen
+  
+  // 2. Nueva ruta para elegir el modo de entrada
+  { 
+    path: '/selector-perfil', 
+    name: 'SelectorPerfil', 
+    component: SelectorPerfilView 
+  },
+
+  { 
+    path: '/download', 
+    alias: '/descargar', 
     name: 'Download', 
     component: DownloadView,
     meta: { isPublic: true } 
@@ -27,33 +35,38 @@ const router = createRouter({
   routes
 })
 
+
+
 router.beforeEach((to, from, next) => {
   const session = JSON.parse(localStorage.getItem('user_session'));
 
-  // 3. EXCEPCIÓN PARA RUTAS PÚBLICAS
-  // Si la ruta tiene la propiedad 'isPublic', permitimos el acceso sin sesión
+  // A. RUTAS PÚBLICAS (Download, etc)
   if (to.meta.isPublic) {
     return next();
   }
 
-  // 1. Si no hay sesión, solo puede estar en Login
+  // B. SIN SESIÓN: Solo al Login
   if (!session && to.path !== '/login') {
     return next('/login');
   }
 
-  // 2. Si ya hay sesión e intenta ir al Login, redirigir según su rol
+  // C. CON SESIÓN INTENTANDO IR AL LOGIN: 
+  // Redirigir al Selector si es SuperAdmin, o a su ruta por defecto
   if (session && to.path === '/login') {
-    if (session.role === 'super-admin') return next('/super-admin');
+    if (session.isSuperAdmin) return next('/selector-perfil'); // <-- Prioridad al Selector
     if (session.role === 'admin') return next('/admin');
     return next('/marcacion');
   }
 
-  // 3. PROTECCIÓN DE RUTAS POR ROL
-  if (to.path === '/super-admin' && session?.role !== 'super-admin') {
+  // D. PROTECCIÓN DE RUTAS POR PERMISO
+  
+  // Si intenta ir a SuperAdmin y no lo es en la sesión
+  if (to.path === '/super-admin' && !session?.isSuperAdmin) {
     return next(session?.role === 'admin' ? '/admin' : '/marcacion');
   }
 
-  if (to.path === '/admin' && !['admin', 'super-admin'].includes(session?.role)) {
+  // Si intenta ir a Admin y no tiene rol de admin ni es superAdmin
+  if (to.path === '/admin' && !session?.isSuperAdmin && session?.role !== 'admin') {
     return next('/marcacion');
   }
 

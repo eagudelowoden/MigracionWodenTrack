@@ -78,7 +78,6 @@
             :class="isDark ? 'text-slate-500 hover:text-white' : 'text-slate-700 hover:text-orange-600'">
             Modo {{ isDark ? 'Claro' : 'Oscuro' }}
           </button>
-          <p class="text-[7px] font-bold uppercase tracking-[0.4em] opacity-20">Version 1.0</p>
         </div>
         <div class="flex flex-col items-center gap-2 mt-4">
           <router-link to="/download"

@@ -28,7 +28,19 @@
         </div>
       </div>
 
-      <div class="bg-[#1a1d2d] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+      <div v-if="!apkData.exists" class="bg-[#1a1d2d] border border-dashed border-[#FF8F00]/40 rounded-[2.5rem] p-8 text-center space-y-4 shadow-2xl backdrop-blur-xl">
+        <div class="w-12 h-12 bg-[#FF8F00]/10 rounded-full flex items-center justify-center mx-auto">
+          <i class="fas fa-clock text-[#FF8F00] animate-pulse text-xl"></i>
+        </div>
+        <div class="space-y-2">
+          <h3 class="text-sm font-black uppercase tracking-widest text-[#FF8F00]">Sin Actualizaciones</h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed uppercase font-bold px-4">
+            Estamos subiendo una nueva versión oficial. Por favor, intenta de nuevo en unos minutos.
+          </p>
+        </div>
+      </div>
+
+      <div v-else class="bg-[#1a1d2d] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <div class="bg-gradient-to-b from-[#252a41] to-[#1a1d2d] p-6 space-y-6">
           
           <div class="flex items-center justify-between px-2">
@@ -98,38 +110,32 @@
             <div class="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
               <i class="fas fa-shield-check text-3xl text-emerald-500"></i>
             </div>
-            
             <h3 class="text-sm font-black uppercase tracking-widest text-[#FF8F00]">Política de Cero Permisos</h3>
-            
             <div class="space-y-4 text-left">
               <p class="text-[12px] leading-relaxed text-slate-300">
                 Tu dispositivo móvil arrojará una solicitud de acceso si una aplicación intenta entrar a tus datos privados. 
               </p>
               <div class="p-4 bg-emerald-500/5 border-l-4 border-emerald-500 rounded-r-2xl">
-                <p class="text-[12px] font-bold text-white italic mb-1">
-                  WodenTrack no hará esto:
-                </p>
+                <p class="text-[12px] font-bold text-white italic mb-1">WodenTrack no hará esto:</p>
                 <p class="text-[11px] text-slate-400">
                   Nuestra arquitectura técnica es <span class="text-white font-bold italic">No Intrusiva</span> y funciona sin pedir permisos de fotos, contactos o micrófono.
                 </p>
               </div>
             </div>
-
-            <button @click="activeModal = null" class="w-full py-4 bg-[#FF8F00] text-black font-black uppercase text-[10px] rounded-2xl tracking-[0.2em]">
-              Entendido
-            </button>
+            <button @click="activeModal = null" class="w-full py-4 bg-[#FF8F00] text-black font-black uppercase text-[10px] rounded-2xl tracking-[0.2em]">Entendido</button>
           </div>
 
           <div v-if="activeModal === 'qr'" class="p-10 text-center space-y-6">
             <h3 class="text-xs font-black uppercase tracking-widest text-[#FF8F00]">Escaneo Rápido</h3>
-            <div class="p-3 bg-white rounded-[2.5rem] inline-block shadow-2xl">
+            <div v-if="apkData?.exists" class="p-3 bg-white rounded-[2.5rem] inline-block shadow-2xl">
               <qrcode-vue :value="apkData.downloadUrl" :size="180" level="H" foreground="#0f121a" />
             </div>
+            <p v-else class="text-[10px] font-bold text-rose-400 uppercase">QR no disponible temporalmente</p>
             <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Cámara Móvil / QR Reader</p>
           </div>
 
           <div v-if="activeModal === 'changelog'" class="p-10 space-y-6">
-            <h3 class="text-xs font-black uppercase tracking-widest text-blue-400 text-center">Novedades de v{{ apkData.version }}</h3>
+            <h3 class="text-xs font-black uppercase tracking-widest text-blue-400 text-center">Novedades del Sistema</h3>
             <ul class="space-y-3">
               <li v-for="item in apkData.changelog" :key="item" class="text-[11px] p-4 bg-white/5 rounded-2xl border border-white/5 leading-relaxed italic text-slate-300">
                 {{ item }}
