@@ -235,14 +235,12 @@ async getReporteNovedades(soloHoy?: boolean, companyName?: string) {
   const uid = await this.odoo.authenticate();
   let domain: any[] = [];
 
-  // 1. Filtro de Fecha (Hoy - Local Colombia)
   if (soloHoy) {
-    const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const hoy = new Date().toLocaleDateString('en-CA'); 
     domain.push(['check_in', '>=', `${hoy} 00:00:00`]);
     domain.push(['check_in', '<=', `${hoy} 23:59:59`]);
   }
 
-  // 2. Filtro de Compañía (Filtra personas por su empresa)
   if (companyName && companyName.trim() !== "") {
     domain.push(['employee_id.company_id.name', '=', companyName]);
   }
@@ -264,15 +262,6 @@ async getReporteNovedades(soloHoy?: boolean, companyName?: string) {
     uid,
   );
 
-  // 3. Función para ajustar UTC a Colombia (-5h)
-  const ajustarHoraLocal = (fechaUtc: string | null) => {
-    if (!fechaUtc) return null;
-    const fecha = new Date(fechaUtc.replace(' ', 'T') + 'Z');
-    fecha.setHours(fecha.getHours() - 5);
-    return fecha.toISOString().replace('T', ' ').substring(0, 19);
-  };
-
-  // 4. Mapeo final de datos
   return attendances.map(att => {
     let estadoFinal = 'A TIEMPO';
     if (this.ENVIAR_CAMPOS_STUDIO) {
@@ -283,9 +272,9 @@ async getReporteNovedades(soloHoy?: boolean, companyName?: string) {
       id: att.id,
       empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
       department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-      // Horas ajustadas para que coincidan con la interfaz de Odoo
-      check_in: ajustarHoraLocal(att.check_in),
-      check_out: ajustarHoraLocal(att.check_out),
+      // VOLVEMOS A LA HORA PURA DE ODOO (Sin transformaciones de servidor)
+      check_in: att.check_in || null,
+      check_out: att.check_out || null,
       estado: estadoFinal.toUpperCase(),
       fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A'
     };
