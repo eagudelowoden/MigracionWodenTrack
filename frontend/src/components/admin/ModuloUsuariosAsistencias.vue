@@ -17,37 +17,58 @@
         </span>
       </div>
 
-
-
       <div class="flex items-center gap-2">
+        <button @click="filterHoy = !filterHoy"
+          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all"
+          title="Filtrar solo hoy">
+          <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
+          HOY
+        </button>
+
+        <div :class="{ 'opacity-40 pointer-events-none': filterHoy }"
+          class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-opacity">
+          <span class="text-[12px] text-slate-400">Desde</span>
+          <input v-model="startDate" type="date" title="Desde"
+            class="bg-transparent text-[12px] outline-none text-slate-600 dark:text-slate-300 w-28">
+          <span class="text-[12px] text-slate-400">Hasta</span>
+          <input v-model="endDate" type="date" title="Hasta"
+            class="bg-transparent text-[12px] outline-none text-slate-600 dark:text-slate-300 w-28">
+        </div>
+
         <div class="relative group">
           <select v-model="selectedDepartment"
-            class="pl-3 pr-8 py-1.5 text-xs rounded border outline-none transition-all appearance-none cursor-pointer shadow-sm w-40"
+            class="pl-3 pr-8 py-1.5 text-xs rounded border outline-none appearance-none cursor-pointer shadow-sm w-36"
             :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
-            <option value="">Todos los Deptos</option>
-            <option v-for="dept in departments" :key="dept" :value="dept">
-              {{ dept }}
-            </option>
+            <option value="">Departamentos</option>
+            <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
           </select>
           <i
             class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
         </div>
 
         <div class="relative group">
-          <input v-model="search" type="text" placeholder="Buscar..."
-            class="pl-8 pr-3 py-1.5 text-xs rounded border outline-none transition-all w-48 shadow-sm"
+          <input v-model="search" type="text" placeholder="Buscar colaborador..."
+            class="pl-8 pr-3 py-1.5 text-xs rounded border outline-none w-44 shadow-sm"
             :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
           <i class="fas fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
         </div>
 
+        <button @click="clearFilters" class="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
+          title="Limpiar filtros">
+          <i class="fas fa-filter-circle-xmark text-xs"></i>
+        </button>
+
+        <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
         <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-[#FF8F00] transition-colors"
-          title="Sincronizar">
+          title="Actualizar datos">
           <i class="fas fa-arrows-rotate text-xs" :class="{ 'fa-spin': loading }"></i>
         </button>
 
-        <button @click="downloadReport" :disabled="loading"
-          class="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Exportar Reporte">
+        <button @click="downloadReport" :disabled="loading || reportData.length === 0"
+          class="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+          title="Exportar Excel">
           <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"></i>
         </button>
       </div>
@@ -160,41 +181,63 @@
   </div>
 </template>
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue'; // Importante importar watch
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
 import '../../assets/css/reporteTabla.css';
 
-const { reportData, search, loading, selectedDepartment, departments, fetchReporte, downloadReport } = useCargarAsistencias();
-const { isDark } = useAttendance();
+// 1. Definir Props
+const props = defineProps({
+  isDark: Boolean,
+  company: String
+});
 
-const formatTime = (value) => {
-  if (!value) return '--:--'
-  return new Date(value).toLocaleTimeString('es-CO', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+// 2. Extraer lógica del Composable (DEBE IR ANTES DE USARSE)
+const {
+  reportData,
+  search,
+  selectedDepartment,
+  startDate,
+  endDate,
+  departments,
+  loading,
+  fetchReporte,
+  filterHoy,
+  downloadReport,
+  clearFilters,
+  selectedCompany // Asegúrate que tu composable exporte esto
+} = useCargarAsistencias();
+
+const { isDark: isDarkTheme } = useAttendance();
+
+// 3. Vigilar cambios en la compañía (Prop que viene del Header)
+watch(() => props.company, (newCompany) => {
+  if (selectedCompany) selectedCompany.value = newCompany;
+  fetchReporte(); 
+});
+
+// 4. Ciclo de vida (Un solo onMounted)
+onMounted(() => {
+  if (props.company && selectedCompany) {
+    selectedCompany.value = props.company;
+  }
+  fetchReporte();
+});
+
+// --- FORMATEADORES ---
 const formatDateTime = (value) => {
-  if (!value) return '--'
-
-  return new Date(value).toLocaleString('es-CO', {
+  if (!value) return '--';
+  const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
+  return dateUtc.toLocaleString('es-CO', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  })
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 }
-
-
-const formatDate = (value) => {
-  if (!value) return ''
-  return new Date(value).toLocaleDateString('es-CO')
-}
-
-
-onMounted(() => fetchReporte());
 
 const getStatusClass = (status) => {
   if (!status) return 'bg-slate-50 text-slate-400 border-slate-200';
