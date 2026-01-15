@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, HttpStatus, HttpException } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
@@ -24,5 +24,23 @@ export class UsuariosController {
   @Get('reporte-novedades')
   async getReporte() {
     return await this.usuariosService.getReporteNovedades();
+  }
+
+  // --- NUEVO: PUENTE PARA LA HORA OFICIAL ---
+  @Get('hora-oficial')
+  async getHoraOficial() {
+    try {
+      // Usamos fetch (disponible en Node.js 18+) o puedes usar axios si lo tienes instalado
+      const response = await fetch('http://3.133.217.145:8081/time-colombia');
+      if (!response.ok) throw new Error('Error en el servidor de tiempo');
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw new HttpException(
+        'No se pudo obtener la hora oficial del servidor externo',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

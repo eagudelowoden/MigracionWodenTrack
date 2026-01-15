@@ -100,25 +100,30 @@
                 </div>
               </td>
 
+
               <td class="px-4 py-3 text-center">
                 <div class="flex items-center justify-center gap-2">
                   <i class="far fa-clock text-[10px] text-emerald-500 opacity-70"></i>
+
                   <span class="text-xs font-bold font-mono tracking-tighter"
                     :class="isDark ? 'text-slate-100' : 'text-black'">
-                    {{ item.check_in || '--:--' }}
+                    {{ formatDateTime(item.check_in) }}
                   </span>
                 </div>
               </td>
 
+
               <td class="px-4 py-3 text-center">
                 <div class="flex items-center justify-center gap-2">
                   <i class="far fa-clock text-[10px] text-rose-500 opacity-70"></i>
+
                   <span class="text-xs font-bold font-mono tracking-tighter"
                     :class="isDark ? 'text-slate-100' : 'text-black'">
-                    {{ item.check_out || '--:--' }}
+                    {{ formatDateTime(item.check_out) }}
                   </span>
                 </div>
               </td>
+
 
               <td class="px-4 py-3 text-right">
                 <span :class="[
@@ -144,6 +149,32 @@ import '../../assets/css/reporteTabla.css';
 
 const { reportData, search, loading, fetchReporte, downloadReport } = useCargarAsistencias();
 const { isDark } = useAttendance();
+
+const formatTime = (value) => {
+  if (!value) return '--:--'
+  return new Date(value).toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+const formatDateTime = (value) => {
+  if (!value) return '--'
+
+  return new Date(value).toLocaleString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+
+const formatDate = (value) => {
+  if (!value) return ''
+  return new Date(value).toLocaleDateString('es-CO')
+}
+
 
 onMounted(() => fetchReporte());
 

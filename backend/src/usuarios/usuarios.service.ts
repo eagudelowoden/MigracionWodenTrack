@@ -268,8 +268,8 @@ async getReporteNovedades() {
     return {
       id: att.id,
       empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-      check_in: formatFecha(att.check_in),
-      check_out: formatFecha(att.check_out),
+      check_in: att.check_in,
+      check_out: att.check_out,
       estado: estadoFinal.toUpperCase(),
       fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A' // Por si quieres filtrar por fecha luego
     };
