@@ -17,7 +17,22 @@
         </span>
       </div>
 
+
+
       <div class="flex items-center gap-2">
+        <div class="relative group">
+          <select v-model="selectedDepartment"
+            class="pl-3 pr-8 py-1.5 text-xs rounded border outline-none transition-all appearance-none cursor-pointer shadow-sm w-40"
+            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+            <option value="">Todos los Deptos</option>
+            <option v-for="dept in departments" :key="dept" :value="dept">
+              {{ dept }}
+            </option>
+          </select>
+          <i
+            class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
+        </div>
+
         <div class="relative group">
           <input v-model="search" type="text" placeholder="Buscar..."
             class="pl-8 pr-3 py-1.5 text-xs rounded border outline-none transition-all w-48 shadow-sm"
@@ -35,7 +50,6 @@
           title="Exportar Reporte">
           <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"></i>
         </button>
-
       </div>
     </div>
 
@@ -92,6 +106,10 @@
                       :class="isDark ? 'text-slate-100' : 'text-black'">
                       {{ item.empleado }}
                     </span>
+                    <span class="text-[9px] font-medium opacity-60 flex items-center gap-1"
+                      :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                      <i class="fas fa-building text-[8px]"></i> {{ item.department_id }}
+                    </span>
                     <span class="text-[9px] font-mono opacity-40 tracking-tighter"
                       :class="isDark ? 'text-slate-400' : 'text-black'">
                       ID: {{ item.id }}
@@ -147,7 +165,7 @@ import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsisten
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
 import '../../assets/css/reporteTabla.css';
 
-const { reportData, search, loading, fetchReporte, downloadReport } = useCargarAsistencias();
+const { reportData, search, loading, selectedDepartment, departments, fetchReporte, downloadReport } = useCargarAsistencias();
 const { isDark } = useAttendance();
 
 const formatTime = (value) => {

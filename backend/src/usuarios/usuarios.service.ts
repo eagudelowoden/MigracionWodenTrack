@@ -4,7 +4,7 @@ import { getFechaColombia, decimalToMinutes } from '../common/utils/fecha.utils'
 
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly odoo: OdooService) {}
+  constructor(private readonly odoo: OdooService) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO = process.env.ENABLE_STUDIO_FIELDS === 'true';
@@ -153,7 +153,7 @@ export class UsuariosService {
       if (fechaEntrada !== fechaHoy) {
         const cierreAyer = `${fechaEntrada} 23:59:59`;
         await this.odoo.executeKw('hr.attendance', 'write', [[lastAtt[0].id], { check_out: cierreAyer }], {}, uid);
-        
+
         const createData: any = { employee_id, check_in: ahoraStr };
         if (this.ENVIAR_CAMPOS_STUDIO) createData.x_studio_comentario = estado;
 
@@ -179,110 +179,112 @@ export class UsuariosService {
   }
 
   // Agrega esto dentro de la clase UsuariosService
-async getAllMallas() {
-  const uid = await this.odoo.authenticate();
-  const now = new Date();
-  const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
+  async getAllMallas() {
+    const uid = await this.odoo.authenticate();
+    const now = new Date();
+    const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
 
-  // 1. OBTENER CONTRATOS EN LUGAR DE EMPLEADOS
-  // Esto asegura que leas el 'resource_calendar_id' que acabas de actualizar
-  const contracts = await this.odoo.executeKw<any[]>(
-    'hr.contract',
-    'search_read',
-    [[['state', 'in', ['open', 'draft']], ['employee_id.active', '=', true]]],
-    { 
-      fields: ['employee_id', 'resource_calendar_id', 'job_id'], 
-      order: 'employee_id asc' 
-    },
-    uid,
-  );
+    // 1. OBTENER CONTRATOS EN LUGAR DE EMPLEADOS
+    // Esto asegura que leas el 'resource_calendar_id' que acabas de actualizar
+    const contracts = await this.odoo.executeKw<any[]>(
+      'hr.contract',
+      'search_read',
+      [[['state', 'in', ['open', 'draft']], ['employee_id.active', '=', true]]],
+      {
+        fields: ['employee_id', 'resource_calendar_id', 'job_id'],
+        order: 'employee_id asc'
+      },
+      uid,
+    );
 
-  const calendarIds = [...new Set(contracts.map(c => c.resource_calendar_id?.[0]).filter(id => !!id))];
+    const calendarIds = [...new Set(contracts.map(c => c.resource_calendar_id?.[0]).filter(id => !!id))];
 
-  // 2. Traer los horarios (igual que antes)
-  const allMallas = await this.odoo.executeKw<any[]>(
-    'resource.calendar.attendance',
-    'search_read',
-    [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
-    { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
-    uid,
-  );
+    // 2. Traer los horarios (igual que antes)
+    const allMallas = await this.odoo.executeKw<any[]>(
+      'resource.calendar.attendance',
+      'search_read',
+      [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
+      { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
+      uid,
+    );
 
-  // 3. Mapear desde contratos
-  return contracts.map(con => {
-    const mallaEmp = allMallas.find(m => m.calendar_id[0] === con.resource_calendar_id?.[0]);
-    
-    let horario = 'No programado';
-    let jornada = 'N/A';
+    // 3. Mapear desde contratos
+    return contracts.map(con => {
+      const mallaEmp = allMallas.find(m => m.calendar_id[0] === con.resource_calendar_id?.[0]);
 
-    if (mallaEmp) {
-      horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
-      const period = mallaEmp.day_period;
-      jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
-    }
+      let horario = 'No programado';
+      let jornada = 'N/A';
 
-    return {
-      nombre: con.employee_id[1], // El nombre viene en el array del Many2one
-      cc: 'Consultando...', // Si necesitas la CC, podrías agregar 'employee_id.identification_id' a los fields si tu Odoo lo permite
-      malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
-      jornada: jornada,
-      horario: horario
-    };
-  });
-}
+      if (mallaEmp) {
+        horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
+        const period = mallaEmp.day_period;
+        jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
+      }
 
-async getReporteNovedades() {
-  const uid = await this.odoo.authenticate();
+      return {
+        nombre: con.employee_id[1], // El nombre viene en el array del Many2one
+        cc: 'Consultando...', // Si necesitas la CC, podrías agregar 'employee_id.identification_id' a los fields si tu Odoo lo permite
+        malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
+        jornada: jornada,
+        horario: horario
+      };
+    });
+  }
 
-  // 1. Consultamos hr.attendance SIN FILTRO DE FECHA
-  const attendances = await this.odoo.executeKw<any[]>(
-    'hr.attendance',
-    'search_read',
-    [[]], // ARRAY VACÍO = TRAER TODOS
-    {
-      fields: [
-        'employee_id', 
-        'check_in', 
-        'check_out', 
-        'x_studio_comentario', 
-        'x_studio_salida'
-      ],
-      order: 'check_in desc', // Los más recientes primero
-      limit: 100,             // Traer los últimos 100 para que sea rápido
-    },
-    uid,
-  );
+  async getReporteNovedades() {
+    const uid = await this.odoo.authenticate();
 
-  // 2. Mapeo seguro
-  return attendances.map(att => {
-    const estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
-    
-    // Separamos fecha y hora para que se vea mejor en la tabla
-    const formatFecha = (fechaStr: string) => {
-      if (!fechaStr) return '--:--';
-      const partes = fechaStr.split(' ');
-      // Retornamos "Fecha | Hora" o solo "Hora" según prefieras
-      return partes[1]; 
-    };
+    // 1. Consultamos hr.attendance SIN FILTRO DE FECHA
+    const attendances = await this.odoo.executeKw<any[]>(
+      'hr.attendance',
+      'search_read',
+      [[]], // ARRAY VACÍO = TRAER TODOS
+      {
+        fields: [
+          'employee_id',
+          'check_in',
+          'check_out',
+          'x_studio_comentario',
+          'x_studio_salida',
+          'department_id'
+        ],
+        order: 'check_in desc', // Los más recientes primero
+        limit: 100,             // Traer los últimos 100 para que sea rápido
+      },
+      uid,
+    );
 
-    return {
-      id: att.id,
-      empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-      check_in: att.check_in,
-      check_out: att.check_out,
-      estado: estadoFinal.toUpperCase(),
-      fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A' // Por si quieres filtrar por fecha luego
-    };
-  });
-}
+    // 2. Mapeo seguro
+    return attendances.map(att => {
+      const estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
 
-// Función auxiliar para convertir 8.5 a "08:30"
-private formatDecimal(decimal: number): string {
-  const hrs = Math.floor(decimal);
-  const mins = Math.round((decimal - hrs) * 60);
-  return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
+      // Separamos fecha y hora para que se vea mejor en la tabla
+      const formatFecha = (fechaStr: string) => {
+        if (!fechaStr) return '--:--';
+        const partes = fechaStr.split(' ');
+        // Retornamos "Fecha | Hora" o solo "Hora" según prefieras
+        return partes[1];
+      };
+
+      return {
+        id: att.id,
+        empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        check_in: att.check_in,
+        check_out: att.check_out,
+        estado: estadoFinal.toUpperCase(),
+        fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A' // Por si quieres filtrar por fecha luego
+      };
+    });
+  }
+
+  // Función auxiliar para convertir 8.5 a "08:30"
+  private formatDecimal(decimal: number): string {
+    const hrs = Math.floor(decimal);
+    const mins = Math.round((decimal - hrs) * 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
 
 
-  
+
 }
