@@ -113,11 +113,10 @@ export class UsuariosService {
 
 
   async attendance(employee_id: number) {
-    // 1. OBTENER FECHAS EN FORMATO COLOMBIA PARA LA COMPARACIÓN
+    // 1. FECHAS Y HORAS
     const { ahoraStr } = getFechaColombia();
     const ahoraCol = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }));
 
-    // Hora actual en decimal para comparar con la malla (ej: 7:15 = 7.25)
     const horaActualDecimal = ahoraCol.getHours() + ahoraCol.getMinutes() / 60;
     const dayOfWeekOdoo = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
 
@@ -133,21 +132,28 @@ export class UsuariosService {
     );
     const activeSession = lastAtt && lastAtt.length > 0;
 
-    // 3. OBTENER MALLA (CONTRATO)
+    // 3. OBTENER CONTRATO Y NOMBRE DE LA MALLA
     const contracts = await this.odoo.executeKw<any[]>(
       'hr.contract',
       'search_read',
-      [[['employee_id', '=', employee_id], ['state', '=', 'open']]],
+      [
+        [
+          ['employee_id', '=', employee_id],
+          ['state', 'in', ['open', 'draft']] // <--- CAMBIO: Igual que en getAllMallas
+        ]
+      ],
       { fields: ['resource_calendar_id'], limit: 1 },
       uid,
     );
 
     let estadoCalculado = 'A TIEMPO';
+    let infoMalla = 'SIN MALLA ASIGNADA';
 
-    if (contracts?.length > 0 && contracts[0].resource_calendar_id) {
+    if (contracts && contracts.length > 0 && contracts[0].resource_calendar_id) {
       const calId = contracts[0].resource_calendar_id[0];
+      const calNombre = contracts[0].resource_calendar_id[1];
 
-      // Buscamos la malla del día de hoy
+      // 4. BUSCAR EL HORARIO DE HOY EN LA MALLA
       const mallas = await this.odoo.executeKw<any[]>(
         'resource.calendar.attendance',
         'search_read',
@@ -157,50 +163,77 @@ export class UsuariosService {
       );
 
       if (mallas.length > 0) {
-        const mallaInicio = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
+        // Ordenamos para obtener el turno del día
+        const mallaTurno = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
+        const horarioTexto = `${this.formatDecimal(mallaTurno.hour_from)} - ${this.formatDecimal(mallaTurno.hour_to)}`;
 
-        // LOG DE CONTROL: Mira esto en tu terminal de NestJS
-        console.log(`HORA ACTUAL: ${horaActualDecimal} | HORA MALLA: ${mallaInicio.hour_from}`);
+        infoMalla = `Malla: ${calNombre} (${horarioTexto})`;
 
-        const tolerancia = 6 / 60;
+        // LOG DE VALIDACIÓN
+        console.log(`---------------------------------------------------`);
+        console.log(`VALIDANDO ASISTENCIA - EMPLEADO: ${employee_id}`);
+        console.log(`MALLA DETECTADA: ${calNombre}`);
+        console.log(`HORARIO HOY: ${horarioTexto}`);
+        console.log(`HORA MARCACIÓN: ${this.formatDecimal(horaActualDecimal)}`);
+
+        const tolerancia = 6 / 60; // 6 minutos
 
         if (!activeSession) {
-          if (horaActualDecimal > (mallaInicio.hour_from + tolerancia)) {
+          // Validación Entrada
+          if (horaActualDecimal > (mallaTurno.hour_from + tolerancia)) {
             estadoCalculado = 'ENTRADA TARDE';
           }
+        } else {
+          // Validación Salida
+          if (horaActualDecimal < mallaTurno.hour_to) {
+            estadoCalculado = 'SALIDA ANTICIPADA';
+          }
         }
+        console.log(`RESULTADO: ${estadoCalculado}`);
+        console.log(`---------------------------------------------------`);
+
       } else {
-        console.log("¡OJO! No se encontró malla para hoy (DayOfWeek: " + dayOfWeekOdoo + ")");
-        estadoCalculado = 'SIN MALLA'; // Cambia esto para saber si entró aquí
+        infoMalla = `Malla: ${calNombre} (Sin horario hoy)`;
+        console.log(`AVISO: El empleado tiene malla (${calNombre}) pero no hay turnos para hoy.`);
       }
     }
 
-    // 4. GUARDAR EN ODOO (IMPORTANTE: Usar ahoraStr que es UTC para Odoo)
-    // --- 4. GUARDAR EN ODOO ---
+    // 5. GUARDAR EN ODOO
+    // 5. GUARDAR EN ODOO
     if (activeSession) {
+      // --- LÓGICA DE SALIDA ---
       const updateData: any = { check_out: ahoraStr };
 
-      // Forzamos el nombre del campo tal como lo vimos en tu captura de Odoo
+      // Solo enviamos el estado al campo de salida
       updateData['x_studio_salida'] = estadoCalculado;
-      updateData['x_studio_comentario'] = estadoCalculado;
 
-      // Agregamos un log para ver en la consola de NestJS qué se está enviando
-      console.log("Enviando Salida a Odoo:", updateData);
+      // NO incluir x_studio_comentario aquí para no borrar el estado de la entrada original
 
       await this.odoo.executeKw('hr.attendance', 'write', [[lastAtt[0].id], updateData], {}, uid);
-      return { status: 'success', type: 'out', message: estadoCalculado };
+
+      return {
+        status: 'success',
+        type: 'out',
+        message: estadoCalculado,
+        malla: infoMalla
+      };
 
     } else {
+      // --- LÓGICA DE ENTRADA ---
       const createData: any = {
         employee_id,
         check_in: ahoraStr,
-        x_studio_comentario: estadoCalculado // Lo enviamos directo
+        x_studio_comentario: estadoCalculado // Solo enviamos a comentario
       };
 
-      console.log("Enviando Entrada a Odoo:", createData);
-
       await this.odoo.executeKw('hr.attendance', 'create', [createData], {}, uid);
-      return { status: 'success', type: 'in', message: estadoCalculado };
+
+      return {
+        status: 'success',
+        type: 'in',
+        message: estadoCalculado,
+        malla: infoMalla
+      };
     }
   }
   // Agrega esto dentro de la clase UsuariosService
@@ -345,7 +378,5 @@ export class UsuariosService {
       return horaActualDecimal < horaMalla ? "SALIDA ANTICIPADA" : "A TIEMPO";
     }
   }
-
-
 
 }

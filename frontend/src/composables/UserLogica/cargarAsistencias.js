@@ -14,18 +14,18 @@ export function useCargarAsistencias() {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// ... dentro de useCargarAsistencias ...
-const fetchReporte = async (companyOverride = null) => {
+  // ... dentro de useCargarAsistencias ...
+  const fetchReporte = async (companyOverride = null) => {
     loading.value = true;
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      url.searchParams.append('hoy', filterHoy.value);
-      
+      url.searchParams.append("hoy", filterHoy.value);
+
       // Priorizamos la compañía que nos pasen por parámetro (desde el layout)
       const companyToFilter = companyOverride || selectedCompany.value;
-      
+
       if (companyToFilter) {
-        url.searchParams.append('company', companyToFilter);
+        url.searchParams.append("company", companyToFilter);
       }
 
       const res = await fetch(url.toString());
@@ -37,7 +37,7 @@ const fetchReporte = async (companyOverride = null) => {
     } finally {
       loading.value = false;
     }
-};
+  };
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {
