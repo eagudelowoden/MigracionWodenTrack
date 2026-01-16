@@ -7,19 +7,30 @@ export function getFechaColombia() {
     return date.toISOString().replace('T', ' ').split('.')[0];
   };
 
-  // Obtenemos la fecha actual en la zona de Bogotá para calcular el inicio del día
+  // Obtenemos la fecha actual en la zona de Bogotá (YYYY-MM-DD)
   const fechaHoyCol = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Bogota',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(ahora); // Retorna "YYYY-MM-DD"
+  }).format(ahora);
+
+  // --- SOLUCIÓN AL DESFASE ---
+  // Para que Odoo muestre 23:59:59 en Colombia, 
+  // debemos enviar las 04:59:59 del día siguiente en UTC.
+  const manana = new Date(ahora);
+  manana.setDate(manana.getDate() + 1);
+  const fechaMananaCol = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(manana);
 
   return {
-    // IMPORTANTE: Para Odoo, el inicio del día 00:00 Col son las 05:00 UTC
-    inicioDia: `${fechaHoyCol} 05:00:00`, 
-    finDia: `${fechaHoyCol} 23:59:59`,
-    // Esta es la hora que se guarda. toISOString() ya viene en UTC.
+    inicioDia: `${fechaHoyCol} 05:00:00`, // 00:00 Col = 05:00 UTC
+    // Esto hará que en Odoo se vea como las 23:59:59 local
+    cierreEstandar: `${fechaMananaCol} 04:59:59`, 
     ahoraStr: formatParaOdoo(ahora), 
   };
 }

@@ -240,35 +240,50 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-// 1. Importamos la función del composable
+// CORRECCIÓN: Se agrega 'watch' en la importación de vue
+import { onMounted, watch } from 'vue'; 
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral.js';
 
 // Estilos
 import '../../assets/css/modulo-mallas.css';
 import '../../assets/css/subirMallas.css';
 
+// 1. Definir Props
 const props = defineProps({
-  isDark: Boolean
+  isDark: Boolean,
+  company: String
 });
 
-// 2. Extraemos las piezas que necesitamos (Destructuring)
+// 2. Extraer lógica del Composable
 const {
+  mallasData,
   searchQuery,
+  selectedCompany,
   isLoading,
   isLoadingDownload,
   isUploading,
   uploadErrors,
   uploadSuccessMessage,
   showResultModal,
-  filteredMallas, // <-- Usamos la versión filtrada para el v-for
   fetchMallasDesdeOdoo,
   downloadMallaTemplate,
-  handleFileUpload
+  handleFileUpload,
+  filteredMallas
 } = useMallasGeneral();
 
-// 3. Solo dejamos el onMounted para arrancar
+// 3. Vigilar cambios en la compañía (Prop que viene del Header)
+watch(() => props.company, (newCompany) => {
+  if (selectedCompany) {
+    selectedCompany.value = newCompany;
+    fetchMallasDesdeOdoo(); 
+  }
+});
+
+// 4. Ciclo de vida inicial (Un solo onMounted es suficiente)
 onMounted(() => {
+  if (props.company && selectedCompany) {
+    selectedCompany.value = props.company;
+  }
   fetchMallasDesdeOdoo();
 });
 </script>

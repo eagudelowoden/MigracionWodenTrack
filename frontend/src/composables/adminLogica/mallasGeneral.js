@@ -11,17 +11,21 @@ export function useMallasGeneral() {
   const uploadErrors = ref([]);
   const uploadSuccessMessage = ref("");
   const showResultModal = ref(false);
+  const selectedCompany = ref(""); // <--- Nuevo: Estado para la compañía
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
-  const NEST_API_URL = "http://localhost:8082";
 
   // --- Obtener Datos ---
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
-      const response = await axios.get(
-        `${API_BASE_URL}/mallas?t=${Date.now()}`
-      );
+      // Construir URL con el parámetro de compañía
+      let url = `${API_BASE_URL}/mallas?t=${Date.now()}`;
+      if (selectedCompany.value) {
+        url += `&company=${encodeURIComponent(selectedCompany.value)}`;
+      }
+
+      const response = await axios.get(url);
       mallasData.value = response.data;
     } catch (error) {
       console.error("Error cargando mallas:", error);
@@ -133,9 +137,20 @@ export function useMallasGeneral() {
     uploadErrors,
     uploadSuccessMessage,
     showResultModal,
+    selectedCompany,
     fetchMallasDesdeOdoo,
     downloadMallaTemplate,
     handleFileUpload,
     filteredMallas,
+    filteredMallas: computed(() => {
+      if (!searchQuery.value) return mallasData.value;
+      const query = searchQuery.value.toLowerCase();
+      return mallasData.value.filter(p => 
+        p.nombre?.toLowerCase().includes(query) || 
+        p.cc?.toString().includes(query)
+      );
+    })
   };
 }
+
+

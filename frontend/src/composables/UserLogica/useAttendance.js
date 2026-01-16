@@ -48,37 +48,32 @@ export function useAttendance() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      
+
       if (res.ok && data.status === "success") {
+        // Guardamos la fecha del login para el reseteo automático mañana
+        data.last_login_date = new Date().toLocaleDateString();
+        
         employee.value = data;
         localStorage.setItem("user_session", JSON.stringify(data));
+
         showToast(`Bienvenido ${data.name}`, "success");
 
-        // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA ---
-        if (data.isSuperAdmin) {
-          // Si eres Desarrollador/SuperAdmin, vas al selector de modo
-          router.push("/selector-perfil");
-        } else if (data.role === "admin") {
-          // Si solo eres Admin, vas al panel administrativo
-          router.push("/admin");
-        } else {
-          // Si eres usuario normal, vas a marcar
-          router.push("/marcacion");
-        }
-        // ----------------------------------------
-
+        if (data.isSuperAdmin) router.push("/selector-perfil");
+        else if (data.role === "admin") router.push("/admin");
+        else router.push("/marcacion");
       } else {
         showToast(data.message || "Credenciales inválidas", "error");
       }
     } catch (err) {
-      showToast("Error de conexión", "error");
+      showToast("Error de conexión con el servidor", "error");
     } finally {
       loading.value = false;
     }
   };
 
   const handleAttendance = async () => {
-    if (!employee.value || employee.value.day_completed) return;
+    if (loading.value || !employee.value) return;
+
     loading.value = true;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance`, {
@@ -86,20 +81,22 @@ export function useAttendance() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: employee.value.employee_id }),
       });
+      
       const data = await res.json();
-      if (data.status === "success") {
-        if (data.type === "in") {
-          employee.value.is_inside = true;
-          employee.value.day_completed = false;
-        } else {
-          employee.value.is_inside = false;
-          employee.value.day_completed = true;
-        }
+
+      if (res.ok && data.status === "success") {
+        // Actualizamos estado según Odoo
+        employee.value.is_inside = (data.type === "in");
+        employee.value.day_completed = (data.type === "out");
+
         localStorage.setItem("user_session", JSON.stringify(employee.value));
         showToast(data.message, "success");
+      } else {
+        // Aquí capturamos el Error 500 de Odoo y lo mostramos
+        showToast(data.message || "Error en Odoo: Verifica tu última marcación", "error");
       }
     } catch (err) {
-      showToast("Fallo al registrar marcación", "error");
+      showToast("Fallo de red al registrar", "error");
     } finally {
       loading.value = false;
     }
@@ -116,9 +113,21 @@ export function useAttendance() {
   onMounted(() => {
     updateClock();
     setInterval(updateClock, 1000);
+
     const saved = localStorage.getItem("user_session");
     if (saved) {
-      employee.value = JSON.parse(saved);
+      const userData = JSON.parse(saved);
+      const today = new Date().toLocaleDateString();
+
+      // RESETEADOR: Si el login guardado no es de hoy, limpiamos el estado bloqueado
+      if (userData.last_login_date !== today) {
+        userData.is_inside = false;
+        userData.day_completed = false;
+        userData.last_login_date = today;
+        localStorage.setItem("user_session", JSON.stringify(userData));
+      }
+
+      employee.value = userData;
     }
   });
 
