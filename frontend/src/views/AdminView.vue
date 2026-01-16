@@ -78,15 +78,11 @@
         </div>
       </header>
 
-<div class="flex-1 p-4 md:p-6 overflow-y-auto">
-  <AttendanceModule 
-    v-if="currentModule === 'novedades'" 
-    :isDark="isDark" 
-    :company="selectedCompany" 
-  />
+      <div class="flex-1 p-4 md:p-6 overflow-y-auto">
+        <AttendanceModule v-if="currentModule === 'novedades'" :isDark="isDark" :company="selectedCompany" />
 
-  <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" />
-</div>
+        <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" :company="selectedCompany" />
+      </div>
     </main>
   </div>
 </template>
