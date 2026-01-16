@@ -71,36 +71,48 @@ export function useAttendance() {
     }
   };
 
-  const handleAttendance = async () => {
-    if (loading.value || !employee.value) return;
+// ... dentro de useAttendance()
+const handleAttendance = async () => {
+  if (loading.value || !employee.value) return;
 
-    loading.value = true;
-    try {
-      const res = await fetch(`${API_BASE_URL}/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: employee.value.employee_id }),
+  loading.value = true;
+  try {
+    const res = await fetch(`${API_BASE_URL}/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employee_id: employee.value.employee_id }),
+    });
+    
+    const data = await res.json();
+
+    if (res.ok && data.status === "success") {
+      // 1. Actualizamos estados de navegación
+      employee.value.is_inside = (data.type === "in");
+      employee.value.day_completed = (data.type === "out");
+
+      // 2. NUEVO: Guardamos información de la marcación para la UI
+      // Guardamos la hora actual formateada
+      employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
       });
-      
-      const data = await res.json();
+      // Guardamos el mensaje (A TIEMPO, TARDE, etc.)
+      employee.value.last_status = data.message;
+      // Guardamos el nombre de la malla
+      employee.value.malla_info = data.malla;
 
-      if (res.ok && data.status === "success") {
-        // Actualizamos estado según Odoo
-        employee.value.is_inside = (data.type === "in");
-        employee.value.day_completed = (data.type === "out");
-
-        localStorage.setItem("user_session", JSON.stringify(employee.value));
-        showToast(data.message, "success");
-      } else {
-        // Aquí capturamos el Error 500 de Odoo y lo mostramos
-        showToast(data.message || "Error en Odoo: Verifica tu última marcación", "error");
-      }
-    } catch (err) {
-      showToast("Fallo de red al registrar", "error");
-    } finally {
-      loading.value = false;
+      localStorage.setItem("user_session", JSON.stringify(employee.value));
+      showToast(data.message, "success");
+    } else {
+      showToast(data.message || "Error en Odoo", "error");
     }
-  };
+  } catch (err) {
+    showToast("Fallo de red", "error");
+  } finally {
+    loading.value = false;
+  }
+};
 
   const logout = () => {
     employee.value = null;

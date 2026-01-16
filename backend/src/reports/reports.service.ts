@@ -106,7 +106,8 @@ export class ReportsService {
         { header: 'FECHA', key: 'fecha', width: 15 },
         { header: 'HORA ENTRADA', key: 'check_in', width: 20 },
         { header: 'HORA SALIDA', key: 'check_out', width: 20 },
-        { header: 'ESTADO / NOVEDAD', key: 'estado', width: 25 },
+        { header: 'ESTATUS ENTRADA', key: 'comentario', width: 25 },
+        { header: 'ESTATUS SALIDA', key: 'salida', width: 25 }
       ];
 
       const headerRow = worksheet.getRow(1);

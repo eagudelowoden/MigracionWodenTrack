@@ -101,7 +101,12 @@
               <th
                 class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
                 :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
-                Estatus
+                Estatus Salida
+              </th>
+              <th
+                class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.15em] border-b transition-colors"
+                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-black/40'">
+                Estatus Entrada
               </th>
             </tr>
           </thead>
@@ -166,11 +171,20 @@
 
               <td class="px-4 py-3 text-right">
                 <span :class="[
-                  getStatusClass(item.estado),
+                  getStatusClass(item.comentario),
                   isDark ? 'bg-opacity-20 border-opacity-30' : 'bg-opacity-10 border-opacity-40'
                 ]"
                   class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all shadow-sm">
-                  {{ item.estado || 'OK' }}
+                  {{ item.comentario || 'OK' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <span :class="[
+                  getStatusClass(item.salida),
+                  isDark ? 'bg-opacity-20 border-opacity-30' : 'bg-opacity-10 border-opacity-40'
+                ]"
+                  class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all shadow-sm">
+                  {{ item.salida || 'OK' }}
                 </span>
               </td>
             </tr>
@@ -213,7 +227,7 @@ const { isDark: isDarkTheme } = useAttendance();
 // 3. Vigilar cambios en la compañía (Prop que viene del Header)
 watch(() => props.company, (newCompany) => {
   if (selectedCompany) selectedCompany.value = newCompany;
-  fetchReporte(); 
+  fetchReporte();
 });
 
 // 4. Ciclo de vida (Un solo onMounted)

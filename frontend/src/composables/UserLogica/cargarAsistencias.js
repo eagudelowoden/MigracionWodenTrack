@@ -99,6 +99,8 @@ export function useCargarAsistencias() {
         Fecha: item.fecha,
         Entrada: item.check_in,
         Salida: item.check_out,
+        "Estatus Entrada": item.comentario, // Nuevo
+        "Estatus Salida": item.salida, // Nuevo
         Estado: item.estado,
       }));
 

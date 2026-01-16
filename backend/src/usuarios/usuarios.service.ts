@@ -321,7 +321,7 @@ export class UsuariosService {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
 
-    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id'];
+    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id','x_studio_comentario','x_studio_salida'];
     if (this.ENVIAR_CAMPOS_STUDIO) {
       camposABuscar.push('x_studio_comentario', 'x_studio_salida');
     }
@@ -348,6 +348,9 @@ export class UsuariosService {
         id: att.id,
         empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
         department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        comentario: att.x_studio_comentario || 'N/A',
+        salida: att.x_studio_salida || 'N/A',
+
         // VOLVEMOS A LA HORA PURA DE ODOO (Sin transformaciones de servidor)
         check_in: att.check_in || null,
         check_out: att.check_out || null,
