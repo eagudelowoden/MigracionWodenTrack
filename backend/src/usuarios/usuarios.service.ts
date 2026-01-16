@@ -7,7 +7,7 @@ export class UsuariosService {
   constructor(private readonly odoo: OdooService) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
-  private readonly ENVIAR_CAMPOS_STUDIO = process.env.ENABLE_STUDIO_FIELDS === 'true';
+  private readonly ENVIAR_CAMPOS_STUDIO = process.env.ENABLE_STUDIO_FIELDS === 'false';
 
   async login(usuario: string, password: string) {
     const { inicioDia, ahoraStr } = getFechaColombia();
