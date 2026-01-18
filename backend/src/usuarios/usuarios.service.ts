@@ -4,7 +4,7 @@ import { getFechaColombia, decimalToMinutes } from '../common/utils/fecha.utils'
 
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly odoo: OdooService) {}
+  constructor(private readonly odoo: OdooService) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO = process.env.ENABLE_STUDIO_FIELDS === 'true';
@@ -61,8 +61,7 @@ export class UsuariosService {
       { fields: ['check_in'], limit: 1 },
       uid,
     );
-
-    const isInside = openAttendances.length > 0;
+    let isInside = openAttendances.length > 0;
     let dayCompleted = false;
 
     // 4. LÓGICA DE CIERRE AUTOMÁTICO (Evitar bloqueo de día nuevo)
@@ -73,7 +72,21 @@ export class UsuariosService {
       { fields: ['check_in', 'check_out'], order: 'check_out desc', limit: 1 },
       uid,
     );
+    // Si tiene una sesión abierta pero la entrada NO es de hoy, 
+    // para el frontend es como si estuviera AFUERA para que pueda marcar entrada de nuevo.
 
+    if (isInside) {
+      const fechaEntrada = openAttendances[0].check_in.split(' ')[0];
+      const { ahoraStr } = getFechaColombia();
+      const fechaHoy = ahoraStr.split(' ')[0];
+      const { cierreEstandar } = getFechaColombia();
+      const cierreAyerUTC = `${fechaHoy} 04:59:59`;
+
+      if (fechaEntrada !== fechaHoy) {
+        // AQUÍ: Solo asignamos el valor, no usamos 'let'
+        isInside = false;
+      }
+    }
     if (lastCompleted.length > 0 && !isInside) {
       const registro = lastCompleted[0];
       const fechaEntrada = registro.check_in.split(' ')[0];
@@ -97,15 +110,19 @@ export class UsuariosService {
     };
   }
 
+
+
   async attendance(employee_id: number) {
-    const { inicioDia, ahoraStr } = getFechaColombia();
-    const now = new Date();
-    const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // 1. FECHAS Y HORAS
+    const { ahoraStr } = getFechaColombia();
+    const ahoraCol = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }));
+
+    const horaActualDecimal = ahoraCol.getHours() + ahoraCol.getMinutes() / 60;
+    const dayOfWeekOdoo = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
 
     const uid = await this.odoo.authenticate();
 
-    // 1. Buscar última asistencia abierta
+    // 2. BUSCAR SESIÓN ACTIVA
     const lastAtt = await this.odoo.executeKw<any[]>(
       'hr.attendance',
       'search_read',
@@ -113,176 +130,256 @@ export class UsuariosService {
       { fields: ['id', 'check_in'], limit: 1 },
       uid,
     );
-
     const activeSession = lastAtt && lastAtt.length > 0;
 
-    // 2. Lógica de Horarios (Mallas)
+    // 3. OBTENER CONTRATO Y NOMBRE DE LA MALLA
     const contracts = await this.odoo.executeKw<any[]>(
       'hr.contract',
       'search_read',
-      [[['employee_id', '=', employee_id], ['state', '=', 'open']]],
+      [
+        [
+          ['employee_id', '=', employee_id],
+          ['state', 'in', ['open', 'draft']] // <--- CAMBIO: Igual que en getAllMallas
+        ]
+      ],
       { fields: ['resource_calendar_id'], limit: 1 },
       uid,
     );
 
-    const calId = contracts?.length ? contracts[0].resource_calendar_id[0] : null;
-    const mallas = calId ? await this.odoo.executeKw<any[]>(
-      'resource.calendar.attendance',
-      'search_read',
-      [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeekOdoo]]],
-      { fields: ['hour_from', 'hour_to'] },
-      uid,
-    ) : [];
+    let estadoCalculado = 'A TIEMPO';
+    let infoMalla = 'SIN MALLA ASIGNADA';
 
-    let estado = 'A TIEMPO';
-    if (mallas.length > 0) {
-      const h = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
-      if (!activeSession) {
-        if (currentMinutes > decimalToMinutes(h.hour_from) + 5) estado = 'TARDE';
+    if (contracts && contracts.length > 0 && contracts[0].resource_calendar_id) {
+      const calId = contracts[0].resource_calendar_id[0];
+      const calNombre = contracts[0].resource_calendar_id[1];
+
+      // 4. BUSCAR EL HORARIO DE HOY EN LA MALLA
+      const mallas = await this.odoo.executeKw<any[]>(
+        'resource.calendar.attendance',
+        'search_read',
+        [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeekOdoo]]],
+        { fields: ['hour_from', 'hour_to'] },
+        uid,
+      );
+
+      if (mallas.length > 0) {
+        // Ordenamos para obtener el turno del día
+        const mallaTurno = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
+        const horarioTexto = `${this.formatDecimal(mallaTurno.hour_from)} - ${this.formatDecimal(mallaTurno.hour_to)}`;
+
+        infoMalla = `Malla: ${calNombre} (${horarioTexto})`;
+
+        // LOG DE VALIDACIÓN
+        console.log(`---------------------------------------------------`);
+        console.log(`VALIDANDO ASISTENCIA - EMPLEADO: ${employee_id}`);
+        console.log(`MALLA DETECTADA: ${calNombre}`);
+        console.log(`HORARIO HOY: ${horarioTexto}`);
+        console.log(`HORA MARCACIÓN: ${this.formatDecimal(horaActualDecimal)}`);
+
+        const tolerancia = 6 / 60; // 6 minutos
+
+        if (!activeSession) {
+          // Validación Entrada
+          if (horaActualDecimal > (mallaTurno.hour_from + tolerancia)) {
+            estadoCalculado = 'ENTRADA TARDE';
+          }
+        } else {
+          // Validación Salida
+          if (horaActualDecimal < mallaTurno.hour_to) {
+            estadoCalculado = 'SALIDA ANTICIPADA';
+          }
+        }
+        console.log(`RESULTADO: ${estadoCalculado}`);
+        console.log(`---------------------------------------------------`);
+
       } else {
-        if (currentMinutes < decimalToMinutes(h.hour_to)) estado = 'SALIDA ANTICIPADA';
+        infoMalla = `Malla: ${calNombre} (Sin horario hoy)`;
+        console.log(`AVISO: El empleado tiene malla (${calNombre}) pero no hay turnos para hoy.`);
       }
     }
 
-    // 3. Ejecución de Marcación
+    // 5. GUARDAR EN ODOO
+    // 5. GUARDAR EN ODOO
     if (activeSession) {
-      const fechaEntrada = lastAtt[0].check_in.split(' ')[0];
-      const fechaHoy = ahoraStr.split(' ')[0];
-
-      // Si la entrada es de ayer, cerramos ayer y abrimos hoy
-      if (fechaEntrada !== fechaHoy) {
-        const cierreAyer = `${fechaEntrada} 23:59:59`;
-        await this.odoo.executeKw('hr.attendance', 'write', [[lastAtt[0].id], { check_out: cierreAyer }], {}, uid);
-        
-        const createData: any = { employee_id, check_in: ahoraStr };
-        if (this.ENVIAR_CAMPOS_STUDIO) createData.x_studio_comentario = estado;
-
-        await this.odoo.executeKw('hr.attendance', 'create', [createData], {}, uid);
-        return { status: 'success', type: 'in', message: 'NUEVA ENTRADA (CIERRE PREVIO AUTO)' };
-      }
-
-      // Salida normal del mismo día
+      // --- LÓGICA DE SALIDA ---
       const updateData: any = { check_out: ahoraStr };
-      if (this.ENVIAR_CAMPOS_STUDIO) updateData.x_studio_salida = estado;
+
+      // Solo enviamos el estado al campo de salida
+      updateData['x_studio_salida'] = estadoCalculado;
+
+      // NO incluir x_studio_comentario aquí para no borrar el estado de la entrada original
 
       await this.odoo.executeKw('hr.attendance', 'write', [[lastAtt[0].id], updateData], {}, uid);
-      return { status: 'success', type: 'out', message: estado };
+
+      return {
+        status: 'success',
+        type: 'out',
+        message: estadoCalculado,
+        malla: infoMalla
+      };
 
     } else {
-      // Entrada limpia
-      const createData: any = { employee_id, check_in: ahoraStr };
-      if (this.ENVIAR_CAMPOS_STUDIO) createData.x_studio_comentario = estado;
+      // --- LÓGICA DE ENTRADA ---
+      const createData: any = {
+        employee_id,
+        check_in: ahoraStr,
+        x_studio_comentario: estadoCalculado // Solo enviamos a comentario
+      };
 
       await this.odoo.executeKw('hr.attendance', 'create', [createData], {}, uid);
-      return { status: 'success', type: 'in', message: estado };
+
+      return {
+        status: 'success',
+        type: 'in',
+        message: estadoCalculado,
+        malla: infoMalla
+      };
+    }
+  }
+  // Agrega esto dentro de la clase UsuariosService
+  async getAllMallas(companyName?: string) {
+    const uid = await this.odoo.authenticate();
+    const now = new Date();
+    const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
+
+    // 1. CONSTRUIR EL DOMINIO CORRECTAMENTE
+    // Iniciamos con los filtros fijos
+    const domain: any[] = [
+      ['state', 'in', ['open', 'draft']],
+      ['employee_id.active', '=', true]
+    ];
+
+    // Agregamos la compañía solo si viene el parámetro
+    if (companyName && companyName.trim() !== "") {
+      domain.push(['employee_id.company_id.name', '=', companyName]);
+    }
+
+    // 2. EJECUTAR LA BÚSQUEDA
+    const contracts = await this.odoo.executeKw<any[]>(
+      'hr.contract',
+      'search_read',
+      [domain], // Pasamos el dominio construido
+      {
+        fields: ['employee_id', 'resource_calendar_id', 'job_id'],
+        order: 'employee_id asc'
+      },
+      uid,
+    );
+
+    // Si no hay contratos para esa compañía, retornamos vacío de inmediato
+    if (!contracts || contracts.length === 0) return [];
+
+    const calendarIds = [...new Set(contracts.map(c => c.resource_calendar_id?.[0]).filter(id => !!id))];
+
+    // 3. OBTENER LAS MALLAS
+    let allMallas: any[] = [];
+    if (calendarIds.length > 0) {
+      allMallas = await this.odoo.executeKw<any[]>(
+        'resource.calendar.attendance',
+        'search_read',
+        [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
+        { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
+        uid,
+      );
+    }
+
+    // 4. MAPEO FINAL
+    return contracts.map(con => {
+      // Buscamos si el contrato tiene una malla para el día de hoy
+      const mallaEmp = allMallas.find(m => m.calendar_id[0] === con.resource_calendar_id?.[0]);
+
+      let horario = 'No programado';
+      let jornada = 'N/A';
+
+      if (mallaEmp) {
+        horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
+        const period = mallaEmp.day_period;
+        jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
+      }
+
+      return {
+        nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
+        cc: 'Consultando...',
+        malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
+        jornada: jornada,
+        horario: horario
+      };
+    });
+  }
+
+  async getReporteNovedades(soloHoy?: boolean, companyName?: string) {
+    const uid = await this.odoo.authenticate();
+    let domain: any[] = [];
+
+    if (soloHoy) {
+      const hoy = new Date().toLocaleDateString('en-CA');
+      domain.push(['check_in', '>=', `${hoy} 00:00:00`]);
+      domain.push(['check_in', '<=', `${hoy} 23:59:59`]);
+    }
+
+    if (companyName && companyName.trim() !== "") {
+      domain.push(['employee_id.company_id.name', '=', companyName]);
+    }
+
+    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id','x_studio_comentario','x_studio_salida'];
+    if (this.ENVIAR_CAMPOS_STUDIO) {
+      camposABuscar.push('x_studio_comentario', 'x_studio_salida');
+    }
+
+    const attendances = await this.odoo.executeKw<any[]>(
+      'hr.attendance',
+      'search_read',
+      [domain],
+      {
+        fields: camposABuscar,
+        order: 'check_in desc',
+        limit: soloHoy ? 500 : 100,
+      },
+      uid,
+    );
+
+    return attendances.map(att => {
+      let estadoFinal = 'A TIEMPO';
+      if (this.ENVIAR_CAMPOS_STUDIO) {
+        estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
+      }
+
+      return {
+        id: att.id,
+        empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        comentario: att.x_studio_comentario || 'N/A',
+        salida: att.x_studio_salida || 'N/A',
+
+        // VOLVEMOS A LA HORA PURA DE ODOO (Sin transformaciones de servidor)
+        check_in: att.check_in || null,
+        check_out: att.check_out || null,
+        estado: estadoFinal.toUpperCase(),
+        fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A'
+      };
+    });
+  }
+
+  // Función auxiliar para convertir 8.5 a "08:30"
+  private formatDecimal(decimal: number): string {
+    const hrs = Math.floor(decimal);
+    const mins = Math.round((decimal - hrs) * 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
+
+  private calcularEstadoAsistencia(horaMalla: number, tipo: 'in' | 'out'): string {
+    const ahora = new Date();
+    // Hora local en decimal
+    const horaActualDecimal = ahora.getHours() + ahora.getMinutes() / 60;
+    const tolerancia = 6 / 60; // 6 minutos de margen
+
+    if (tipo === 'in') {
+      // Si la hora actual es mayor a la malla + tolerancia = TARDE
+      return horaActualDecimal > (horaMalla + tolerancia) ? "ENTRADA TARDE" : "A TIEMPO";
+    } else {
+      // Si la hora actual es menor a la malla = SALIDA ANTICIPADA
+      return horaActualDecimal < horaMalla ? "SALIDA ANTICIPADA" : "A TIEMPO";
     }
   }
 
-  // Agrega esto dentro de la clase UsuariosService
-async getAllMallas() {
-  const uid = await this.odoo.authenticate();
-  const now = new Date();
-  const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
-
-  // 1. OBTENER CONTRATOS EN LUGAR DE EMPLEADOS
-  // Esto asegura que leas el 'resource_calendar_id' que acabas de actualizar
-  const contracts = await this.odoo.executeKw<any[]>(
-    'hr.contract',
-    'search_read',
-    [[['state', 'in', ['open', 'draft']], ['employee_id.active', '=', true]]],
-    { 
-      fields: ['employee_id', 'resource_calendar_id', 'job_id'], 
-      order: 'employee_id asc' 
-    },
-    uid,
-  );
-
-  const calendarIds = [...new Set(contracts.map(c => c.resource_calendar_id?.[0]).filter(id => !!id))];
-
-  // 2. Traer los horarios (igual que antes)
-  const allMallas = await this.odoo.executeKw<any[]>(
-    'resource.calendar.attendance',
-    'search_read',
-    [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
-    { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
-    uid,
-  );
-
-  // 3. Mapear desde contratos
-  return contracts.map(con => {
-    const mallaEmp = allMallas.find(m => m.calendar_id[0] === con.resource_calendar_id?.[0]);
-    
-    let horario = 'No programado';
-    let jornada = 'N/A';
-
-    if (mallaEmp) {
-      horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
-      const period = mallaEmp.day_period;
-      jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
-    }
-
-    return {
-      nombre: con.employee_id[1], // El nombre viene en el array del Many2one
-      cc: 'Consultando...', // Si necesitas la CC, podrías agregar 'employee_id.identification_id' a los fields si tu Odoo lo permite
-      malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
-      jornada: jornada,
-      horario: horario
-    };
-  });
-}
-
-async getReporteNovedades() {
-  const uid = await this.odoo.authenticate();
-
-  // 1. Consultamos hr.attendance SIN FILTRO DE FECHA
-  const attendances = await this.odoo.executeKw<any[]>(
-    'hr.attendance',
-    'search_read',
-    [[]], // ARRAY VACÍO = TRAER TODOS
-    {
-      fields: [
-        'employee_id', 
-        'check_in', 
-        'check_out', 
-        'x_studio_comentario', 
-        'x_studio_salida'
-      ],
-      order: 'check_in desc', // Los más recientes primero
-      limit: 100,             // Traer los últimos 100 para que sea rápido
-    },
-    uid,
-  );
-
-  // 2. Mapeo seguro
-  return attendances.map(att => {
-    const estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
-    
-    // Separamos fecha y hora para que se vea mejor en la tabla
-    const formatFecha = (fechaStr: string) => {
-      if (!fechaStr) return '--:--';
-      const partes = fechaStr.split(' ');
-      // Retornamos "Fecha | Hora" o solo "Hora" según prefieras
-      return partes[1]; 
-    };
-
-    return {
-      id: att.id,
-      empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-      check_in: formatFecha(att.check_in),
-      check_out: formatFecha(att.check_out),
-      estado: estadoFinal.toUpperCase(),
-      fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A' // Por si quieres filtrar por fecha luego
-    };
-  });
-}
-
-// Función auxiliar para convertir 8.5 a "08:30"
-private formatDecimal(decimal: number): string {
-  const hrs = Math.floor(decimal);
-  const mins = Math.round((decimal - hrs) * 60);
-  return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
-
-
-  
 }

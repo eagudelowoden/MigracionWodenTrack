@@ -1,24 +1,36 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 
 export function useCargarAsistencias() {
   const reportData = ref([]);
   const loading = ref(false);
   const search = ref("");
+  const selectedDepartment = ref("");
+  const startDate = ref("");
+  const endDate = ref("");
+  const selectedCompany = ref(""); // Nueva variable reactiva
+
+  // Variable para el switch de "Hoy"
+  const filterHoy = ref(true);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-  /**
-   * Obtiene el reporte de novedades desde el backend
-   */
-  const fetchReporte = async () => {
+  // ... dentro de useCargarAsistencias ...
+  const fetchReporte = async (companyOverride = null) => {
     loading.value = true;
-    reportData.value = []; // Limpiamos antes de empezar
     try {
-      const res = await fetch(`${API_BASE_URL}/reporte-novedades`);
-      if (!res.ok) throw new Error("Error en servidor");
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+      url.searchParams.append("hoy", filterHoy.value);
 
+      // Priorizamos la compañía que nos pasen por parámetro (desde el layout)
+      const companyToFilter = companyOverride || selectedCompany.value;
+
+      if (companyToFilter) {
+        url.searchParams.append("company", companyToFilter);
+      }
+
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Error en servidor");
       const data = await res.json();
-      console.log("Personas cargadas:", data.length); // Para debug
       reportData.value = data;
     } catch (err) {
       console.error("Fallo al traer reporte:", err);
@@ -27,33 +39,122 @@ export function useCargarAsistencias() {
     }
   };
 
-  /**
-   * Filtra los datos localmente por nombre de empleado o estado
-   */
-  const filteredReport = computed(() => {
-    if (!search.value) return reportData.value;
-    const s = search.value.toLowerCase();
-    return reportData.value.filter(
-      (item) =>
-        item.empleado.toLowerCase().includes(s) ||
-        item.estado.toLowerCase().includes(s)
-    );
+  // Escuchar cambios en filterHoy para recargar automáticamente
+  watch(filterHoy, () => {
+    fetchReporte();
+  });
+  watch(selectedCompany, () => {
+    fetchReporte();
   });
 
-  /**
-   * Lógica para descargar el Excel (puedes implementarla luego)
-   */
-  const downloadReport = () => {
-    if (reportData.value.length === 0) return;
-    console.log("Generando reporte de novedades...");
-    // Aquí podrías usar una librería como XLSX o llamar a un endpoint de descarga
+  const clearFilters = () => {
+    search.value = "";
+    selectedDepartment.value = "";
+    startDate.value = "";
+    endDate.value = "";
+    filterHoy.value = false; // Al limpiar filtros, permitimos ver todo
+    selectedCompany.value = ""; // Limpiar compañía
+  };
+
+  const departments = computed(() => {
+    const allDeps = reportData.value
+      .map((item) => item.department_id)
+      .filter(Boolean);
+    return [...new Set(allDeps)].sort();
+  });
+
+  const filteredReport = computed(() => {
+    return reportData.value.filter((item) => {
+      const s = search.value.toLowerCase();
+
+      const matchesSearch =
+        !search.value ||
+        item.empleado.toLowerCase().includes(s) ||
+        item.estado.toLowerCase().includes(s);
+
+      const matchesDept =
+        !selectedDepartment.value ||
+        String(item.department_id) === String(selectedDepartment.value);
+
+      const itemDate = item.fecha;
+      const matchesDate =
+        (!startDate.value || itemDate >= startDate.value) &&
+        (!endDate.value || itemDate <= endDate.value);
+
+      return matchesSearch && matchesDept && matchesDate;
+    });
+  });
+
+  const downloadReport = async () => {
+    if (filteredReport.value.length === 0) {
+      alert("No hay datos para exportar");
+      return;
+    }
+
+    loading.value = true;
+    try {
+      const dataFiltrada = filteredReport.value.map((item) => ({
+        Colaborador: item.empleado,
+        Departamento: item.department_id,
+        Fecha: item.fecha,
+        Entrada: item.check_in,
+        Salida: item.check_out,
+        "Estatus Entrada": item.comentario, // Nuevo
+        "Estatus Salida": item.salida, // Nuevo
+        Estado: item.estado,
+      }));
+
+      const response = await fetch(
+        `${API_BASE_URL}/reports/asistencias/export`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataFiltrada),
+        }
+      );
+
+      if (!response.ok) throw new Error("Error al generar el archivo");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      const ahora = new Date();
+      const fechaCorta = ahora.toISOString().slice(0, 10);
+      const horaCorta = ahora
+        .toLocaleTimeString("es-CO", { hour12: false })
+        .replace(/:/g, "-");
+      const range = startDate.value
+        ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
+        : "";
+
+      link.setAttribute(
+        "download",
+        `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      alert("Error al descargar el reporte.");
+    } finally {
+      loading.value = false;
+    }
   };
 
   return {
-    reportData: filteredReport, // Retornamos la versión filtrada
+    reportData: filteredReport,
     search,
+    selectedDepartment,
+    startDate,
+    endDate,
+    filterHoy, // IMPORTANTE: Exponer esta variable
+    departments,
     loading,
     fetchReporte,
     downloadReport,
+    clearFilters,
+    selectedCompany,
   };
 }

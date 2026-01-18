@@ -19,7 +19,7 @@
 /* Badges de Jornada */
 .jornada-badge.mañana {
   background: #E3F2FD;
-  color: #1976D2;
+  color: #7088a0;
   border: 1px solid #BBDEFB;
 }
 .btn-download-excel {
@@ -187,7 +187,7 @@
   text-transform: uppercase;
   display: inline-block;
 }
-.jornada-badge-new.diurna { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.2); }
+.jornada-badge-new.diurna { background: rgba(14, 165, 233, 0.1); color: #7c8c94; border: 1px solid rgba(14, 165, 233, 0.2); }
 .jornada-badge-new.tarde { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
 .jornada-badge-new.nocturna { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
 
@@ -253,5 +253,5 @@
 }
 /* Colores base que se adaptan por opacidad en el HTML */
 .mañana { color: #10b981; border-color: #10b981; background-color: #10b981; }
-.tarde { color: #0ea5e9; border-color: #0ea5e9; background-color: #0ea5e9; }
+.tarde { color: #000000; border-color: #90acb9; background-color: #90acb9; }
 .noche { color: #f43f5e; border-color: #f43f5e; background-color: #f43f5e; }

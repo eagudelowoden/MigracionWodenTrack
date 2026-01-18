@@ -1,11 +1,11 @@
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAttendance } from "../UserLogica/useAttendance.js";
 import { useRouter } from "vue-router";
 import * as XLSX from "xlsx";
 
 export function adminOdoo() {
   const router = useRouter();
-  const att = useAttendance(); // Trae employee, loading, showToast, etc.
+  const att = useAttendance();
 
   const currentModule = ref("novedades");
   const isSidebarOpen = ref(true);
@@ -13,12 +13,32 @@ export function adminOdoo() {
   const searchQuery = ref("");
   const isExporting = ref(false);
 
+  // --- NUEVAS VARIABLES PARA COMPAÑÍAS ---
+  const allCompanies = ref([]);
+  const selectedCompany = ref("");
+
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   let intervalId = null;
 
+  // Cargar lista de compañías desde el nuevo endpoint
+  const fetchCompanies = async () => {
+    try {
+      // Si creaste el recurso 'companies', el endpoint es este:
+      const res = await fetch(`${API_BASE_URL}/companies`);
+      const data = await res.json();
+      allCompanies.value = data;
+
+      if (data.length > 0 && !selectedCompany.value) {
+        selectedCompany.value = data[0].name;
+      }
+    } catch (err) {
+      console.error("Error cargando compañías:", err);
+    }
+  };
   const fetchReport = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/report`);
+      // Opcional: Podrías pasar la compañía al backend si quieres filtrar desde la DB
+      const res = await fetch(`${API_BASE_URL}/reporte-novedades`);
       const data = await res.json();
       report.value = data;
     } catch (err) {
@@ -37,9 +57,7 @@ export function adminOdoo() {
       });
       const data = await res.json();
       if (data.status === "success") {
-        await fetchReport(); // Refresca la tabla
-        
-        // Actualiza el estado local (usando att.)
+        await fetchReport();
         if (data.type === "in") {
           att.employee.value.is_inside = true;
           att.employee.value.day_completed = false;
@@ -47,7 +65,10 @@ export function adminOdoo() {
           att.employee.value.is_inside = false;
           att.employee.value.day_completed = true;
         }
-        localStorage.setItem("user_session", JSON.stringify(att.employee.value));
+        localStorage.setItem(
+          "user_session",
+          JSON.stringify(att.employee.value)
+        );
         att.showToast(data.message, "success");
       }
     } catch (err) {
@@ -60,12 +81,16 @@ export function adminOdoo() {
   const downloadExcelReport = async () => {
     isExporting.value = true;
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/export-excel`);
-      const data = await res.json();
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      // Exportamos solo lo que está filtrado actualmente en pantalla
+      const worksheet = XLSX.utils.json_to_sheet(filteredReport.value);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Asistencias");
-      XLSX.writeFile(workbook, `Reporte_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(
+        workbook,
+        `Reporte_${selectedCompany.value}_${
+          new Date().toISOString().split("T")[0]
+        }.xlsx`
+      );
       att.showToast("Excel generado", "success");
     } catch (err) {
       att.showToast("Error Excel", "error");
@@ -74,28 +99,46 @@ export function adminOdoo() {
     }
   };
 
-  onMounted(() => {
+  onMounted(async () => {
+    await fetchCompanies(); // Primero traemos las compañías
     fetchReport();
     intervalId = setInterval(fetchReport, 60000);
   });
 
-  onUnmounted(() => { if (intervalId) clearInterval(intervalId); });
+  onUnmounted(() => {
+    if (intervalId) clearInterval(intervalId);
+  });
+
+  // --- FILTRADO POR BUSQUEDA Y POR COMPAÑIA ---
+  const filteredReport = computed(() => {
+    return report.value.filter((item) => {
+      // Filtro por Compañía
+      const matchesCompany =
+        !selectedCompany.value || item.company_name === selectedCompany.value;
+
+      // Filtro por Buscador
+      const s = searchQuery.value.toLowerCase();
+      const matchesSearch =
+        !searchQuery.value ||
+        item.empleado.toLowerCase().includes(s) ||
+        item.department_id.toLowerCase().includes(s);
+
+      return matchesCompany && matchesSearch;
+    });
+  });
 
   return {
-    ...att, // Expone employee, loading, logout, etc.
+    ...att,
     currentModule,
     isSidebarOpen,
     report,
     searchQuery,
     isExporting,
+    allCompanies, // Exportamos para el select
+    selectedCompany, // Exportamos para el v-model
     fetchReport,
     handleAttendance,
     downloadExcelReport,
-    filteredReport: computed(() => {
-      if (!searchQuery.value) return report.value;
-      return report.value.filter((item) =>
-        item.empleado.toLowerCase().includes(searchQuery.value.toLowerCase())
-      );
-    }),
+    filteredReport,
   };
 }

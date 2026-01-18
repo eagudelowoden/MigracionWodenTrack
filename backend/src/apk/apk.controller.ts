@@ -7,7 +7,7 @@ import { ApkService } from './apk.service';
 
 @Controller('apk')
 export class ApkController {
-  constructor(private readonly apkService: ApkService) {}
+  constructor(private readonly apkService: ApkService) { }
 
   @Get('info')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate')

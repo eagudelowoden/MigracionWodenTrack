@@ -1,0 +1,12 @@
+import { Controller, Get } from '@nestjs/common';
+import { CompaniesService } from './companies.service';
+
+@Controller('usuarios/companies')
+export class CompaniesController {
+  constructor(private readonly companiesService: CompaniesService) {}
+
+  @Get()
+  async findAll() {
+    return await this.companiesService.findAll();
+  }
+}
