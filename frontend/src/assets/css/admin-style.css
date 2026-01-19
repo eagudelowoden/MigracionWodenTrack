@@ -241,3 +241,158 @@ main.flex-1 {
     background: rgba(156, 163, 175, 0.3);
     border-radius: 10px;
 }
+/* --- BOTONES SMART ASISTENCIA --- */
+.btn-smart-in, .btn-smart-out {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.btn-smart-in {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.btn-smart-out {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+}
+
+.btn-smart-in:hover, .btn-smart-out:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.btn-smart-in:disabled, .btn-smart-out:disabled {
+  background: #94a3b8;
+  opacity: 0.2;
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* --- NAVEGACIÓN SMART --- */
+.nav-link-smart {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+}
+
+.nav-link-smart i {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+}
+
+.nav-link-smart.active {
+  background-color: #FF8F00;
+  color: white;
+  box-shadow: 0 8px 16px rgba(255, 143, 0, 0.25);
+}
+
+.nav-link-smart:hover:not(.active) {
+  background-color: rgba(255, 143, 0, 0.08);
+  color: #FF8F00;
+}
+
+/* --- SIDEBAR CONFIG --- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  border-right: 1px solid transparent;
+}
+
+.theme-dark .sidebar { background-color: #0f172a; border-right-color: rgba(255,255,255,0.05); }
+.theme-light .sidebar { background-color: #ffffff; border-right-color: #f1f5f9; }
+
+.sidebar-open { width: 240px; }
+.sidebar-closed { width: 70px; }
+
+.sidebar-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+}
+/* --- NAVEGACIÓN V2 --- */
+.nav-link-v2 {
+  @apply w-full flex items-center gap-4 px-3 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all border-none cursor-pointer bg-transparent text-slate-400;
+}
+
+.nav-link-v2 .nav-icon {
+  @apply w-8 h-8 flex items-center justify-center rounded-lg bg-slate-500/5 transition-all;
+}
+
+.nav-link-v2.active {
+  @apply text-white bg-[#FF8F00] shadow-lg shadow-orange-500/30;
+}
+
+.nav-link-v2.active .nav-icon {
+  @apply bg-white/20 text-white;
+}
+
+.nav-link-v2:hover:not(.active) {
+  @apply text-[#FF8F00] bg-[#FF8F00]/5;
+}
+
+.nav-link-v2.logout:hover {
+  @apply bg-rose-500 text-white shadow-lg shadow-rose-500/30;
+}
+
+/* --- BOTONES EN EL HEADER --- */
+.btn-action-header {
+  @apply px-4 py-1.5 rounded-lg font-black text-[10px] uppercase transition-all border-none cursor-pointer;
+}
+
+.btn-action-header.in {
+  @apply bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm active:scale-95;
+}
+
+.btn-action-header.out {
+  @apply bg-rose-500 text-white hover:bg-rose-600 shadow-sm active:scale-95;
+}
+
+.btn-action-header:disabled {
+  @apply bg-slate-400 opacity-20 grayscale cursor-not-allowed shadow-none;
+}
+
+/* --- SELECTOR DE COMPAÑÍA --- */
+.company-selector:hover {
+  @apply border-[#FF8F00] shadow-md;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+  @apply h-screen transition-all duration-500 ease-in-out border-r border-transparent overflow-hidden flex flex-col;
+}
+
+.theme-dark .sidebar { @apply bg-[#0f172a] border-white/5; }
+.theme-light .sidebar { @apply bg-white border-slate-200 shadow-xl; }
+
+.sidebar-header {
+  @apply h-16 flex items-center px-4 shrink-0;
+}
