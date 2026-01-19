@@ -110,19 +110,20 @@ export class UsuariosService {
     };
   }
 
-
-
   async attendance(employee_id: number) {
-    // 1. FECHAS Y HORAS
+    // 1. OBTENER FECHAS Y CONEXIÓN
     const { ahoraStr } = getFechaColombia();
     const ahoraCol = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Bogota" }));
+    const hoyFechaCorta = ahoraCol.toISOString().split('T')[0];
 
-    const horaActualDecimal = ahoraCol.getHours() + ahoraCol.getMinutes() / 60;
-    const dayOfWeekOdoo = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
+    // Variables inicializadas para evitar errores de Scope (Cannot find name)
+    let estadoCalculado = 'A TIEMPO';
+    let infoMalla = 'SIN MALLA ASIGNADA';
+    let autoCerrado = false;
 
     const uid = await this.odoo.authenticate();
 
-    // 2. BUSCAR SESIÓN ACTIVA
+    // 2. BUSCAR SESIÓN ACTIVA (Check-out vacío)
     const lastAtt = await this.odoo.executeKw<any[]>(
       'hr.attendance',
       'search_read',
@@ -130,30 +131,56 @@ export class UsuariosService {
       { fields: ['id', 'check_in'], limit: 1 },
       uid,
     );
-    const activeSession = lastAtt && lastAtt.length > 0;
 
-    // 3. OBTENER CONTRATO Y NOMBRE DE LA MALLA
+    let activeSession = lastAtt && lastAtt.length > 0;
+
+    // 3. LÓGICA DE AUTO-CIERRE (Si hay sesión de días previos)
+    if (activeSession) {
+      const checkInStr = lastAtt[0].check_in; // Formato Odoo UTC
+      const checkInFechaCorta = checkInStr.split(' ')[0];
+
+      if (checkInFechaCorta !== hoyFechaCorta) {
+        // --- SOLUCIÓN AL DESFASE USANDO TU LÓGICA DE UTILS ---
+        // Tomamos la fecha de entrada, le sumamos 1 día y ponemos las 04:59:59 UTC
+        // Esto resultará en 23:59:59 del día de entrada en el reporte de Colombia
+        const fechaEntradaOdoo = new Date(checkInStr + 'Z');
+        const diaCierre = new Date(fechaEntradaOdoo);
+        diaCierre.setUTCDate(diaCierre.getUTCDate() + 1);
+
+        const fechaDiaSiguiente = diaCierre.toISOString().split('T')[0];
+        const cierreCompensadoParaOdoo = `${fechaDiaSiguiente} 04:59:59`;
+
+        console.log(`[Auto-Cierre] Cerrando sesión olvidada del ${checkInFechaCorta}. Cierre UTC: ${cierreCompensadoParaOdoo}`);
+
+        await this.odoo.executeKw('hr.attendance', 'write', [
+          [lastAtt[0].id],
+          {
+            check_out: cierreCompensadoParaOdoo,
+            x_studio_salida: 'OLVIDÓ MARCAR SALIDA (AUTO-CIERRE)'
+          }
+        ], {}, uid);
+
+        // Forzamos activeSession a false para que proceda a crear la ENTRADA de hoy
+        activeSession = false;
+        autoCerrado = true;
+      }
+    }
+
+    // 4. OBTENER CONTRATO Y MALLA PARA VALIDAR ESTADO
     const contracts = await this.odoo.executeKw<any[]>(
       'hr.contract',
       'search_read',
-      [
-        [
-          ['employee_id', '=', employee_id],
-          ['state', 'in', ['open', 'draft']] // <--- CAMBIO: Igual que en getAllMallas
-        ]
-      ],
+      [[['employee_id', '=', employee_id], ['state', 'in', ['open', 'draft']]]],
       { fields: ['resource_calendar_id'], limit: 1 },
       uid,
     );
 
-    let estadoCalculado = 'A TIEMPO';
-    let infoMalla = 'SIN MALLA ASIGNADA';
-
     if (contracts && contracts.length > 0 && contracts[0].resource_calendar_id) {
       const calId = contracts[0].resource_calendar_id[0];
       const calNombre = contracts[0].resource_calendar_id[1];
+      const dayOfWeekOdoo = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
+      const horaActualDecimal = ahoraCol.getHours() + ahoraCol.getMinutes() / 60;
 
-      // 4. BUSCAR EL HORARIO DE HOY EN LA MALLA
       const mallas = await this.odoo.executeKw<any[]>(
         'resource.calendar.attendance',
         'search_read',
@@ -163,53 +190,31 @@ export class UsuariosService {
       );
 
       if (mallas.length > 0) {
-        // Ordenamos para obtener el turno del día
         const mallaTurno = mallas.sort((a, b) => a.hour_from - b.hour_from)[0];
-        const horarioTexto = `${this.formatDecimal(mallaTurno.hour_from)} - ${this.formatDecimal(mallaTurno.hour_to)}`;
-
-        infoMalla = `Malla: ${calNombre} (${horarioTexto})`;
-
-        // LOG DE VALIDACIÓN
-        console.log(`---------------------------------------------------`);
-        console.log(`VALIDANDO ASISTENCIA - EMPLEADO: ${employee_id}`);
-        console.log(`MALLA DETECTADA: ${calNombre}`);
-        console.log(`HORARIO HOY: ${horarioTexto}`);
-        console.log(`HORA MARCACIÓN: ${this.formatDecimal(horaActualDecimal)}`);
-
         const tolerancia = 6 / 60; // 6 minutos
 
         if (!activeSession) {
-          // Validación Entrada
+          // Validación para Entrada Nueva
           if (horaActualDecimal > (mallaTurno.hour_from + tolerancia)) {
             estadoCalculado = 'ENTRADA TARDE';
           }
         } else {
-          // Validación Salida
+          // Validación para Salida (Mismo día)
           if (horaActualDecimal < mallaTurno.hour_to) {
             estadoCalculado = 'SALIDA ANTICIPADA';
           }
         }
-        console.log(`RESULTADO: ${estadoCalculado}`);
-        console.log(`---------------------------------------------------`);
-
-      } else {
-        infoMalla = `Malla: ${calNombre} (Sin horario hoy)`;
-        console.log(`AVISO: El empleado tiene malla (${calNombre}) pero no hay turnos para hoy.`);
+        infoMalla = `Malla: ${calNombre} (${this.formatDecimal(mallaTurno.hour_from)} - ${this.formatDecimal(mallaTurno.hour_to)})`;
       }
     }
 
-    // 5. GUARDAR EN ODOO
-    // 5. GUARDAR EN ODOO
+    // 5. EJECUCIÓN FINAL EN ODOO
     if (activeSession) {
-      // --- LÓGICA DE SALIDA ---
-      const updateData: any = { check_out: ahoraStr };
-
-      // Solo enviamos el estado al campo de salida
-      updateData['x_studio_salida'] = estadoCalculado;
-
-      // NO incluir x_studio_comentario aquí para no borrar el estado de la entrada original
-
-      await this.odoo.executeKw('hr.attendance', 'write', [[lastAtt[0].id], updateData], {}, uid);
+      // --- SALIDA NORMAL (Mismo día) ---
+      await this.odoo.executeKw('hr.attendance', 'write', [
+        [lastAtt[0].id],
+        { check_out: ahoraStr, x_studio_salida: estadoCalculado }
+      ], {}, uid);
 
       return {
         status: 'success',
@@ -219,19 +224,19 @@ export class UsuariosService {
       };
 
     } else {
-      // --- LÓGICA DE ENTRADA ---
-      const createData: any = {
-        employee_id,
-        check_in: ahoraStr,
-        x_studio_comentario: estadoCalculado // Solo enviamos a comentario
-      };
-
-      await this.odoo.executeKw('hr.attendance', 'create', [createData], {}, uid);
+      // --- ENTRADA (Nueva entrada O entrada después de auto-cerrar la vieja) ---
+      await this.odoo.executeKw('hr.attendance', 'create', [
+        {
+          employee_id,
+          check_in: ahoraStr,
+          x_studio_comentario: estadoCalculado
+        }
+      ], {}, uid);
 
       return {
         status: 'success',
         type: 'in',
-        message: estadoCalculado,
+        message: autoCerrado ? `Se cerró registro anterior (23:59). ${estadoCalculado}` : estadoCalculado,
         malla: infoMalla
       };
     }
@@ -321,7 +326,7 @@ export class UsuariosService {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
 
-    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id','x_studio_comentario','x_studio_salida'];
+    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_comentario', 'x_studio_salida'];
     if (this.ENVIAR_CAMPOS_STUDIO) {
       camposABuscar.push('x_studio_comentario', 'x_studio_salida');
     }
