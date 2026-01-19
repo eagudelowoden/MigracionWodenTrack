@@ -396,3 +396,60 @@ main.flex-1 {
 .sidebar-header {
   @apply h-16 flex items-center px-4 shrink-0;
 }
+/* Botones de Acción en Header */
+.btn-header-smart {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px; /* Más compacto verticalmente */
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+/* Caja de icono interna para resaltar el símbolo */
+.icon-box-smart {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 7px;
+  transition: transform 0.2s ease;
+}
+
+.btn-header-smart:hover:not(:disabled) .icon-box-smart {
+  transform: scale(1.1);
+}
+
+/* Colores Dinámicos con Degradados Suaves */
+.btn-header-smart.in {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+}
+
+.btn-header-smart.out {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.15);
+}
+
+/* Estado Desactivado (Compacto y Elegante) */
+.btn-header-smart:disabled {
+  background: transparent;
+  color: #94a3b8; /* slate-400 */
+  box-shadow: none;
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.btn-header-smart:disabled .icon-box-smart {
+  background: rgba(148, 163, 184, 0.1);
+}
