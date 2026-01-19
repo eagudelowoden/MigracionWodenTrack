@@ -1,19 +1,14 @@
 <template>
-  <div class="novedades-container-main space-y-4 h-full animate-in fade-in duration-500 flex flex-col">
+  <div class="novedades-container-main space-y-1 h-full animate-in fade-in duration-500 flex flex-col">
 
-    <div class="flex flex-wrap items-center justify-between gap-4 px-1 shrink-0">
+    <div class="flex flex-wrap items-center justify-between gap-1 px-1 shrink-0">
       <div class="flex items-center gap-3">
-        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#FF8F00]/10 text-[#FF8F00]">
+        <div class="flex items-center justify-center w-7 h-8 rounded-lg bg-[#FF8F00]/10 text-[#FF8F00]">
           <i class="fas fa-clipboard-list text-sm"></i>
         </div>
-        <h1 class="text-lg font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
-          Novedades
-        </h1>
-        <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
-        <span
-          class="text-[10px] font-medium uppercase tracking-widest text-slate-500 hidden sm:flex items-center gap-1.5">
-          <i class="fas fa-bolt-lightning text-[9px] text-[#FF8F00]"></i> Odoo Sync
-        </span>
+        <h2 class="text-lg font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
+          Asistencias
+        </h2>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -173,7 +168,7 @@
       </div>
 
       <div v-if="reportData.length > 0"
-        class="px-4 py-3 border-t flex items-center justify-between shrink-0 transition-colors"
+        class="px-2 py-1 border-t flex items-center justify-between shrink-0 transition-colors"
         :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-100 bg-slate-50/50'">
 
         <div class="flex items-center gap-4">
