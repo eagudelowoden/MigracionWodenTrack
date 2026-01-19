@@ -15,42 +15,43 @@ export function useCargarAsistencias() {
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // ... dentro de useCargarAsistencias ...
-const fetchReporte = async (companyOverride = null) => {
-  loading.value = true;
-  
-  // Si el parámetro es un evento (clic), lo ignoramos
-  const isEvent = companyOverride instanceof Event || (companyOverride && companyOverride.target);
-  const actualCompany = isEvent ? null : companyOverride;
+  const fetchReporte = async (companyOverride = null) => {
+    loading.value = true;
 
-  try {
-    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-    
-    // Aseguramos que 'hoy' sea un string "true" o "false"
-    const soloHoy = filterHoy.value === true || filterHoy.value === 'true';
-    url.searchParams.append("hoy", soloHoy.toString());
+    // Si el parámetro es un evento (clic), lo ignoramos
+    const isEvent =
+      companyOverride instanceof Event ||
+      (companyOverride && companyOverride.target);
+    const actualCompany = isEvent ? null : companyOverride;
 
-    // Prioridad: 1. Parámetro manual, 2. Variable reactiva del componente
-    const companyToFilter = actualCompany || selectedCompany.value;
+    try {
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
 
-    if (companyToFilter && typeof companyToFilter === 'string') {
-      url.searchParams.append("company", companyToFilter);
+      // Aseguramos que 'hoy' sea un string "true" o "false"
+      const soloHoy = filterHoy.value === true || filterHoy.value === "true";
+      url.searchParams.append("hoy", soloHoy.toString());
+
+      // Prioridad: 1. Parámetro manual, 2. Variable reactiva del componente
+      const companyToFilter = actualCompany || selectedCompany.value;
+
+      if (companyToFilter && typeof companyToFilter === "string") {
+        url.searchParams.append("company", companyToFilter);
+      }
+
+      // Cache breaker
+      url.searchParams.append("_t", Date.now().toString());
+
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Error en servidor");
+
+      const data = await res.json();
+      reportData.value = data;
+    } catch (err) {
+      console.error("Fallo al traer reporte:", err);
+    } finally {
+      loading.value = false;
     }
-
-    // Cache breaker
-    url.searchParams.append("_t", Date.now().toString());
-
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error("Error en servidor");
-    
-    const data = await res.json();
-    reportData.value = data;
-    
-  } catch (err) {
-    console.error("Fallo al traer reporte:", err);
-  } finally {
-    loading.value = false;
-  }
-};
+  };
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {
@@ -112,8 +113,9 @@ const fetchReporte = async (companyOverride = null) => {
         Fecha: item.fecha,
         Entrada: item.check_in,
         Salida: item.check_out,
-        "Estatus Entrada": item.comentario, // Nuevo
-        "Estatus Salida": item.salida, // Nuevo
+        // IMPORTANTE: Usar los nombres que vienen de tu API
+        Estatus_Entrada: item.comentario, // Aquí viene x_studio_comentario
+        Estatus_Salida: item.salida, // Aquí viene x_studio_salida
         Estado: item.estado,
       }));
 

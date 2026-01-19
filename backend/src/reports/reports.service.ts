@@ -95,46 +95,49 @@ export class ReportsService {
     }
   }
 
-  async generarReporteAsistencias(data: any[]): Promise<Buffer> {
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Reporte de Novedades');
+async generarReporteAsistencias(data: any[]): Promise<Buffer> {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte de Novedades');
 
-      worksheet.columns = [
-        { header: 'COLABORADOR', key: 'empleado', width: 35 },
-        { header: 'DEPARTAMENTO', key: 'depto', width: 25 },
-        { header: 'FECHA', key: 'fecha', width: 15 },
-        { header: 'HORA ENTRADA', key: 'check_in', width: 20 },
-        { header: 'HORA SALIDA', key: 'check_out', width: 20 },
-        { header: 'ESTATUS ENTRADA', key: 'comentario', width: 25 },
-        { header: 'ESTATUS SALIDA', key: 'salida', width: 25 }
-      ];
+    worksheet.columns = [
+      { header: 'COLABORADOR', key: 'empleado', width: 35 },
+      { header: 'DEPARTAMENTO', key: 'depto', width: 25 },
+      { header: 'FECHA', key: 'fecha', width: 15 },
+      { header: 'HORA ENTRADA', key: 'check_in', width: 20 },
+      { header: 'HORA SALIDA', key: 'check_out', width: 20 },
+      { header: 'ESTATUS ENTRADA', key: 'estatus_in', width: 25 }, // Key simplificada
+      { header: 'ESTATUS SALIDA', key: 'estatus_out', width: 25 }  // Key simplificada
+    ];
 
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF107C41' }
-      };
+    // Estilos de cabecera...
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF107C41' }
+    };
 
-      data.forEach(item => {
-        worksheet.addRow({
-          empleado: item.Colaborador,
-          depto: item.Departamento,
-          fecha: item.Fecha,
-          check_in: item.Entrada,
-          check_out: item.Salida,
-          estado: item.Estado
-        });
+    data.forEach(item => {
+      worksheet.addRow({
+        empleado: item.Colaborador,
+        depto: item.Departamento,
+        fecha: item.Fecha,
+        check_in: item.Entrada,
+        check_out: item.Salida,
+        // MAPEADO CORRECTO:
+        estatus_in: item.Estatus_Entrada, 
+        estatus_out: item.Estatus_Salida
       });
+    });
 
-      const buffer = await workbook.xlsx.writeBuffer();
-      return Buffer.from(buffer as ArrayBuffer);
-    } catch (error) {
-      console.error("Error en reporte de asistencias:", error.message);
-      throw new InternalServerErrorException(`Error al generar Excel: ${error.message}`);
-    }
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer as ArrayBuffer);
+  } catch (error) {
+    console.error("Error en reporte de asistencias:", error.message);
+    throw new InternalServerErrorException(`Error al generar Excel: ${error.message}`);
   }
+}
 }
 
