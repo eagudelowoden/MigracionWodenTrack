@@ -70,58 +70,67 @@
     </div>
 
     <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#1a1d2d] border-[#2d324d] shadow-none' : 'bg-white border-slate-200 shadow-sm'">
+      :class="isDark ? 'bg-[#1a1d2d] border-[#2d324d]' : 'bg-white border-slate-200 shadow-sm'">
 
-      <div class="flex-1 overflow-auto">
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar ">
         <table class="w-full border-separate border-spacing-0">
-          <thead class="sticky top-0 z-10 shadow-sm">
-            <tr :class="isDark ? 'bg-[#252a41]' : 'bg-slate-50/80 backdrop-blur-md'">
-              <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest border-b"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-                <div class="flex items-center gap-2"><i class="fas fa-user-circle"></i> Colaborador</div>
+          <thead class="sticky top-0 z-30 shadow-md">
+            <tr :class="isDark ? 'bg-[#2D3A5F]' : 'bg-[#3B4C7A]'">
+              <th
+                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Colaborador
+                </div>
               </th>
-              <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest border-b"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-                <div class="flex items-center justify-center gap-2"><i class="fas fa-sign-in-alt"></i> Entrada</div>
+              <th
+                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-sign-in-alt text-[9px] opacity-60"></i> Entrada
+                </div>
               </th>
-              <th class="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest border-b"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-                <div class="flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> Salida</div>
+              <th
+                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-sign-out-alt text-[9px] opacity-60"></i> Salida
+                </div>
               </th>
-              <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest border-b"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
+              <th
+                class="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 Estatus Entrada
               </th>
-              <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest border-b"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
+              <th
+                class="px-10 py-4 text-right text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 Estatus Salida
               </th>
             </tr>
           </thead>
 
-          <tbody class="divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
+          <tbody class="divide-y-0">
             <tr v-if="loading" v-for="n in 8" :key="'loader-' + n">
               <td colspan="5" class="px-4 py-4">
                 <div class="h-4 w-full rounded animate-pulse" :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
               </td>
             </tr>
 
-            <tr v-else v-for="item in paginatedData" :key="item.id" class="group transition-all duration-150"
-              :class="isDark ? 'hover:bg-[#252a41]' : 'hover:bg-orange-50/50'">
+            <tr v-else v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
+              :class="[
+                index % 2 !== 0
+                  ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-100/80')
+                  : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50/50'
+              ]">
 
-              <td class="px-4 py-3">
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <div class="flex items-center gap-3">
                   <div
                     class="avatar-mini w-8 h-8 rounded-full bg-slate-500/20 flex items-center justify-center shrink-0">
                     <i class="fas fa-user text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-500'"></i>
                   </div>
-
                   <div class="flex flex-col min-w-0">
                     <span class="text-[11px] font-bold uppercase tracking-wider leading-none mb-1"
                       :class="isDark ? 'text-white' : 'text-slate-800'">
                       {{ item.empleado }}
                     </span>
-
                     <span class="text-[9px] font-semibold flex items-center gap-1.5 uppercase tracking-wide"
                       :class="isDark ? 'text-orange-400/90' : 'text-orange-600'">
                       <i class="fas fa-tag text-[7px]"></i>
@@ -130,76 +139,60 @@
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-3 text-center">
-                <span class="text-[14px] font-mono font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                  {{ formatDateTime(item.check_in) }}
-                </span>
+
+              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
+                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+                {{ formatDateTime(item.check_in) }}
               </td>
 
-              <td class="px-4 py-3 text-center">
-                <span class="text-[14px] font-mono font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                  {{ formatDateTime(item.check_out) }}
-                </span>
+              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
+                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+                {{ formatDateTime(item.check_out) }}
               </td>
 
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span :class="[getStatusClass(item.comentario), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
                   class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
                   {{ item.comentario || 'OK' }}
                 </span>
               </td>
 
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span :class="[getStatusClass(item.salida), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
                   class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
                   {{ item.salida || 'OK' }}
                 </span>
               </td>
             </tr>
-
-            <tr v-if="!loading && reportData.length === 0">
-              <td colspan="5" class="py-20 text-center opacity-30">
-                <i class="fas fa-folder-open text-4xl mb-3 block"></i>
-                <p class="text-[11px] font-black uppercase tracking-widest">No se encontraron registros</p>
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-if="reportData.length > 0"
-        class="px-2 py-1 border-t flex items-center justify-between shrink-0 transition-colors"
-        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-100 bg-slate-50/50'">
+      <div v-if="paginatedData?.length"
+        class="px-4 py-1.5 border-t flex items-center justify-between shrink-0 transition-colors z-40"
+        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-100 bg-white'">
 
-        <div class="flex items-center gap-4">
-          <span class="text-[10px] font-black uppercase tracking-widest opacity-40">
-            Total: {{ reportData.length }} registros
-          </span>
-          <div class="h-3 w-[1px] bg-slate-500/20"></div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-[#FF8F00]">
-            Página {{ currentPage }} de {{ totalPages }}
-          </span>
-        </div>
+        <span class="text-[9px] font-black uppercase tracking-tighter opacity-90"
+          :class="isDark ? 'text-[#5858E8]' : 'text-slate-500'">
+          Total: {{ reportData.length }} <span class="hidden sm:inline">registros</span>
+        </span>
 
-        <div class="flex items-center gap-1.5">
-          <button @click="currentPage = 1" :disabled="currentPage === 1"
-            class="p-2 rounded-lg border border-transparent hover:bg-slate-500/10 disabled:opacity-10 transition-all">
-            <i class="fas fa-angles-left text-[10px]"></i>
-          </button>
-
+        <div class="flex items-center gap-2">
           <button @click="currentPage--" :disabled="currentPage === 1"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-500/10 hover:bg-[#FF8F00] hover:text-white disabled:opacity-10 transition-all text-[10px] font-black uppercase">
-            <i class="fas fa-chevron-left"></i> Anterior
+            class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-500/10 disabled:opacity-5 transition-all">
+            <i class="fas fa-chevron-left text-[8px]"></i>
           </button>
+
+          <div class="flex items-center px-2 py-0.5 rounded bg-slate-500/5 border border-slate-500/10 font-mono">
+            <span class="text-[10px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ currentPage
+              }}</span>
+            <span class="text-[9px] mx-1 opacity-90">/</span>
+            <span class="text-[9px] font-bold opacity-90">{{ totalPages }}</span>
+          </div>
 
           <button @click="currentPage++" :disabled="currentPage >= totalPages"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-500/10 hover:bg-[#FF8F00] hover:text-white disabled:opacity-10 transition-all text-[10px] font-black uppercase">
-            Siguiente <i class="fas fa-chevron-right"></i>
-          </button>
-
-          <button @click="currentPage = totalPages" :disabled="currentPage === totalPages"
-            class="p-2 rounded-lg border border-transparent hover:bg-slate-500/10 disabled:opacity-10 transition-all">
-            <i class="fas fa-angles-right text-[10px]"></i>
+            class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-500/10 disabled:opacity-5 transition-all">
+            <i class="fas fa-chevron-right text-[8px]"></i>
           </button>
         </div>
       </div>
@@ -291,7 +284,7 @@ const getStatusClass = (status) => {
 <style scoped>
 /* Transición suave para los cambios de página */
 .table-wrapper {
-  max-height: calc(100vh - 180px);
+  max-height: calc(107vh - 180px);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
