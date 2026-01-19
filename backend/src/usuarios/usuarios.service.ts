@@ -156,7 +156,7 @@ export class UsuariosService {
           [lastAtt[0].id],
           {
             check_out: cierreCompensadoParaOdoo,
-            x_studio_salida: 'CIERRE AUTOMÁTICO'
+            x_studio_tipo_salida: 'CIERRE AUTOMÁTICO'
           }
         ], {}, uid);
 
@@ -213,7 +213,7 @@ export class UsuariosService {
       // --- SALIDA NORMAL (Mismo día) ---
       await this.odoo.executeKw('hr.attendance', 'write', [
         [lastAtt[0].id],
-        { check_out: ahoraStr, x_studio_salida: estadoCalculado }
+        { check_out: ahoraStr, x_studio_tipo_salida: estadoCalculado }
       ], {}, uid);
 
       return {
@@ -229,7 +229,7 @@ export class UsuariosService {
         {
           employee_id,
           check_in: ahoraStr,
-          x_studio_comentario: estadoCalculado
+          x_studio_tipo_entrada: estadoCalculado
         }
       ], {}, uid);
 
@@ -316,21 +316,31 @@ export class UsuariosService {
     const uid = await this.odoo.authenticate();
     let domain: any[] = [];
 
+    // 1. Lógica de Fecha (Solo filtrar si hoy es TRUE)
     if (soloHoy) {
-      const hoy = new Date().toLocaleDateString('en-CA');
+      const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
       domain.push(['check_in', '>=', `${hoy} 00:00:00`]);
       domain.push(['check_in', '<=', `${hoy} 23:59:59`]);
     }
 
-    if (companyName && companyName.trim() !== "") {
+    // 2. Filtro de Compañía (Solo si viene un nombre válido)
+    if (companyName && companyName.trim() !== "" && companyName !== 'Todas') {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
 
-    const camposABuscar = ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_comentario', 'x_studio_salida'];
+    // 3. Campos a buscar
+    const camposABuscar = [
+      'employee_id',
+      'check_in',
+      'check_out',
+      'department_id'
+    ];
+
     if (this.ENVIAR_CAMPOS_STUDIO) {
-      camposABuscar.push('x_studio_comentario', 'x_studio_salida');
+      camposABuscar.push('x_studio_tipo_entrada', 'x_studio_tipo_salida');
     }
 
+    // 4. Ejecución en Odoo
     const attendances = await this.odoo.executeKw<any[]>(
       'hr.attendance',
       'search_read',
@@ -338,25 +348,28 @@ export class UsuariosService {
       {
         fields: camposABuscar,
         order: 'check_in desc',
-        limit: soloHoy ? 500 : 100,
+        // EL CAMBIO CLAVE ESTÁ AQUÍ:
+        // Si es hoy, limitamos a 500 para velocidad. 
+        // Si es histórico, aumentamos el límite (ej. 5000) o lo quitamos para ver todo.
+        limit: soloHoy ? 500 : 5000,
       },
       uid,
     );
 
+    // 5. Mapeo de resultados
     return attendances.map(att => {
       let estadoFinal = 'A TIEMPO';
       if (this.ENVIAR_CAMPOS_STUDIO) {
-        estadoFinal = att.x_studio_salida || att.x_studio_comentario || 'A TIEMPO';
+        // Priorizar salida si existe, sino entrada
+        estadoFinal = att.x_studio_tipo_salida || att.x_studio_tipo_entrada || 'A TIEMPO';
       }
 
       return {
         id: att.id,
         empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
         department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        comentario: att.x_studio_comentario || 'N/A',
-        salida: att.x_studio_salida || 'N/A',
-
-        // VOLVEMOS A LA HORA PURA DE ODOO (Sin transformaciones de servidor)
+        comentario: att.x_studio_tipo_entrada || 'N/A',
+        salida: att.x_studio_tipo_salida || 'N/A',
         check_in: att.check_in || null,
         check_out: att.check_out || null,
         estado: estadoFinal.toUpperCase(),
