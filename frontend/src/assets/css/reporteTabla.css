@@ -70,3 +70,31 @@
 .dark-mode .time-text {
     color: #f8fafc;
 }
+/* Forzar visibilidad del calendario nativo */
+.date-input-v3 {
+  color-scheme: light; /* Por defecto */
+}
+
+.theme-dark .date-input-v3 {
+  color-scheme: dark; /* Cambia el icono a blanco automáticamente en modo oscuro */
+}
+
+/* El ícono nativo del calendario (el dibujito de la derecha) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: opacity(1) brightness(1.2); /* Sube la visibilidad */
+}
+
+.theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5); /* Lo hace brillar en modo oscuro */
+}
+
+/* Asegurar que el texto sea negro puro en claro y blanco puro en oscuro */
+.theme-dark input {
+  color: #ffffff !important;
+}
+
+input::placeholder {
+  opacity: 1 !important;
+  font-weight: 800;
+}

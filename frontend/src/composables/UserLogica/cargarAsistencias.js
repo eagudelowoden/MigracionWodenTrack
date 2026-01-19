@@ -8,11 +8,29 @@ export function useCargarAsistencias() {
   const startDate = ref("");
   const endDate = ref("");
   const selectedCompany = ref(""); // Nueva variable reactiva
-
+  const currentPage = ref(1);
+  const itemsPerPage = ref(10); // Lotes de 10 para diseño compacto
   // Variable para el switch de "Hoy"
   const filterHoy = ref(true);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Computed para obtener solo la porción de datos que se debe mostrar
+  const paginatedData = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return reportData.value.slice(start, end);
+  });
+
+  // Calcular total de páginas
+  const totalPages = computed(() =>
+    Math.ceil(reportData.value.length / itemsPerPage.value)
+  );
+
+  // Resetear página cuando cambie la compañía o búsqueda
+  watch([selectedCompany, reportData], () => {
+    currentPage.value = 1;
+  });
 
   // ... dentro de useCargarAsistencias ...
   const fetchReporte = async (companyOverride = null) => {
