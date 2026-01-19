@@ -15,29 +15,42 @@ export function useCargarAsistencias() {
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // ... dentro de useCargarAsistencias ...
-  const fetchReporte = async (companyOverride = null) => {
-    loading.value = true;
-    try {
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      url.searchParams.append("hoy", filterHoy.value);
+const fetchReporte = async (companyOverride = null) => {
+  loading.value = true;
+  
+  // Si el parámetro es un evento (clic), lo ignoramos
+  const isEvent = companyOverride instanceof Event || (companyOverride && companyOverride.target);
+  const actualCompany = isEvent ? null : companyOverride;
 
-      // Priorizamos la compañía que nos pasen por parámetro (desde el layout)
-      const companyToFilter = companyOverride || selectedCompany.value;
+  try {
+    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    
+    // Aseguramos que 'hoy' sea un string "true" o "false"
+    const soloHoy = filterHoy.value === true || filterHoy.value === 'true';
+    url.searchParams.append("hoy", soloHoy.toString());
 
-      if (companyToFilter) {
-        url.searchParams.append("company", companyToFilter);
-      }
+    // Prioridad: 1. Parámetro manual, 2. Variable reactiva del componente
+    const companyToFilter = actualCompany || selectedCompany.value;
 
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error("Error en servidor");
-      const data = await res.json();
-      reportData.value = data;
-    } catch (err) {
-      console.error("Fallo al traer reporte:", err);
-    } finally {
-      loading.value = false;
+    if (companyToFilter && typeof companyToFilter === 'string') {
+      url.searchParams.append("company", companyToFilter);
     }
-  };
+
+    // Cache breaker
+    url.searchParams.append("_t", Date.now().toString());
+
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error("Error en servidor");
+    
+    const data = await res.json();
+    reportData.value = data;
+    
+  } catch (err) {
+    console.error("Fallo al traer reporte:", err);
+  } finally {
+    loading.value = false;
+  }
+};
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {

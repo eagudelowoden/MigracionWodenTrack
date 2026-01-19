@@ -156,7 +156,7 @@ export class UsuariosService {
           [lastAtt[0].id],
           {
             check_out: cierreCompensadoParaOdoo,
-            x_studio_salida: 'OLVIDÓ MARCAR SALIDA (AUTO-CIERRE)'
+            x_studio_salida: 'CIERRE AUTOMÁTICO'
           }
         ], {}, uid);
 
