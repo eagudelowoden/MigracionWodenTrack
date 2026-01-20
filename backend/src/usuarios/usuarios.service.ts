@@ -465,8 +465,8 @@ export class UsuariosService {
       'check_in',
       'check_out',
       'department_id',
-      'x_studio_tipo_entrada', // Agrégalos directo
-      'x_studio_tipo_salida'   // Agrégalos directo
+      'x_studio_tipo_entrada',
+      'x_studio_tipo_salida',
     ];
 
     if (this.ENVIAR_CAMPOS_STUDIO) {
@@ -491,22 +491,21 @@ export class UsuariosService {
 
     // 5. Mapeo de resultados
     return attendances.map((att) => {
-      let estadoFinal = 'A TIEMPO';
-      if (this.ENVIAR_CAMPOS_STUDIO) {
-        // Priorizar salida si existe, sino entrada
-        estadoFinal =
-          att.x_studio_tipo_salida || att.x_studio_tipo_entrada || 'A TIEMPO';
-      }
+      // let estadoFinal = 'A TIEMPO';
+      // if (this.ENVIAR_CAMPOS_STUDIO) {
+      //   // Priorizar salida si existe, sino entrada
+      //   estadoFinal =
+      //     att.x_studio_tipo_salida || att.x_studio_tipo_entrada || 'A TIEMPO';
+      // }
 
       return {
         id: att.id,
         empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
         department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        comentario: att.x_studio_tipo_entrada || 'N/A',
-        salida: att.x_studio_tipo_salida || 'N/A',
+        c_entrada: att.x_studio_tipo_entrada || 'N/A',
+        c_salida: att.x_studio_tipo_salida || 'N/A',
         check_in: att.check_in || null,
         check_out: att.check_out || null,
-        estado: estadoFinal.toUpperCase(),
         fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A',
       };
     });

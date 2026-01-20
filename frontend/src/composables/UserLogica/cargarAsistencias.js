@@ -24,7 +24,7 @@ export function useCargarAsistencias() {
 
   // Calcular total de páginas
   const totalPages = computed(() =>
-    Math.ceil(reportData.value.length / itemsPerPage.value)
+    Math.ceil(reportData.value.length / itemsPerPage.value),
   );
 
   // Resetear página cuando cambie la compañía o búsqueda
@@ -124,53 +124,88 @@ export function useCargarAsistencias() {
     }
 
     loading.value = true;
+
+    /**
+     * Función para ajustar la fecha UTC de Odoo a la hora local de Colombia (UTC-5)
+     * Esto elimina el desfase de 5 horas en el Excel.
+     */
+    const ajustarHoraLocal = (fechaUTC) => {
+      if (!fechaUTC || fechaUTC === "N/A" || fechaUTC === "null") return "N/A";
+      try {
+        // Forzamos la interpretación como UTC agregando el sufijo
+        const fecha = new Date(fechaUTC.replace(/-/g, "/") + " UTC");
+        return fecha.toLocaleTimeString("es-CO", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+      } catch (e) {
+        console.error("Error al transformar fecha:", e);
+        return fechaUTC;
+      }
+    };
+
     try {
+      // 1. Mapeamos los datos para el envío, corrigiendo el desfase horario
       const dataFiltrada = filteredReport.value.map((item) => ({
         Colaborador: item.empleado,
         Departamento: item.department_id,
         Fecha: item.fecha,
-        Entrada: item.check_in,
-        Salida: item.check_out,
-        // IMPORTANTE: Usar los nombres que vienen de tu API
-        Estatus_Entrada: item.comentario, // Aquí viene x_studio_comentario
-        Estatus_Salida: item.salida, // Aquí viene x_studio_salida
+        Entrada: ajustarHoraLocal(item.check_in),
+        Salida: ajustarHoraLocal(item.check_out),
+        Estatus_Entrada: item.c_entrada || "N/A",
+        Estatus_Salida: item.c_salida || "N/A",
         Estado: item.estado,
       }));
 
+      // 2. Petición al servidor NestJS
       const response = await fetch(
         `${API_BASE_URL}/reports/asistencias/export`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dataFiltrada),
-        }
+        },
       );
 
-      if (!response.ok) throw new Error("Error al generar el archivo");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al generar el archivo");
+      }
 
+      // 3. Procesar la descarga del archivo Blob
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
 
+      // 4. Construcción del nombre del archivo
       const ahora = new Date();
       const fechaCorta = ahora.toISOString().slice(0, 10);
       const horaCorta = ahora
         .toLocaleTimeString("es-CO", { hour12: false })
         .replace(/:/g, "-");
-      const range = startDate.value
-        ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
-        : "";
+
+      // Si tienes variables de rango de fecha, las incluimos en el nombre
+      const range =
+        typeof startDate !== "undefined" && startDate.value
+          ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
+          : "";
 
       link.setAttribute(
         "download",
-        `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`
+        `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
       );
+
+      // 5. Disparar descarga y limpiar
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert("Error al descargar el reporte.");
+      console.error("Error en descarga:", error);
+      alert(`Error al descargar el reporte: ${error.message}`);
     } finally {
       loading.value = false;
     }

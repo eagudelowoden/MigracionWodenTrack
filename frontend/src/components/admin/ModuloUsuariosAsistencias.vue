@@ -151,16 +151,16 @@
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="[getStatusClass(item.comentario), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
+                <span :class="[getStatusClass(item.c_entrada), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
                   class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
-                  {{ item.comentario || 'OK' }}
+                  {{ item.c_entrada || 'OK' }}
                 </span>
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="[getStatusClass(item.salida), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
+                <span :class="[getStatusClass(item.c_salida), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
                   class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
-                  {{ item.salida || 'OK' }}
+                  {{ item.c_salida || 'OK' }}
                 </span>
               </td>
             </tr>
@@ -185,7 +185,7 @@
 
           <div class="flex items-center px-2 py-0.5 rounded bg-slate-500/5 border border-slate-500/10 font-mono">
             <span class="text-[10px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ currentPage
-              }}</span>
+            }}</span>
             <span class="text-[9px] mx-1 opacity-90">/</span>
             <span class="text-[9px] font-bold opacity-90">{{ totalPages }}</span>
           </div>

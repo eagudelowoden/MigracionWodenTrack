@@ -100,14 +100,15 @@ async generarReporteAsistencias(data: any[]): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reporte de Novedades');
 
+    // 1. Definición de Columnas
     worksheet.columns = [
-      { header: 'COLABORADOR', key: 'empleado', width: 35 },
+      { header: 'COLABORADOR', key: 'colaborador', width: 35 },
       { header: 'DEPARTAMENTO', key: 'depto', width: 25 },
       { header: 'FECHA', key: 'fecha', width: 15 },
-      { header: 'HORA ENTRADA', key: 'check_in', width: 20 },
-      { header: 'HORA SALIDA', key: 'check_out', width: 20 },
-      { header: 'ESTATUS ENTRADA', key: 'estatus_in', width: 25 }, // Key simplificada
-      { header: 'ESTATUS SALIDA', key: 'estatus_out', width: 25 }  // Key simplificada
+      { header: 'HORA ENTRADA', key: 'entrada', width: 20 },
+      { header: 'HORA SALIDA', key: 'salida', width: 20 },
+      { header: 'ESTATUS ENTRADA', key: 'estatus_entrada', width: 25 }, 
+      { header: 'ESTATUS SALIDA', key: 'estatus_salida', width: 25 }
     ];
 
     // Estilos de cabecera...
@@ -119,16 +120,17 @@ async generarReporteAsistencias(data: any[]): Promise<Buffer> {
       fgColor: { argb: 'FF107C41' }
     };
 
+    // 2. Mapeo de Datos (Asegúrate de que coincidan con el objeto que envías)
     data.forEach(item => {
       worksheet.addRow({
-        empleado: item.Colaborador,
-        depto: item.Departamento,
-        fecha: item.Fecha,
-        check_in: item.Entrada,
-        check_out: item.Salida,
-        // MAPEADO CORRECTO:
-        estatus_in: item.Estatus_Entrada, 
-        estatus_out: item.Estatus_Salida
+        colaborador: item.empleado || item.Colaborador || 'N/A',
+        depto: item.department_id || item.Departamento || 'N/A',
+        fecha: item.fecha || item.Fecha || 'N/A',
+        entrada: item.check_in || item.Entrada || 'N/A',
+        salida: item.check_out || item.Salida || 'N/A',
+        // Usamos los nombres que vienen de tu servicio anterior (c_entrada / c_salida)
+        estatus_entrada: item.c_entrada || item.Estatus_Entrada || 'N/A', 
+        estatus_salida: item.c_salida || item.Estatus_Salida || 'N/A'
       });
     });
 

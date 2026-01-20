@@ -1,26 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { json, urlencoded } from 'express'; // Importamos las funciones de express
 
 async function bootstrap() {
-  // Creamos la instancia de la aplicación
   const app = await NestFactory.create(AppModule);
 
+  // --- SOLUCIÓN AL ERROR 413 ---
+  // Aumentamos el límite para JSON y datos codificados en URL
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
+
   // --- CONFIGURACIÓN DE CORS ---
-  // Mantiene la misma lógica que tenías en Express
   app.enableCors({
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Añadimos PUT/DELETE por si los necesitas luego
-    allowedHeaders: ['Content-Type', 'Authorization'], // Authorization es útil para JWT
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // --- VALIDACIÓN GLOBAL (Opcional pero recomendado) ---
-  // Esto ayudará a que si envías datos mal formados, Nest responda automáticamente con error 400
   app.useGlobalPipes(new ValidationPipe());
-
-  // --- PREFIJO GLOBAL (Opcional) ---
-  // Si quieres que todas tus rutas empiecen con /api (ej: /api/usuarios/login)
-  // app.setGlobalPrefix('api');
 
   const PORT = process.env.PORT || 8082;
   
