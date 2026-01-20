@@ -9,7 +9,6 @@ export function useAttendance() {
   const currentTime = ref("00:00:00 AM");
   const form = reactive({ usuario: "", password: "" });
   const message = reactive({ text: "", type: "" });
-
   const isDark = ref(localStorage.getItem("theme") !== "light");
 
   const toggleTheme = () => {
@@ -40,6 +39,7 @@ export function useAttendance() {
       showToast("Completa los campos", "error");
       return;
     }
+
     loading.value = true;
     try {
       const res = await fetch(`${API_BASE_URL}/login`, {
@@ -47,17 +47,33 @@ export function useAttendance() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
       const data = await res.json();
 
       if (res.ok && data.status === "success") {
-        // Guardamos la fecha del login para el reseteo automático mañana
+        try {
+          const statusRes = await fetch(`${API_BASE_URL}/attendance-status/${data.employee_id}`);
+          const statusData = await statusRes.json();
+
+          // Sincronización real con Odoo
+          data.is_inside = statusData.is_inside;
+          
+          if (statusData.is_inside && statusData.last_check_in) {
+            data.last_mark_time = new Date(statusData.last_check_in + "Z").toLocaleTimeString("es-CO", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            });
+          }
+        } catch (statusErr) {
+          console.warn("Error sincronizando estado inicial.");
+        }
+
         data.last_login_date = new Date().toLocaleDateString();
-        
         employee.value = data;
         localStorage.setItem("user_session", JSON.stringify(data));
 
         showToast(`Bienvenido ${data.name}`, "success");
-
         if (data.isSuperAdmin) router.push("/selector-perfil");
         else if (data.role === "admin") router.push("/admin");
         else router.push("/marcacion");
@@ -65,54 +81,55 @@ export function useAttendance() {
         showToast(data.message || "Credenciales inválidas", "error");
       }
     } catch (err) {
-      showToast("Error de conexión con el servidor", "error");
+      showToast("Error crítico de conexión", "error");
     } finally {
       loading.value = false;
     }
   };
 
-// ... dentro de useAttendance()
-const handleAttendance = async () => {
-  if (loading.value || !employee.value) return;
+  const handleAttendance = async () => {
+    if (loading.value || !employee.value) return;
 
-  loading.value = true;
-  try {
-    const res = await fetch(`${API_BASE_URL}/attendance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employee_id: employee.value.employee_id }),
-    });
-    
-    const data = await res.json();
-
-    if (res.ok && data.status === "success") {
-      // 1. Actualizamos estados de navegación
-      employee.value.is_inside = (data.type === "in");
-      employee.value.day_completed = (data.type === "out");
-
-      // 2. NUEVO: Guardamos información de la marcación para la UI
-      // Guardamos la hora actual formateada
-      employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true
+    loading.value = true;
+    try {
+      const res = await fetch(`${API_BASE_URL}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: employee.value.employee_id }),
       });
-      // Guardamos el mensaje (A TIEMPO, TARDE, etc.)
-      employee.value.last_status = data.message;
-      // Guardamos el nombre de la malla
-      employee.value.malla_info = data.malla;
 
-      localStorage.setItem("user_session", JSON.stringify(employee.value));
-      showToast(data.message, "success");
-    } else {
-      showToast(data.message || "Error en Odoo", "error");
+      const data = await res.json();
+
+      if (res.ok && data.status === "success") {
+        // FLUJO NORMAL: ENTRADA O SALIDA EXITOSA
+        employee.value.is_inside = data.type === "in";
+        employee.value.day_completed = data.type === "out";
+
+        employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
+          hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+        employee.value.last_status = data.message;
+        employee.value.malla_info = data.malla;
+
+        localStorage.setItem("user_session", JSON.stringify(employee.value));
+        showToast(data.message, "success");
+      } else {
+        // MANEJO DE BLOQUEO: Si el backend dice que ya completó el día
+        if (data.type === 'completed') {
+          employee.value.is_inside = false;
+          employee.value.day_completed = true;
+          localStorage.setItem("user_session", JSON.stringify(employee.value));
+          showToast(data.message, "warning");
+        } else {
+          showToast(data.message || "Error en Odoo", "error");
+        }
+      }
+    } catch (err) {
+      showToast("Fallo de red", "error");
+    } finally {
+      loading.value = false;
     }
-  } catch (err) {
-    showToast("Fallo de red", "error");
-  } finally {
-    loading.value = false;
-  }
-};
+  };
 
   const logout = () => {
     employee.value = null;
@@ -131,11 +148,13 @@ const handleAttendance = async () => {
       const userData = JSON.parse(saved);
       const today = new Date().toLocaleDateString();
 
-      // RESETEADOR: Si el login guardado no es de hoy, limpiamos el estado bloqueado
+      // RESETEADOR DIARIO: Si es un nuevo día, desbloqueamos los botones
       if (userData.last_login_date !== today) {
         userData.is_inside = false;
         userData.day_completed = false;
         userData.last_login_date = today;
+        userData.last_mark_time = null;
+        userData.last_status = null;
         localStorage.setItem("user_session", JSON.stringify(userData));
       }
 

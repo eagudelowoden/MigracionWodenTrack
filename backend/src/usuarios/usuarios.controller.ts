@@ -1,9 +1,18 @@
-import { Controller, Post, Body, Get, HttpStatus, HttpException, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  HttpStatus,
+  HttpException,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) { }
+  constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post('login')
   async login(@Body() body: any) {
@@ -25,12 +34,31 @@ export class UsuariosController {
   @Get('reporte-novedades')
   async getReporte(
     @Query('hoy') hoy?: string,
-    @Query('company') company?: string // Recibimos la compañía
+    @Query('company') company?: string, // Recibimos la compañía
   ) {
     const soloHoy = hoy === 'true';
     return await this.usuariosService.getReporteNovedades(soloHoy, company);
   }
 
+  /**
+   * NUEVO: Consulta el estado actual del empleado antes de mostrar los botones.
+   * Esto evitará que aparezca el botón "ENTRADA" si ya tiene una sesión abierta.
+   */
+  @Get('attendance-status/:employee_id')
+  async getStatus(@Param('employee_id') employee_id: string) {
+    try {
+      // Necesitarás implementar este método en tu UsuariosService
+      // para que busque en Odoo si hay un check_out == false
+      return await this.usuariosService.getAttendanceStatus(
+        Number(employee_id),
+      );
+    } catch (error) {
+      throw new HttpException(
+        'Error al obtener el estado de asistencia',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   // --- NUEVO: PUENTE PARA LA HORA OFICIAL ---
   @Get('hora-oficial')
