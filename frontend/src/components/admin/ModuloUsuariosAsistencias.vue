@@ -260,12 +260,20 @@ onMounted(() => {
 
 // --- HELPERS ---
 const formatDateTime = (value) => {
-  if (!value) return '--:--:--';
-  // Reemplazo para compatibilidad con Safari/Firefox
+  if (!value || value === 'N/A') return '--/--/-- --:--';
+  
+  // 1. Ajustamos el desfase de Odoo (UTC a Local)
   const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
+  
+  // 2. Usamos toLocaleString (en lugar de toLocaleTimeString)
   return dateUtc.toLocaleString('es-CO', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true // Cambia a false si prefieres formato 24h
   });
 }
 
