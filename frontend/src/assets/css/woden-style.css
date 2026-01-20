@@ -17,7 +17,7 @@
 .woden-card {
   width: 100%;
   max-width: 310px;
-  min-height: 480px; 
+  min-height: 480px;
   padding: 2.5rem 1.8rem;
   border-radius: 2.5rem;
   display: flex;
@@ -74,8 +74,12 @@
   height: 16px;
   z-index: 10;
 }
-.theme-dark .input-icon { color: #94a3b8; }
-.theme-light .input-icon { color: #64748b; }
+.theme-dark .input-icon {
+  color: #94a3b8;
+}
+.theme-light .input-icon {
+  color: #64748b;
+}
 
 /* Botón Principal */
 .woden-btn-primary {
@@ -93,14 +97,36 @@
 }
 
 /* Visibilidad de textos en Modo Claro */
-.theme-light .text-emerald-600 { color: #059669 !important; }
-.theme-light .opacity-30 { opacity: 0.7 !important; color: #475569; }
+.theme-light .text-emerald-600 {
+  color: #059669 !important;
+}
+.theme-light .opacity-30 {
+  opacity: 0.7 !important;
+  color: #475569;
+}
 
 /* Animaciones */
-@keyframes ping { 75%, 100% { transform: scale(2.5); opacity: 0; } }
-.animate-ping { animation: ping 2s infinite; }
-.animate-spin { animation: spin 1s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+.animate-ping {
+  animation: ping 2s infinite;
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* Estilo base del input */
 
@@ -119,14 +145,19 @@
 /* 2. MODO CLARO: Fondo gris claro, texto oscuro */
 .theme-light .woden-input-base {
   background-color: #f8fafc !important; /* Gris muy claro */
-  color: #0f172a !important;           /* Texto oscuro */
+  color: #0f172a !important; /* Texto oscuro */
   border-color: #e2e8f0 !important;
 }
 
 /* 3. MODO OSCURO: Fondo casi negro, texto blanco */
 .theme-dark .woden-input-base {
-  background-color: rgba(255, 255, 255, 0.05) !important; /* Fondo oscuro sutil */
-  color: #ffffff !important;                             /* TEXTO BLANCO */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.05
+  ) !important; /* Fondo oscuro sutil */
+  color: #ffffff !important; /* TEXTO BLANCO */
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
