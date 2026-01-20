@@ -1,13 +1,10 @@
-// src/common/utils/fecha.utils.ts
+/**
+ * Utilidades de fecha optimizadas para Odoo y Zona Horaria Colombia
+ */
+
 export function getFechaColombia() {
   const ahora = new Date();
 
-  // Odoo requiere formato YYYY-MM-DD HH:mm:ss en UTC
-  const formatParaOdoo = (date: Date) => {
-    return date.toISOString().replace('T', ' ').split('.')[0];
-  };
-
-  // Obtenemos la fecha actual en la zona de Bogotá (YYYY-MM-DD)
   const fechaHoyCol = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Bogota',
     year: 'numeric',
@@ -15,9 +12,6 @@ export function getFechaColombia() {
     day: '2-digit',
   }).format(ahora);
 
-  // --- SOLUCIÓN AL DESFASE ---
-  // Para que Odoo muestre 23:59:59 en Colombia, 
-  // debemos enviar las 04:59:59 del día siguiente en UTC.
   const manana = new Date(ahora);
   manana.setDate(manana.getDate() + 1);
   const fechaMananaCol = new Intl.DateTimeFormat('en-CA', {
@@ -27,13 +21,30 @@ export function getFechaColombia() {
     day: '2-digit',
   }).format(manana);
 
+  // Formato YYYY-MM-DD HH:mm:ss para Colombia
+  const ahoraStrCol = ahora.toLocaleString('sv-SE', { 
+    timeZone: 'America/Bogota' 
+  }).replace('T', ' ');
+
+  // Formato UTC para Odoo (IMPORTANTE)
+  const fechaParaOdoo = ahora.toISOString().replace('T', ' ').split('.')[0];
+
+  console.log('--- LOG DE FECHAS ---');
+  console.log('Local (Colombia):', ahoraStrCol);
+  console.log('Para Odoo (UTC):', fechaParaOdoo);
+
   return {
-    inicioDia: `${fechaHoyCol} 05:00:00`, // 00:00 Col = 05:00 UTC
-    // Esto hará que en Odoo se vea como las 23:59:59 local
-    cierreEstandar: `${fechaMananaCol} 04:59:59`, 
-    ahoraStr: formatParaOdoo(ahora), 
+    inicioDia: `${fechaHoyCol} 00:00:00`,
+    cierreEstandar: `${fechaMananaCol} 04:59:59`, // <-- YA NO DARÁ ERROR
+    ahoraStr: ahoraStrCol, 
+    hoyFechaCorta: fechaHoyCol,
+    fechaHoraISO: fechaParaOdoo // Usaremos este para enviar a Odoo
   };
 }
+
+/**
+ * Convierte horas decimales de Odoo (ej: 8.5) a minutos totales (ej: 510)
+ */
 export function decimalToMinutes(decimalTime: number): number {
   const hours = Math.floor(decimalTime);
   const minutes = Math.round((decimalTime - hours) * 60);

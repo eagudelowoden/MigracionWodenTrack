@@ -87,49 +87,42 @@ export function useAttendance() {
     }
   };
 
-  const handleAttendance = async () => {
-    if (loading.value || !employee.value) return;
+const handleAttendance = async () => {
+  if (loading.value || !employee.value) return;
 
-    loading.value = true;
-    try {
-      const res = await fetch(`${API_BASE_URL}/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: employee.value.employee_id }),
+  loading.value = true;
+  try {
+    const res = await fetch(`${API_BASE_URL}/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employee_id: employee.value.employee_id }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.status === "success") {
+      // ACTUALIZAMOS EL ESTADO CON LO QUE VIENE DEL SERVIDOR
+      employee.value.is_inside = data.is_inside;
+      employee.value.day_completed = data.day_completed;
+      
+      employee.value.last_status = data.message;
+      employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
+        hour: "2-digit", minute: "2-digit", hour12: true,
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.status === "success") {
-        // FLUJO NORMAL: ENTRADA O SALIDA EXITOSA
-        employee.value.is_inside = data.type === "in";
-        employee.value.day_completed = data.type === "out";
-
-        employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
-          hour: "2-digit", minute: "2-digit", hour12: true,
-        });
-        employee.value.last_status = data.message;
-        employee.value.malla_info = data.malla;
-
-        localStorage.setItem("user_session", JSON.stringify(employee.value));
-        showToast(data.message, "success");
-      } else {
-        // MANEJO DE BLOQUEO: Si el backend dice que ya completó el día
-        if (data.type === 'completed') {
-          employee.value.is_inside = false;
-          employee.value.day_completed = true;
-          localStorage.setItem("user_session", JSON.stringify(employee.value));
-          showToast(data.message, "warning");
-        } else {
-          showToast(data.message || "Error en Odoo", "error");
-        }
-      }
-    } catch (err) {
-      showToast("Fallo de red", "error");
-    } finally {
-      loading.value = false;
+      // Guardamos la verdad absoluta en el storage
+      localStorage.setItem("user_session", JSON.stringify(employee.value));
+      showToast(data.message, data.type === 'completed' ? "warning" : "success");
+      
+    } else {
+      showToast(data.message || "Error de conexión", "error");
     }
-  };
+  } catch (err) {
+    showToast("Error de red", "error");
+  } finally {
+    loading.value = false;
+  }
+};
 
   const logout = () => {
     employee.value = null;

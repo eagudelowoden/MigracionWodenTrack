@@ -146,11 +146,12 @@ export class UsuariosService {
 
   async attendance(employee_id: number) {
     try {
-      const { ahoraStr } = getFechaColombia();
+      // 1. OBTENER FECHAS REALES
+      // ahoraStr = Local Colombia | fechaHoraISO = UTC para Odoo
+      const { ahoraStr, hoyFechaCorta, fechaHoraISO } = getFechaColombia();
       const ahoraCol = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
       );
-      const hoyFechaCorta = ahoraCol.toISOString().split('T')[0];
 
       let estadoCalculado = 'A TIEMPO';
       let infoMalla = 'SIN MALLA ASIGNADA';
@@ -158,7 +159,7 @@ export class UsuariosService {
 
       const uid = await this.odoo.authenticate();
 
-      // 1. BUSCAR SESIÓN ACTIVA (Check-out vacío)
+      // 2. BUSCAR SESIÓN ACTIVA (Entrada sin salida)
       const lastAtt = await this.odoo.executeKw<any[]>(
         'hr.attendance',
         'search_read',
@@ -174,41 +175,58 @@ export class UsuariosService {
 
       let activeSession = lastAtt && lastAtt.length > 0;
 
-      // 2. VALIDACIÓN DE JORNADA COMPLETADA (Si no hay sesión activa)
-      // Esto evita el Error 500 al intentar marcar sobre un cierre automático
+      // 3. VALIDACIÓN DE JORNADA COMPLETADA
+      // 3. VALIDACIÓN DE JORNADA COMPLETADA
       if (!activeSession) {
+        // Usamos el inicio del día local para filtrar
+        // Odoo comparará este string con sus registros en UTC
         const registroHoy = await this.odoo.executeKw<any[]>(
           'hr.attendance',
           'search_read',
           [
             [
               ['employee_id', '=', employee_id],
+              // Buscamos desde las 00:00:00 de hoy en Colombia
               ['check_in', '>=', `${hoyFechaCorta} 00:00:00`],
               ['check_out', '!=', false],
             ],
           ],
-          { fields: ['id'], limit: 1 },
+          {
+            fields: ['id', 'check_in', 'check_out'],
+            limit: 1,
+            order: 'check_in desc', // Traer el más reciente
+          },
           uid,
         );
 
         if (registroHoy && registroHoy.length > 0) {
+          // Log de control para saber qué registro bloqueó la entrada
+          console.log('Bloqueo por jornada finalizada:', registroHoy[0]);
+
           return {
-            status: 'success', // Devolvemos success para que el front sincronice
+            status: 'success',
             type: 'completed',
-            message: 'JORNADA FINALIZADA',
-            malla: 'SISTEMA CERRADO',
+            message: 'JORNADA YA FINALIZADA HOY',
+            is_inside: false,
+            day_completed: true,
+            malla: 'SISTEMA BLOQUEADO',
           };
         }
       }
 
-      // 3. LÓGICA DE AUTO-CIERRE (Para registros de días anteriores)
+      // 4. LÓGICA DE AUTO-CIERRE (Si hay sesión de días anteriores)
       if (activeSession) {
-        const checkInFechaCorta = lastAtt[0].check_in.split(' ')[0];
-        if (checkInFechaCorta !== hoyFechaCorta) {
-          const fechaEntradaOdoo = new Date(lastAtt[0].check_in + 'Z');
-          const diaCierre = new Date(fechaEntradaOdoo);
-          diaCierre.setUTCDate(diaCierre.getUTCDate() + 1);
-          const cierreCompensadoParaOdoo = `${diaCierre.toISOString().split('T')[0]} 04:59:59`;
+        // Comparamos la fecha de entrada (UTC) con el hoy de Colombia
+        // Convertimos la fecha de Odoo a fecha corta local para comparar
+        const checkInLocal = new Date(lastAtt[0].check_in + ' UTC')
+          .toLocaleString('en-CA', { timeZone: 'America/Bogota' })
+          .split(',')[0];
+
+        if (checkInLocal !== hoyFechaCorta) {
+          // Si el registro es de otro día, cerramos a las 04:59:59 UTC
+          // (Que son las 23:59:59 de ese día en Colombia)
+          const diaEntrada = lastAtt[0].check_in.split(' ')[0];
+          const cierreCompensado = `${diaEntrada} 23:59:59`; // Se guarda como texto UTC
 
           await this.odoo.executeKw(
             'hr.attendance',
@@ -216,41 +234,86 @@ export class UsuariosService {
             [
               [lastAtt[0].id],
               {
-                check_out: cierreCompensadoParaOdoo,
+                check_out: cierreCompensado,
                 x_studio_tipo_salida: 'CIERRE AUTOMÁTICO',
               },
             ],
             {},
             uid,
           );
-
           activeSession = false;
           autoCerrado = true;
         }
       }
 
-      // 4. OBTENER CONTRATO Y MALLA (Tu lógica actual...)
-      // ... (Mantén tu bloque 5 de validación de mallas aquí) ...
+      // 5. LÓGICA DE MALLAS (Aquí usamos hora local Bogotá siempre)
+      const contracts = await this.odoo.executeKw<any[]>(
+        'hr.contract',
+        'search_read',
+        [
+          [
+            ['employee_id', '=', employee_id],
+            ['state', 'in', ['open', 'draft']],
+          ],
+        ],
+        { fields: ['resource_calendar_id'], limit: 1 },
+        uid,
+      );
 
-      // 5. EJECUCIÓN FINAL
+      if (contracts?.length > 0 && contracts[0].resource_calendar_id) {
+        const calId = contracts[0].resource_calendar_id[0];
+        const calNombre = contracts[0].resource_calendar_id[1];
+        const dayOfWeekOdoo = (
+          ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1
+        ).toString();
+        const horaActualDecimal =
+          ahoraCol.getHours() + ahoraCol.getMinutes() / 60;
+
+        const mallas = await this.odoo.executeKw<any[]>(
+          'resource.calendar.attendance',
+          'search_read',
+          [
+            [
+              ['calendar_id', '=', calId],
+              ['dayofweek', '=', dayOfWeekOdoo],
+            ],
+          ],
+          { fields: ['hour_from', 'hour_to'] },
+          uid,
+        );
+
+        if (mallas.length > 0) {
+          const mallaTurno = mallas.sort(
+            (a, b) => a.hour_from - b.hour_from,
+          )[0];
+          const tolerancia = 6 / 60;
+
+          if (!activeSession) {
+            if (horaActualDecimal > mallaTurno.hour_from + tolerancia)
+              estadoCalculado = 'ENTRADA TARDE';
+          } else {
+            if (horaActualDecimal < mallaTurno.hour_to)
+              estadoCalculado = 'SALIDA ANTICIPADA';
+          }
+          infoMalla = `Malla: ${calNombre}`;
+        }
+      }
+
+      // 6. REGISTRO FINAL EN ODOO (USANDO UTC)
+      let typeResult = '';
+      // IMPORTANTE: Enviamos fechaHoraISO (UTC)
       if (activeSession) {
         await this.odoo.executeKw(
           'hr.attendance',
           'write',
           [
             [lastAtt[0].id],
-            { check_out: ahoraStr, x_studio_tipo_salida: estadoCalculado },
+            { check_out: fechaHoraISO, x_studio_tipo_salida: estadoCalculado },
           ],
           {},
           uid,
         );
-
-        return {
-          status: 'success',
-          type: 'out',
-          message: estadoCalculado,
-          malla: infoMalla,
-        };
+        typeResult = 'out';
       } else {
         await this.odoo.executeKw(
           'hr.attendance',
@@ -258,28 +321,33 @@ export class UsuariosService {
           [
             {
               employee_id,
-              check_in: ahoraStr,
+              check_in: fechaHoraISO,
               x_studio_tipo_entrada: estadoCalculado,
             },
           ],
           {},
           uid,
         );
-
-        return {
-          status: 'success',
-          type: 'in',
-          message: autoCerrado
-            ? `Auto-Cierre: ${estadoCalculado}`
-            : estadoCalculado,
-          malla: infoMalla,
-        };
+        typeResult = 'in';
       }
+
+      // 7. RESPUESTA
+      const finalStatus = await this.getAttendanceStatus(employee_id);
+      return {
+        status: 'success',
+        type: typeResult,
+        message: autoCerrado
+          ? `Auto-Cierre: ${estadoCalculado}`
+          : estadoCalculado,
+        malla: infoMalla,
+        is_inside: finalStatus.is_inside,
+        day_completed: finalStatus.day_completed,
+      };
     } catch (error) {
-      console.error('Error en attendance:', error);
+      console.error('Error crítico en attendance:', error);
       return {
         status: 'error',
-        message: error.message || 'Error en el servidor de asistencia',
+        message: 'Error interno',
         type: 'server_error',
       };
     }
@@ -443,22 +511,10 @@ export class UsuariosService {
   }
   async getAttendanceStatus(employee_id: number) {
     try {
-      // 1. OBTENER FECHA LOCAL DE COLOMBIA REAL
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Bogota',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-
-      const hoyFechaCorta = formatter.format(new Date());
+      const { hoyFechaCorta } = getFechaColombia();
       const uid = await this.odoo.authenticate();
 
-      console.log('--- DEPURACIÓN DE ESTADO (V1.0.6) ---');
-      console.log('Empleado ID:', employee_id);
-      console.log('Fecha Local Calculada:', hoyFechaCorta);
-
-      // 2. BUSCAR SESIÓN ACTIVA (Sin check_out)
+      // 1. Buscamos cualquier sesión abierta (check_out = false)
       const lastAtt = await this.odoo.executeKw<any[]>(
         'hr.attendance',
         'search_read',
@@ -468,32 +524,42 @@ export class UsuariosService {
             ['check_out', '=', false],
           ],
         ],
-        { fields: ['id', 'check_in'], limit: 1 },
+        { fields: ['id', 'check_in'], limit: 1, order: 'check_in desc' },
         uid,
       );
 
       let isInside = lastAtt && lastAtt.length > 0;
-      console.log('¿Sesión Activa encontrada?:', isInside ? 'SÍ' : 'NO');
 
-      // Validación: Si está "dentro" pero la entrada es de otro día
+      // 2. CORRECCIÓN CRÍTICA DE FECHA:
+      // Convertimos la fecha UTC de Odoo a la fecha corta de Colombia para comparar peras con peras
       if (isInside) {
-        const fechaEntradaOdoo = lastAtt[0].check_in.split(' ')[0];
-        if (fechaEntradaOdoo !== hoyFechaCorta) {
+        const checkInUTC = lastAtt[0].check_in; // Ejemplo: "2026-01-20 04:15:43"
+
+        // Convertimos ese string UTC a fecha local de Bogotá (YYYY-MM-DD)
+        const checkInLocalCorta = new Date(checkInUTC + ' UTC').toLocaleString(
+          'en-CA',
+          {
+            timeZone: 'America/Bogota',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          },
+        );
+
+        // Si la fecha local de la entrada no es hoy, lo tratamos como "fuera"
+        // para que la función principal lo cierre automáticamente.
+        if (checkInLocalCorta !== hoyFechaCorta) {
           console.log(
-            'Sesión detectada es de un día anterior:',
-            fechaEntradaOdoo,
+            `Sesión antigua detectada: Entrada local ${checkInLocalCorta} vs Hoy ${hoyFechaCorta}`,
           );
           isInside = false;
         }
       }
 
-      // 3. BUSCAR JORNADA COMPLETADA HOY (Incluye el Cierre Automático)
       let dayCompleted = false;
-      if (!isInside) {
-        console.log(
-          `Buscando registros cerrados para hoy (${hoyFechaCorta})...`,
-        );
 
+      // 3. Si no está adentro, verificamos si ya terminó su jornada hoy
+      if (!isInside) {
         const registroHoy = await this.odoo.executeKw<any[]>(
           'hr.attendance',
           'search_read',
@@ -504,44 +570,17 @@ export class UsuariosService {
               ['check_out', '!=', false],
             ],
           ],
-          {
-            fields: ['id', 'check_in', 'check_out', 'x_studio_tipo_salida'],
-            limit: 1,
-          },
+          { fields: ['id'], limit: 1, order: 'check_in desc' },
           uid,
         );
-
-        if (registroHoy && registroHoy.length > 0) {
-          console.log('¡REGISTRO COMPLETADO ENCONTRADO!');
-          console.log('Entrada:', registroHoy[0].check_in);
-          console.log('Salida:', registroHoy[0].check_out);
-          console.log('Comentario Odoo:', registroHoy[0].x_studio_tipo_salida);
-          dayCompleted = true;
-        } else {
-          console.log(
-            'No se encontraron registros cerrados para el día de hoy.',
-          );
-        }
+        dayCompleted = registroHoy && registroHoy.length > 0;
       }
 
-      const resultado = {
-        is_inside: isInside,
-        day_completed: dayCompleted,
-        last_check_in: isInside ? lastAtt[0].check_in : null,
-      };
-
-      console.log('JSON FINAL ENVIADO:', resultado);
-      console.log('------------------------------------');
-
-      return resultado;
-    } catch (error) {
-      console.error('ERROR CRÍTICO EN STATUS:', error.message);
-      return {
-        is_inside: false,
-        day_completed: false,
-        last_check_in: null,
-        error: error.message,
-      };
+      console.log('--- STATUS FINAL ---', { isInside, dayCompleted });
+      return { is_inside: isInside, day_completed: dayCompleted };
+    } catch (e) {
+      console.error('Error en getAttendanceStatus:', e);
+      return { is_inside: false, day_completed: false };
     }
   }
   // Función auxiliar para convertir 8.5 a "08:30"
