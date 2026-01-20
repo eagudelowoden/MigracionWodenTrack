@@ -443,15 +443,28 @@ export class UsuariosService {
     });
   }
 
-  async getReporteNovedades(soloHoy?: boolean, companyName?: string) {
+  async getReporteNovedades(soloHoy?: boolean,
+    companyName?: string,
+    startDate?: string,
+    endDate?: string) {
     const uid = await this.odoo.authenticate();
     let domain: any[] = [];
 
     // 1. Lógica de Fecha (Solo filtrar si hoy es TRUE)
+    // 1. Lógica de Fecha mejorada para soportar históricos
     if (soloHoy) {
+      // Si es hoy, forzamos el rango del día actual
       const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
       domain.push(['check_in', '>=', `${hoy} 00:00:00`]);
       domain.push(['check_in', '<=', `${hoy} 23:59:59`]);
+    } else {
+      // Si NO es hoy, revisamos si vienen fechas desde el frontend (calendario)
+      if (startDate) {
+        domain.push(['check_in', '>=', `${startDate} 00:00:00`]);
+      }
+      if (endDate) {
+        domain.push(['check_in', '<=', `${endDate} 23:59:59`]);
+      }
     }
 
     // 2. Filtro de Compañía (Solo si viene un nombre válido)
@@ -481,10 +494,9 @@ export class UsuariosService {
       {
         fields: camposABuscar,
         order: 'check_in desc',
-        // EL CAMBIO CLAVE ESTÁ AQUÍ:
-        // Si es hoy, limitamos a 500 para velocidad.
-        // Si es histórico, aumentamos el límite (ej. 5000) o lo quitamos para ver todo.
-        limit: soloHoy ? 500 : 5000,
+        // Si es hoy limitamos a 500, si es histórico subimos a 10,000 
+        // para asegurar que los registros de 2025 aparezcan.
+        limit: soloHoy ? 500 : 10000,
       },
       uid,
     );

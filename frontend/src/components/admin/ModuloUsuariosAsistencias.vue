@@ -261,10 +261,10 @@ onMounted(() => {
 // --- HELPERS ---
 const formatDateTime = (value) => {
   if (!value || value === 'N/A') return '--/--/-- --:--';
-  
+
   // 1. Ajustamos el desfase de Odoo (UTC a Local)
   const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
-  
+
   // 2. Usamos toLocaleString (en lugar de toLocaleTimeString)
   return dateUtc.toLocaleString('es-CO', {
     year: 'numeric',

@@ -12,7 +12,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(private readonly usuariosService: UsuariosService) { }
 
   @Post('login')
   async login(@Body() body: any) {
@@ -34,10 +34,12 @@ export class UsuariosController {
   @Get('reporte-novedades')
   async getReporte(
     @Query('hoy') hoy?: string,
-    @Query('company') company?: string, // Recibimos la compañía
+    @Query('company') company?: string,
+    @Query('startDate') startDate?: string, // <-- Nuevo
+    @Query('endDate') endDate?: string      // <-- Nuevo
   ) {
     const soloHoy = hoy === 'true';
-    return await this.usuariosService.getReporteNovedades(soloHoy, company);
+    return await this.usuariosService.getReporteNovedades(soloHoy, company, startDate, endDate);
   }
 
   /**

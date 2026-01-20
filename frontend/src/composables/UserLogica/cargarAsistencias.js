@@ -34,34 +34,44 @@ export function useCargarAsistencias() {
   watch([search, selectedDepartment, startDate, endDate, filterHoy], () => {
     currentPage.value = 1;
   });
-
+  // OBSERVADOR CLAVE: Si el usuario toca el calendario, apagamos "Hoy" y buscamos
+  watch([startDate, endDate], () => {
+    if (startDate.value || endDate.value) {
+      filterHoy.value = false; // Apagamos el switch de "Hoy" automáticamente
+      fetchReporte();
+    }
+  });
   // ... dentro de useCargarAsistencias ...
   const fetchReporte = async (companyOverride = null) => {
-    loading.value = true;
-    try {
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      const soloHoy = filterHoy.value === true || filterHoy.value === "true";
-      url.searchParams.append("hoy", soloHoy.toString());
+  loading.value = true;
+  try {
+    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
 
-      const companyToFilter =
-        companyOverride && !(companyOverride instanceof Event)
-          ? companyOverride
-          : selectedCompany.value;
+    // Determinamos si es solo hoy basándonos en el switch
+    const soloHoy = filterHoy.value === true || filterHoy.value === "true";
+    url.searchParams.append("hoy", soloHoy.toString());
 
-      if (companyToFilter) url.searchParams.append("company", companyToFilter);
-      url.searchParams.append("_t", Date.now().toString());
-
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error("Error en servidor");
-
-      const data = await res.json();
-      rawData.value = data; // Guardamos en la fuente original
-    } catch (err) {
-      console.error("Fallo al traer reporte:", err);
-    } finally {
-      loading.value = false;
+    // SI NO ES HOY, enviamos el rango para que el Backend cree el dominio de Odoo
+    if (!soloHoy) {
+      if (startDate.value) url.searchParams.append("startDate", startDate.value);
+      if (endDate.value) url.searchParams.append("endDate", endDate.value);
     }
-  };
+
+    const companyToFilter = companyOverride && !(companyOverride instanceof Event)
+      ? companyOverride : selectedCompany.value;
+
+    if (companyToFilter) url.searchParams.append("company", companyToFilter);
+    url.searchParams.append("_t", Date.now().toString());
+
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    rawData.value = data;
+  } catch (err) {
+    console.error("Fallo al traer reporte:", err);
+  } finally {
+    loading.value = false;
+  }
+};
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {
@@ -81,9 +91,13 @@ export function useCargarAsistencias() {
   };
 
   const departments = computed(() => {
-    const allDeps = reportData.value
+    if (!rawData.value || rawData.value.length === 0) return [];
+
+    const allDeps = rawData.value
       .map((item) => item.department_id)
       .filter(Boolean);
+
+    // Quitamos duplicados y ordenamos
     return [...new Set(allDeps)].sort();
   });
 
