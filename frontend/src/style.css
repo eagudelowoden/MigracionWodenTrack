@@ -3,11 +3,14 @@
 @tailwind utilities;
 
 :root {
+  /* --- COLORES MAESTROS (Cámbialos aquí) --- */
   --woden-orange: #FF8F00;
-  --woden-navy-dark: #0F172A; /* Azul muy oscuro para el fondo */
-  --woden-navy-card: #1E293B; /* Azul intermedio para la tarjeta */
+  
+  /* Cambia este por un azul un poco más vivo o un gris oscuro */
+  --woden-bg-main: #111827;  /* Un gris azulado profundo pero más limpio */
+  --woden-bg-card: #1f2937;  /* Color de la tarjeta */
+  --woden-border: rgba(255, 255, 255, 0.1); /* Bordes suaves */
 }
-
 body {
   margin: 0;
   background-color: var(--woden-navy-dark); /* Fondo oscuro por defecto */

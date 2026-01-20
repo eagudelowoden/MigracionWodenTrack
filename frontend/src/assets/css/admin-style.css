@@ -1,6 +1,6 @@
 /* --- VARIABLES Y CONFIGURACIÓN BASE --- */
 :root {
-  --woden-orange: #FF8F00;
+  --woden-orange: #ff8f00;
   --sidebar-w-open: 240px;
   --sidebar-w-closed: 64px;
   --header-h: 56px;
@@ -12,9 +12,20 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
-
+body {
+  margin: 0;
+  /* El gradiente hará que no se vea tan "plano" y oscuro */
+  background: radial-gradient(
+    circle at top right,
+    #1e293b 0%,
+    var(--woden-bg-main) 100%
+  );
+  font-family: "Inter", sans-serif;
+  color: white;
+  min-height: 100vh;
+}
 /* --- SIDEBAR --- */
 .sidebar {
   z-index: 50;
@@ -25,8 +36,12 @@
   border-right: 1px solid;
 }
 
-.sidebar-open { width: var(--sidebar-w-open); }
-.sidebar-closed { width: var(--sidebar-w-closed); }
+.sidebar-open {
+  width: var(--sidebar-w-open);
+}
+.sidebar-closed {
+  width: var(--sidebar-w-closed);
+}
 
 .sidebar-header {
   height: var(--header-h);
@@ -77,8 +92,12 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.btn-in { background-color: #059669; }
-.btn-out { background-color: #e11d48; }
+.btn-in {
+  background-color: #059669;
+}
+.btn-out {
+  background-color: #e11d48;
+}
 
 .btn-attendance:disabled {
   background-color: #64748b;
@@ -114,16 +133,38 @@
 
 /* --- TEMAS (COLORES DINÁMICOS) --- */
 /* DARK MODE */
-.theme-dark { background-color: #1e293b; color: #e2e8f0; }
-.sidebar.theme-dark { background-color: #334155; border-color: #475569; }
-.sidebar-header.theme-dark { border-color: #475569; }
-.header-main.theme-dark { background-color: #334155; border-color: #475569; }
+.theme-dark {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+.sidebar.theme-dark {
+  background-color: #334155;
+  border-color: #475569;
+}
+.sidebar-header.theme-dark {
+  border-color: #475569;
+}
+.header-main.theme-dark {
+  background-color: #334155;
+  border-color: #475569;
+}
 
 /* LIGHT MODE */
-.theme-light { background-color: #f8fafc; color: #1e293b; }
-.sidebar.theme-light { background-color: #ffffff; border-color: #e2e8f0; }
-.sidebar-header.theme-light { border-color: #f1f5f9; }
-.header-main.theme-light { background-color: #ffffff; border-color: #e2e8f0; }
+.theme-light {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+.sidebar.theme-light {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+.sidebar-header.theme-light {
+  border-color: #f1f5f9;
+}
+.header-main.theme-light {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
 
 /* --- ANIMACIONES --- */
 .animate-fade-in {
@@ -131,12 +172,18 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 /* --- VARIABLES --- */
 :root {
-  --woden-orange: #FF8F00;
+  --woden-orange: #ff8f00;
   --woden-orange-hover: #e68200;
   --sidebar-w-open: 240px;
   --sidebar-w-closed: 70px;
@@ -206,43 +253,48 @@
   font-weight: 900;
   text-transform: uppercase;
 }
-.status-tarde { color: #ef4444; }
-.status-ok { color: #10b981; }
+.status-tarde {
+  color: #ef4444;
+}
+.status-ok {
+  color: #10b981;
+}
 
 /* Asegura que el layout ocupe toda la pantalla */
 .admin-layout {
-    display: flex;
-    height: 100vh;
-    overflow: hidden; /* Evita scroll en el body */
+  display: flex;
+  height: 100vh;
+  overflow: hidden; /* Evita scroll en el body */
 }
 
 /* Área de contenido principal donde se cargan los módulos */
 main.flex-1 {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    min-width: 0; /* Importante para evitar que el contenido empuje el layout */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0; /* Importante para evitar que el contenido empuje el layout */
 }
 
 /* El div que envuelve AttendanceModule y MeshModule */
 .module-container {
-    flex: 1;
-    overflow-y: auto; /* Habilita el scroll vertical para bajar en la lista */
-    padding: 1.5rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+  flex: 1;
+  overflow-y: auto; /* Habilita el scroll vertical para bajar en la lista */
+  padding: 1.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
 }
 
 /* Personalización del scroll para Chrome/Safari */
 .module-container::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 .module-container::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.3);
-    border-radius: 10px;
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 10px;
 }
 /* --- BOTONES SMART ASISTENCIA --- */
-.btn-smart-in, .btn-smart-out {
+.btn-smart-in,
+.btn-smart-out {
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
@@ -268,12 +320,14 @@ main.flex-1 {
   box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
 
-.btn-smart-in:hover, .btn-smart-out:hover {
+.btn-smart-in:hover,
+.btn-smart-out:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
 
-.btn-smart-in:disabled, .btn-smart-out:disabled {
+.btn-smart-in:disabled,
+.btn-smart-out:disabled {
   background: #94a3b8;
   opacity: 0.2;
   transform: none;
@@ -306,14 +360,14 @@ main.flex-1 {
 }
 
 .nav-link-smart.active {
-  background-color: #FF8F00;
+  background-color: #ff8f00;
   color: white;
   box-shadow: 0 8px 16px rgba(255, 143, 0, 0.25);
 }
 
 .nav-link-smart:hover:not(.active) {
   background-color: rgba(255, 143, 0, 0.08);
-  color: #FF8F00;
+  color: #ff8f00;
 }
 
 /* --- SIDEBAR CONFIG --- */
@@ -326,11 +380,21 @@ main.flex-1 {
   border-right: 1px solid transparent;
 }
 
-.theme-dark .sidebar { background-color: #0f172a; border-right-color: rgba(255,255,255,0.05); }
-.theme-light .sidebar { background-color: #ffffff; border-right-color: #f1f5f9; }
+.theme-dark .sidebar {
+  background-color: #0f172a;
+  border-right-color: rgba(255, 255, 255, 0.05);
+}
+.theme-light .sidebar {
+  background-color: #ffffff;
+  border-right-color: #f1f5f9;
+}
 
-.sidebar-open { width: 240px; }
-.sidebar-closed { width: 70px; }
+.sidebar-open {
+  width: 240px;
+}
+.sidebar-closed {
+  width: 70px;
+}
 
 .sidebar-header {
   height: 56px;
@@ -390,8 +454,12 @@ main.flex-1 {
   @apply h-screen transition-all duration-500 ease-in-out border-r border-transparent overflow-hidden flex flex-col;
 }
 
-.theme-dark .sidebar { @apply bg-[#0f172a] border-white/5; }
-.theme-light .sidebar { @apply bg-white border-slate-200 shadow-xl; }
+.theme-dark .sidebar {
+  @apply bg-[#0f172a] border-white/5;
+}
+.theme-light .sidebar {
+  @apply bg-white border-slate-200 shadow-xl;
+}
 
 .sidebar-header {
   @apply h-16 flex items-center px-4 shrink-0;
@@ -452,4 +520,18 @@ main.flex-1 {
 
 .btn-header-smart:disabled .icon-box-smart {
   background: rgba(148, 163, 184, 0.1);
+}
+.sidebar-header {
+  @apply transition-all duration-300;
+}
+
+/* Animación sutil de aparición */
+.animate-fade-in {
+  animation: tracking-in 0.5s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+}
+
+@keyframes tracking-in {
+  0% { letter-spacing: -0.5em; opacity: 0; }
+  40% { opacity: 0.6; }
+  100% { opacity: 1; }
 }

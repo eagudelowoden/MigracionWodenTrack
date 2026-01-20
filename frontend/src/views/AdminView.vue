@@ -1,16 +1,23 @@
 <template>
   <div class="admin-layout transition-colors duration-500" :class="isDark ? 'theme-dark' : 'theme-light'">
 
-    <aside class="sidebar" :class="[isSidebarOpen ? 'sidebar-open' : 'sidebar-closed']">
-      <div class="sidebar-header">
-        <div
-          class="w-9 h-9 bg-[#FF8F00] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-          <span class="font-black text-xl">W</span>
+    <aside class="sidebar" :style="{ backgroundColor: isDark ? '#334157' : '#f8fafc' }"
+      :class="[isSidebarOpen ? 'sidebar-open' : 'sidebar-closed']">
+      <div class="sidebar-header px-6 py-8">
+        <div class="flex items-center group cursor-default">
+          <div class="w-1 h-6 bg-[#FF8F00] rounded-full mr-3 group-hover:h-8 transition-all duration-300"></div>
+
+          <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in">
+            <span class="text-xl font-bold tracking-tight text-white uppercase">
+              Woden
+            </span>
+            <span class="ml-1 text-xl font-light tracking-widest text-[#FF8F00] uppercase">
+              Track
+            </span>
+          </div>
         </div>
-        <h2 v-if="isSidebarOpen" class="ml-3 text-sm font-black uppercase tracking-tighter animate-fade-in"
-          :class="isDark ? 'text-white' : 'text-slate-800'">
-          Portal Admin
-        </h2>
+
+
       </div>
 
       <nav class="flex-1 px-3 space-y-2 mt-6">
