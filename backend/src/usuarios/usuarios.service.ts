@@ -437,6 +437,7 @@ export class UsuariosService {
         malla: con.resource_calendar_id
           ? con.resource_calendar_id[1]
           : 'Sin Malla',
+        cargo: con.job_id ? con.job_id[1] : 'Sin Cargo',
         jornada: jornada,
         horario: horario,
       };

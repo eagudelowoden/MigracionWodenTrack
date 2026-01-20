@@ -55,7 +55,7 @@
               <th
                 class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 <div class="flex items-center gap-2">
-                  <i class="fas fa-fingerprint text-[9px] opacity-60"></i> ID / CC
+                  <i class="fas fa-fingerprint text-[9px] opacity-60"></i> Cargo
                 </div>
               </th>
               <th
@@ -95,9 +95,9 @@
                 </span>
               </td>
 
-              <td class="px-4 py-3 border-b font-mono text-[10px]"
+              <td class="px-4 py-3 border-b font-mono text-[13px]"
                 :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-                {{ persona.cc }}
+                {{ persona.cargo }}
               </td>
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
