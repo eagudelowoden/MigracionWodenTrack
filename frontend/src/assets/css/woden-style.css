@@ -101,3 +101,46 @@
 .animate-ping { animation: ping 2s infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Estilo base del input */
+
+/* 1. Estilos base (Solo estructura, no colores) */
+.woden-input-base {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+/* 2. MODO CLARO: Fondo gris claro, texto oscuro */
+.theme-light .woden-input-base {
+  background-color: #f8fafc !important; /* Gris muy claro */
+  color: #0f172a !important;           /* Texto oscuro */
+  border-color: #e2e8f0 !important;
+}
+
+/* 3. MODO OSCURO: Fondo casi negro, texto blanco */
+.theme-dark .woden-input-base {
+  background-color: rgba(255, 255, 255, 0.05) !important; /* Fondo oscuro sutil */
+  color: #ffffff !important;                             /* TEXTO BLANCO */
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 4. Focus (Cuando el usuario hace clic) */
+.woden-input-base:focus {
+  border-color: var(--primary) !important;
+}
+
+/* 5. Placeholder */
+.woden-input-base::placeholder {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.5;
+}
+.theme-dark .woden-input-base::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}

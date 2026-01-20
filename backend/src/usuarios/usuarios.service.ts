@@ -12,7 +12,7 @@ import {
 
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly odoo: OdooService) {}
+  constructor(private readonly odoo: OdooService) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -465,6 +465,8 @@ export class UsuariosService {
       'check_in',
       'check_out',
       'department_id',
+      'x_studio_tipo_entrada', // Agrégalos directo
+      'x_studio_tipo_salida'   // Agrégalos directo
     ];
 
     if (this.ENVIAR_CAMPOS_STUDIO) {
