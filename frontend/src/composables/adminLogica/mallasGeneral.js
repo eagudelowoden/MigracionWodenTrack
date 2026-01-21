@@ -35,25 +35,33 @@ export function useMallasGeneral() {
     }
   };
 
-  const downloadMallaTemplate = async () => {
-    try {
-      isLoadingDownload.value = true;
-      const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `plantilla_mallas_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      alert("Error al descargar plantilla");
-    } finally {
-      isLoadingDownload.value = false;
-    }
-  };
+const downloadMallaTemplate = async () => {
+  try {
+    isLoadingDownload.value = true;
+    
+    // Pasamos el nombre de la compañía como parámetro de consulta (query param)
+    const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
+      params: { 
+        company: selectedCompany.value // Aquí enviamos el filtro
+      },
+      responseType: "blob",
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    // Nombre de archivo dinámico incluyendo la sede
+    link.setAttribute("download", `plantilla_${selectedCompany.value}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (error) {
+    console.error(error);
+    alert("Error al descargar plantilla");
+  } finally {
+    isLoadingDownload.value = false;
+  }
+};
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];

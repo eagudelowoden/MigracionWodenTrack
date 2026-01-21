@@ -42,7 +42,7 @@ import { useInactividad } from './composables/useInactividad';
 import { useAttendance } from './composables/UserLogica/useAttendance.js';
 
 const { isDark } = useAttendance();
-useInactividad(10); 
+useInactividad(1); 
 
 const nuevaActualizacion = ref(false);
 // Limpiamos la URL base
