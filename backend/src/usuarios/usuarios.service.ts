@@ -53,7 +53,7 @@ export class UsuariosService {
 
     // 2. LÓGICA DE ROLES
     //const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
-    const palabrasAdmin = ['DESARROLLADOR'];
+    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR'];
     const esSuperAdmin = cargo.includes('DESARROLLADOR');
     const esSubalterno = [
       'AUXILIAR',
