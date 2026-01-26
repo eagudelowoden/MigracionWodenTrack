@@ -48,34 +48,45 @@ export class UsuariosService {
 
     const emp = employees[0];
     const cargoRaw = emp.job_id ? emp.job_id[1] : 'SIN CARGO';
-    const cargo = cargoRaw.toUpperCase();
+
+    // 1. NORMALIZACIÓN: Quitamos tildes y pasamos a mayúsculas
+    // Esto evita que "Información" no coincida con "INFORMACION"
+    const cargo = cargoRaw
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
     const status = await this.getAttendanceStatus(emp.id);
 
-    // 2. LÓGICA DE ROLES
-    //const palabrasAdmin = ['GERENTE', 'COORDINADOR', 'JEFE', 'DESARROLLADOR'];
+    // 2. DETECCIÓN DE CASOS ESPECIALES
+    // Buscamos palabras clave en lugar de la frase exacta para evitar líos con el "+" o espacios
+    const esAnalistaMallasAdmin = cargo.includes('ANALISTA') && cargo.includes('MALLAS');
+
+    // 3. LÓGICA DE ROLES
     const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR'];
+
     const esSuperAdmin = cargo.includes('DESARROLLADOR');
-    const esSubalterno = [
+
+    // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
+    const esTI = /\bTI\b/.test(cargo);
+
+    // Si tiene palabra de mando O es el analista especial de mallas
+    const tieneMandoGeneral = palabrasAdmin.some((palabra) => cargo.includes(palabra)) || esAnalistaMallasAdmin;
+
+    // Si está en la lista de usuarios PERO no es nuestro analista especial
+    const esUser = [
       'AUXILIAR',
       'PRACTICANTE',
       'ANALISTA',
       'APRENDIZ',
       'ASISTENTE',
       'INSPECTOR',
-    ].some((word) => cargo.includes(word));
+    ].some((word) => cargo.includes(word)) && !esAnalistaMallasAdmin;
 
-    const esTI =
-      cargo === 'TI' ||
-      cargo.includes(' TI ') ||
-      cargo.startsWith('TI ') ||
-      cargo.endsWith(' TI');
-    const tieneMandoGeneral = palabrasAdmin.some((palabra) =>
-      cargo.includes(palabra),
-    );
-
-    const esAdmin = (tieneMandoGeneral || esTI) && !esSubalterno;
+    // 4. ASIGNACIÓN FINAL
+    // Ahora esAdmin será true para el Analista de Mallas porque tieneMandoGeneral es true
+    const esAdmin = (tieneMandoGeneral || esTI);
     const rolAsignado = esAdmin ? 'admin' : 'user';
-
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
     const openAttendances = await this.odoo.executeKw<any[]>(
