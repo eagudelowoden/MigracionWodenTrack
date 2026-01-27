@@ -32,13 +32,20 @@
         </div>
 
         <div class="relative group">
-          <select v-model="selectedDepartment"
+          <select v-if="esAdmin" v-model="selectedDepartment"
             class="pl-3 pr-8 py-1.5 text-[11px] font-bold uppercase rounded border outline-none appearance-none cursor-pointer shadow-sm w-40 transition-all"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
-            <option value="">DEPARTAMENTOS</option>
+            :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
+            <option value="">TODOS LOS DEPTOS</option>
             <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
           </select>
-          <i
+
+          <div v-else
+            class="pl-3 pr-3 py-1.5 text-[10px] font-bold uppercase rounded border bg-orange-500/10 border-orange-500/20 text-orange-600 flex items-center gap-2">
+            <i class="fas fa-shield-halved"></i>
+            {{ miDepto || 'MI DEPARTAMENTO' }}
+          </div>
+
+          <i v-if="esAdmin"
             class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
         </div>
 
@@ -228,6 +235,10 @@ const {
 
 const { isDark: isDarkTheme } = useAttendance();
 
+const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+const esAdmin = session.role === 'admin';
+const miDepto = session.department;
+
 // --- LÓGICA DE PAGINACIÓN ---
 const currentPage = ref(1);
 const itemsPerPage = ref(15); // Aumentado un poco para aprovechar pantallas grandes
@@ -247,16 +258,37 @@ watch([reportData, search, selectedDepartment, filterHoy, startDate, endDate], (
 
 // Sincronizar compañía del header con la lógica
 watch(() => props.company, (newCompany) => {
-  if (selectedCompany) selectedCompany.value = newCompany;
+  if (newCompany) {
+    selectedCompany.value = newCompany;
+    fetchReporte(); // Esta será la única llamada inicial necesaria
+  }
+}, { immediate: true }); // El immediate: true reemplaza la necesidad del onMounted
+
+onMounted(() => {
+  if (props.company) {
+    selectedCompany.value = props.company;
+  }
+  // No llames a fetchReporte() aquí si el watch de props.company ya lo hará
+});
+onMounted(() => {
+  if (!esAdmin && miDepto) {
+    selectedDepartment.value = miDepto;
+  }
+  fetchReporte();
+});
+
+watch(() => props.department, (newDepartament) => {
+  if (selectedDepartment) selectedDepartment.value = newDepartament;
   fetchReporte();
 });
 
 onMounted(() => {
-  if (props.company && selectedCompany) {
-    selectedCompany.value = props.company;
+  if (props.department && selectedDepartment) {
+    selectedDepartment.value = props.department;
   }
   fetchReporte();
 });
+
 
 // --- HELPERS ---
 const formatDateTime = (value) => {

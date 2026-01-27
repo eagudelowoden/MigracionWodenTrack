@@ -3,7 +3,7 @@ import { CompaniesService } from './companies.service';
 
 @Controller('usuarios/companies')
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) {}
+  constructor(private readonly companiesService: CompaniesService) { }
 
   @Get()
   async findAll() {

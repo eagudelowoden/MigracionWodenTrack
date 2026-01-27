@@ -37,12 +37,27 @@ export function adminOdoo() {
   };
   const fetchReport = async () => {
     try {
-      // Opcional: Podrías pasar la compañía al backend si quieres filtrar desde la DB
-      const res = await fetch(`${API_BASE_URL}/reporte-novedades`);
+      // 1. Obtenemos el departamento que guardamos en el login
+      // 'att.employee' viene de useAttendance()
+      const departamentoUsuario = att.employee.value?.department || "";
+
+      // 2. Creamos los parámetros
+      const queryParams = new URLSearchParams({
+        hoy: "true",
+        company: selectedCompany.value || "Todas",
+        departamento: departamentoUsuario, // <--- AQUÍ AGREGAMOS EL DEPARTAMENTO
+      });
+
+      // 3. La URL final quedará: .../reporte-novedades?hoy=true&company=...&departamento=...
+      const urlFinal = `${API_BASE_URL}/reporte-novedades?${queryParams.toString()}`;
+
+      console.log("Petición enviada a:", urlFinal); // Para que verifiques en consola
+
+      const res = await fetch(urlFinal);
       const data = await res.json();
       report.value = data;
     } catch (err) {
-      console.error("Error reporte:", err);
+      console.error("Error al obtener el reporte:", err);
     }
   };
 
@@ -67,7 +82,7 @@ export function adminOdoo() {
         }
         localStorage.setItem(
           "user_session",
-          JSON.stringify(att.employee.value)
+          JSON.stringify(att.employee.value),
         );
         att.showToast(data.message, "success");
       }
@@ -89,7 +104,7 @@ export function adminOdoo() {
         workbook,
         `Reporte_${selectedCompany.value}_${
           new Date().toISOString().split("T")[0]
-        }.xlsx`
+        }.xlsx`,
       );
       att.showToast("Excel generado", "success");
     } catch (err) {
@@ -110,23 +125,32 @@ export function adminOdoo() {
   });
 
   // --- FILTRADO POR BUSQUEDA Y POR COMPAÑIA ---
+  // useCargarAsistencias.js
   const filteredReport = computed(() => {
-    return report.value.filter((item) => {
-      // Filtro por Compañía
-      const matchesCompany =
-        !selectedCompany.value || item.company_name === selectedCompany.value;
+    const s = search.value.toLowerCase().trim();
+    const deptoSeleccionado = selectedDepartment.value;
 
-      // Filtro por Buscador
-      const s = searchQuery.value.toLowerCase();
+    return rawData.value.filter((item) => {
+      // 1. Filtro de Búsqueda (Colaborador o Estado)
       const matchesSearch =
-        !searchQuery.value ||
-        item.empleado.toLowerCase().includes(s) ||
-        item.department_id.toLowerCase().includes(s);
+        !s ||
+        String(item.empleado || "")
+          .toLowerCase()
+          .includes(s) ||
+        String(item.estado || "")
+          .toLowerCase()
+          .includes(s);
 
-      return matchesCompany && matchesSearch;
+      // 2. Filtro de Departamento (SOLUCIÓN):
+      // Si ya viene filtrado del backend, no necesitamos re-filtrar aquí
+      // a menos que el usuario use explícitamente el SELECT del UI.
+      const matchesDept =
+        !deptoSeleccionado ||
+        String(item.department_id).trim() === String(deptoSeleccionado).trim();
+
+      return matchesSearch && matchesDept;
     });
   });
-
   return {
     ...att,
     currentModule,

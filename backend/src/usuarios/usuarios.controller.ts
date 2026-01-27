@@ -35,11 +35,13 @@ export class UsuariosController {
   async getReporte(
     @Query('hoy') hoy?: string,
     @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
     @Query('startDate') startDate?: string, // <-- Nuevo
     @Query('endDate') endDate?: string      // <-- Nuevo
+
   ) {
     const soloHoy = hoy === 'true';
-    return await this.usuariosService.getReporteNovedades(soloHoy, company, startDate, endDate);
+    return await this.usuariosService.getReporteNovedades(soloHoy, company, startDate, endDate, departamento);
   }
 
   /**

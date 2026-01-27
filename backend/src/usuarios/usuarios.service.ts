@@ -20,7 +20,7 @@ export class UsuariosService {
 
   async login(usuario: string, password: string) {
     const { inicioDia, ahoraStr } = getFechaColombia();
-
+    console.log(`\n--- INTENTO DE LOGIN: ${usuario} ---`);
     if (!usuario || !password) {
       throw new BadRequestException('Por favor, ingrese usuario y contraseña');
     }
@@ -38,7 +38,7 @@ export class UsuariosService {
       'hr.employee',
       'search_read',
       [[['pin', '=', usuario]]],
-      { fields: ['id', 'name', 'job_id'], limit: 1 },
+      { fields: ['id', 'name', 'job_id', 'department_id'], limit: 1 },
       uid,
     );
 
@@ -47,7 +47,10 @@ export class UsuariosService {
     }
 
     const emp = employees[0];
+    console.log('--- DATOS CRUDOS DE ODOO ---');
+    console.dir(emp, { depth: null });
     const cargoRaw = emp.job_id ? emp.job_id[1] : 'SIN CARGO';
+    const departamentoRaw = emp.department_id ? emp.department_id[1] : 'SIN DEPARTAMENTO';
 
     // 1. NORMALIZACIÓN: Quitamos tildes y pasamos a mayúsculas
     // Esto evita que "Información" no coincida con "INFORMACION"
@@ -55,6 +58,8 @@ export class UsuariosService {
       .toUpperCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
+    console.log(`[CARGO]: Original: "${cargoRaw}" | Normalizado: "${cargo}"`);
+    console.log(`[LOGIN]: Usuario: ${emp.name} | Depto: ${departamentoRaw}`);
 
     const status = await this.getAttendanceStatus(emp.id);
 
@@ -63,7 +68,7 @@ export class UsuariosService {
     const esAnalistaMallasAdmin = cargo.includes('ANALISTA') && cargo.includes('MALLAS');
 
     // 3. LÓGICA DE ROLES
-    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR'];
+    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR', 'SUPERVISOR LOGISTICO'];
 
     const esSuperAdmin = cargo.includes('DESARROLLADOR');
 
@@ -150,6 +155,7 @@ export class UsuariosService {
       job: cargoRaw,
       role: rolAsignado,
       is_inside: isInside,
+      department: departamentoRaw, // <--- Dato clave para tus filtros
       isSuperAdmin: esSuperAdmin, // Nueva bandera
       day_completed: status.day_completed,
     };
@@ -458,7 +464,8 @@ export class UsuariosService {
   async getReporteNovedades(soloHoy?: boolean,
     companyName?: string,
     startDate?: string,
-    endDate?: string) {
+    endDate?: string,
+    departamentoName?: string) {
     const uid = await this.odoo.authenticate();
     let domain: any[] = [];
 
@@ -482,6 +489,10 @@ export class UsuariosService {
     // 2. Filtro de Compañía (Solo si viene un nombre válido)
     if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
       domain.push(['employee_id.company_id.name', '=', companyName]);
+    }
+
+    if (departamentoName) {
+      domain.push(['employee_id.department_id.name', 'ilike', departamentoName]);
     }
 
     // 3. Campos a buscar

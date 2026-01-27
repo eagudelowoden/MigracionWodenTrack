@@ -42,36 +42,43 @@ export function useCargarAsistencias() {
     }
   });
   // ... dentro de useCargarAsistencias ...
+  // Dentro de useCargarAsistencias.js
   const fetchReporte = async (companyOverride = null) => {
-  loading.value = true;
-  try {
-    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    loading.value = true;
+    try {
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
 
-    // Determinamos si es solo hoy basándonos en el switch
-    const soloHoy = filterHoy.value === true || filterHoy.value === "true";
-    url.searchParams.append("hoy", soloHoy.toString());
+      // 1. Obtenemos el departamento directamente de la sesión
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const deptoUsuario = session.department || "";
 
-    // SI NO ES HOY, enviamos el rango para que el Backend cree el dominio de Odoo
-    if (!soloHoy) {
-      if (startDate.value) url.searchParams.append("startDate", startDate.value);
-      if (endDate.value) url.searchParams.append("endDate", endDate.value);
+      // 2. Parámetros básicos
+      url.searchParams.append("hoy", filterHoy.value.toString());
+
+      if (selectedCompany.value) {
+        url.searchParams.append("company", selectedCompany.value);
+      }
+
+      // 3. AGREGAMOS EL DEPARTAMENTO (Igual que el código que te funcionó)
+      // Si el usuario eligió uno en el select, usamos ese. Si no, usamos el suyo.
+      const deptoAEnviar = selectedDepartment.value || deptoUsuario;
+      if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
+        url.searchParams.append("departamento", deptoAEnviar);
+      }
+
+      url.searchParams.append("_t", Date.now().toString());
+
+      const res = await fetch(url.toString());
+      const data = await res.json();
+
+      // ESTO ES LO MÁS IMPORTANTE: rawData llena la tabla
+      rawData.value = data;
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      loading.value = false;
     }
-
-    const companyToFilter = companyOverride && !(companyOverride instanceof Event)
-      ? companyOverride : selectedCompany.value;
-
-    if (companyToFilter) url.searchParams.append("company", companyToFilter);
-    url.searchParams.append("_t", Date.now().toString());
-
-    const res = await fetch(url.toString());
-    const data = await res.json();
-    rawData.value = data;
-  } catch (err) {
-    console.error("Fallo al traer reporte:", err);
-  } finally {
-    loading.value = false;
-  }
-};
+  };
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {
@@ -103,27 +110,24 @@ export function useCargarAsistencias() {
 
   const filteredReport = computed(() => {
     const s = search.value.toLowerCase().trim();
+    const d = selectedDepartment.value; // El depto seleccionado en el select del UI
 
     return rawData.value.filter((item) => {
+      // 1. Buscador por nombre
       const matchesSearch =
         !s ||
         String(item.empleado || "")
           .toLowerCase()
-          .includes(s) ||
-        String(item.estado || "")
-          .toLowerCase()
           .includes(s);
 
+      // 2. FILTRO DE DEPTO (CORRECCIÓN CLAVE):
+      // Si el depto viene del backend ya filtrado, selectedDepartment debe estar vacío
+      // o coincidir exactamente. Para evitar errores, solo filtramos si el usuario
+      // seleccionó algo distinto a lo que ya trae el reporte.
       const matchesDept =
-        !selectedDepartment.value ||
-        String(item.department_id) === String(selectedDepartment.value);
+        !d || String(item.department_id).trim() === String(d).trim();
 
-      const itemDate = item.fecha;
-      const matchesDate =
-        (!startDate.value || itemDate >= startDate.value) &&
-        (!endDate.value || itemDate <= endDate.value);
-
-      return matchesSearch && matchesDept && matchesDate;
+      return matchesSearch && matchesDept;
     });
   });
   const downloadReport = async () => {
