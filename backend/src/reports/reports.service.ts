@@ -1,5 +1,5 @@
 // src/reports/reports.service.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
 
@@ -9,51 +9,77 @@ export class ReportsService {
 
   // src/reports/reports.service.ts
 
-  async generarPlantillaMallas(companyName: string): Promise<Buffer> {
+  async generarPlantillaMallas(companyName: string, departamento: string): Promise<Buffer> {
     try {
       const uid = await this.odoo.authenticate();
 
-      // 1. Traer los contratos FILTRADOS por la compañía seleccionada
-      // Usamos 'company_id.name' para comparar directamente con el texto que viene del select
+      // 1. CONSTRUIR EL DOMINIO DINÁMICO
+      const domain: any[] = [];
+
+      // Filtro por compañía
+      if (companyName && companyName !== 'Todas') {
+        domain.push(['company_id.name', '=', companyName]);
+      }
+
+      // Filtro por departamento (AQUÍ ESTÁ EL CAMBIO CLAVE)
+      if (departamento && departamento !== '' && departamento !== 'Todas') {
+        // Usamos ilike para evitar líos con la tilde de "TECNOLOGÍAS"
+        domain.push(['employee_id.department_id.name', 'ilike', departamento]);
+      }
+
+      // 2. TRAER LOS CONTRATOS FILTRADOS
       const contratos = await this.odoo.executeKw<any[]>(
         'hr.contract',
         'search_read',
-        [[['company_id.name', '=', companyName]]], // <-- FILTRO APLICADO
+        [domain], // Pasamos el array de filtros
         {
-          fields: ['name', 'company_id', 'employee_id', 'job_id', 'resource_calendar_id', 'date_start', 'date_end', 'state', 'department_id']
+          fields: [
+            'name',
+            'company_id',
+            'employee_id',
+            'job_id',
+            'resource_calendar_id',
+            'date_start',
+            'date_end',
+            'state',
+            'department_id'
+          ]
         },
         uid,
       );
 
-      const idMap = new Map();
-
-      // 2. Obtener IDs Externos (solo de los contratos filtrados para mayor eficiencia)
-      if (contratos.length > 0) {
-        try {
-          const contractIds = contratos.map(c => c.id);
-          const externalIds = await this.odoo.executeKw<any[]>(
-            'ir.model.data',
-            'search_read',
-            [[
-              ['model', '=', 'hr.contract'],
-              ['res_id', 'in', contractIds]
-            ]],
-            { fields: ['res_id', 'module', 'name'] },
-            uid,
-          );
-
-          externalIds.forEach(item => {
-            idMap.set(item.res_id, `${item.module}.${item.name}`);
-          });
-        } catch (e) {
-          console.warn("Odoo limitó el acceso a metadatos. Usando IDs numéricos.");
-        }
+      // Si no hay contratos, lanzamos una pequeña advertencia para no generar un Excel vacío
+      if (!contratos || contratos.length === 0) {
+        throw new NotFoundException(`No se encontraron contratos para la compañía ${companyName} en el departamento ${departamento}`);
       }
 
+      const idMap = new Map();
+
+      // 3. OBTENER IDs EXTERNOS (Metadatos de Odoo)
+      try {
+        const contractIds = contratos.map(c => c.id);
+        const externalIds = await this.odoo.executeKw<any[]>(
+          'ir.model.data',
+          'search_read',
+          [[
+            ['model', '=', 'hr.contract'],
+            ['res_id', 'in', contractIds]
+          ]],
+          { fields: ['res_id', 'module', 'name'] },
+          uid,
+        );
+
+        externalIds.forEach(item => {
+          idMap.set(item.res_id, `${item.module}.${item.name}`);
+        });
+      } catch (e) {
+        console.warn("Odoo limitó el acceso a metadatos. Usando IDs numéricos.");
+      }
+
+      // 4. GENERACIÓN DEL EXCEL (ExcelJS)
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Carga de Mallas');
 
-      // 3. Configuración de columnas
       worksheet.columns = [
         { header: 'id', key: 'id', width: 35 },
         { header: 'Compañía', key: 'company', width: 25 },
@@ -67,12 +93,12 @@ export class ReportsService {
         { header: 'Departamento', key: 'department', width: 25 },
       ];
 
-      // Estilo del encabezado (Naranja corporativo)
+      // Estilo Naranja (Igual que el anterior)
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
 
-      // 4. Llenar datos (Solo los contratos de la sede seleccionada)
+      // 5. LLENAR DATOS
       contratos.forEach(con => {
         worksheet.addRow({
           id: idMap.get(con.id) || con.id,
@@ -93,6 +119,7 @@ export class ReportsService {
 
     } catch (error) {
       console.error("Error en reporte:", error.message);
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(`Error de Odoo: ${error.message}`);
     }
   }

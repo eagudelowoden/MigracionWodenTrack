@@ -26,9 +26,12 @@ export class UsuariosController {
   }
 
   @Get('mallas')
-  async getMallas(@Query('company') company?: string) {
-    // Pasamos el parámetro de la compañía al servicio
-    return await this.usuariosService.getAllMallas(company);
+  async getMallas(
+    @Query('company') company?: string,
+    @Query('departamento') departamento?: string // <--- CAPTURAR EL DEPARTAMENTO
+  ) {
+    // Pasamos ambos parámetros al servicio en el orden correcto
+    return await this.usuariosService.getAllMallas(company, departamento);
   }
 
   @Get('reporte-novedades')

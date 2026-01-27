@@ -8,25 +8,31 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) { }
 
   // --- TU MÉTODO EXISTENTE (MALLAS) ---
-@Get('mallas/template')
-async descargarPlantilla(
-  @Res() res: express.Response, 
-  @Query('company') companyName: string // <--- Capturamos el filtro
-) {
-  try {
-    // Pasamos el nombre de la compañía al servicio
-    const buffer = await this.reportsService.generarPlantillaMallas(companyName);
-    
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename=plantilla_${companyName}.xlsx`,
-      'Content-Length': buffer.length,
-    });
-    return res.send(buffer);
-  } catch (err) {
-    return res.status(500).json({ message: err.message });
+  @Get('mallas/template')
+  async descargarPlantilla(
+    @Res() res: express.Response,
+    @Query('company') companyName: string,
+    @Query('departamento') departamento?: string // <--- CAPTURAMOS EL DEPARTAMENTO
+  ) {
+    try {
+      // Pasamos ambos filtros al servicio
+      const buffer = await this.reportsService.generarPlantillaMallas(companyName, departamento || '');
+
+      // Limpiamos el nombre del archivo para que no tenga problemas con espacios
+      const nombreArchivo = `plantilla_${companyName}_${departamento || 'general'}`.replace(/\s+/g, '_');
+
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename=${nombreArchivo}.xlsx`,
+        'Content-Length': buffer.length,
+      });
+
+      return res.send(buffer);
+    } catch (err) {
+      console.error("Error al generar plantilla:", err.message);
+      return res.status(500).json({ message: 'Error interno al generar el Excel' });
+    }
   }
-}
 
   // --- NUEVO MÉTODO (ASISTENCIAS) SIGUIENDO TU ESTILO ---
   @Post('asistencias/export')

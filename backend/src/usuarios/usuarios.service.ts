@@ -370,7 +370,7 @@ export class UsuariosService {
     }
   }
   // Agrega esto dentro de la clase UsuariosService
-  async getAllMallas(companyName?: string) {
+  async getAllMallas(companyName?: string, departamentoName?: string) {
     const uid = await this.odoo.authenticate();
     const now = new Date();
     const dayOfWeekOdoo = (
@@ -388,6 +388,9 @@ export class UsuariosService {
     if (companyName && companyName.trim() !== '') {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
+    if (departamentoName && departamentoName.trim() !== '' && departamentoName !== 'Todas') {
+      domain.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    }
 
     // 2. EJECUTAR LA BÚSQUEDA
     const contracts = await this.odoo.executeKw<any[]>(
@@ -395,7 +398,7 @@ export class UsuariosService {
       'search_read',
       [domain], // Pasamos el dominio construido
       {
-        fields: ['employee_id', 'resource_calendar_id', 'job_id'],
+        fields: ['employee_id', 'resource_calendar_id', 'job_id', 'department_id'],
         order: 'employee_id asc',
       },
       uid,
@@ -450,7 +453,7 @@ export class UsuariosService {
 
       return {
         nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
-        cc: 'Consultando...',
+        departamento: con.department_id ? con.department_id[1] : 'Sin Nombre',
         malla: con.resource_calendar_id
           ? con.resource_calendar_id[1]
           : 'Sin Malla',

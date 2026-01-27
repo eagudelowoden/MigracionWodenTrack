@@ -61,6 +61,12 @@
               <th
                 class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 <div class="flex items-center gap-2">
+                  <i class="fas fa-fingerprint text-[9px] opacity-60"></i> Departamento
+                </div>
+              </th>
+              <th
+                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center gap-2">
                   <i class="fas fa-layer-group text-[9px] opacity-60"></i> Malla
                 </div>
               </th>
@@ -98,6 +104,10 @@
               <td class="px-4 py-3 border-b font-mono text-[13px]"
                 :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
                 {{ persona.cargo }}
+              </td>
+              <td class="px-4 py-3 border-b font-mono text-[13px]"
+                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
+                {{ persona.departamento }}
               </td>
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
