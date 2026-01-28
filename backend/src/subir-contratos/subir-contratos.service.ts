@@ -65,9 +65,9 @@ export class SubirContratosService {
 
   private mapState(label: string): string {
     const states: Record<string, string> = {
-      'En proceso': 'draft',
-      'Abierto': 'open',
-      'Finalizado': 'close',
+      'Nuevo': 'draft',
+      'En proceso': 'open',
+      'Vencido': 'close',
       'Cancelado': 'cancel',
     };
     return states[label.trim()] ?? 'draft';
