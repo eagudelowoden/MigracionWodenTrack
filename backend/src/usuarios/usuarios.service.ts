@@ -70,10 +70,10 @@ export class UsuariosService {
     // 3. LÓGICA DE ROLES
     const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR', 'SUPERVISOR LOGISTICO'];
 
-    const esSuperAdmin = cargo.includes('DESARROLLADOR');
+    const esSuperAdmin = ['DESARROLLADOR', 'PRACTICANTE IT', 'ANALISTA IT'].some(palabra => cargo.includes(palabra));
 
     // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
-    const esTI = /\bTI\b/.test(cargo);
+    const esTI = /\b(IT|TI)\b/i.test(cargo);
 
     // Si tiene palabra de mando O es el analista especial de mallas
     const tieneMandoGeneral = palabrasAdmin.some((palabra) => cargo.includes(palabra)) || esAnalistaMallasAdmin;
