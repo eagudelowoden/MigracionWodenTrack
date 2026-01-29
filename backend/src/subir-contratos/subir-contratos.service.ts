@@ -6,13 +6,13 @@ import { OdooService } from '../odoo/odoo.service';
 export class SubirContratosService {
   private readonly logger = new Logger(SubirContratosService.name);
 
-  constructor(private readonly odoo: OdooService) {}
+  constructor(private readonly odoo: OdooService) { }
 
   async processExcel(fileBuffer: any) {
     try {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(fileBuffer);
-      
+
       // Intentamos obtener la primera hoja
       const worksheet = workbook.getWorksheet(1);
 
@@ -41,13 +41,13 @@ export class SubirContratosService {
 
         const rowData = [
           row.getCell(1).text?.trim() || '', // ID Externo (__export__)
-          row.getCell(2).text?.trim() || '', 
-          row.getCell(3).text?.trim() || '', 
-          this.mapState(row.getCell(4).text || ''), 
-          this.formatDate(row.getCell(5).value),    
-          this.formatDate(row.getCell(6).value),    
+          row.getCell(2).text?.trim() || '',
+          row.getCell(3).text?.trim() || '',
+          this.mapState(row.getCell(4).text || ''),
+          this.formatDate(row.getCell(5).value),
+          this.formatDate(row.getCell(6).value),
           row.getCell(7).text?.trim() || '', // El nombre de la Malla
-          row.getCell(8).text?.trim() || '',        
+          row.getCell(8).text?.trim() || '',
         ];
 
         // Solo procesar si tiene el ID Externo para garantizar la actualización
@@ -64,14 +64,37 @@ export class SubirContratosService {
   }
 
   private mapState(label: string): string {
+    // 1. Limpieza básica y manejo de nulos
+    if (!label) return 'draft';
+    const cleanLabel = label.trim();
+
+    // 2. Diccionario de traducción (Nombres del Excel -> Claves de Odoo)
     const states: Record<string, string> = {
       'Nuevo': 'draft',
       'En proceso': 'open',
+      'En Proceso': 'open',
       'Vencido': 'close',
       'Cancelado': 'cancel',
+      'Cancelado(a)': 'cancel',
     };
-    return states[label.trim()] ?? 'draft';
+
+    // 3. Lógica de retorno inteligente
+    // Primero: ¿Está en nuestro diccionario?
+    if (states[cleanLabel]) {
+      return states[cleanLabel];
+    }
+
+    // Segundo: ¿El valor ya es una clave técnica válida? (ej. "open", "draft")
+    // Esto evita que si el Excel ya está corregido, lo rompa.
+    const technicalValues = ['draft', 'open', 'close', 'cancel'];
+    if (technicalValues.includes(cleanLabel.toLowerCase())) {
+      return cleanLabel.toLowerCase();
+    }
+
+    // Por último: Si no coincide con nada, por defecto Odoo lo toma como draft
+    return 'draft';
   }
+
 
   private formatDate(value: any): string {
     if (!value) return '';

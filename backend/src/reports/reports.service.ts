@@ -13,6 +13,14 @@ export class ReportsService {
     try {
       const uid = await this.odoo.authenticate();
 
+      // 0. MAPEO DE ESTADOS (De técnico a legible)
+      const stateLabels: Record<string, string> = {
+        'draft': 'Nuevo',
+        'open': 'En proceso',
+        'close': 'Vencido',
+        'cancel': 'Cancelado(a)'
+      };
+
       // 1. CONSTRUIR EL DOMINIO DINÁMICO
       const domain: any[] = [];
 
@@ -100,11 +108,14 @@ export class ReportsService {
 
       // 5. LLENAR DATOS
       contratos.forEach(con => {
+
+        const estadoVisible = stateLabels[con.state] || con.state || '';
+
         worksheet.addRow({
           id: idMap.get(con.id) || con.id,
           company: Array.isArray(con.company_id) ? con.company_id[1] : '',
           employee: Array.isArray(con.employee_id) ? con.employee_id[1] : '',
-          state: con.state || '',
+          state: estadoVisible, // <--- Aplicamos el cambio aquí
           date_end: con.date_end || '',
           date_start: con.date_start || '',
           calendar: Array.isArray(con.resource_calendar_id) ? con.resource_calendar_id[1] : '',
