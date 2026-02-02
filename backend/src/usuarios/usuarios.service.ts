@@ -464,88 +464,88 @@ export class UsuariosService {
     });
   }
 
-  async getReporteNovedades(soloHoy?: boolean,
+  async getReporteNovedades(
+    soloHoy?: boolean,
     companyName?: string,
     startDate?: string,
     endDate?: string,
-    departamentoName?: string) {
+    departamentoName?: string,
+  ) {
     const uid = await this.odoo.authenticate();
-    let domain: any[] = [];
+    const { hoyFechaCorta } = getFechaColombia();
 
-    // 1. Lógica de Fecha (Solo filtrar si hoy es TRUE)
-    // 1. Lógica de Fecha mejorada para soportar históricos
-    if (soloHoy) {
-      // Si es hoy, forzamos el rango del día actual
-      const hoy = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-      domain.push(['check_in', '>=', `${hoy} 00:00:00`]);
-      domain.push(['check_in', '<=', `${hoy} 23:59:59`]);
-    } else {
-      // Si NO es hoy, revisamos si vienen fechas desde el frontend (calendario)
-      if (startDate) {
-        domain.push(['check_in', '>=', `${startDate} 00:00:00`]);
-      }
-      if (endDate) {
-        domain.push(['check_in', '<=', `${endDate} 23:59:59`]);
-      }
-    }
+    // 1. Configuración de Fechas
+    const inicio = soloHoy ? `${hoyFechaCorta} 00:00:00` : startDate ? `${startDate} 00:00:00` : null;
+    const fin = soloHoy ? `${hoyFechaCorta} 23:59:59` : endDate ? `${endDate} 23:59:59` : null;
 
-    // 2. Filtro de Compañía (Solo si viene un nombre válido)
-    if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
-      domain.push(['employee_id.company_id.name', '=', companyName]);
-    }
+    // --- DOMINIO ASISTENCIAS (hr.attendance) ---
+    let domainAtt: any[] = [];
+    if (inicio) domainAtt.push(['check_in', '>=', inicio]);
+    if (fin) domainAtt.push(['check_in', '<=', fin]);
+    if (companyName && companyName !== 'Todas') domainAtt.push(['employee_id.company_id.name', '=', companyName]);
+    if (departamentoName) domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
 
-    if (departamentoName) {
-      domain.push(['employee_id.department_id.name', 'ilike', departamentoName]);
-    }
+    // --- DOMINIO LOGS BIOMÉTRICOS (attendance.log) ---
+    let domainLog: any[] = [];
+    if (inicio) domainLog.push(['punching_time', '>=', inicio]);
+    if (fin) domainLog.push(['punching_time', '<=', fin]);
+    if (companyName && companyName !== 'Todas') domainLog.push(['company_id.name', '=', companyName]);
+    if (departamentoName) domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
 
-    // 3. Campos a buscar
-    const camposABuscar = [
-      'employee_id',
-      'check_in',
-      'check_out',
-      'department_id',
-      'x_studio_tipo_entrada',
-      'x_studio_tipo_salida',
-    ];
-
-    if (this.ENVIAR_CAMPOS_STUDIO) {
-      camposABuscar.push('x_studio_tipo_entrada', 'x_studio_tipo_salida');
-    }
-
-    // 4. Ejecución en Odoo
-    const attendances = await this.odoo.executeKw<any[]>(
-      'hr.attendance',
-      'search_read',
-      [domain],
-      {
-        fields: camposABuscar,
+    // 2. Ejecución en Paralelo
+    const [attendances, logs] = await Promise.all([
+      this.odoo.executeKw<any[]>('hr.attendance', 'search_read', [domainAtt], {
+        fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
         order: 'check_in desc',
-        // Si es hoy limitamos a 500, si es histórico subimos a 10,000 
-        // para asegurar que los registros de 2025 aparezcan.
-        limit: soloHoy ? 500 : 10000,
-      },
-      uid,
-    );
+        limit: soloHoy ? 500 : 5000,
+      }, uid),
+      this.odoo.executeKw<any[]>('attendance.log', 'search_read', [domainLog], {
+        fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
+        order: 'punching_time desc',
+        limit: soloHoy ? 500 : 5000,
+      }, uid)
+    ]);
 
-    // 5. Mapeo de resultados
-    return attendances.map((att) => {
-      // let estadoFinal = 'A TIEMPO';
-      // if (this.ENVIAR_CAMPOS_STUDIO) {
-      //   // Priorizar salida si existe, sino entrada
-      //   estadoFinal =
-      //     att.x_studio_tipo_salida || att.x_studio_tipo_entrada || 'A TIEMPO';
-      // }
+    // 3. Mapeo de Asistencias (Normal)
+    const resAttendances = attendances.map((att) => ({
+      id: `att_${att.id}`, // Prefijo para evitar colisiones de ID en Vue
+      empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+      department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+      c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+      c_salida: att.x_studio_tipo_salida || 'N/A',
+      check_in: att.check_in || null,
+      check_out: att.check_out || null,
+      fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A',
+      tipo: 'ASISTENCIA'
+    }));
+
+    // 4. Mapeo de Logs (Biométrico)
+    const resLogs = logs.map((log) => {
+      const esEntrada = log.status === '0' || log.status === '2';
+      const esSalida = log.status === '1';
 
       return {
-        id: att.id,
-        empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        c_entrada: att.x_studio_tipo_entrada || 'N/A',
-        c_salida: att.x_studio_tipo_salida || 'N/A',
-        check_in: att.check_in || null,
-        check_out: att.check_out || null,
-        fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A',
+        id: `log_${log.id}`,
+        empleado: log.employee_id ? log.employee_id[1] : 'Desconocido',
+        department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
+
+        // Disfrazamos para que la tabla lo entienda:
+        check_in: esEntrada ? log.punching_time : null,
+        check_out: esSalida ? log.punching_time : null,
+
+        c_entrada: esEntrada ? (log.status === '2' ? 'PUNCHED' : 'BIOMÉTRICO') : 'N/A',
+        c_salida: esSalida ? 'BIOMÉTRICO' : 'N/A',
+
+        fecha: log.punching_time ? log.punching_time.split(' ')[0] : 'N/A',
+        tipo: 'LOG CRUDO'
       };
+    });
+
+    // 5. Unir y ordenar por la fecha más reciente
+    return [...resAttendances, ...resLogs].sort((a, b) => {
+      const dateA = new Date(a.check_in || a.check_out || 0).getTime();
+      const dateB = new Date(b.check_in || b.check_out || 0).getTime();
+      return dateB - dateA;
     });
   }
   async getAttendanceStatus(employee_id: number) {
