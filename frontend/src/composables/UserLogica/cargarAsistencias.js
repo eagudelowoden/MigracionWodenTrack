@@ -35,32 +35,45 @@ export function useCargarAsistencias() {
     currentPage.value = 1;
   });
   // OBSERVADOR CLAVE: Si el usuario toca el calendario, apagamos "Hoy" y buscamos
-  watch([startDate, endDate], () => {
-    if (startDate.value || endDate.value) {
-      filterHoy.value = false; // Apagamos el switch de "Hoy" automáticamente
+  // 2. Un solo observador para disparar la búsqueda
+  watch(
+    [startDate, endDate, filterHoy, selectedCompany],
+    ([newStart, newEnd, newHoy], [oldStart, oldEnd, oldHoy]) => {
+      // Si el usuario cambió una fecha manualmente, apagamos el switch de "Hoy"
+      if (
+        (newStart !== oldStart || newEnd !== oldEnd) &&
+        (newStart || newEnd)
+      ) {
+        if (filterHoy.value) {
+          filterHoy.value = false;
+          return; // No ejecutamos fetchReporte aquí, porque el cambio de filterHoy disparará este mismo watch otra vez
+        }
+      }
+
       fetchReporte();
-    }
-  });
+    },
+  );
   // ... dentro de useCargarAsistencias ...
   // Dentro de useCargarAsistencias.js
-  const fetchReporte = async (companyOverride = null) => {
+  const fetchReporte = async () => {
     loading.value = true;
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-
-      // 1. Obtenemos el departamento directamente de la sesión
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const deptoUsuario = session.department || "";
 
-      // 2. Parámetros básicos
+      // --- PARÁMETROS ---
       url.searchParams.append("hoy", filterHoy.value.toString());
+
+      // AGREGA ESTO: Enviar fechas si existen
+      if (startDate.value)
+        url.searchParams.append("start_date", startDate.value);
+      if (endDate.value) url.searchParams.append("end_date", endDate.value);
 
       if (selectedCompany.value) {
         url.searchParams.append("company", selectedCompany.value);
       }
 
-      // 3. AGREGAMOS EL DEPARTAMENTO (Igual que el código que te funcionó)
-      // Si el usuario eligió uno en el select, usamos ese. Si no, usamos el suyo.
       const deptoAEnviar = selectedDepartment.value || deptoUsuario;
       if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
         url.searchParams.append("departamento", deptoAEnviar);
@@ -70,8 +83,6 @@ export function useCargarAsistencias() {
 
       const res = await fetch(url.toString());
       const data = await res.json();
-
-      // ESTO ES LO MÁS IMPORTANTE: rawData llena la tabla
       rawData.value = data;
     } catch (err) {
       console.error("Error:", err);
@@ -107,27 +118,28 @@ export function useCargarAsistencias() {
     // Quitamos duplicados y ordenamos
     return [...new Set(allDeps)].sort();
   });
-
   const filteredReport = computed(() => {
     const s = search.value.toLowerCase().trim();
-    const d = selectedDepartment.value; // El depto seleccionado en el select del UI
+    const d = selectedDepartment.value;
+    const start = startDate.value;
+    const end = endDate.value;
 
     return rawData.value.filter((item) => {
-      // 1. Buscador por nombre
       const matchesSearch =
         !s ||
         String(item.empleado || "")
           .toLowerCase()
           .includes(s);
-
-      // 2. FILTRO DE DEPTO (CORRECCIÓN CLAVE):
-      // Si el depto viene del backend ya filtrado, selectedDepartment debe estar vacío
-      // o coincidir exactamente. Para evitar errores, solo filtramos si el usuario
-      // seleccionó algo distinto a lo que ya trae el reporte.
       const matchesDept =
         !d || String(item.department_id).trim() === String(d).trim();
 
-      return matchesSearch && matchesDept;
+      // Filtro de fecha local (asumiendo que item.fecha es YYYY-MM-DD)
+      let matchesDate = true;
+      if (start && end) {
+        matchesDate = item.fecha >= start && item.fecha <= end;
+      }
+
+      return matchesSearch && matchesDept && matchesDate;
     });
   });
   const downloadReport = async () => {
