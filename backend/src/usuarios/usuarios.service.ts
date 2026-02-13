@@ -533,7 +533,7 @@ export class UsuariosService {
         check_in: esEntrada ? log.punching_time : null,
         check_out: esSalida ? log.punching_time : null,
 
-        c_entrada: esEntrada ? (log.status === '2' ? 'PUNCHED' : 'BIOMÉTRICO') : 'N/A',
+        c_entrada: esEntrada ? (log.status === '2' ? 'BIOMÉTRICO' : 'BIOMÉTRICO') : 'N/A',
         c_salida: esSalida ? 'BIOMÉTRICO' : 'N/A',
 
         fecha: log.punching_time ? log.punching_time.split(' ')[0] : 'N/A',
