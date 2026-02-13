@@ -71,17 +71,24 @@ export class UsuariosController {
   @Get('hora-oficial')
   async getHoraOficial() {
     try {
-      // Usamos fetch (disponible en Node.js 18+) o puedes usar axios si lo tienes instalado
-      const response = await fetch('http://3.133.217.145:8081/time-colombia');
-      if (!response.ok) throw new Error('Error en el servidor de tiempo');
+      // Intentamos obtener la hora externa con un límite de tiempo (Timeout)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000); // 3 segundos máximo
 
-      const data = await response.json();
-      return data;
+      const response = await fetch('http://3.133.217.145:8081/time-colombia', { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) throw new Error();
+
+      return await response.json();
     } catch (error) {
-      throw new HttpException(
-        'No se pudo obtener la hora oficial del servidor externo',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // PLAN B: Si el externo falla, mandamos la hora del sistema
+      // Esto evita que tu app de Ionic se bloquee con un error 500
+      return {
+        datetime: new Date().toISOString(),
+        source: 'local_server_backup',
+        message: 'Hora local (Servidor externo no disponible)'
+      };
     }
   }
 }
