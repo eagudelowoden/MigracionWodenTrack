@@ -1,0 +1,37 @@
+name: Deploy WodenTrack V2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar Backend y Frontend en AWS
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }} # Configura esta nueva llave
+          script: |
+            @echo off
+            
+            :: --- CONFIGURACIÓN BACKEND ---
+            echo Actualizando Backend...
+            cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            git fetch --all
+            git reset --hard origin/main
+            
+            :: Entramos a la subcarpeta del backend para instalar y reiniciar
+            cd backend
+            npm install --production
+            pm2 restart woden-track-backend --update-env || pm2 start server.js --name woden-track-backend
+            
+            :: --- CONFIGURACIÓN FRONTEND ---
+            echo Actualizando Frontend...
+            :: Suponiendo que el frontend es Vue nativo/puro como el anterior
+            :: Copiamos los archivos de la subcarpeta frontend al directorio de IIS
+            xcopy /E /Y /I "C:\Users\Administrator\Documents\WodenTrackV2\frontend\*" "C:\inetpub\wwwroot\WodenTrack\dist"
+            
+            echo Despliegue de WodenTrack V2 finalizado con exito.
