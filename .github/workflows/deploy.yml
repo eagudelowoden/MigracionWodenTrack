@@ -8,56 +8,42 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Compilar y Desplegar con Logs
+      - name: Desplegar NestJS y Frontend
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }}
           command_timeout: 15m
           script: |
-            powershell -Command "& {
-                $logFile = 'C:\Users\Administrator\Documents\WodenTrackV2\deploy_log.txt'
-                $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-                
-                # Función para escribir en consola y en el archivo de log al mismo tiempo
-                function Write-Log {
-                    param([string]$Message)
-                    $msg = \"[$timestamp] $Message\"
-                    Write-Host $msg
-                    $msg | Out-File -FilePath $logFile -Append -Encoding UTF8
-                }
+            @echo off
+            set LOG="C:\Users\Administrator\Documents\WodenTrackV2\deploy_log.txt"
+            cd /d C:\Users\Administrator\Documents\WodenTrackV2
 
-                Write-Log '--- INICIANDO DESPLIEGUE ---'
-                cd C:\Users\Administrator\Documents\WodenTrackV2
+            echo --- INICIO: %date% %time% --- >> %LOG%
 
-                Write-Log '1. Actualizando repositorio...'
-                git fetch --all 2>&1 | Out-File -FilePath $logFile -Append
-                git reset --hard origin/main 2>&1 | Out-File -FilePath $logFile -Append
+            echo 1. ACTUALIZANDO REPOSITORIO...
+            git fetch --all >> %LOG% 2>&1
+            git reset --hard origin/main >> %LOG% 2>&1
 
-                Write-Log '2. Configurando Backend (NestJS)...'
-                cd backend
-                npm install 2>&1 | Out-File -FilePath $logFile -Append
-                Write-Log 'Compilando NestJS...'
-                npm run build 2>&1 | Out-File -FilePath $logFile -Append
-                
-                Write-Log 'Reiniciando PM2...'
-                pm2 restart woden-track-backend --update-env 2>&1 | Out-File -FilePath $logFile -Append
-                if ($LASTEXITCODE -ne 0) {
-                    pm2 start dist/main.js --name woden-track-backend 2>&1 | Out-File -FilePath $logFile -Append
-                }
+            echo 2. BACKEND (NestJS)...
+            cd backend
+            call npm install >> %LOG% 2>&1
+            echo Compilando NestJS... >> %LOG%
+            call npm run build >> %LOG% 2>&1
+            :: Reiniciar proceso
+            pm2 restart woden-track-backend --update-env >> %LOG% 2>&1 || pm2 start dist/main.js --name woden-track-backend >> %LOG% 2>&1
+            cd ..
 
-                Write-Log '3. Configurando Frontend...'
-                cd ../frontend
-                npm install 2>&1 | Out-File -FilePath $logFile -Append
-                Write-Log 'Compilando Frontend...'
-                npm run build 2>&1 | Out-File -FilePath $logFile -Append
+            echo 3. FRONTEND...
+            cd frontend
+            call npm install >> %LOG% 2>&1
+            echo Compilando Frontend... >> %LOG%
+            call npm run build >> %LOG% 2>&1
 
-                Write-Log '4. Desplegando a IIS...'
-                if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') {
-                    Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force -ErrorAction SilentlyContinue
-                }
-                xcopy /E /Y /I 'dist\*' 'C:\inetpub\wwwroot\WodenTrack\dist' 2>&1 | Out-File -FilePath $logFile -Append
+            echo 4. DESPLIEGUE IIS...
+            :: Borrar dist anterior y copiar nueva
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }" >> %LOG% 2>&1
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> %LOG% 2>&1
 
-                Write-Log '--- DESPLIEGUE FINALIZADO EXITOSAMENTE ---'
-            }"
+            echo --- FIN DESPLIEGUE --- >> %LOG%
