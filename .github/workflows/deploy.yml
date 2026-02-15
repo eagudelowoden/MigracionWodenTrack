@@ -8,43 +8,56 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Compilar y Desplegar NestJS + Frontend
+      - name: Compilar y Desplegar con Logs
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Tiempo de espera extendido porque los builds tardan
-          # Tiempo de espera extendido porque los builds tardan
-          # Tiempo de espera extendido porque los builds tardan
-          command_timeout: 10m
+          command_timeout: 15m
           script: |
-            @echo off
-            cd /d C:\Users\Administrator\Documents\WodenTrackV2
-            
-            echo --- 1. ACTUALIZANDO REPOSITORIO ---
-            git fetch --all
-            git reset --hard origin/main
+            powershell -Command "& {
+                $logFile = 'C:\Users\Administrator\Documents\WodenTrackV2\deploy_log.txt'
+                $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+                
+                # Función para escribir en consola y en el archivo de log al mismo tiempo
+                function Write-Log {
+                    param([string]$Message)
+                    $msg = \"[$timestamp] $Message\"
+                    Write-Host $msg
+                    $msg | Out-File -FilePath $logFile -Append -Encoding UTF8
+                }
 
-            echo --- 2. TRABAJANDO EN BACKEND (NestJS) ---
-            cd backend
-            call npm install
-            echo Compilando NestJS...
-            call npm run build
-            :: Reiniciamos PM2 apuntando al archivo compilado
-            pm2 restart woden-track-backend --update-env || pm2 start dist/main.js --name woden-track-backend
-            cd ..
+                Write-Log '--- INICIANDO DESPLIEGUE ---'
+                cd C:\Users\Administrator\Documents\WodenTrackV2
 
-            echo --- 3. TRABAJANDO EN FRONTEND ---
-            cd frontend
-            call npm install
-            echo Compilando Frontend...
-            call npm run build
-            
-            echo --- 4. DESPLEGANDO A IIS ---
-            :: Limpiamos la carpeta de IIS usando PowerShell para evitar errores de archivos bloqueados
-            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
-            :: Copiamos el build fresco
-            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist"
+                Write-Log '1. Actualizando repositorio...'
+                git fetch --all 2>&1 | Out-File -FilePath $logFile -Append
+                git reset --hard origin/main 2>&1 | Out-File -FilePath $logFile -Append
 
-            echo --- [OK] DESPLIEGUE FINALIZADO CORRECTAMENTE ---
+                Write-Log '2. Configurando Backend (NestJS)...'
+                cd backend
+                npm install 2>&1 | Out-File -FilePath $logFile -Append
+                Write-Log 'Compilando NestJS...'
+                npm run build 2>&1 | Out-File -FilePath $logFile -Append
+                
+                Write-Log 'Reiniciando PM2...'
+                pm2 restart woden-track-backend --update-env 2>&1 | Out-File -FilePath $logFile -Append
+                if ($LASTEXITCODE -ne 0) {
+                    pm2 start dist/main.js --name woden-track-backend 2>&1 | Out-File -FilePath $logFile -Append
+                }
+
+                Write-Log '3. Configurando Frontend...'
+                cd ../frontend
+                npm install 2>&1 | Out-File -FilePath $logFile -Append
+                Write-Log 'Compilando Frontend...'
+                npm run build 2>&1 | Out-File -FilePath $logFile -Append
+
+                Write-Log '4. Desplegando a IIS...'
+                if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') {
+                    Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                xcopy /E /Y /I 'dist\*' 'C:\inetpub\wwwroot\WodenTrack\dist' 2>&1 | Out-File -FilePath $logFile -Append
+
+                Write-Log '--- DESPLIEGUE FINALIZADO EXITOSAMENTE ---'
+            }"
