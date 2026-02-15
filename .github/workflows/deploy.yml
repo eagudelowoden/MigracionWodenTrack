@@ -15,6 +15,7 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # Tiempo de espera extendido porque los builds tardan
+          # Tiempo de espera extendido porque los builds tardan
           command_timeout: 10m
           script: |
             @echo off
