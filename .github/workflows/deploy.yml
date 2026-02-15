@@ -8,7 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug y Despliegue
+      - name: Ejecutar Despliegue
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
@@ -16,47 +16,27 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
           script: |
-            :: 1. Crear log en la raiz del usuario para que sea facil de hallar
-            echo --- INICIO DEBUG %date% %time% --- > C:\Users\Administrator\debug_deploy.txt
+            cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            echo "--- INICIO ---" > deploy_results.txt
             
-            :: 2. Verificar donde estamos y que herramientas tenemos
-            echo Directorio actual: %cd% >> C:\Users\Administrator\debug_deploy.txt
-            where git >> C:\Users\Administrator\debug_deploy.txt 2>&1
-            where npm >> C:\Users\Administrator\debug_deploy.txt 2>&1
-
-            :: 3. Intentar entrar a la carpeta del proyecto
-            echo Intentando entrar a WodenTrackV2... >> C:\Users\Administrator\debug_deploy.txt
-            cd /d "C:\Users\Administrator\Documents\WodenTrackV2" >> C:\Users\Administrator\debug_deploy.txt 2>&1
+            echo "1. Git..." >> deploy_results.txt
+            git fetch --all >> deploy_results.txt 2>&1
+            git reset --hard origin/main >> deploy_results.txt 2>&1
             
-            if %errorlevel% neq 0 (
-                echo ERROR: No se pudo encontrar la carpeta del proyecto >> C:\Users\Administrator\debug_deploy.txt
-                exit /b 1
-            )
-
-            :: 4. Si entro, ejecutar Git
-            echo [GIT] Sincronizando... >> C:\Users\Administrator\debug_deploy.txt
-            git fetch --all >> C:\Users\Administrator\debug_deploy.txt 2>&1
-            git reset --hard origin/main >> C:\Users\Administrator\debug_deploy.txt 2>&1
-
-            :: 5. Backend NestJS
-            echo [NESTJS] Build... >> C:\Users\Administrator\debug_deploy.txt
-            call npm install >> C:\Users\Administrator\debug_deploy.txt 2>&1
-            call npm run build >> C:\Users\Administrator\debug_deploy.txt 2>&1
+            echo "2. Backend..." >> deploy_results.txt
+            call npm install >> deploy_results.txt 2>&1
+            call npm run build >> deploy_results.txt 2>&1
             
-            :: 6. PM2
-            echo [PM2] Restart... >> C:\Users\Administrator\debug_deploy.txt
-            call pm2 restart dist/main.js --name woden-track-backend >> C:\Users\Administrator\debug_deploy.txt 2>&1 || call pm2 start dist/main.js --name woden-track-backend >> C:\Users\Administrator\debug_deploy.txt 2>&1
-
-            :: 7. Frontend
-            echo [FRONTEND] Build... >> C:\Users\Administrator\debug_deploy.txt
-            cd frontend >> C:\Users\Administrator\debug_deploy.txt 2>&1
-            if %errorlevel% equ 0 (
-                call npm install >> ../debug_deploy.txt 2>&1
-                call npm run build >> ../debug_deploy.txt 2>&1
-                echo [IIS] Copiando... >> ../debug_deploy.txt
-                xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ../debug_deploy.txt 2>&1
-            ) else (
-                echo OMITIDO: No se encontro carpeta frontend >> C:\Users\Administrator\debug_deploy.txt
-            )
-
-            echo --- FIN DEL PROCESO --- >> C:\Users\Administrator\debug_deploy.txt
+            echo "3. PM2..." >> deploy_results.txt
+            call pm2 restart dist/main.js --name woden-track-backend >> deploy_results.txt 2>&1 || call pm2 start dist/main.js --name woden-track-backend >> deploy_results.txt 2>&1
+            
+            echo "4. Frontend..." >> deploy_results.txt
+            cd frontend
+            call npm install >> ../deploy_results.txt 2>&1
+            call npm run build >> ../deploy_results.txt 2>&1
+            
+            echo "5. IIS..." >> ../deploy_results.txt
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ../deploy_results.txt 2>&1
+            
+            echo "--- FIN ---" >> ../deploy_results.txt
