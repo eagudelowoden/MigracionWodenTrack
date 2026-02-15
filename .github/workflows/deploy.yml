@@ -13,47 +13,54 @@ jobs:
         with:
           host: 18.217.246.39
           username: Administrator
+          # Asegúrate de que este nombre coincida con el secreto en GitHub
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 15m
           script: |
             @echo off
-            :: Definir ruta del log
+            :: Definimos la ruta del log y entramos a la carpeta del proyecto
             set LOG_FILE="C:\Users\Administrator\Documents\WodenTrackV2\deploy_results.txt"
             
-            echo ------------------------------------------ >> %LOG_FILE%
-            echo FECHA: %date% %time% >> %LOG_FILE%
+            echo ========================================== >> %LOG_FILE%
+            echo INICIO DE DESPLIEGUE: %date% %time% >> %LOG_FILE%
             cd /d C:\Users\Administrator\Documents\WodenTrackV2
 
-            echo --- 1. ACTUALIZANDO REPOSITORIO ---
-            echo [LOG] Actualizando codigo desde Git... >> %LOG_FILE%
+            echo --- 1. ACTUALIZANDO CODIGO (GIT) ---
+            echo [GIT] Trayendo cambios de la rama main... >> %LOG_FILE%
             git fetch --all >> %LOG_FILE% 2>&1
             git reset --hard origin/main >> %LOG_FILE% 2>&1
 
-            echo --- 2. TRABAJANDO EN BACKEND (NestJS) ---
+            echo --- 2. BACKEND (NESTJS) ---
             cd backend
-            echo [LOG] Instalando dependencias Backend... >> %LOG_FILE%
+            echo [BACKEND] Instalando dependencias... >> %LOG_FILE%
             call npm install >> %LOG_FILE% 2>&1
-            echo [LOG] Compilando NestJS... >> %LOG_FILE%
+            echo [BACKEND] Compilando TypeScript a JS... >> %LOG_FILE%
             call npm run build >> %LOG_FILE% 2>&1
             
-            echo [LOG] Gestionando servicio PM2... >> %LOG_FILE%
-            :: Intenta reiniciar, si falla (porque no existe), lo inicia
-            pm2 restart woden-track-backend --update-env >> %LOG_FILE% 2>&1 || pm2 start dist/main.js --name woden-track-backend >> %LOG_FILE% 2>&1
+            echo [BACKEND] Reiniciando servicio PM2... >> %LOG_FILE%
+            :: Reinicio usando la ruta del archivo compilado como pediste
+            pm2 restart dist/main.js --name woden-track-backend >> %LOG_FILE% 2>&1 || pm2 start dist/main.js --name woden-track-backend >> %LOG_FILE% 2>&1
+            
+            :: Verificamos el estado de los procesos en el log
+            pm2 list >> %LOG_FILE%
             cd ..
 
-            echo --- 3. TRABAJANDO EN FRONTEND ---
+            echo --- 3. FRONTEND (VUE/REACT) ---
             cd frontend
-            echo [LOG] Instalando dependencias Frontend... >> %LOG_FILE%
+            echo [FRONTEND] Instalando dependencias... >> %LOG_FILE%
             call npm install >> %LOG_FILE% 2>&1
-            echo [LOG] Compilando Frontend... >> %LOG_FILE%
+            echo [FRONTEND] Generando Build de produccion... >> %LOG_FILE%
             call npm run build >> %LOG_FILE% 2>&1
             
-            echo --- 4. DESPLEGANDO A IIS ---
-            echo [LOG] Limpiando carpeta IIS y copiando archivos... >> %LOG_FILE%
+            echo --- 4. DESPLIEGUE A IIS ---
+            echo [IIS] Limpiando carpeta de destino... >> %LOG_FILE%
+            :: Usamos PowerShell para limpiar la carpeta de forma segura
             powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }" >> %LOG_FILE% 2>&1
+            
+            echo [IIS] Copiando nuevos archivos... >> %LOG_FILE%
             xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> %LOG_FILE% 2>&1
 
-            echo [OK] DESPLIEGUE FINALIZADO EN: %time% >> %LOG_FILE%
-            echo ------------------------------------------ >> %LOG_FILE%
+            echo [OK] DESPLIEGUE TERMINADO EXITOSAMENTE: %time% >> %LOG_FILE%
+            echo ========================================== >> %LOG_FILE%
             
-            echo --- [OK] PROCESO TERMINADO ---
+            echo --- PROCESO COMPLETADO EN EL SERVIDOR ---
