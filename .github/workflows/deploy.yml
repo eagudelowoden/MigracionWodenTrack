@@ -8,7 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Desplegar en AWS (Formato Forzado CMD)
+      - name: Desplegar WodenTrack V2 (Fix Remove-Item)
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
@@ -16,4 +16,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
           script: |
-            cmd /c "cd /d C:\Users\Administrator\Documents\WodenTrackV2 && echo --- INICIO %DATE% %TIME% --- > success_log.txt && git fetch --all >> success_log.txt 2>&1 && git reset --hard origin/main >> success_log.txt 2>&1 && echo INSTALANDO... >> success_log.txt && call npm install >> success_log.txt 2>&1 && echo COMPILANDO... >> success_log.txt && call npm run build >> success_log.txt 2>&1 && echo REINICIANDO PM2... >> success_log.txt && pm2 restart dist/main.js --name woden-track-backend --update-env >> success_log.txt 2>&1 || pm2 start dist/main.js --name woden-track-backend >> success_log.txt 2>&1 && echo FRONTEND... >> success_log.txt && cd frontend && call npm install >> ..\success_log.txt 2>&1 && call npm run build >> ..\success_log.txt 2>&1 && echo IIS... >> ..\success_log.txt && powershell -Command \"if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Get-ChildItem 'C:\inetpub\wwwroot\WodenTrack\dist' -Exclude *.config, *.zip | Remove-Item -Recurse -Force }\" >> ..\success_log.txt 2>&1 && xcopy /E /Y /I \"dist\*\" \"C:\inetpub\wwwroot\WodenTrack\dist\" >> ..\success_log.txt 2>&1 && echo --- EXITO TOTAL --- >> ..\success_log.txt"
+            cmd /c "cd /d C:\Users\Administrator\Documents\WodenTrackV2 && echo --- INICIO %DATE% %TIME% --- > success_log.txt && git fetch --all >> success_log.txt 2>&1 && git reset --hard origin/main >> success_log.txt 2>&1 && echo INSTALANDO... >> success_log.txt && call npm install >> success_log.txt 2>&1 && echo COMPILANDO... >> success_log.txt && call npm run build >> success_log.txt 2>&1 && echo REINICIANDO PM2... >> success_log.txt && pm2 restart dist/main.js --name woden-track-backend --update-env >> success_log.txt 2>&1 || pm2 start dist/main.js --name woden-track-backend >> success_log.txt 2>&1 && echo FRONTEND... >> success_log.txt && cd frontend && call npm install >> ..\success_log.txt 2>&1 && call npm run build >> ..\success_log.txt 2>&1 && echo LIMPIANDO IIS... >> ..\success_log.txt && del /q /s C:\inetpub\wwwroot\WodenTrack\dist\* >> ..\success_log.txt 2>&1 && echo COPIANDO... >> ..\success_log.txt && xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ..\success_log.txt 2>&1 && echo --- EXITO TOTAL --- >> ..\success_log.txt"
