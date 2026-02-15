@@ -13,7 +13,7 @@ jobs:
         with:
           host: 18.217.246.39
           username: Administrator
-          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           # Tiempo de espera extendido porque los builds tardan
           command_timeout: 10m
           script: |
