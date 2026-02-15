@@ -8,30 +8,41 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Desplegar Backend y Frontend en AWS
+      - name: Compilar y Desplegar NestJS + Frontend
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
-          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }} # Configura esta nueva llave
+          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }}
+          # Tiempo de espera extendido porque los builds tardan
+          command_timeout: 10m
           script: |
             @echo off
-            
-            :: --- CONFIGURACIÓN BACKEND ---
-            echo Actualizando Backend...
             cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            
+            echo --- 1. ACTUALIZANDO REPOSITORIO ---
             git fetch --all
             git reset --hard origin/main
-            
-            :: Entramos a la subcarpeta del backend para instalar y reiniciar
+
+            echo --- 2. TRABAJANDO EN BACKEND (NestJS) ---
             cd backend
-            npm install --production
-            pm2 restart woden-track-backend --update-env || pm2 start server.js --name woden-track-backend
+            call npm install
+            echo Compilando NestJS...
+            call npm run build
+            :: Reiniciamos PM2 apuntando al archivo compilado
+            pm2 restart woden-track-backend --update-env || pm2 start dist/main.js --name woden-track-backend
+            cd ..
+
+            echo --- 3. TRABAJANDO EN FRONTEND ---
+            cd frontend
+            call npm install
+            echo Compilando Frontend...
+            call npm run build
             
-            :: --- CONFIGURACIÓN FRONTEND ---
-            echo Actualizando Frontend...
-            :: Suponiendo que el frontend es Vue nativo/puro como el anterior
-            :: Copiamos los archivos de la subcarpeta frontend al directorio de IIS
-            xcopy /E /Y /I "C:\Users\Administrator\Documents\WodenTrackV2\frontend\*" "C:\inetpub\wwwroot\WodenTrack\dist"
-            
-            echo Despliegue de WodenTrack V2 finalizado con exito.
+            echo --- 4. DESPLEGANDO A IIS ---
+            :: Limpiamos la carpeta de IIS usando PowerShell para evitar errores de archivos bloqueados
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
+            :: Copiamos el build fresco
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist"
+
+            echo --- [OK] DESPLIEGUE FINALIZADO CORRECTAMENTE ---
