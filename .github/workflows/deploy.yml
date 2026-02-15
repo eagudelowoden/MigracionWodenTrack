@@ -8,7 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Compilar y Desplegar NestJS + Frontend
+      - name: Desplegar NestJS + Frontend a IIS
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
@@ -16,40 +16,35 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
           script: |
-            :: 1. Entrar a la carpeta raíz (Asegúrate que esta ruta es la real)
+            :: 1. Entrar a la carpeta raíz y actualizar
             cd /d "C:\Users\Administrator\Documents\WodenTrackV2"
-            
-            :: Crear log inicial
-            echo --- INICIO DE SESION %date% %time% --- > deploy_results.txt
+            echo --- INICIO DESPLIEGUE %date% %time% --- > deploy_results.txt
 
-            :: 2. Actualizar GIT con salida forzada
-            echo [GIT] Bajando cambios...
+            echo [GIT] Actualizando repositorio... >> deploy_results.txt
             git fetch --all >> deploy_results.txt 2>&1
             git reset --hard origin/main >> deploy_results.txt 2>&1
 
-            :: 3. BACKEND - NestJS
-            echo [BACKEND] Entrando a carpeta backend...
-            cd /d "C:\Users\Administrator\Documents\WodenTrackV2\backend"
-            echo [BACKEND] Instalando...
-            call npm install >> ../deploy_results.txt 2>&1
-            echo [BACKEND] Compilando...
-            call npm run build >> ../deploy_results.txt 2>&1
+            :: 2. PROCESO BACKEND (NestJS)
+            echo [NESTJS] Instalando y Compilando Backend... >> deploy_results.txt
+            :: Si el package.json está en la raíz, no necesitamos entrar a /backend
+            call npm install >> deploy_results.txt 2>&1
+            call npm run build >> deploy_results.txt 2>&1
             
-            echo [BACKEND] Reiniciando PM2...
-            :: Usamos el path completo para PM2 por si no está en el PATH del SSH
-            call pm2 restart dist/main.js --name woden-track-backend >> ../deploy_results.txt 2>&1 || call pm2 start dist/main.js --name woden-track-backend >> ../deploy_results.txt 2>&1
+            echo [PM2] Reiniciando servicio... >> deploy_results.txt
+            call pm2 restart dist/main.js --name woden-track-backend >> deploy_results.txt 2>&1 || call pm2 start dist/main.js --name woden-track-backend >> deploy_results.txt 2>&1
 
-            :: 4. FRONTEND
-            echo [FRONTEND] Entrando a carpeta frontend...
-            cd /d "C:\Users\Administrator\Documents\WodenTrackV2\frontend"
-            echo [FRONTEND] Instalando...
+            :: 3. PROCESO FRONTEND (Asumiendo carpeta /frontend en el repo)
+            echo [FRONTEND] Compilando Frontend... >> deploy_results.txt
+            cd frontend
             call npm install >> ../deploy_results.txt 2>&1
-            echo [FRONTEND] Compilando...
             call npm run build >> ../deploy_results.txt 2>&1
 
-            :: 5. DESPLIEGUE IIS
-            echo [IIS] Copiando archivos...
-            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
+            :: 4. DESPLIEGUE AL IIS
+            echo [IIS] Limpiando y copiando a wwwroot... >> ../deploy_results.txt
+            :: Borramos assets e index antiguos pero mantenemos los .zip y web.config por seguridad
+            powershell -Command "Get-ChildItem 'C:\inetpub\wwwroot\WodenTrack\dist' -Exclude *.config, *.zip | Remove-Item -Recurse -Force" >> ../deploy_results.txt 2>&1
+            
+            :: Copiamos el contenido de la carpeta dist recién creada en frontend
             xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ../deploy_results.txt 2>&1
 
-            echo --- PROCESO TERMINADO --- >> ../deploy_results.txt
+            echo --- DESPLIEGUE COMPLETADO EXITOSAMENTE --- >> ../deploy_results.txt
