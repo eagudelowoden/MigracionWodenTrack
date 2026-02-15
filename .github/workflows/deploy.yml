@@ -13,54 +13,43 @@ jobs:
         with:
           host: 18.217.246.39
           username: Administrator
-          # Asegúrate de que este nombre coincida con el secreto en GitHub
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 15m
+          command_timeout: 20m
           script: |
-            @echo off
-            :: Definimos la ruta del log y entramos a la carpeta del proyecto
-            set LOG_FILE="C:\Users\Administrator\Documents\WodenTrackV2\deploy_results.txt"
+            :: 1. Entrar a la carpeta raíz (Asegúrate que esta ruta es la real)
+            cd /d "C:\Users\Administrator\Documents\WodenTrackV2"
             
-            echo ========================================== >> %LOG_FILE%
-            echo INICIO DE DESPLIEGUE: %date% %time% >> %LOG_FILE%
-            cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            :: Crear log inicial
+            echo --- INICIO DE SESION %date% %time% --- > deploy_results.txt
 
-            echo --- 1. ACTUALIZANDO CODIGO (GIT) ---
-            echo [GIT] Trayendo cambios de la rama main... >> %LOG_FILE%
-            git fetch --all >> %LOG_FILE% 2>&1
-            git reset --hard origin/main >> %LOG_FILE% 2>&1
+            :: 2. Actualizar GIT con salida forzada
+            echo [GIT] Bajando cambios...
+            git fetch --all >> deploy_results.txt 2>&1
+            git reset --hard origin/main >> deploy_results.txt 2>&1
 
-            echo --- 2. BACKEND (NESTJS) ---
-            cd backend
-            echo [BACKEND] Instalando dependencias... >> %LOG_FILE%
-            call npm install >> %LOG_FILE% 2>&1
-            echo [BACKEND] Compilando TypeScript a JS... >> %LOG_FILE%
-            call npm run build >> %LOG_FILE% 2>&1
+            :: 3. BACKEND - NestJS
+            echo [BACKEND] Entrando a carpeta backend...
+            cd /d "C:\Users\Administrator\Documents\WodenTrackV2\backend"
+            echo [BACKEND] Instalando...
+            call npm install >> ../deploy_results.txt 2>&1
+            echo [BACKEND] Compilando...
+            call npm run build >> ../deploy_results.txt 2>&1
             
-            echo [BACKEND] Reiniciando servicio PM2... >> %LOG_FILE%
-            :: Reinicio usando la ruta del archivo compilado como pediste
-            pm2 restart dist/main.js --name woden-track-backend >> %LOG_FILE% 2>&1 || pm2 start dist/main.js --name woden-track-backend >> %LOG_FILE% 2>&1
-            
-            :: Verificamos el estado de los procesos en el log
-            pm2 list >> %LOG_FILE%
-            cd ..
+            echo [BACKEND] Reiniciando PM2...
+            :: Usamos el path completo para PM2 por si no está en el PATH del SSH
+            call pm2 restart dist/main.js --name woden-track-backend >> ../deploy_results.txt 2>&1 || call pm2 start dist/main.js --name woden-track-backend >> ../deploy_results.txt 2>&1
 
-            echo --- 3. FRONTEND (VUE/REACT) ---
-            cd frontend
-            echo [FRONTEND] Instalando dependencias... >> %LOG_FILE%
-            call npm install >> %LOG_FILE% 2>&1
-            echo [FRONTEND] Generando Build de produccion... >> %LOG_FILE%
-            call npm run build >> %LOG_FILE% 2>&1
-            
-            echo --- 4. DESPLIEGUE A IIS ---
-            echo [IIS] Limpiando carpeta de destino... >> %LOG_FILE%
-            :: Usamos PowerShell para limpiar la carpeta de forma segura
-            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }" >> %LOG_FILE% 2>&1
-            
-            echo [IIS] Copiando nuevos archivos... >> %LOG_FILE%
-            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> %LOG_FILE% 2>&1
+            :: 4. FRONTEND
+            echo [FRONTEND] Entrando a carpeta frontend...
+            cd /d "C:\Users\Administrator\Documents\WodenTrackV2\frontend"
+            echo [FRONTEND] Instalando...
+            call npm install >> ../deploy_results.txt 2>&1
+            echo [FRONTEND] Compilando...
+            call npm run build >> ../deploy_results.txt 2>&1
 
-            echo [OK] DESPLIEGUE TERMINADO EXITOSAMENTE: %time% >> %LOG_FILE%
-            echo ========================================== >> %LOG_FILE%
-            
-            echo --- PROCESO COMPLETADO EN EL SERVIDOR ---
+            :: 5. DESPLIEGUE IIS
+            echo [IIS] Copiando archivos...
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ../deploy_results.txt 2>&1
+
+            echo --- PROCESO TERMINADO --- >> ../deploy_results.txt
