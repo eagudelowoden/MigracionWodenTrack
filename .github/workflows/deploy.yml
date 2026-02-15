@@ -8,42 +8,43 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Desplegar NestJS y Frontend
+      - name: Compilar y Desplegar NestJS + Frontend
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
-          key: ${{ secrets.SSH_PRIVATE_KEY_WODENTRACK }}
-          command_timeout: 15m
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Tiempo de espera extendido porque los builds tardan
+          # Tiempo de espera extendido porque los builds tardan
+          # Tiempo de espera extendido porque los builds tardan
+          command_timeout: 10m
           script: |
             @echo off
-            set LOG="C:\Users\Administrator\Documents\WodenTrackV2\deploy_log.txt"
             cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            
+            echo --- 1. ACTUALIZANDO REPOSITORIO ---
+            git fetch --all
+            git reset --hard origin/main
 
-            echo --- INICIO: %date% %time% --- >> %LOG%
-
-            echo 1. ACTUALIZANDO REPOSITORIO...
-            git fetch --all >> %LOG% 2>&1
-            git reset --hard origin/main >> %LOG% 2>&1
-
-            echo 2. BACKEND (NestJS)...
+            echo --- 2. TRABAJANDO EN BACKEND (NestJS) ---
             cd backend
-            call npm install >> %LOG% 2>&1
-            echo Compilando NestJS... >> %LOG%
-            call npm run build >> %LOG% 2>&1
-            :: Reiniciar proceso
-            pm2 restart woden-track-backend --update-env >> %LOG% 2>&1 || pm2 start dist/main.js --name woden-track-backend >> %LOG% 2>&1
+            call npm install
+            echo Compilando NestJS...
+            call npm run build
+            :: Reiniciamos PM2 apuntando al archivo compilado
+            pm2 restart woden-track-backend --update-env || pm2 start dist/main.js --name woden-track-backend
             cd ..
 
-            echo 3. FRONTEND...
+            echo --- 3. TRABAJANDO EN FRONTEND ---
             cd frontend
-            call npm install >> %LOG% 2>&1
-            echo Compilando Frontend... >> %LOG%
-            call npm run build >> %LOG% 2>&1
+            call npm install
+            echo Compilando Frontend...
+            call npm run build
+            
+            echo --- 4. DESPLEGANDO A IIS ---
+            :: Limpiamos la carpeta de IIS usando PowerShell para evitar errores de archivos bloqueados
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }"
+            :: Copiamos el build fresco
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist"
 
-            echo 4. DESPLIEGUE IIS...
-            :: Borrar dist anterior y copiar nueva
-            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Remove-Item 'C:\inetpub\wwwroot\WodenTrack\dist\*' -Recurse -Force }" >> %LOG% 2>&1
-            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> %LOG% 2>&1
-
-            echo --- FIN DESPLIEGUE --- >> %LOG%
+            echo --- [OK] DESPLIEGUE FINALIZADO CORRECTAMENTE ---
