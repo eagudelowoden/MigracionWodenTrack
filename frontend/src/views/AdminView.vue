@@ -30,6 +30,11 @@
           <div class="nav-icon"><i class="fas fa-cloud-arrow-up"></i></div>
           <span v-if="isSidebarOpen">Cargue Mallas</span>
         </button>
+        <!-- <button @click="currentModule = 'novedadusuario'"
+          :class="['nav-link-v2', currentModule === 'novedadusuario' ? 'active' : '']">
+          <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
+          <span v-if="isSidebarOpen">Novedades</span>
+        </button> -->
       </nav>
 
       <div class="p-4 space-y-2 border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
