@@ -1,0 +1,40 @@
+name: Deploy WodenTrack V2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar WodenTrack V2 (Build + PM2 + IIS)
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 20m
+          script: |
+            :: 1. PROCESO DE BACKEND (NESTJS)
+            cmd /c "cd /d C:\Users\Administrator\Documents\WodenTrackV2 && echo --- INICIO LOG %DATE% --- > success_log.txt && git fetch --all >> success_log.txt 2>&1 && git reset --hard origin/main >> success_log.txt 2>&1 && call npm install >> success_log.txt 2>&1 && echo COMPILANDO BACKEND... >> success_log.txt && call npm run build >> success_log.txt 2>&1 && pm2 restart dist/main.js --name woden-track-backend --update-env >> success_log.txt 2>&1 || pm2 start dist/main.js --name woden-track-backend >> success_log.txt 2>&1"
+            
+            @echo off
+            cd /d C:\Users\Administrator\Documents\WodenTrackV2
+            
+            :: 2. PROCESO DE FRONTEND
+            echo --- COMPILANDO FRONTEND --- >> success_log.txt
+            :: Entramos a la carpeta frontend (ajústala si tiene otro nombre)
+            cd frontend
+            call npm install >> ../success_log.txt 2>&1
+            call npm run build >> ../success_log.txt 2>&1
+            
+            :: 3. DESPLIEGUE A IIS
+            echo --- MOVIENDO A IIS --- >> ../success_log.txt
+            :: Limpiamos la carpeta del IIS pero protegemos web.config
+            powershell -Command "if (Test-Path 'C:\inetpub\wwwroot\WodenTrack\dist') { Get-ChildItem 'C:\inetpub\wwwroot\WodenTrack\dist' -Exclude *.config, *.zip | Remove-Item -Recurse -Force }" >> ../success_log.txt 2>&1
+            
+            :: Copiamos el resultado del build del frontend (carpeta dist) al IIS
+            xcopy /E /Y /I "dist\*" "C:\inetpub\wwwroot\WodenTrack\dist" >> ../success_log.txt 2>&1
+            
+            echo Finalizado con éxito el %DATE% a las %TIME% >> ../success_log.txt
