@@ -88,6 +88,8 @@ export class ReportsService {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Carga de Mallas');
 
+      
+      
       worksheet.columns = [
         { header: 'id', key: 'id', width: 35 },
         { header: 'Compañía', key: 'company', width: 25 },
@@ -114,6 +116,7 @@ export class ReportsService {
         worksheet.addRow({
           id: idMap.get(con.id) || con.id,
           company: Array.isArray(con.company_id) ? con.company_id[1] : '',
+    
           employee: Array.isArray(con.employee_id) ? con.employee_id[1] : '',
           state: estadoVisible, // <--- Aplicamos el cambio aquí
           date_end: con.date_end || '',
@@ -135,51 +138,83 @@ export class ReportsService {
     }
   }
 
-  async generarReporteAsistencias(data: any[]): Promise<Buffer> {
+async generarReporteAsistencias(data: any[]): Promise<Buffer> {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte de Novedades');
+
+    // 1. AUTENTICACIÓN
+    const uid = await this.odoo.authenticate();
+    const cedulaMap = new Map();
+
+    // 2. BUSCAR CÉDULAS EN RES.PARTNER
     try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Reporte de Novedades');
+      const nombresEmpleados = [...new Set(data.map(item => item.empleado || item.Colaborador))].filter(Boolean);
 
-      // 1. Definición de Columnas
-      worksheet.columns = [
-        { header: 'COLABORADOR', key: 'colaborador', width: 35 },
-        { header: 'DEPARTAMENTO', key: 'depto', width: 25 },
-        { header: 'FECHA', key: 'fecha', width: 15 },
-        { header: 'HORA ENTRADA', key: 'entrada', width: 20 },
-        { header: 'HORA SALIDA', key: 'salida', width: 20 },
-        { header: 'ESTATUS ENTRADA', key: 'estatus_entrada', width: 25 },
-        { header: 'ESTATUS SALIDA', key: 'estatus_salida', width: 25 }
-      ];
+      if (nombresEmpleados.length > 0) {
+        // Buscamos en el modelo res.partner que es donde me indicas que está el dato
+        const partnersOdoo = await this.odoo.executeKw<any[]>(
+          'res.partner',
+          'search_read',
+          [[['name', 'in', nombresEmpleados]]],
+          {
+            // Traemos el nombre para cruzar y el doc_number que es la cédula
+            fields: ['name', 'doc_number'] 
+          },
+          uid,
+        );
 
-      // Estilos de cabecera...
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF107C41' }
-      };
-
-      // 2. Mapeo de Datos (Asegúrate de que coincidan con el objeto que envías)
-      data.forEach(item => {
-        worksheet.addRow({
-          colaborador: item.empleado || item.Colaborador || 'N/A',
-          depto: item.department_id || item.Departamento || 'N/A',
-          fecha: item.fecha || item.Fecha || 'N/A',
-          entrada: item.check_in || item.Entrada || 'N/A',
-          salida: item.check_out || item.Salida || 'N/A',
-          // Usamos los nombres que vienen de tu servicio anterior (c_entrada / c_salida)
-          estatus_entrada: item.c_entrada || item.Estatus_Entrada || 'N/A',
-          estatus_salida: item.c_salida || item.Estatus_Salida || 'N/A'
-        });
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      return Buffer.from(buffer as ArrayBuffer);
-    } catch (error) {
-      console.error("Error en reporte de asistencias:", error.message);
-      throw new InternalServerErrorException(`Error al generar Excel: ${error.message}`);
+        if (partnersOdoo && partnersOdoo.length > 0) {
+          partnersOdoo.forEach(p => {
+            // Guardamos en el mapa: Nombre -> Cédula
+            cedulaMap.set(p.name, p.doc_number);
+          });
+        }
+      }
+    } catch (odooErr) {
+      console.error("Error consultando res.partner en Odoo:", odooErr.message);
     }
+
+    // 3. DEFINICIÓN DE COLUMNAS
+    worksheet.columns = [
+      { header: 'COLABORADOR', key: 'colaborador', width: 35 },
+      { header: 'CÉDULA', key: 'cedula', width: 15 },
+      { header: 'DEPARTAMENTO', key: 'depto', width: 25 },
+      { header: 'FECHA', key: 'fecha', width: 15 },
+      { header: 'HORA ENTRADA', key: 'entrada', width: 20 },
+      { header: 'HORA SALIDA', key: 'salida', width: 20 },
+      { header: 'ESTATUS ENTRADA', key: 'estatus_entrada', width: 25 },
+      { header: 'ESTATUS SALIDA', key: 'estatus_salida', width: 25 }
+    ];
+
+    // Estilo de cabecera verde
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF107C41' } };
+
+    // 4. LLENADO DE FILAS
+    data.forEach(item => {
+      const nombreEmpleado = item.empleado || item.Colaborador;
+      
+      worksheet.addRow({
+        colaborador: nombreEmpleado || 'N/A',
+        // Intentamos obtener la cédula del mapa que llenamos con res.partner
+        cedula: item.doc_number || item.Cedula || cedulaMap.get(nombreEmpleado) || 'N/A',
+        depto: item.department_id || item.Departamento || 'N/A',
+        fecha: item.fecha || item.Fecha || 'N/A',
+        entrada: item.check_in || item.Entrada || 'N/A',
+        salida: item.check_out || item.Salida || 'N/A',
+        estatus_entrada: item.c_entrada || item.Estatus_Entrada || 'N/A',
+        estatus_salida: item.c_salida || item.Estatus_Salida || 'N/A'
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer as ArrayBuffer);
+  } catch (error) {
+    console.error("Error crítico en reporte:", error.message);
+    throw new InternalServerErrorException(`Error al generar Excel: ${error.message}`);
   }
+}
 }
 

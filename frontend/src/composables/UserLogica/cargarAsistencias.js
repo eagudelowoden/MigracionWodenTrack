@@ -175,6 +175,7 @@ export function useCargarAsistencias() {
       // 1. Mapeamos los datos para el envío, corrigiendo el desfase horario
       const dataFiltrada = filteredReport.value.map((item) => ({
         Colaborador: item.empleado,
+        Cédula: item.doc_number || "N/A",
         Departamento: item.department_id,
         Fecha: item.fecha,
         Entrada: ajustarHoraLocal(item.check_in),
