@@ -3,16 +3,25 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { OdooService } from '../odoo/odoo.service';
+import { Usuario } from './entities/usuario.entity';
 import {
   getFechaColombia,
   decimalToMinutes,
 } from '../common/utils/fecha.utils';
+import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators';
+import { Repository } from 'typeorm/repository/Repository.js';
 
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly odoo: OdooService) { }
+  constructor(
+    // ESTO ES LO QUE FALTA: Inyectar el repositorio
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
+    private readonly odoo: OdooService,
+  ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -648,4 +657,70 @@ export class UsuariosService {
       return horaActualDecimal < horaMalla ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
     }
   }
+
+    async syncUsuariosFromOdoo() {
+      try {
+        const uid = await this.odoo.authenticate();
+        
+        const odooEmployees = await this.odoo.executeKw<any[]>(
+          'hr.employee',
+          'search_read',
+          [[]],
+          { 
+            fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'],
+          },
+          uid
+        );
+  
+        let nuevos = 0;
+        let actualizados = 0;
+  
+        for (const emp of odooEmployees) {
+          const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
+  
+          const data = {
+            id_odoo: emp.id,
+            nombre: emp.name,
+            identificacion: emp.identification_id || 'N/A',
+            cargo: emp.job_title || 'Sin Cargo',
+            departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
+          };
+  
+          if (!existing) {
+            // Si no existe, usamos save para crear
+            await this.usuarioRepo.save({ ...data, id: emp.id });
+            nuevos++;
+          } else {
+            // Si existe, comparamos si algo cambió antes de actualizar (opcional pero recomendado)
+            await this.usuarioRepo.update(existing.id, data);
+            actualizados++;
+          }
+        }
+  
+        return {
+          status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
+          message: `Sincronización de usuarios: ${nuevos} nuevos, ${actualizados} actualizados.`
+        };
+      } catch (error) {
+        console.error(error);
+        throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
+      }
+    }
+  
+    async getOdooEmployeesRaw() {
+      const uid = await this.odoo.authenticate();
+      return await this.odoo.executeKw<any[]>(
+        'hr.employee',
+        'search_read',
+        [[]],
+        { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
+        uid
+      );
+    }
+  
+    async findAllLocal() {
+      return await this.usuarioRepo.find({ order: { nombre: 'ASC' } });
+    }
+
+
 }

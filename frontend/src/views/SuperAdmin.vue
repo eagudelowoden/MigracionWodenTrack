@@ -3,10 +3,12 @@ import { ref, onMounted } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useApkRepo } from '../composables/adminLogica/useApkRepo.js';
 import { useCompanies } from '../composables/adminLogica/useCompanies.js';
+import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js'; // <--- IMPORTANTE
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
 // --- Composables ---
+
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
 const {
@@ -18,6 +20,11 @@ const {
   syncCompanies,
   toggleCompanyStatus
 } = useCompanies();
+
+const {
+  dbUsuarios, odooUsuarios, isSyncing: isSyncingUsers, syncProgress: userSyncProgress,
+  fetchDbUsuarios, fetchOdooUsuarios, executeSync: syncAllUsers
+} = useUsuariosSync();
 
 // --- Estado Local ---
 const currentTab = ref('stats');
@@ -53,12 +60,25 @@ onMounted(async () => {
     localChangelog.value = [...apkData.value.changelog];
   }
 
-  // Carga inicial de tablas
+  // CARGA DE TABLAS: Aquí incluimos las de Usuarios que faltaban
   await Promise.all([
     fetchDbCompanies(),
-    fetchOdooRaw()
+    fetchOdooRaw(),
+    fetchDbUsuarios(),    // <--- AGREGAR ESTO
+    fetchOdooUsuarios()   // <--- AGREGAR ESTO
   ]);
 });
+
+const handleSyncUsers = async () => {
+  try {
+    const res = await syncAllUsers();
+    const type = res.status === 'info' ? 'warning' : 'success';
+    showNotification(res.message, type);
+    await fetchDbUsuarios();
+  } catch (e) {
+    showNotification("Error al sincronizar usuarios", "error");
+  }
+};
 
 // --- Lógica de Compañías con Progreso y Verificación ---
 const handleSyncCompanies = async () => {
@@ -167,6 +187,10 @@ const uploadApkFile = async () => {
         <button @click="currentTab = 'companies'" :class="tabClass(currentTab === 'companies')" title="Compañías">
           <i class="fas fa-building" :class="isSidebarOpen && 'mr-3'"></i>
           <span v-if="isSidebarOpen">Compañías</span>
+        </button>
+        <button @click="currentTab = 'users'" :class="tabClass(currentTab === 'users')">
+          <i class="fas fa-users-cog" :class="isSidebarOpen && 'mr-3'"></i>
+          <span v-if="isSidebarOpen">Personal / Usuarios</span>
         </button>
       </nav>
 
@@ -299,7 +323,7 @@ const uploadApkFile = async () => {
               <h2 class="text-xs font-black uppercase tracking-[0.3em] text-[#FF8F00]">Sincronización Maestra</h2>
               <p class="text-[9px] font-bold uppercase mt-1"
                 :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
-                Comparativa: Odoo ERP vs WodenTrack Local
+                Comparativa: Odoo ERP vs WodenTrack DB
               </p>
             </div>
             <div class="space-y-4 w-full md:w-auto">
@@ -327,7 +351,7 @@ const uploadApkFile = async () => {
 
             <div class="space-y-4">
               <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-database text-blue-500 text-[10px]"></i>
+                <i class="fas fa-server text-[#FF8F00] text-[10px]"></i>
                 <h3 class="text-[10px] font-black uppercase tracking-widest"
                   :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Origen: Odoo ERP</h3>
               </div>
@@ -365,9 +389,9 @@ const uploadApkFile = async () => {
 
             <div class="space-y-4">
               <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-server text-[#FF8F00] text-[10px]"></i>
+                <i class="fas fa-database text-blue-500 text-[10px]"></i>
                 <h3 class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">App Local: WodenTrack</h3>
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">DB Local: WodenTrack</h3>
               </div>
 
               <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
@@ -417,6 +441,160 @@ const uploadApkFile = async () => {
             </div>
           </div>
         </div>
+
+
+
+        <div v-if="currentTab === 'users'" class="animate-fade-in space-y-8 p-2">
+
+          <div class="flex justify-between items-center p-6 rounded-3xl border transition-all duration-500 shadow-2xl"
+            :class="isDark
+              ? 'bg-white/5 border-white/10'
+              : 'bg-white border-slate-200 shadow-slate-200/50'">
+            <div>
+              <h2 class="text-xs font-black uppercase tracking-[0.3em] text-[#FF8F00]">Gestión de Personal</h2>
+              <p class="text-[9px] font-bold uppercase mt-1"
+                :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
+                Sincronización de Empleados: Odoo vs WodenTrack DB
+              </p>
+            </div>
+            <div class="space-y-4 w-full md:w-auto">
+              <button @click="handleSyncUsers" :disabled="isSyncingUsers"
+                class="w-full px-8 py-4 bg-[#FF8F00] text-black text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
+                <div class="flex items-center justify-center gap-3">
+                  <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-users-cog'"></i>
+                  <span>{{ isSyncingUsers ? 'Sincronizando Usuarios...' : 'Sincronizar Usuarios' }}</span>
+                </div>
+              </button>
+
+              <Transition name="fade">
+                <div v-if="isSyncingUsers"
+                  class="w-full bg-slate-500/10 h-1.5 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    class="h-full bg-gradient-to-r from-[#FF8F00] to-orange-300 transition-all duration-300 shadow-[0_0_10px_#FF8F00]"
+                    :style="{ width: userSyncProgress + '%' }">
+                  </div>
+                </div>
+              </Transition>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-cloud text-blue-500 text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Catálogo: Odoo ERP</h3>
+              </div>
+
+              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/60 border-white/5' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black"
+                        :class="isDark ? 'opacity-40 text-white' : 'text-slate-400'">
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">ID</th>
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre</th>
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Cargo</th>
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Departamento
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                      <tr v-for="u in (odooUsuarios || [])" :key="u.id" class="border-b transition-colors"
+                        :class="isDark ? 'border-white/5 hover:bg-blue-500/5' : 'border-slate-50 hover:bg-blue-50/50'">
+
+                        <td class="p-4 text-blue-400 font-mono">#{{ u.id }}</td>
+
+                        <td class="p-4 uppercase">
+                          <div class="flex items-center gap-2">
+                            {{ u.name }}
+                            <i v-if="dbUsuarios?.some(db => db.id_odoo === u.id)"
+                              class="fas fa-check-circle text-emerald-500 text-[10px]"
+                              title="Ya registrado localmente"></i>
+                          </div>
+                        </td>
+
+                        <td class="p-4 italic opacity-60 text-[9px]">
+                          {{ u.job_title || 'N/A' }}
+                        </td>
+
+                        <td class="p-4 uppercase text-[9px]">
+                          <span class="px-2 py-1 rounded-lg bg-slate-500/10"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                            {{ u.department_id ? u.department_id[1] : 'Sin asignar' }}
+                          </span>
+                        </td>
+
+                      </tr>
+
+                      <tr v-if="!odooUsuarios || odooUsuarios?.length === 0">
+                        <td colspan="4" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">
+                          Cargando catálogo de Odoo...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-database text-emerald-500 text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">DB Local: Usuarios Registrados</h3>
+              </div>
+
+              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/80 border-emerald-500/10' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black"
+                        :class="isDark ? 'text-emerald-500/60' : 'text-slate-400'">
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Identificación
+                        </th>
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre / Depto
+                        </th>
+                        <th class="p-4 border-b text-center" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                          Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
+                      <tr v-for="user in dbUsuarios" :key="user.id" class="border-b transition-all"
+                        :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-50 hover:bg-emerald-50/50'">
+                        <td class="p-4 text-emerald-500 font-mono">{{ user.identificacion }}</td>
+                        <td class="p-4">
+                          <p>{{ user.nombre }}</p>
+                          <p class="text-[8px] opacity-40 font-bold tracking-tighter text-blue-500">{{ user.departamento
+                          }}</p>
+                        </td>
+                        <td class="p-4 text-center">
+                          <span
+                            :class="user.is_active ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'"
+                            class="text-[8px] px-2 py-1 rounded-md">
+                            {{ user.is_active ? 'HABILITADO' : 'INACTIVO' }}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr v-if="dbUsuarios.length === 0">
+                        <td colspan="3" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">No hay
+                          usuarios sincronizados</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
       </div>
     </main>
   </div>

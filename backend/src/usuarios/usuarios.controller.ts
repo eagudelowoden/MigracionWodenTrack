@@ -91,4 +91,20 @@ export class UsuariosController {
       };
     }
   }
+
+  @Get('sincronizar/lista-odoo')
+  async listOdoo() {
+    return await this.usuariosService.getOdooEmployeesRaw();
+  }
+
+  @Get('sincronizar/lista-local')
+  async listLocal() {
+    return await this.usuariosService.findAllLocal();
+  }
+
+  @Post('sincronizar/ejecutar')
+  async sync() {
+    return await this.usuariosService.syncUsuariosFromOdoo();
+  }
 }
+
