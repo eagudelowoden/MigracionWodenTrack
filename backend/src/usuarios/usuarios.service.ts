@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { OdooService } from '../odoo/odoo.service';
 import { Usuario } from './entities/usuario.entity';
+import { DataSource } from 'typeorm';
 import {
   getFechaColombia,
   decimalToMinutes,
@@ -21,7 +22,8 @@ export class UsuariosService {
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
     private readonly odoo: OdooService,
-  ) {}
+    private dataSource: DataSource,
+  ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -658,69 +660,92 @@ export class UsuariosService {
     }
   }
 
-    async syncUsuariosFromOdoo() {
-      try {
-        const uid = await this.odoo.authenticate();
-        
-        const odooEmployees = await this.odoo.executeKw<any[]>(
-          'hr.employee',
-          'search_read',
-          [[]],
-          { 
-            fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'],
-          },
-          uid
-        );
-  
-        let nuevos = 0;
-        let actualizados = 0;
-  
-        for (const emp of odooEmployees) {
-          const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
-  
-          const data = {
-            id_odoo: emp.id,
-            nombre: emp.name,
-            identificacion: emp.identification_id || 'N/A',
-            cargo: emp.job_title || 'Sin Cargo',
-            departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
-          };
-  
-          if (!existing) {
-            // Si no existe, usamos save para crear
-            await this.usuarioRepo.save({ ...data, id: emp.id });
-            nuevos++;
-          } else {
-            // Si existe, comparamos si algo cambió antes de actualizar (opcional pero recomendado)
-            await this.usuarioRepo.update(existing.id, data);
-            actualizados++;
-          }
-        }
-  
-        return {
-          status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-          message: `Sincronización de usuarios: ${nuevos} nuevos, ${actualizados} actualizados.`
-        };
-      } catch (error) {
-        console.error(error);
-        throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
-      }
-    }
-  
-    async getOdooEmployeesRaw() {
+
+  async syncUsuariosFromOdoo(paisSeleccionado: string) {
+    try {
       const uid = await this.odoo.authenticate();
-      return await this.odoo.executeKw<any[]>(
+
+      // 1. Filtramos en Odoo para traer solo los empleados de esa compañía/país
+      // Esto evita traer miles de registros innecesarios
+      const odooEmployees = await this.odoo.executeKw<any[]>(
         'hr.employee',
         'search_read',
-        [[]],
-        { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
+        [[['company_id.name', '=', paisSeleccionado]]],
+        {
+          fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'],
+        },
         uid
       );
+
+      let nuevos = 0;
+      let actualizados = 0;
+
+      for (const emp of odooEmployees) {
+        // 2. Buscamos si ya existe el usuario por su ID de Odoo
+        const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
+
+        const data = {
+          id_odoo: emp.id,
+          nombre: emp.name,
+          identificacion: emp.identification_id || 'N/A',
+          cargo: emp.job_title || 'Sin Cargo',
+          departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
+          pais: paisSeleccionado, // <--- Guardamos el país para filtrar después
+        };
+
+        if (!existing) {
+          // 3. Si no existe, lo creamos (Usamos el ID de Odoo como PK para consistencia)
+          await this.usuarioRepo.save({ ...data, id: emp.id });
+          nuevos++;
+        } else {
+          // 4. Si existe, actualizamos sus datos (por si cambió de cargo o depto)
+          await this.usuarioRepo.update(existing.id, data);
+          actualizados++;
+        }
+      }
+
+      return {
+        status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
+        message: `Sincronización (${paisSeleccionado}): ${nuevos} nuevos, ${actualizados} actualizados.`
+      };
+
+    } catch (error) {
+      console.error(`Error sincronizando ${paisSeleccionado}:`, error);
+      throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
     }
-  
-    async findAllLocal() {
-      return await this.usuarioRepo.find({ order: { nombre: 'ASC' } });
+  }
+
+
+  async getOdooEmployeesRaw(paisSeleccionado?: string) {
+    const uid = await this.odoo.authenticate();
+
+    // 1. Forzamos el tipo a any[] para evitar el error de 'never'
+    let domain: any[] = [];
+
+    if (paisSeleccionado && paisSeleccionado !== 'TODOS') {
+      // Odoo espera un array de arrays: [ ['campo', 'operador', 'valor'] ]
+      domain = [['company_id.name', '=', paisSeleccionado]];
     }
 
+    return await this.odoo.executeKw<any[]>(
+      'hr.employee',
+      'search_read',
+      [domain], // <--- Odoo requiere que el domain vaya envuelto en otro array
+      {
+        fields: ['id', 'name', 'identification_id', 'job_title', 'department_id', 'company_id']
+      },
+      uid
+    );
+  }
+
+  async findAllLocal(pais?: string) {
+    if (pais && pais !== 'TODOS') {
+      return await this.usuarioRepo.find({
+        where: { pais: pais },
+        order: { nombre: 'ASC' }
+      });
+    }
+    return await this.usuarioRepo.find({ order: { nombre: 'ASC' } });
+  }
 
 }

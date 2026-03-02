@@ -1,73 +1,59 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, watch } from 'vue'; // Importamos watch y quitamos computed (ya vienen del composable)
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useApkRepo } from '../composables/adminLogica/useApkRepo.js';
 import { useCompanies } from '../composables/adminLogica/useCompanies.js';
-import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js'; // <--- IMPORTANTE
+import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
 // --- Composables ---
-// --- ESTADO PARA FILTROS ---
-const searchUser = ref('');        // Lo que se escribe en el buscador
-const selectedDept = ref('TODOS'); // El departamento seleccionado
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
 const {
-  dbCompanies,    // Datos de SQL Server
-  odooCompanies,  // Datos de Odoo
-  isSyncing,
-  fetchDbCompanies,
-  fetchOdooRaw,
-  syncCompanies,
-  toggleCompanyStatus
+  dbCompanies, odooCompanies, isSyncing, 
+  fetchDbCompanies, fetchOdooRaw, syncCompanies, toggleCompanyStatus
 } = useCompanies();
 
+// IMPORTANTE: Extraemos TODO lo necesario del composable de usuarios
+// Eliminamos las declaraciones manuales de searchUser, selectedDept y los computed
 const {
-  dbUsuarios, odooUsuarios, isSyncing: isSyncingUsers, syncProgress: userSyncProgress,
-  fetchDbUsuarios, fetchOdooUsuarios, executeSync: syncAllUsers
+  dbUsuarios, 
+  odooUsuarios, 
+  isSyncing: isSyncingUsers, 
+  syncProgress: userSyncProgress,
+  searchUser,       
+  selectedDept,     
+  selectedCountry,  
+  departamentosUnicos, 
+  filteredOdoo, 
+  filteredLocal,
+  fetchDbUsuarios, 
+  fetchOdooUsuarios, 
+  executeSync: syncAllUsers
 } = useUsuariosSync();
 
-const departamentosUnicos = computed(() => {
-  const depts = (odooUsuarios.value || []).map(u => 
-    u.department_id ? u.department_id[1] : 'SIN DEPARTAMENTO'
-  );
-  // Set elimina duplicados y sort los ordena
-  return ['TODOS', ...new Set(depts)].sort();
+// --- Observador (Watch) para el cambio de país ---
+watch(selectedCountry, async () => {
+  selectedDept.value = "TODOS"; 
+  // Al cambiar país, refrescamos ambas listas
+  await Promise.all([
+    fetchDbUsuarios(),
+    fetchOdooUsuarios()
+  ]);
 });
 
-// 2. Filtrar la tabla de Odoo (Izquierda)
-const filteredOdoo = computed(() => {
-  return (odooUsuarios.value || []).filter(u => {
-    const matchesSearch = u.name?.toLowerCase().includes(searchUser.value.toLowerCase());
-    const deptName = u.department_id ? u.department_id[1] : 'SIN DEPARTAMENTO';
-    const matchesDept = selectedDept.value === 'TODOS' || deptName === selectedDept.value;
-    return matchesSearch && matchesDept;
-  });
-});
-
-// 3. Filtrar la tabla Local (Derecha)
-const filteredLocal = computed(() => {
-  return (dbUsuarios.value || []).filter(u => {
-    const matchesSearch = u.nombre?.toLowerCase().includes(searchUser.value.toLowerCase()) || 
-                          u.identificacion?.includes(searchUser.value);
-    const matchesDept = selectedDept.value === 'TODOS' || u.departamento === selectedDept.value;
-    return matchesSearch && matchesDept;
-  });
-});
-
-// --- Estado Local ---
+// --- Estado Local Restante ---
 const currentTab = ref('stats');
 const isSidebarOpen = ref(true);
-const syncProgress = ref(0); // Estado para la barra de progreso
+const syncProgress = ref(0); 
 const mallasData = ref([]);
 const asistenciasHoy = ref(0);
 const selectedFile = ref(null);
 const localChangelog = ref([]);
 
-// --- Sistema de Notificación Local ---
+// --- Sistema de Notificación ---
 const notification = ref({ show: false, message: '', type: 'success' });
-
 const showNotification = (msg, type = 'success') => {
   notification.value = { show: true, message: msg, type };
   setTimeout(() => notification.value.show = false, 5000);
@@ -76,79 +62,60 @@ const showNotification = (msg, type = 'success') => {
 // --- Clases dinámicas para navegación ---
 const tabClass = (active) => [
   'w-full flex items-center p-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300',
-  active
-    ? 'bg-[#FF8F00] text-black shadow-lg shadow-[#FF8F00]/20'
-    : isDark.value
-      ? 'text-slate-500 hover:bg-white/5'
-      : 'text-slate-600 hover:bg-black/5'
+  active 
+    ? 'bg-[#FF8F00] text-black shadow-lg shadow-[#FF8F00]/20' 
+    : isDark.value ? 'text-slate-500 hover:bg-white/5' : 'text-slate-600 hover:bg-black/5'
 ];
 
 // --- Carga Inicial ---
 onMounted(async () => {
   await fetchApkInfo();
-  if (apkData.value) {
-    localChangelog.value = [...apkData.value.changelog];
-  }
+  if (apkData.value) localChangelog.value = [...apkData.value.changelog];
 
-  // CARGA DE TABLAS: Aquí incluimos las de Usuarios que faltaban
+  // Cargamos datos iniciales
   await Promise.all([
     fetchDbCompanies(),
     fetchOdooRaw(),
-    fetchDbUsuarios(),    // <--- AGREGAR ESTO
-    fetchOdooUsuarios()   // <--- AGREGAR ESTO
+    fetchDbUsuarios(),
+    fetchOdooUsuarios()
   ]);
 });
 
+// --- Lógica de Sincronización de Usuarios ---
 const handleSyncUsers = async () => {
   try {
     const res = await syncAllUsers();
-    const type = res.status === 'info' ? 'warning' : 'success';
-    showNotification(res.message, type);
-    await fetchDbUsuarios();
+    showNotification(res.message, res.status === 'info' ? 'warning' : 'success');
   } catch (e) {
     showNotification("Error al sincronizar usuarios", "error");
   }
 };
 
-// --- Lógica de Compañías con Progreso y Verificación ---
+// --- Lógica de Compañías ---
 const handleSyncCompanies = async () => {
-  syncProgress.value = 5; // Iniciamos barra
-
-  // Simulador estético de carga rápida inicial
-  const progressTimer = setInterval(() => {
-    if (syncProgress.value < 85) syncProgress.value += 2;
-  }, 100);
+  syncProgress.value = 5;
+  const progressTimer = setInterval(() => { if (syncProgress.value < 85) syncProgress.value += 2; }, 100);
 
   try {
-    const res = await syncCompanies(); // El backend ahora devuelve {status, message}
-
-    syncProgress.value = 100; // Finalizamos barra
-
-    // El tipo de notificación depende de si hubo cambios o si "ya estaba al día"
-    const type = res.status === 'info' ? 'warning' : 'success';
-    showNotification(res.message, type);
-
-    await fetchDbCompanies(); // Actualizamos la tabla local
+    const res = await syncCompanies();
+    syncProgress.value = 100;
+    showNotification(res.message, res.status === 'info' ? 'warning' : 'success');
+    await fetchDbCompanies();
   } catch (e) {
-    showNotification("Error en la comunicación con los servicios", "error");
+    showNotification("Error en la comunicación", "error");
   } finally {
     clearInterval(progressTimer);
-    // Limpiamos la barra después de un segundo
-    setTimeout(() => {
-      syncProgress.value = 0;
-    }, 1000);
+    setTimeout(() => { syncProgress.value = 0; }, 1000);
   }
 };
 
 const handleToggleCompany = async (id, currentStatus) => {
   try {
     await toggleCompanyStatus(id, currentStatus);
-    showNotification("Estado de sede actualizado con éxito");
-    // No hace falta recargar todo, el composable ya debería manejarlo, 
-    // pero fetchDbCompanies asegura sincronía total.
+    showNotification("Estado actualizado");
     await fetchDbCompanies();
   } catch (e) {
-    showNotification("No se pudo cambiar el estado", "error");
+    showNotification("Error al cambiar estado", "error");
   }
 };
 
@@ -160,7 +127,7 @@ const handleFileUpload = (e) => { selectedFile.value = e.target.files[0]; };
 const saveChangelog = async () => {
   try {
     await guardarNovedades(localChangelog.value);
-    showNotification("Historial de cambios guardado");
+    showNotification("Historial guardado");
   } catch (e) {
     showNotification("Error al guardar", "error");
   }
@@ -474,126 +441,143 @@ const uploadApkFile = async () => {
 
 
 
-<div v-if="currentTab === 'users'" class="animate-fade-in space-y-4 p-1">
+        <div v-if="currentTab === 'users'" class="animate-fade-in space-y-4 p-1">
 
-  <div class="flex justify-between items-center px-6 py-4 rounded-2xl border transition-all duration-500"
-    :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
-    <div>
-      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Gestión de Personal</h2>
-      <p class="text-[9px] font-medium opacity-50 uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-500'">
-        Sincronización Odoo x SQL Server
-      </p>
-    </div>
-    
-    <div class="flex items-center gap-4">
-      <button @click="handleSyncUsers" :disabled="isSyncingUsers"
-        class="flex items-center gap-2 px-4 py-2 bg-[#FF8F00] text-black text-[10px] font-bold uppercase rounded-lg shadow-sm hover:opacity-90 transition-all disabled:opacity-50">
-        <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-        <span>{{ isSyncingUsers ? 'Sincronizando...' : 'Sincronizar' }}</span>
-      </button>
-    </div>
-  </div>
+          <div class="flex justify-between items-center px-6 py-4 rounded-2xl border transition-all duration-500"
+            :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+            <div>
+              <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Gestión de Personal</h2>
+              <p class="text-[9px] font-medium opacity-50 uppercase tracking-tighter"
+                :class="isDark ? 'text-white' : 'text-slate-500'">
+                Sincronización Odoo - Base de Datos WodenTrack
+              </p>
+            </div>
 
-  <div class="flex items-center gap-6 px-6 py-2 rounded-xl border border-dashed"
-     :class="isDark ? 'bg-transparent border-white/10' : 'bg-white border-slate-200'">
-    
-    <div class="flex-1 relative">
-      <i class="fas fa-search absolute left-0 top-1/2 -translate-y-1/2 opacity-20 text-[10px]"></i>
-      <input v-model="searchUser" type="text" 
-             placeholder="Filtrar por nombre o ID..."
-             class="w-full pl-6 py-2 bg-transparent outline-none text-[11px] font-medium placeholder:opacity-30" />
-    </div>
+            <div class="flex items-center gap-4">
+              <button @click="handleSyncUsers" :disabled="isSyncingUsers"
+                class="flex items-center gap-2 px-4 py-2 bg-[#FF8F00] text-black text-[10px] font-bold uppercase rounded-lg shadow-sm hover:opacity-90 transition-all disabled:opacity-50">
+                <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+                <span>{{ isSyncingUsers ? 'Sincronizando...' : 'Sincronizar' }}</span>
+              </button>
+            </div>
+          </div>
 
-    <div class="h-4 w-[1px] bg-slate-500/20"></div>
+          <div class="flex items-center gap-6 px-6 py-2 rounded-xl border border-dashed"
+            :class="isDark ? 'bg-transparent border-white/10' : 'bg-white border-slate-200'">
 
-    <div class="flex items-center gap-2">
-      <span class="text-[9px] font-bold uppercase opacity-30">Depto:</span>
-      <select v-model="selectedDept" 
-              class="bg-transparent outline-none text-[10px] font-bold uppercase cursor-pointer text-[#FF8F00]">
-        <option v-for="dept in departamentosUnicos" :key="dept" :value="dept" class="text-black">
-          {{ dept }}
-        </option>
-      </select>
-    </div>
-  </div>
+            <div class="flex-1 relative">
+              <i class="fas fa-search absolute left-0 top-1/2 -translate-y-1/2 opacity-20 text-[10px]"></i>
+              <input v-model="searchUser" type="text" placeholder="Filtrar por nombre o ID..."
+                class="w-full pl-6 py-2 bg-transparent outline-none text-[11px] font-medium placeholder:opacity-30" />
+            </div>
 
-  <div v-if="isSyncingUsers" class="px-2">
-    <div class="bg-slate-500/10 h-[2px] w-full rounded-full overflow-hidden">
-      <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: userSyncProgress + '%' }"></div>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-    <div class="space-y-2">
-      <div class="flex items-center justify-between px-2">
-        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">Catálogo Odoo</h3>
-        <span class="text-[8px] font-bold opacity-30">{{ filteredOdoo?.length }} items</span>
-      </div>
-
-      <div class="rounded-xl border overflow-hidden"
-        :class="isDark ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200'">
-        <div class="max-h-[500px] overflow-y-auto custom-scroll">
-          <table class="w-full text-left border-collapse">
-            <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
-              <tr class="text-[8px] uppercase font-black opacity-50" :class="isDark ? 'text-white' : 'text-slate-400'">
-                <th class="p-3 border-b border-white/5 w-16">ID</th>
-                <th class="p-3 border-b border-white/5">Empleado</th>
-                <th class="p-3 border-b border-white/5">Cargo</th>
-                <th class="p-3 border-b border-white/5">Departamento</th>
-              </tr>
-            </thead>
-            <tbody class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
-              <tr v-for="u in (filteredOdoo || [])" :key="u.id" 
-                class="border-b border-white/5 hover:bg-[#FF8F00]/5 transition-colors">
-                <td class="p-3 font-mono text-[9px]">#{{ u.id }}</td>
-                <td class="p-3">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold uppercase" :class="isDark ? 'text-slate-200' : 'text-slate-800'">{{ u.name }}</span>
-                    <i v-if="dbUsuarios?.some(db => db.id_odoo === u.id)" class="fas fa-check-circle text-emerald-500 text-[8px]"></i>
-                  </div>
-                </td>
-                <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.job_title || '---' }}</td>
-                <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.department_id ? u.department_id[1] : 'Sin asignar' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="space-y-2">
-      <div class="flex items-center justify-between px-2">
-        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">WodenTrack SQL</h3>
-        <span class="text-[8px] font-bold opacity-30">{{ filteredLocal?.length }} sincronizados</span>
-      </div>
-
-      <div class="rounded-xl border overflow-hidden"
-        :class="isDark ? 'bg-[#0f172a]/60 border-emerald-500/10' : 'bg-white border-slate-200'">
-        <div class="max-h-[500px] overflow-y-auto custom-scroll">
-          <table class="w-full text-left border-collapse">
-            <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
-              <tr class="text-[8px] uppercase font-black opacity-50" :class="isDark ? 'text-emerald-500/60' : 'text-slate-400'">
-                <th class="p-3 border-b border-white/5">Cédula</th>
-                <th class="p-3 border-b border-white/5">Nombre</th>
-                <th class="p-3 border-b border-white/5 text-center">Estado</th>
-              </tr>
-            </thead>
-            <tbody class="text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-              <tr v-for="user in filteredLocal" :key="user.id" class="border-b border-white/5 hover:bg-emerald-500/5">
-                <td class="p-3 font-mono font-bold text-emerald-600">{{ user.identificacion }}</td>
-                <td class="p-3 uppercase font-medium">{{ user.nombre }}</td>
-                <td class="p-3 text-center">
-                   <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'" class="w-1.5 h-1.5 rounded-full inline-block mx-auto"></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+            <div class="h-4 w-[1px] bg-slate-500/20"></div>
+            <div class="flex items-center gap-2 border-r pr-4 border-slate-500/20">
+  <span class="text-[9px] font-bold uppercase opacity-30">País:</span>
+  <select v-model="selectedCountry"
+    class="bg-transparent outline-none text-[10px] font-bold uppercase cursor-pointer text-blue-500">
+    <option value="TODOS">Todos</option>
+    <option v-for="c in odooCompanies" :key="c.id" :value="c.name">
+      {{ c.name }}
+    </option>
+  </select>
 </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] font-bold uppercase opacity-30">Depto:</span>
+              <select v-model="selectedDept"
+                class="bg-transparent outline-none text-[10px] font-bold uppercase cursor-pointer text-[#FF8F00]">
+                <option v-for="dept in departamentosUnicos" :key="dept" :value="dept" class="text-black">
+                  {{ dept }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="isSyncingUsers" class="px-2">
+            <div class="bg-slate-500/10 h-[2px] w-full rounded-full overflow-hidden">
+              <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: userSyncProgress + '%' }">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between px-2">
+                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">Catálogo Odoo</h3>
+                <span class="text-[8px] font-bold opacity-30">{{ filteredOdoo?.length }} items</span>
+              </div>
+
+              <div class="rounded-xl border overflow-hidden"
+                :class="isDark ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black opacity-50"
+                        :class="isDark ? 'text-white' : 'text-slate-400'">
+                        <th class="p-3 border-b border-white/5 w-16">ID</th>
+                        <th class="p-3 border-b border-white/5">Empleado</th>
+                        <th class="p-3 border-b border-white/5">Cargo</th>
+                        <th class="p-3 border-b border-white/5">Departamento</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+                      <tr v-for="u in (filteredOdoo || [])" :key="u.id"
+                        class="border-b border-white/5 hover:bg-[#FF8F00]/5 transition-colors">
+                        <td class="p-3 font-mono text-[9px]">#{{ u.id }}</td>
+                        <td class="p-3">
+                          <div class="flex items-center gap-2">
+                            <span class="font-bold uppercase" :class="isDark ? 'text-slate-200' : 'text-slate-800'">{{
+                              u.name }}</span>
+                            <i v-if="dbUsuarios?.some(db => db.id_odoo === u.id)"
+                              class="fas fa-check-circle text-emerald-500 text-[8px]"></i>
+                          </div>
+                        </td>
+                        <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.job_title || '---' }}</td>
+                        <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.department_id ? u.department_id[1] :
+                          'Sin asignar' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between px-2">
+                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">WodenTrack SQL</h3>
+                <span class="text-[8px] font-bold opacity-30">{{ filteredLocal?.length }} sincronizados</span>
+              </div>
+
+              <div class="rounded-xl border overflow-hidden"
+                :class="isDark ? 'bg-[#0f172a]/60 border-emerald-500/10' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black opacity-50"
+                        :class="isDark ? 'text-emerald-500/60' : 'text-slate-400'">
+                        <th class="p-3 border-b border-white/5">Cédula</th>
+                        <th class="p-3 border-b border-white/5">Nombre</th>
+                        <th class="p-3 border-b border-white/5 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                      <tr v-for="user in filteredLocal" :key="user.id"
+                        class="border-b border-white/5 hover:bg-emerald-500/5">
+                        <td class="p-3 font-mono font-bold text-emerald-600">{{ user.identificacion }}</td>
+                        <td class="p-3 uppercase font-medium">{{ user.nombre }}</td>
+                        <td class="p-3 text-center">
+                          <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                            class="w-1.5 h-1.5 rounded-full inline-block mx-auto"></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
 
 

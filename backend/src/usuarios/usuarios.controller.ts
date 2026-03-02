@@ -7,6 +7,7 @@ import {
   HttpException,
   Query,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 
@@ -93,8 +94,8 @@ export class UsuariosController {
   }
 
   @Get('sincronizar/lista-odoo')
-  async listOdoo() {
-    return await this.usuariosService.getOdooEmployeesRaw();
+  async listOdoo(@Query('pais') pais: string) {
+    return await this.usuariosService.getOdooEmployeesRaw(pais);
   }
 
   @Get('sincronizar/lista-local')
@@ -103,8 +104,9 @@ export class UsuariosController {
   }
 
   @Post('sincronizar/ejecutar')
-  async sync() {
-    return await this.usuariosService.syncUsuariosFromOdoo();
+  async sync(@Query('pais') pais: string) {
+    if (!pais) throw new BadRequestException('Debe seleccionar un país');
+    return await this.usuariosService.syncUsuariosFromOdoo(pais);
   }
 }
 
