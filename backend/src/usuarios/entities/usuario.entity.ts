@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
+import { Permiso } from './permiso.entity';
 
 @Entity('usuarios_registrados') // <--- Debe ser igual al nombre en SQL Server
 export class Usuario {
@@ -25,4 +26,7 @@ export class Usuario {
 
   @Column({ default: true })
   is_active: boolean;
+
+  @OneToMany(() => Permiso, (permiso) => permiso.usuario)
+  permisos: Permiso[];
 }

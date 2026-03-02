@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm'; // Importante para la base de datos
+import { TypeOrmModule } from '@nestjs/typeorm'; 
 import { UsuariosService } from './usuarios.service';
 import { UsuariosController } from './usuarios.controller';
-import { Usuario } from './entities/usuario.entity'; // Asegúrate de que la ruta sea correcta
+import { Usuario } from './entities/usuario.entity'; 
+import { Permiso } from './entities/permiso.entity'; // <--- Está importado, bien.
 import { OdooModule } from '../odoo/odoo.module';
 
 @Module({
   imports: [
-    // 1. Registramos la entidad para que el UsuarioRepository esté disponible
-    TypeOrmModule.forFeature([Usuario]), 
-    // 2. Mantenemos el OdooModule para las consultas al ERP
+    // AQUÍ ESTABA EL ERROR: Debes incluir a Permiso junto a Usuario
+    TypeOrmModule.forFeature([Usuario, Permiso]), 
     OdooModule,
   ],
   controllers: [UsuariosController],
   providers: [UsuariosService],
-  exports: [UsuariosService], // Útil si necesitas usarlo en otros módulos
+  exports: [UsuariosService], 
 })
 export class UsuariosModule {}

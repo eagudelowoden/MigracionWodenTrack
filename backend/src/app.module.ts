@@ -11,6 +11,7 @@ import { ApkModule } from './apk/apk.module';
 import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 
+
 @Module({
   imports: [
     // 1. Carga de variables de entorno

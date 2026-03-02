@@ -111,5 +111,18 @@ export class UsuariosController {
     if (!pais) throw new BadRequestException('Debe seleccionar un país');
     return await this.usuariosService.syncUsuariosFromOdoo(pais, depto);
   }
+
+  @Post('asignar-permiso')
+  async asignarPermiso(@Body() body: { idOdoo: number, modulo: string, activo: boolean, adminName: string }) {
+    const { idOdoo, modulo, activo, adminName } = body;
+
+    if (activo) {
+      return await this.usuariosService.asignarModuloPermiso(idOdoo, modulo, 'admin', adminName);
+    } else {
+      // Método para eliminar el permiso si se desmarca el switch
+      return await this.usuariosService.removerModuloPermiso(idOdoo, modulo);
+    }
+  }
+
 }
 

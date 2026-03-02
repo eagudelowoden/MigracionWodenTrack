@@ -33,6 +33,11 @@ const {
   executeSync: syncAllUsers
 } = useUsuariosSync();
 
+const hasPerm = (user, slug) => {
+  if (!user.permisos) return false;
+  return user.permisos.some(p => p.modulos === slug);
+};
+
 // --- Observador (Watch) para el cambio de país ---
 watch(selectedCountry, async () => {
   selectedDept.value = "TODOS";
@@ -42,7 +47,26 @@ watch(selectedCountry, async () => {
     fetchOdooUsuarios()
   ]);
 });
-
+const togglePermisoLocal = async (user, slug) => {
+  const activo = !hasPerm(user, slug);
+  try {
+    await fetch(`${import.meta.env.VITE_API_URL}/asignar-permiso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idOdoo: user.id_odoo,
+        modulo: slug,
+        activo: activo,
+        adminName: 'Daniel'
+      })
+    });
+    // Refrescamos la lista local para que el icono cambie de color inmediatamente
+    await fetchDbUsuarios();
+    showNotification(`Permiso ${activo ? 'asignado' : 'removido'} correctamente`);
+  } catch (e) {
+    showNotification("Error al actualizar permisos", "error");
+  }
+};
 // --- Estado Local Restante ---
 const currentTab = ref('stats');
 const isSidebarOpen = ref(true);
@@ -441,120 +465,150 @@ const uploadApkFile = async () => {
 
 
 
-<div v-if="currentTab === 'users'" class="animate-fade-in space-y-3 p-0">
+        <div v-if="currentTab === 'users'" class="animate-fade-in space-y-3 p-0">
 
-  <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-2 rounded-xl border"
-    :class="isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white border-slate-200 shadow-sm'">
-    
-    <div class="flex items-center gap-3">
-      <div class="w-7 h-7 bg-[#FF8F00] rounded-lg flex items-center justify-center text-black shadow-lg shadow-[#FF8F00]/20">
-        <i class="fas fa-users-cog text-[10px]"></i>
-      </div>
-      <div>
-        <h2 class="text-[10px] font-black uppercase tracking-wider text-[#FF8F00] leading-none">Gestión Personal</h2>
-        <p class="text-[8px] font-bold opacity-40 uppercase tracking-tighter mt-0.5">Odoo vs SQL</p>
-      </div>
-    </div>
+          <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-2 rounded-xl border"
+            :class="isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white border-slate-200 shadow-sm'">
 
-    <div class="flex items-center gap-3 flex-1 max-w-2xl justify-end">
-      <div class="relative flex-1 max-w-[200px]">
-        <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 opacity-20 text-[9px]"></i>
-        <input v-model="searchUser" type="text" placeholder="Buscar..."
-          class="w-full pl-6 pr-2 py-1.5 bg-transparent border-b border-slate-500/20 focus:border-[#FF8F00] outline-none text-[10px] font-bold transition-all" />
-      </div>
+            <div class="flex items-center gap-3">
+              <div
+                class="w-7 h-7 bg-[#FF8F00] rounded-lg flex items-center justify-center text-black shadow-lg shadow-[#FF8F00]/20">
+                <i class="fas fa-users-cog text-[10px]"></i>
+              </div>
+              <div>
+                <h2 class="text-[10px] font-black uppercase tracking-wider text-[#FF8F00] leading-none">Gestión Personal
+                </h2>
+                <p class="text-[8px] font-bold opacity-40 uppercase tracking-tighter mt-0.5">Odoo vs SQL</p>
+              </div>
+            </div>
 
-      <select v-model="selectedCountry"
-        class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-blue-500 max-w-[100px] py-1">
-        <option value="TODOS">País</option>
-        <option v-for="c in odooCompanies" :key="c.id" :value="c.name">{{ c.name }}</option>
-      </select>
+            <div class="flex items-center gap-3 flex-1 max-w-2xl justify-end">
+              <div class="relative flex-1 max-w-[200px]">
+                <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 opacity-20 text-[9px]"></i>
+                <input v-model="searchUser" type="text" placeholder="Buscar..."
+                  class="w-full pl-6 pr-2 py-1.5 bg-transparent border-b border-slate-500/20 focus:border-[#FF8F00] outline-none text-[10px] font-bold transition-all" />
+              </div>
 
-      <select v-model="selectedDept"
-        class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] max-w-[100px] py-1">
-        <option v-for="dept in departamentosUnicos" :key="dept" :value="dept">{{ dept }}</option>
-      </select>
+              <select v-model="selectedCountry"
+                class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-blue-500 max-w-[100px] py-1">
+                <option value="TODOS">País</option>
+                <option v-for="c in odooCompanies" :key="c.id" :value="c.name">{{ c.name }}</option>
+              </select>
 
-      <button @click="handleSyncUsers" :disabled="isSyncingUsers"
-        class="flex items-center gap-2 px-3 py-1.5 bg-[#FF8F00] text-black text-[9px] font-black uppercase rounded-lg hover:opacity-80 transition-all disabled:opacity-30 shrink-0">
-        <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-        <span>{{ isSyncingUsers ? '...' : 'Sinc' }}</span>
-      </button>
-    </div>
-  </div>
+              <select v-model="selectedDept"
+                class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] max-w-[100px] py-1">
+                <option v-for="dept in departamentosUnicos" :key="dept" :value="dept">{{ dept }}</option>
+              </select>
 
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <button @click="handleSyncUsers" :disabled="isSyncingUsers"
+                class="flex items-center gap-2 px-3 py-1.5 bg-[#FF8F00] text-black text-[9px] font-black uppercase rounded-lg hover:opacity-80 transition-all disabled:opacity-30 shrink-0">
+                <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+                <span>{{ isSyncingUsers ? '...' : 'Sinc' }}</span>
+              </button>
+            </div>
+          </div>
 
-    <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
-      :class="isDark ? 'bg-slate-900/40' : 'bg-white shadow-sm'">
-      
-      <div class="p-2 border-b border-white/5 flex justify-between items-center bg-blue-500/5">
-        <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Odoo ERP</span>
-        <span class="text-[8px] font-bold opacity-40">{{ filteredOdoo?.length }} items</span>
-      </div>
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
-        <table class="w-full text-left border-collapse table-fixed"> <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
-            <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
-              <th class="p-2 border-b border-white/5 w-12 text-center">ID</th>
-              <th class="p-2 border-b border-white/5 w-1/2">Colaborador</th>
-              <th class="p-2 border-b border-white/5 w-1/3">Departamento</th>
-            </tr>
-          </thead>
-          <tbody class="text-[10px] font-bold">
-            <tr v-for="u in (filteredOdoo || [])" :key="u.id"
-              class="border-b border-white/5 hover:bg-blue-500/5 transition-colors">
-              <td class="p-2 font-mono text-blue-400 text-center">#{{ u.id }}</td>
-              <td class="p-2">
-                <div class="flex flex-col truncate">
-                  <span class="font-black uppercase truncate" :class="isDark ? 'text-slate-100' : 'text-slate-900'">{{ u.name }}</span>
-                  <span class="text-[8px] font-bold text-[#FF8F00] truncate tracking-tight">{{ u.job_title || '---' }}</span>
-                </div>
-              </td>
-              <td class="p-2 truncate italic opacity-60 text-[9px]">{{ u.department_id ? u.department_id[1] : 'S/A' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+            <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
+              :class="isDark ? 'bg-slate-900/40' : 'bg-white shadow-sm'">
 
-    <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
-      :class="isDark ? 'bg-slate-900/60' : 'bg-white shadow-sm'">
-      
-      <div class="p-2 border-b border-white/5 flex justify-between items-center bg-emerald-500/5">
-        <span class="text-[9px] font-black uppercase text-emerald-500 tracking-widest">WodenTrack SQL</span>
-        <span class="text-[8px] font-bold opacity-40">{{ filteredLocal?.length }} items</span>
-      </div>
+              <div class="p-2 border-b border-white/5 flex justify-between items-center bg-blue-500/5">
+                <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Odoo ERP</span>
+                <span class="text-[8px] font-bold opacity-40">{{ filteredOdoo?.length }} items</span>
+              </div>
 
-      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
-        <table class="w-full text-left border-collapse table-fixed">
-          <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
-            <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
-              <th class="p-2 border-b border-white/5 w-24">Cédula</th>
-              <th class="p-2 border-b border-white/5">Nombre / Depto</th>
-              <th class="p-2 border-b border-white/5 w-12 text-center">Est</th>
-            </tr>
-          </thead>
-          <tbody class="text-[10px] font-bold">
-            <tr v-for="user in filteredLocal" :key="`${user.id}-${user.departamento}`"
-              class="border-b border-white/5 hover:bg-emerald-500/5 transition-all duration-700 animate-flash-update">
-              <td class="p-2 font-mono font-black text-emerald-500 truncate">{{ user.identificacion }}</td>
-              <td class="p-2">
-                <div class="flex flex-col truncate">
-                  <span class="font-black uppercase truncate" :class="isDark ? 'text-slate-100' : 'text-slate-900'">{{ user.nombre }}</span>
-                  <span class="text-[8px] font-bold text-blue-500 mt-0.5 truncate">{{ user.departamento }}</span>
-                </div>
-              </td>
-              <td class="p-2 text-center">
-                 <div :class="user.is_active ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-rose-500'" 
-                      class="w-1.5 h-1.5 rounded-full inline-block mx-auto"></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+              <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
+                <table class="w-full text-left border-collapse table-fixed">
+                  <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
+                    <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
+                      <th class="p-2 border-b border-white/5 w-12 text-center">ID</th>
+                      <th class="p-2 border-b border-white/5 w-1/2">Colaborador</th>
+                      <th class="p-2 border-b border-white/5 w-1/3">Departamento</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-[10px] font-bold">
+                    <tr v-for="u in (filteredOdoo || [])" :key="u.id"
+                      class="border-b border-white/5 hover:bg-blue-500/5 transition-colors">
+                      <td class="p-2 font-mono text-blue-400 text-center">#{{ u.id }}</td>
+                      <td class="p-2">
+                        <div class="flex flex-col truncate">
+                          <span class="font-black uppercase truncate"
+                            :class="isDark ? 'text-slate-100' : 'text-slate-900'">{{ u.name }}</span>
+                          <span class="text-[8px] font-bold text-[#FF8F00] truncate tracking-tight">{{ u.job_title ||
+                            '---' }}</span>
+                        </div>
+                      </td>
+                      <td class="p-2 truncate italic opacity-60 text-[9px]">{{ u.department_id ? u.department_id[1] :
+                        'S/A' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
+              :class="isDark ? 'bg-slate-900/60' : 'bg-white shadow-sm'">
+
+              <div class="p-2 border-b border-white/5 flex justify-between items-center bg-emerald-500/5">
+                <span class="text-[9px] font-black uppercase text-emerald-500 tracking-widest">WodenTrack SQL</span>
+                <span class="text-[8px] font-bold opacity-40">{{ filteredLocal?.length }} items</span>
+              </div>
+
+              <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
+                <table class="w-full text-left border-collapse table-fixed">
+                  <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
+                    <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
+                      <th class="p-2 border-b border-white/5 w-20">Cédula</th>
+                      <th class="p-2 border-b border-white/5">Nombre / Depto</th>
+                      <th class="p-2 border-b border-white/5 w-24 text-center">Accesos Modulares</th>
+                      <th class="p-2 border-b border-white/5 w-10 text-center">Est</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-[10px] font-bold">
+                    <tr v-for="user in filteredLocal" :key="user.id_odoo" class="border-b transition-all"
+                      :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-100 hover:bg-slate-50'">
+
+                      <td class="p-2 font-mono font-black text-emerald-500 truncate">{{ user.identificacion }}</td>
+
+                      <td class="p-2">
+                        <div class="flex flex-col truncate">
+                          <span class="font-black uppercase truncate"
+                            :class="isDark ? 'text-slate-100' : 'text-slate-800'">
+                            {{ user.nombre }}
+                          </span>
+                          <span class="text-[8px] font-bold text-blue-500 mt-0.5 truncate">
+                            {{ user.departamento }}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td class="p-2 text-center">
+                        <div class="flex justify-center gap-2">
+                          <button @click="togglePermisoLocal(user, 'admin.usuarios')"
+                            :class="hasPerm(user, 'admin.usuarios') ? 'text-[#FF8F00]' : 'text-slate-400'"
+                            title="Acceso a Usuarios" class="transition-transform active:scale-75">
+                            <i class="fas fa-users-cog"></i>
+                          </button>
+                          <button @click="togglePermisoLocal(user, 'admin.mallas')"
+                            :class="hasPerm(user, 'admin.mallas') ? 'text-blue-500' : 'text-slate-400'"
+                            title="Acceso a Mallas" class="transition-transform active:scale-75">
+                            <i class="fas fa-th"></i>
+                          </button>
+                        </div>
+                      </td>
+
+                      <td class="p-2 text-center">
+                        <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                          class="w-1.5 h-1.5 rounded-full inline-block"></div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
 
 
 

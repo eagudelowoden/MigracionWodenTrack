@@ -9,23 +9,15 @@ import SelectorPerfilView from '../views/Public/SelectorPerfil.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
-  { path: '/login', name: 'Login', component: LoginView },
-  { path: '/marcacion', name: 'Marcacion', component: MarcacionView },
-  { path: '/admin', name: 'Admin', component: AdminView },
-  { path: '/super-admin', name: 'SuperAdmin', component: SuperAdminView },
-  
-  // 2. Nueva ruta para elegir el modo de entrada
-  { 
-    path: '/selector-perfil', 
-    name: 'SelectorPerfil', 
-    component: SelectorPerfilView 
-  },
-
+  { path: '/login', name: 'Login', component: () => import('../views/LoginView.vue') },
+  { path: '/marcacion', name: 'Marcacion', component: () => import('../views/MarcacionView.vue') },
+  { path: '/admin', name: 'Admin', component: () => import('../views/AdminView.vue') },
+  { path: '/super-admin', name: 'SuperAdmin', component: () => import('../views/SuperAdmin.vue') },
+  { path: '/selector-perfil', name: 'SelectorPerfil', component: () => import('../views/Public/SelectorPerfil.vue') },
   { 
     path: '/download', 
-    alias: '/descargar', 
     name: 'Download', 
-    component: DownloadView,
+    component: () => import('../views/Public/DownloadView.vue'),
     meta: { isPublic: true } 
   }
 ]
@@ -40,33 +32,34 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const session = JSON.parse(localStorage.getItem('user_session'));
 
-  // A. RUTAS PÚBLICAS (Download, etc)
-  if (to.meta.isPublic) {
-    return next();
-  }
+  // A. RUTAS PÚBLICAS
+  if (to.meta.isPublic) return next();
 
   // B. SIN SESIÓN: Solo al Login
-  if (!session && to.path !== '/login') {
-    return next('/login');
-  }
+  if (!session && to.path !== '/login') return next('/login');
 
-  // C. CON SESIÓN INTENTANDO IR AL LOGIN: 
-  // Redirigir al Selector si es SuperAdmin, o a su ruta por defecto
+  // C. CON SESIÓN INTENTANDO IR AL LOGIN: Redirigir según su "llave"
   if (session && to.path === '/login') {
-    if (session.isSuperAdmin) return next('/selector-perfil'); // <-- Prioridad al Selector
-    if (session.role === 'admin') return next('/admin');
+    if (session.isSuperAdmin || session.permisos?.['admin.usuarios']) return next('/selector-perfil');
+    if (session.role === 'admin' || session.permisos?.['admin.mallas']) return next('/admin');
     return next('/marcacion');
   }
 
-  // D. PROTECCIÓN DE RUTAS POR PERMISO
-  
-  // Si intenta ir a SuperAdmin y no lo es en la sesión
-  if (to.path === '/super-admin' && !session?.isSuperAdmin) {
-    return next(session?.role === 'admin' ? '/admin' : '/marcacion');
+  // D. PROTECCIÓN DE RUTAS POR PERMISO (LA MAGIA)
+
+  // 1. Acceso a Selector de Perfil o SuperAdmin
+  // Entra si es SuperAdmin O si tiene el permiso explícito de usuarios
+  const tienePermisoUsuarios = session?.permisos?.['admin.usuarios'];
+  if ((to.path === '/super-admin' || to.path === '/selector-perfil') && !session?.isSuperAdmin && !tienePermisoUsuarios) {
+    // Si no tiene permiso, lo mandamos a su siguiente nivel (Admin o Marcación)
+    const fallback = (session?.role === 'admin' || session?.permisos?.['admin.mallas']) ? '/admin' : '/marcacion';
+    return next(fallback);
   }
 
-  // Si intenta ir a Admin y no tiene rol de admin ni es superAdmin
-  if (to.path === '/admin' && !session?.isSuperAdmin && session?.role !== 'admin') {
+  // 2. Acceso a Panel Admin (Mallas/Novedades)
+  // Entra si es Admin, SuperAdmin, o tiene el permiso de mallas
+  const tienePermisoMallas = session?.permisos?.['admin.mallas'];
+  if (to.path === '/admin' && !session?.isSuperAdmin && session?.role !== 'admin' && !tienePermisoMallas) {
     return next('/marcacion');
   }
 

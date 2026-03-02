@@ -14,6 +14,7 @@ import {
 } from '../common/utils/fecha.utils';
 import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators';
 import { Repository } from 'typeorm/repository/Repository.js';
+import { Permiso } from './entities/permiso.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -21,6 +22,10 @@ export class UsuariosService {
     // ESTO ES LO QUE FALTA: Inyectar el repositorio
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
+
+    @InjectRepository(Permiso)
+    private readonly permisoRepo: Repository<Permiso>,
+
     private readonly odoo: OdooService,
     private dataSource: DataSource,
   ) { }
@@ -79,7 +84,7 @@ export class UsuariosService {
     const esAnalistaMallasAdmin = cargo.includes('ANALISTA') && cargo.includes('MALLAS');
 
     // 3. LÓGICA DE ROLES
-    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'COORDINADOR', 'DIRECTOR', 'SUPERVISOR LOGISTICO'];
+    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE',  'DIRECTOR', 'SUPERVISOR LOGISTICO'];
 
     const esSuperAdmin = ['DESARROLLADOR', 'PRACTICANTE IT', 'ANALISTA IT'].some(palabra => cargo.includes(palabra));
 
@@ -103,6 +108,18 @@ export class UsuariosService {
     // Ahora esAdmin será true para el Analista de Mallas porque tieneMandoGeneral es true
     const esAdmin = (tieneMandoGeneral || esTI);
     const rolAsignado = esAdmin ? 'admin' : 'user';
+
+    // 1. BUSCAR PERMISOS EN LA BASE DE DATOS LOCAL
+    const permisosDB = await this.permisoRepo.find({
+      where: { usuario_id_odoo: emp.id }
+    });
+
+    const mapaPermisos = permisosDB.reduce((acc, p) => {
+      acc[p.modulos] = p.nivel_acceso === 'admin';
+      return acc;
+    }, {});
+
+
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
     const openAttendances = await this.odoo.executeKw<any[]>(
@@ -166,10 +183,35 @@ export class UsuariosService {
       job: cargoRaw,
       role: rolAsignado,
       is_inside: isInside,
-      department: departamentoRaw, // <--- Dato clave para tus filtros
-      isSuperAdmin: esSuperAdmin, // Nueva bandera
-      day_completed: status.day_completed,
+      department: departamentoRaw,
+      isSuperAdmin: esSuperAdmin,
+      day_completed: dayCompleted, // Usamos la variable local que calculamos arriba
+
+      permisos: mapaPermisos,
     };
+  }
+  async asignarModuloPermiso(idOdoo: number, modulo: string, nivel: string, adminName: string) {
+    // 1. Verificamos si ya existe el permiso
+    const existe = await this.permisoRepo.findOne({
+      where: { usuario_id_odoo: idOdoo, modulos: modulo }
+    });
+
+    if (existe) {
+      // 2. Si existe, actualizamos el nivel y quién lo asignó
+      existe.nivel_acceso = nivel;
+      existe.asignado_por = adminName;
+      return await this.permisoRepo.save(existe);
+    }
+
+    // 3. Si no existe, creamos la fila nueva
+    const nuevoPermiso = this.permisoRepo.create({
+      usuario_id_odoo: idOdoo,
+      modulos: modulo,
+      nivel_acceso: nivel,
+      asignado_por: adminName
+    });
+
+    return await this.permisoRepo.save(nuevoPermiso);
   }
 
   async attendance(employee_id: number) {
@@ -742,11 +784,16 @@ export class UsuariosService {
   async findAllLocal(pais?: string) {
     if (pais && pais !== 'TODOS') {
       return await this.usuarioRepo.find({
+        relations: ['permisos'],
         where: { pais: pais },
         order: { nombre: 'ASC' }
       });
     }
     return await this.usuarioRepo.find({ order: { nombre: 'ASC' } });
   }
+
+  async removerModuloPermiso(idOdoo: number, modulo: string) {
+  return await this.permisoRepo.delete({ usuario_id_odoo: idOdoo, modulos: modulo });
+}
 
 }
