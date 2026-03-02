@@ -17,7 +17,7 @@
           <p class="text-[10px] opacity-40 uppercase font-bold leading-tight">Registrar entrada y salida de turno</p>
         </button>
 
-        <button v-if="session?.isSuperAdmin || session?.role === 'admin' || session?.permisos?.['admin.mallas']"
+        <button v-if="session?.isSuperAdmin || session?.role === 'admin' || session?.permisos?.['admin.admin']"
           @click="selectRole('/admin')" class="role-card group">
           <div class="icon-box bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white">
             <i class="fas fa-user-tie text-3xl"></i>
@@ -26,7 +26,7 @@
           <p class="text-[10px] opacity-40 uppercase font-bold leading-tight">Control de asistencia y mallas</p>
         </button>
 
-        <button v-if="session?.isSuperAdmin || session?.permisos?.['admin.usuarios']"
+        <button v-if="session?.isSuperAdmin || session?.permisos?.['super.superadmin']"
           @click="selectRole('/super-admin')" class="role-card group border-[#FF8F00]/30 shadow-2xl shadow-[#FF8F00]/5">
           <div class="icon-box bg-[#FF8F00]/10 text-[#FF8F00] group-hover:bg-[#FF8F00] group-hover:text-black">
             <i class="fas fa-crown text-3xl"></i>

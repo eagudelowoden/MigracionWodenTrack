@@ -585,14 +585,14 @@ const uploadApkFile = async () => {
 
                       <td class="p-2 text-center">
                         <div class="flex justify-center gap-2">
-                          <button @click="togglePermisoLocal(user, 'admin.usuarios')"
-                            :class="hasPerm(user, 'admin.usuarios') ? 'text-[#FF8F00]' : 'text-slate-400'"
-                            title="Acceso a Usuarios" class="transition-transform active:scale-75">
-                            <i class="fas fa-users-cog"></i>
+                          <button @click="togglePermisoLocal(user, 'super.superadmin')"
+                            :class="hasPerm(user, 'super.superadmin') ? 'text-[#FF8F00]' : 'text-slate-400'"
+                            title="Acceso a SuperAdmin" class="transition-transform active:scale-75">
+                            <i class="fas fa-user-shield"></i>
                           </button>
-                          <button @click="togglePermisoLocal(user, 'admin.mallas')"
-                            :class="hasPerm(user, 'admin.mallas') ? 'text-blue-500' : 'text-slate-400'"
-                            title="Acceso a Mallas" class="transition-transform active:scale-75">
+                          <button @click="togglePermisoLocal(user, 'admin.admin')"
+                            :class="hasPerm(user, 'admin.admin') ? 'text-blue-500' : 'text-slate-400'"
+                            title="Acceso a Admin" class="transition-transform active:scale-75">
                             <i class="fas fa-th"></i>
                           </button>
                         </div>

@@ -40,8 +40,8 @@ router.beforeEach((to, from, next) => {
 
   // C. CON SESIÓN INTENTANDO IR AL LOGIN: Redirigir según su "llave"
   if (session && to.path === '/login') {
-    if (session.isSuperAdmin || session.permisos?.['admin.usuarios']) return next('/selector-perfil');
-    if (session.role === 'admin' || session.permisos?.['admin.mallas']) return next('/admin');
+    if (session.isSuperAdmin || session.permisos?.['super.superadmin']) return next('/selector-perfil');
+    if (session.role === 'admin' || session.permisos?.['admin.admin']) return next('/admin');
     return next('/marcacion');
   }
 
@@ -49,17 +49,17 @@ router.beforeEach((to, from, next) => {
 
   // 1. Acceso a Selector de Perfil o SuperAdmin
   // Entra si es SuperAdmin O si tiene el permiso explícito de usuarios
-  const tienePermisoUsuarios = session?.permisos?.['admin.usuarios'];
+  const tienePermisoUsuarios = session?.permisos?.['super.superadmin'];
   if ((to.path === '/super-admin' || to.path === '/selector-perfil') && !session?.isSuperAdmin && !tienePermisoUsuarios) {
     // Si no tiene permiso, lo mandamos a su siguiente nivel (Admin o Marcación)
-    const fallback = (session?.role === 'admin' || session?.permisos?.['admin.mallas']) ? '/admin' : '/marcacion';
+    const fallback = (session?.role === 'admin' || session?.permisos?.['admin.admin']) ? '/admin' : '/marcacion';
     return next(fallback);
   }
 
   // 2. Acceso a Panel Admin (Mallas/Novedades)
-  // Entra si es Admin, SuperAdmin, o tiene el permiso de mallas
-  const tienePermisoMallas = session?.permisos?.['admin.mallas'];
-  if (to.path === '/admin' && !session?.isSuperAdmin && session?.role !== 'admin' && !tienePermisoMallas) {
+  // Entra si es Admin, SuperAdmin, o tiene el permiso de admin
+  const tienePermisoAdmin = session?.permisos?.['admin.admin'];
+  if (to.path === '/admin' && !session?.isSuperAdmin && session?.role !== 'admin' && !tienePermisoAdmin) {
     return next('/marcacion');
   }
 

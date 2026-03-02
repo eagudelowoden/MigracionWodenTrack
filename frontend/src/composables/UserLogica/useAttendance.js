@@ -34,101 +34,112 @@ export function useAttendance() {
     setTimeout(() => (message.text = ""), 4000);
   };
 
-const handleLogin = async () => {
-  if (!form.usuario || !form.password) {
-    showToast("Completa los campos", "error");
-    return;
-  }
-
-  loading.value = true;
-  try {
-    const res = await fetch(`${API_BASE_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    const data = await res.json();
-
-    if (res.ok && data.status === "success") {
-      // 1. SINCRONIZACIÓN DE ESTADO (Asistencia)
-      try {
-        const statusRes = await fetch(`${API_BASE_URL}/attendance-status/${data.employee_id}`);
-        const statusData = await statusRes.json();
-        data.is_inside = statusData.is_inside;
-        // ... (tu lógica de last_mark_time se mantiene igual)
-      } catch (statusErr) {
-        console.warn("Error sincronizando estado inicial.");
-      }
-
-      // 2. GUARDAR SESIÓN (Incluye el nuevo objeto data.permisos que viene del backend)
-      data.last_login_date = new Date().toLocaleDateString();
-      employee.value = data;
-      localStorage.setItem("user_session", JSON.stringify(data));
-
-      showToast(`Bienvenido ${data.name}`, "success");
-
-      // 3. LÓGICA DE REDIRECCIÓN INTELIGENTE (Prioridad a Permisos)
-      
-      // Si es SuperAdmin (por cargo) o tiene permiso explícito de gestión de usuarios
-      if (data.isSuperAdmin || (data.permisos && data.permisos['admin.usuarios'])) {
-        router.push("/selector-perfil"); 
-      } 
-      // Si tiene rol admin (por cargo) o tiene permiso de mallas
-      else if (data.role === "admin" || (data.permisos && data.permisos['admin.mallas'])) {
-        router.push("/admin");
-      } 
-      // Usuario normal
-      else {
-        router.push("/marcacion");
-      }
-
-    } else {
-      showToast(data.message || "Credenciales inválidas", "error");
+  const handleLogin = async () => {
+    if (!form.usuario || !form.password) {
+      showToast("Completa los campos", "error");
+      return;
     }
-  } catch (err) {
-    showToast("Error crítico de conexión", "error");
-  } finally {
-    loading.value = false;
-  }
-};
 
-const handleAttendance = async () => {
-  if (loading.value || !employee.value) return;
-
-  loading.value = true;
-  try {
-    const res = await fetch(`${API_BASE_URL}/attendance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employee_id: employee.value.employee_id }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok && data.status === "success") {
-      // ACTUALIZAMOS EL ESTADO CON LO QUE VIENE DEL SERVIDOR
-      employee.value.is_inside = data.is_inside;
-      employee.value.day_completed = data.day_completed;
-      
-      employee.value.last_status = data.message;
-      employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
-        hour: "2-digit", minute: "2-digit", hour12: true,
+    loading.value = true;
+    try {
+      const res = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
 
-      // Guardamos la verdad absoluta en el storage
-      localStorage.setItem("user_session", JSON.stringify(employee.value));
-      showToast(data.message, data.type === 'completed' ? "warning" : "success");
-      
-    } else {
-      showToast(data.message || "Error de conexión", "error");
+      const data = await res.json();
+
+      if (res.ok && data.status === "success") {
+        // 1. SINCRONIZACIÓN DE ESTADO (Asistencia)
+        try {
+          const statusRes = await fetch(
+            `${API_BASE_URL}/attendance-status/${data.employee_id}`,
+          );
+          const statusData = await statusRes.json();
+          data.is_inside = statusData.is_inside;
+          // ... (tu lógica de last_mark_time se mantiene igual)
+        } catch (statusErr) {
+          console.warn("Error sincronizando estado inicial.");
+        }
+
+        // 2. GUARDAR SESIÓN (Incluye el nuevo objeto data.permisos que viene del backend)
+        data.last_login_date = new Date().toLocaleDateString();
+        employee.value = data;
+        localStorage.setItem("user_session", JSON.stringify(data));
+
+        showToast(`Bienvenido ${data.name}`, "success");
+
+        // 3. LÓGICA DE REDIRECCIÓN INTELIGENTE (Prioridad a Permisos)
+
+        // Si es SuperAdmin (por cargo) o tiene permiso explícito de gestión de usuarios
+        if (
+          data.isSuperAdmin ||
+          (data.permisos && data.permisos["super.superadmin"])
+        ) {
+          router.push("/selector-perfil");
+        }
+        // Si tiene rol admin (por cargo) o tiene permiso de mallas
+        else if (
+          data.role === "admin" ||
+          (data.permisos && data.permisos["admin.admin"])
+        ) {
+          router.push("/admin");
+        }
+        // Usuario normal
+        else {
+          router.push("/marcacion");
+        }
+      } else {
+        showToast(data.message || "Credenciales inválidas", "error");
+      }
+    } catch (err) {
+      showToast("Error crítico de conexión", "error");
+    } finally {
+      loading.value = false;
     }
-  } catch (err) {
-    showToast("Error de red", "error");
-  } finally {
-    loading.value = false;
-  }
-};
+  };
+
+  const handleAttendance = async () => {
+    if (loading.value || !employee.value) return;
+
+    loading.value = true;
+    try {
+      const res = await fetch(`${API_BASE_URL}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: employee.value.employee_id }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.status === "success") {
+        // ACTUALIZAMOS EL ESTADO CON LO QUE VIENE DEL SERVIDOR
+        employee.value.is_inside = data.is_inside;
+        employee.value.day_completed = data.day_completed;
+
+        employee.value.last_status = data.message;
+        employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+
+        // Guardamos la verdad absoluta en el storage
+        localStorage.setItem("user_session", JSON.stringify(employee.value));
+        showToast(
+          data.message,
+          data.type === "completed" ? "warning" : "success",
+        );
+      } else {
+        showToast(data.message || "Error de conexión", "error");
+      }
+    } catch (err) {
+      showToast("Error de red", "error");
+    } finally {
+      loading.value = false;
+    }
+  };
 
   const logout = () => {
     employee.value = null;
