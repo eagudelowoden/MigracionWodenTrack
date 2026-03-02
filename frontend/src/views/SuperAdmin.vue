@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useApkRepo } from '../composables/adminLogica/useApkRepo.js';
 import { useCompanies } from '../composables/adminLogica/useCompanies.js';
@@ -8,7 +8,9 @@ import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
 // --- Composables ---
-
+// --- ESTADO PARA FILTROS ---
+const searchUser = ref('');        // Lo que se escribe en el buscador
+const selectedDept = ref('TODOS'); // El departamento seleccionado
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
 const {
@@ -25,6 +27,34 @@ const {
   dbUsuarios, odooUsuarios, isSyncing: isSyncingUsers, syncProgress: userSyncProgress,
   fetchDbUsuarios, fetchOdooUsuarios, executeSync: syncAllUsers
 } = useUsuariosSync();
+
+const departamentosUnicos = computed(() => {
+  const depts = (odooUsuarios.value || []).map(u => 
+    u.department_id ? u.department_id[1] : 'SIN DEPARTAMENTO'
+  );
+  // Set elimina duplicados y sort los ordena
+  return ['TODOS', ...new Set(depts)].sort();
+});
+
+// 2. Filtrar la tabla de Odoo (Izquierda)
+const filteredOdoo = computed(() => {
+  return (odooUsuarios.value || []).filter(u => {
+    const matchesSearch = u.name?.toLowerCase().includes(searchUser.value.toLowerCase());
+    const deptName = u.department_id ? u.department_id[1] : 'SIN DEPARTAMENTO';
+    const matchesDept = selectedDept.value === 'TODOS' || deptName === selectedDept.value;
+    return matchesSearch && matchesDept;
+  });
+});
+
+// 3. Filtrar la tabla Local (Derecha)
+const filteredLocal = computed(() => {
+  return (dbUsuarios.value || []).filter(u => {
+    const matchesSearch = u.nombre?.toLowerCase().includes(searchUser.value.toLowerCase()) || 
+                          u.identificacion?.includes(searchUser.value);
+    const matchesDept = selectedDept.value === 'TODOS' || u.departamento === selectedDept.value;
+    return matchesSearch && matchesDept;
+  });
+});
 
 // --- Estado Local ---
 const currentTab = ref('stats');
@@ -444,152 +474,126 @@ const uploadApkFile = async () => {
 
 
 
-        <div v-if="currentTab === 'users'" class="animate-fade-in space-y-8 p-2">
+<div v-if="currentTab === 'users'" class="animate-fade-in space-y-4 p-1">
 
-          <div class="flex justify-between items-center p-6 rounded-3xl border transition-all duration-500 shadow-2xl"
-            :class="isDark
-              ? 'bg-white/5 border-white/10'
-              : 'bg-white border-slate-200 shadow-slate-200/50'">
-            <div>
-              <h2 class="text-xs font-black uppercase tracking-[0.3em] text-[#FF8F00]">Gestión de Personal</h2>
-              <p class="text-[9px] font-bold uppercase mt-1"
-                :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
-                Sincronización de Empleados: Odoo vs WodenTrack DB
-              </p>
-            </div>
-            <div class="space-y-4 w-full md:w-auto">
-              <button @click="handleSyncUsers" :disabled="isSyncingUsers"
-                class="w-full px-8 py-4 bg-[#FF8F00] text-black text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
-                <div class="flex items-center justify-center gap-3">
-                  <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-users-cog'"></i>
-                  <span>{{ isSyncingUsers ? 'Sincronizando Usuarios...' : 'Sincronizar Usuarios' }}</span>
-                </div>
-              </button>
+  <div class="flex justify-between items-center px-6 py-4 rounded-2xl border transition-all duration-500"
+    :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+    <div>
+      <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Gestión de Personal</h2>
+      <p class="text-[9px] font-medium opacity-50 uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-500'">
+        Sincronización Odoo x SQL Server
+      </p>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <button @click="handleSyncUsers" :disabled="isSyncingUsers"
+        class="flex items-center gap-2 px-4 py-2 bg-[#FF8F00] text-black text-[10px] font-bold uppercase rounded-lg shadow-sm hover:opacity-90 transition-all disabled:opacity-50">
+        <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+        <span>{{ isSyncingUsers ? 'Sincronizando...' : 'Sincronizar' }}</span>
+      </button>
+    </div>
+  </div>
 
-              <Transition name="fade">
-                <div v-if="isSyncingUsers"
-                  class="w-full bg-slate-500/10 h-1.5 rounded-full overflow-hidden border border-white/5">
-                  <div
-                    class="h-full bg-gradient-to-r from-[#FF8F00] to-orange-300 transition-all duration-300 shadow-[0_0_10px_#FF8F00]"
-                    :style="{ width: userSyncProgress + '%' }">
+  <div class="flex items-center gap-6 px-6 py-2 rounded-xl border border-dashed"
+     :class="isDark ? 'bg-transparent border-white/10' : 'bg-white border-slate-200'">
+    
+    <div class="flex-1 relative">
+      <i class="fas fa-search absolute left-0 top-1/2 -translate-y-1/2 opacity-20 text-[10px]"></i>
+      <input v-model="searchUser" type="text" 
+             placeholder="Filtrar por nombre o ID..."
+             class="w-full pl-6 py-2 bg-transparent outline-none text-[11px] font-medium placeholder:opacity-30" />
+    </div>
+
+    <div class="h-4 w-[1px] bg-slate-500/20"></div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-[9px] font-bold uppercase opacity-30">Depto:</span>
+      <select v-model="selectedDept" 
+              class="bg-transparent outline-none text-[10px] font-bold uppercase cursor-pointer text-[#FF8F00]">
+        <option v-for="dept in departamentosUnicos" :key="dept" :value="dept" class="text-black">
+          {{ dept }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <div v-if="isSyncingUsers" class="px-2">
+    <div class="bg-slate-500/10 h-[2px] w-full rounded-full overflow-hidden">
+      <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: userSyncProgress + '%' }"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+    <div class="space-y-2">
+      <div class="flex items-center justify-between px-2">
+        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">Catálogo Odoo</h3>
+        <span class="text-[8px] font-bold opacity-30">{{ filteredOdoo?.length }} items</span>
+      </div>
+
+      <div class="rounded-xl border overflow-hidden"
+        :class="isDark ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200'">
+        <div class="max-h-[500px] overflow-y-auto custom-scroll">
+          <table class="w-full text-left border-collapse">
+            <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+              <tr class="text-[8px] uppercase font-black opacity-50" :class="isDark ? 'text-white' : 'text-slate-400'">
+                <th class="p-3 border-b border-white/5 w-16">ID</th>
+                <th class="p-3 border-b border-white/5">Empleado</th>
+                <th class="p-3 border-b border-white/5">Cargo</th>
+                <th class="p-3 border-b border-white/5">Departamento</th>
+              </tr>
+            </thead>
+            <tbody class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+              <tr v-for="u in (filteredOdoo || [])" :key="u.id" 
+                class="border-b border-white/5 hover:bg-[#FF8F00]/5 transition-colors">
+                <td class="p-3 font-mono text-[9px]">#{{ u.id }}</td>
+                <td class="p-3">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold uppercase" :class="isDark ? 'text-slate-200' : 'text-slate-800'">{{ u.name }}</span>
+                    <i v-if="dbUsuarios?.some(db => db.id_odoo === u.id)" class="fas fa-check-circle text-emerald-500 text-[8px]"></i>
                   </div>
-                </div>
-              </Transition>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-cloud text-blue-500 text-[10px]"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Catálogo: Odoo ERP</h3>
-              </div>
-
-              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
-                :class="isDark ? 'bg-[#0f172a]/60 border-white/5' : 'bg-white border-slate-200'">
-                <div class="max-h-[500px] overflow-y-auto custom-scroll">
-                  <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
-                      <tr class="text-[8px] uppercase font-black"
-                        :class="isDark ? 'opacity-40 text-white' : 'text-slate-400'">
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">ID</th>
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre</th>
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Cargo</th>
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Departamento
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                      <tr v-for="u in (odooUsuarios || [])" :key="u.id" class="border-b transition-colors"
-                        :class="isDark ? 'border-white/5 hover:bg-blue-500/5' : 'border-slate-50 hover:bg-blue-50/50'">
-
-                        <td class="p-4 text-blue-400 font-mono">#{{ u.id }}</td>
-
-                        <td class="p-4 uppercase">
-                          <div class="flex items-center gap-2">
-                            {{ u.name }}
-                            <i v-if="dbUsuarios?.some(db => db.id_odoo === u.id)"
-                              class="fas fa-check-circle text-emerald-500 text-[10px]"
-                              title="Ya registrado localmente"></i>
-                          </div>
-                        </td>
-
-                        <td class="p-4 italic opacity-60 text-[9px]">
-                          {{ u.job_title || 'N/A' }}
-                        </td>
-
-                        <td class="p-4 uppercase text-[9px]">
-                          <span class="px-2 py-1 rounded-lg bg-slate-500/10"
-                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                            {{ u.department_id ? u.department_id[1] : 'Sin asignar' }}
-                          </span>
-                        </td>
-
-                      </tr>
-
-                      <tr v-if="!odooUsuarios || odooUsuarios?.length === 0">
-                        <td colspan="4" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">
-                          Cargando catálogo de Odoo...
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-database text-emerald-500 text-[10px]"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">DB Local: Usuarios Registrados</h3>
-              </div>
-
-              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
-                :class="isDark ? 'bg-[#0f172a]/80 border-emerald-500/10' : 'bg-white border-slate-200'">
-                <div class="max-h-[500px] overflow-y-auto custom-scroll">
-                  <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
-                      <tr class="text-[8px] uppercase font-black"
-                        :class="isDark ? 'text-emerald-500/60' : 'text-slate-400'">
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Identificación
-                        </th>
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre / Depto
-                        </th>
-                        <th class="p-4 border-b text-center" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                          Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
-                      <tr v-for="user in dbUsuarios" :key="user.id" class="border-b transition-all"
-                        :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-50 hover:bg-emerald-50/50'">
-                        <td class="p-4 text-emerald-500 font-mono">{{ user.identificacion }}</td>
-                        <td class="p-4">
-                          <p>{{ user.nombre }}</p>
-                          <p class="text-[8px] opacity-40 font-bold tracking-tighter text-blue-500">{{ user.departamento
-                          }}</p>
-                        </td>
-                        <td class="p-4 text-center">
-                          <span
-                            :class="user.is_active ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'"
-                            class="text-[8px] px-2 py-1 rounded-md">
-                            {{ user.is_active ? 'HABILITADO' : 'INACTIVO' }}
-                          </span>
-                        </td>
-                      </tr>
-                      <tr v-if="dbUsuarios.length === 0">
-                        <td colspan="3" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">No hay
-                          usuarios sincronizados</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+                </td>
+                <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.job_title || '---' }}</td>
+                <td class="p-3 text-[9px] leading-tight opacity-70">{{ u.department_id ? u.department_id[1] : 'Sin asignar' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <div class="flex items-center justify-between px-2">
+        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-40">WodenTrack SQL</h3>
+        <span class="text-[8px] font-bold opacity-30">{{ filteredLocal?.length }} sincronizados</span>
+      </div>
+
+      <div class="rounded-xl border overflow-hidden"
+        :class="isDark ? 'bg-[#0f172a]/60 border-emerald-500/10' : 'bg-white border-slate-200'">
+        <div class="max-h-[500px] overflow-y-auto custom-scroll">
+          <table class="w-full text-left border-collapse">
+            <thead :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+              <tr class="text-[8px] uppercase font-black opacity-50" :class="isDark ? 'text-emerald-500/60' : 'text-slate-400'">
+                <th class="p-3 border-b border-white/5">Cédula</th>
+                <th class="p-3 border-b border-white/5">Nombre</th>
+                <th class="p-3 border-b border-white/5 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+              <tr v-for="user in filteredLocal" :key="user.id" class="border-b border-white/5 hover:bg-emerald-500/5">
+                <td class="p-3 font-mono font-bold text-emerald-600">{{ user.identificacion }}</td>
+                <td class="p-3 uppercase font-medium">{{ user.nombre }}</td>
+                <td class="p-3 text-center">
+                   <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'" class="w-1.5 h-1.5 rounded-full inline-block mx-auto"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 
