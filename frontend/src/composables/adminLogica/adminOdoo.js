@@ -23,13 +23,22 @@ export function adminOdoo() {
   // Cargar lista de compañías desde el nuevo endpoint
   const fetchCompanies = async () => {
     try {
-      // Si creaste el recurso 'companies', el endpoint es este:
       const res = await fetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
       allCompanies.value = data;
 
-      if (data.length > 0 && !selectedCompany.value) {
-        selectedCompany.value = data[0].name;
+      if (data.length > 0) {
+        // Buscamos la compañía que contenga "COLOMBIA" en su nombre
+        const colombia = data.find((c) =>
+          c.name.includes("WODEN COLOMBIA SAS"),
+        );
+
+        if (colombia) {
+          selectedCompany.value = colombia.name;
+        } else {
+          // Si por alguna razón no la encuentra, usa la primera como respaldo
+          selectedCompany.value = data[0].name;
+        }
       }
     } catch (err) {
       console.error("Error cargando compañías:", err);
