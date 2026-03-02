@@ -1,53 +1,118 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useApkRepo } from '../composables/adminLogica/useApkRepo.js';
+import { useCompanies } from '../composables/adminLogica/useCompanies.js';
+import '../assets/css/admin-style.css';
+import '../assets/css/SuperAdmin.css';
 
+// --- Composables ---
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
+const {
+  dbCompanies,    // Datos de SQL Server
+  odooCompanies,  // Datos de Odoo
+  isSyncing,
+  fetchDbCompanies,
+  fetchOdooRaw,
+  syncCompanies,
+  toggleCompanyStatus
+} = useCompanies();
 
+// --- Estado Local ---
 const currentTab = ref('stats');
 const isSidebarOpen = ref(true);
+const syncProgress = ref(0); // Estado para la barra de progreso
 const mallasData = ref([]);
 const asistenciasHoy = ref(0);
 const selectedFile = ref(null);
 const localChangelog = ref([]);
 
-// Sistema de Notificación Local
+// --- Sistema de Notificación Local ---
 const notification = ref({ show: false, message: '', type: 'success' });
 
 const showNotification = (msg, type = 'success') => {
   notification.value = { show: true, message: msg, type };
-  setTimeout(() => notification.value.show = false, 4000);
+  setTimeout(() => notification.value.show = false, 5000);
 };
 
+// --- Clases dinámicas para navegación ---
 const tabClass = (active) => [
   'w-full flex items-center p-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300',
   active
     ? 'bg-[#FF8F00] text-black shadow-lg shadow-[#FF8F00]/20'
-    : isDark.value ? 'text-slate-500 hover:bg-white/5' : 'text-slate-400 hover:bg-black/5'
+    : isDark.value
+      ? 'text-slate-500 hover:bg-white/5'
+      : 'text-slate-600 hover:bg-black/5'
 ];
 
+// --- Carga Inicial ---
 onMounted(async () => {
   await fetchApkInfo();
   if (apkData.value) {
     localChangelog.value = [...apkData.value.changelog];
   }
+
+  // Carga inicial de tablas
+  await Promise.all([
+    fetchDbCompanies(),
+    fetchOdooRaw()
+  ]);
 });
 
+// --- Lógica de Compañías con Progreso y Verificación ---
+const handleSyncCompanies = async () => {
+  syncProgress.value = 5; // Iniciamos barra
+
+  // Simulador estético de carga rápida inicial
+  const progressTimer = setInterval(() => {
+    if (syncProgress.value < 85) syncProgress.value += 2;
+  }, 100);
+
+  try {
+    const res = await syncCompanies(); // El backend ahora devuelve {status, message}
+
+    syncProgress.value = 100; // Finalizamos barra
+
+    // El tipo de notificación depende de si hubo cambios o si "ya estaba al día"
+    const type = res.status === 'info' ? 'warning' : 'success';
+    showNotification(res.message, type);
+
+    await fetchDbCompanies(); // Actualizamos la tabla local
+  } catch (e) {
+    showNotification("Error en la comunicación con los servicios", "error");
+  } finally {
+    clearInterval(progressTimer);
+    // Limpiamos la barra después de un segundo
+    setTimeout(() => {
+      syncProgress.value = 0;
+    }, 1000);
+  }
+};
+
+const handleToggleCompany = async (id, currentStatus) => {
+  try {
+    await toggleCompanyStatus(id, currentStatus);
+    showNotification("Estado de sede actualizado con éxito");
+    // No hace falta recargar todo, el composable ya debería manejarlo, 
+    // pero fetchDbCompanies asegura sincronía total.
+    await fetchDbCompanies();
+  } catch (e) {
+    showNotification("No se pudo cambiar el estado", "error");
+  }
+};
+
+// --- Lógica de APK ---
 const addNote = () => localChangelog.value.push("");
 const removeNote = (i) => localChangelog.value.splice(i, 1);
-
-const handleFileUpload = (e) => {
-  selectedFile.value = e.target.files[0];
-};
+const handleFileUpload = (e) => { selectedFile.value = e.target.files[0]; };
 
 const saveChangelog = async () => {
   try {
     await guardarNovedades(localChangelog.value);
-    showNotification("Novedades sincronizadas correctamente");
+    showNotification("Historial de cambios guardado");
   } catch (e) {
-    showNotification("Error al guardar novedades", "error");
+    showNotification("Error al guardar", "error");
   }
 };
 
@@ -55,15 +120,14 @@ const uploadApkFile = async () => {
   if (!selectedFile.value) return;
   try {
     await subirApk(selectedFile.value);
-    showNotification("Nueva versión desplegada con éxito");
+    showNotification("APK publicada correctamente");
     selectedFile.value = null;
     await fetchApkInfo();
   } catch (e) {
-    showNotification("Fallo en la subida del archivo", "error");
+    showNotification("Error al subir archivo", "error");
   }
 };
 </script>
-
 <template>
   <div class="flex min-h-screen transition-colors duration-500"
     :class="isDark ? 'bg-[#020617] text-slate-200' : 'bg-[#F8FAFC] text-slate-800'">
@@ -99,6 +163,10 @@ const uploadApkFile = async () => {
         <button @click="currentTab = 'apk'" :class="tabClass(currentTab === 'apk')" title="Gestionar APK">
           <i class="fab fa-android" :class="isSidebarOpen && 'mr-3'"></i>
           <span v-if="isSidebarOpen">Gestionar APK</span>
+        </button>
+        <button @click="currentTab = 'companies'" :class="tabClass(currentTab === 'companies')" title="Compañías">
+          <i class="fas fa-building" :class="isSidebarOpen && 'mr-3'"></i>
+          <span v-if="isSidebarOpen">Compañías</span>
         </button>
       </nav>
 
@@ -217,97 +285,139 @@ const uploadApkFile = async () => {
 
           </div>
         </div>
+
+
+
+
+        <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-8 p-2">
+
+          <div class="flex justify-between items-center p-6 rounded-3xl border transition-all duration-500 shadow-2xl"
+            :class="isDark
+              ? 'bg-white/5 border-white/10'
+              : 'bg-white border-slate-200 shadow-slate-200/50'">
+            <div>
+              <h2 class="text-xs font-black uppercase tracking-[0.3em] text-[#FF8F00]">Sincronización Maestra</h2>
+              <p class="text-[9px] font-bold uppercase mt-1"
+                :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
+                Comparativa: Odoo ERP vs WodenTrack Local
+              </p>
+            </div>
+            <div class="space-y-4 w-full md:w-auto">
+              <button @click="handleSyncCompanies" :disabled="isSyncing"
+                class="w-full px-8 py-4 bg-[#FF8F00] text-black text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
+                <div class="flex items-center justify-center gap-3">
+                  <i class="fas" :class="isSyncing ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+                  <span>{{ isSyncing ? 'Verificando datos...' : 'Sincronizar Sedes' }}</span>
+                </div>
+              </button>
+
+              <Transition name="fade">
+                <div v-if="isSyncing"
+                  class="w-full bg-slate-500/10 h-1.5 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    class="h-full bg-gradient-to-r from-[#FF8F00] to-orange-300 transition-all duration-300 shadow-[0_0_10px_#FF8F00]"
+                    :style="{ width: syncProgress + '%' }">
+                  </div>
+                </div>
+              </Transition>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-database text-blue-500 text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Origen: Odoo ERP</h3>
+              </div>
+
+              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/60 border-white/5' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black"
+                        :class="isDark ? 'opacity-40 text-white' : 'text-slate-400'">
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">ID</th>
+                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre en ERP
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                      <tr v-for="c in odooCompanies" :key="c.id" class="border-b border-white/5">
+                        <td class="p-4 text-blue-400 font-mono">#{{ c.id }}</td>
+                        <td class="p-4 uppercase flex items-center justify-between">
+                          {{ c.name }}
+                          <i v-if="dbCompanies.some(db => db.id === c.id)"
+                            class="fas fa-check-circle text-emerald-500 text-[10px]" title="Ya en base de datos"></i>
+                        </td>
+                      </tr>
+                      <tr v-if="odooCompanies.length === 0">
+                        <td colspan="2" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">Cargando
+                          datos de Odoo...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-server text-[#FF8F00] text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">App Local: WodenTrack</h3>
+              </div>
+
+              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/80 border-[#FF8F00]/10' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black"
+                        :class="isDark ? 'text-[#FF8F00]/60' : 'text-slate-400'">
+                        <th class="p-4 border-b" :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Compañía
+                          Local</th>
+                        <th class="p-4 border-b text-center"
+                          :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Estado</th>
+                        <th class="p-4 border-b text-right"
+                          :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Visible</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
+                      <tr v-for="comp in dbCompanies" :key="comp.id" class="border-b transition-all" :class="[
+                        isDark ? 'border-white/5 hover:bg-[#FF8F00]/5' : 'border-slate-50 hover:bg-slate-50',
+                        !comp.is_active && 'opacity-30 grayscale'
+                      ]">
+                        <td class="p-4 truncate max-w-[200px]">{{ comp.name }}</td>
+                        <td class="p-4 text-center">
+                          <span :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'"
+                            class="text-[8px] font-black tracking-tighter">
+                            {{ comp.is_active ? '● ACTIVA' : '○ OCULTA' }}
+                          </span>
+                        </td>
+                        <td class="p-4 text-right text-black">
+                          <button @click="handleToggleCompany(comp.id, comp.is_active)"
+                            class="w-10 h-5 rounded-full relative transition-all"
+                            :class="comp.is_active ? 'bg-emerald-600' : 'bg-slate-300'">
+                            <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all"
+                              :class="comp.is_active ? 'translate-x-5' : 'translate-x-0'"></div>
+                          </button>
+                        </td>
+                      </tr>
+                      <tr v-if="dbCompanies.length === 0">
+                        <td colspan="3" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">No hay
+                          datos en SQL Server</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
 </template>
-
-<style scoped>
-.stat-card {
-  @apply p-8 rounded-[2.5rem] border transition-all duration-500 flex flex-col;
-}
-
-.stat-card.destaque {
-  @apply border-[#FF8F00]/30 bg-[#FF8F00]/5;
-}
-
-.card-dark {
-  @apply bg-white/5 border-white/5;
-}
-
-.card-light {
-  @apply bg-white border-slate-200 shadow-sm;
-}
-
-.stat-card .label {
-  @apply text-[10px] uppercase font-black opacity-40 tracking-widest;
-}
-
-.stat-card .value {
-  @apply text-5xl font-black italic;
-}
-
-.form-container {
-  @apply p-8 rounded-[3rem] border transition-all;
-}
-
-.drop-zone {
-  @apply border-2 border-dashed border-slate-500/20 rounded-[2.5rem] p-12 text-center transition-all cursor-pointer flex flex-col items-center;
-}
-
-.drop-zone:hover {
-  @apply border-[#FF8F00]/50 bg-[#FF8F00]/5;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* TRANSICIONES */
-.notification-enter-active,
-.notification-leave-active {
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.notification-enter-from {
-  opacity: 0;
-  transform: translateX(100px);
-}
-
-.notification-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
-}
-
-.custom-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 143, 0, 0.2);
-  border-radius: 10px;
-}
-</style>

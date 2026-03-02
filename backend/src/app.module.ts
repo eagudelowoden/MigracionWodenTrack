@@ -1,29 +1,39 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm'; // Importante instalar @nestjs/typeorm
 import { OdooModule } from './odoo/odoo.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
-import { AppController } from './app.controller'; // <--- IMPORTANTE: Importar el controlador
+import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ReportsModule } from './reports/reports.module';
 import { SubirContratosModule } from './subir-contratos/subir-contratos.module';
 import { ApkModule } from './apk/apk.module';
 import { CompaniesModule } from './companies/companies.module';
-
+import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 
 @Module({
   imports: [
+    // 1. Carga de variables de entorno
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    // 2. Configuración Asíncrona de la Base de Datos (SQL Server)
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => getDatabaseConfig(configService),
+    }),
+
+    // 3. Tus módulos funcionales
     OdooModule,
     UsuariosModule,
     ReportsModule,
     SubirContratosModule,
     ApkModule,
-    CompaniesModule,
-    CompaniesModule,
+    CompaniesModule, // (Ya no está duplicado)
   ],
-  controllers: [AppController], // <--- ¡AQUÍ ESTÁ EL TRUCO! Debe estar en esta lista
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
