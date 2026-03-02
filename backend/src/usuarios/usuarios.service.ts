@@ -661,19 +661,23 @@ export class UsuariosService {
   }
 
 
-  async syncUsuariosFromOdoo(paisSeleccionado: string) {
+  async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
     try {
       const uid = await this.odoo.authenticate();
 
-      // 1. Filtramos en Odoo para traer solo los empleados de esa compañía/país
-      // Esto evita traer miles de registros innecesarios
+      // 1. Construcción del dominio dinámico
+      const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+
+      // Si el departamento no es 'TODOS', lo agregamos al filtro de Odoo
+      if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+        domain.push(['department_id.name', '=', deptoSeleccionado]);
+      }
+
       const odooEmployees = await this.odoo.executeKw<any[]>(
         'hr.employee',
         'search_read',
-        [[['company_id.name', '=', paisSeleccionado]]],
-        {
-          fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'],
-        },
+        [domain],
+        { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
         uid
       );
 
@@ -681,7 +685,6 @@ export class UsuariosService {
       let actualizados = 0;
 
       for (const emp of odooEmployees) {
-        // 2. Buscamos si ya existe el usuario por su ID de Odoo
         const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
 
         const data = {
@@ -690,15 +693,13 @@ export class UsuariosService {
           identificacion: emp.identification_id || 'N/A',
           cargo: emp.job_title || 'Sin Cargo',
           departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
-          pais: paisSeleccionado, // <--- Guardamos el país para filtrar después
+          pais: paisSeleccionado,
         };
 
         if (!existing) {
-          // 3. Si no existe, lo creamos (Usamos el ID de Odoo como PK para consistencia)
           await this.usuarioRepo.save({ ...data, id: emp.id });
           nuevos++;
         } else {
-          // 4. Si existe, actualizamos sus datos (por si cambió de cargo o depto)
           await this.usuarioRepo.update(existing.id, data);
           actualizados++;
         }
@@ -706,7 +707,7 @@ export class UsuariosService {
 
       return {
         status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-        message: `Sincronización (${paisSeleccionado}): ${nuevos} nuevos, ${actualizados} actualizados.`
+        message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`
       };
 
     } catch (error) {

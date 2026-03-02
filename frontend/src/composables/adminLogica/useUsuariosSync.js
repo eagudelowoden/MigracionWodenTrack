@@ -43,41 +43,53 @@ export function useUsuariosSync() {
   };
 
   // 3. Ejecutar sincronización enviando el país al backend
-  const executeSync = async () => {
-    if (selectedCountry.value === 'TODOS') {
-      alert("Por favor, selecciona un país específico para sincronizar");
-      return;
-    }
+const executeSync = async () => {
+  // 1. Validamos país seleccionado
+  if (selectedCountry.value === 'TODOS') {
+    alert("Por favor, selecciona un país específico para sincronizar");
+    return;
+  }
 
-    isSyncing.value = true;
-    syncProgress.value = 5;
+  isSyncing.value = true;
+  syncProgress.value = 5;
 
-    const timer = setInterval(() => {
-      if (syncProgress.value < 90) syncProgress.value += 3;
-    }, 150);
+  // Animación de la barra
+  const timer = setInterval(() => {
+    if (syncProgress.value < 90) syncProgress.value += 3;
+  }, 150);
 
-    try {
-      // POST enviando el país seleccionado
-      const res = await fetch(`${API_URL}/ejecutar?pais=${selectedCountry.value}`, { 
-        method: "POST" 
-      });
-      const result = await res.json();
+  try {
+    // 2. Llamada al backend con filtros de País y Departamento
+    const url = `${API_URL}/ejecutar?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
+    
+    const res = await fetch(url, { method: "POST" });
+    const result = await res.json();
 
+    if (res.ok) {
+      // 3. ¡LA CLAVE DEL REFRESCO! 
+      // Llamamos a la función que trae los datos de SQL Server. 
+      // Como el backend ya terminó, esto traerá los nombres y deptos actualizados.
+      await fetchDbUsuarios(); 
+      
+      // 4. Éxito visual
       syncProgress.value = 100;
-      await fetchDbUsuarios(); // Refrescar solo los del país actual
       return result;
-    } catch (e) {
-      console.error("Error en sincronización:", e);
-      throw e;
-    } finally {
-      clearInterval(timer);
-      setTimeout(() => {
-        isSyncing.value = false;
-        syncProgress.value = 0;
-      }, 1000);
+    } else {
+      throw new Error(result.message || "Error en el servidor");
     }
-  };
 
+  } catch (e) {
+    console.error("Error en sincronización:", e);
+    throw e;
+  } finally {
+    // 5. Limpieza de estados
+    clearInterval(timer);
+    setTimeout(() => {
+      isSyncing.value = false;
+      syncProgress.value = 0;
+    }, 1000);
+  }
+};
   // --- Propiedades Computadas para Filtros de Interfaz ---
   
   const filteredOdoo = computed(() => {

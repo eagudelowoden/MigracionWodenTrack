@@ -104,9 +104,12 @@ export class UsuariosController {
   }
 
   @Post('sincronizar/ejecutar')
-  async sync(@Query('pais') pais: string) {
+  async sync(
+    @Query('pais') pais: string,
+    @Query('depto') depto: string // <--- Recibimos el depto
+  ) {
     if (!pais) throw new BadRequestException('Debe seleccionar un país');
-    return await this.usuariosService.syncUsuariosFromOdoo(pais);
+    return await this.usuariosService.syncUsuariosFromOdoo(pais, depto);
   }
 }
 

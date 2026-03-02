@@ -85,3 +85,22 @@
   background: rgba(255, 143, 0, 0.2);
   border-radius: 10px;
 }
+@keyframes flash {
+  0% { background-color: rgba(16, 185, 129, 0.2); } /* Color esmeralda suave */
+  100% { background-color: transparent; }
+}
+
+.animate-flash-update {
+  animation: flash 2s ease-out;
+}
+
+/* Opcional: una transición suave para los cambios de texto */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
