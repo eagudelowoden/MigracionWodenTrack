@@ -623,31 +623,36 @@ const uploadApkFile = async () => {
                 <div v-if="selectedUserPerms"
                   class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
 
-                  <div class="w-full max-w-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl animate-fade-in"
+                  <div
+                    class="w-full max-w-md max-h-[90vh] rounded-[2.5rem] border border-white/10 p-8 shadow-2xl animate-fade-in flex flex-col"
                     :class="isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'">
 
-                    <div class="flex justify-between items-start mb-6">
+                    <div class="flex justify-between items-start mb-6 shrink-0">
                       <div>
                         <h3 class="text-xl font-black italic uppercase text-[#FF8F00]">Configurar Accesos</h3>
-                        <p class="text-[10px] font-bold opacity-50 uppercase tracking-widest">{{
-                          selectedUserPerms.nombre }}</p>
+                        <p class="text-[10px] font-bold opacity-50 uppercase tracking-widest">
+                          {{ selectedUserPerms.nombre }}
+                        </p>
                       </div>
                       <button @click="selectedUserPerms = null" class="opacity-50 hover:opacity-100 transition-opacity">
                         <i class="fas fa-times-circle text-xl"></i>
                       </button>
                     </div>
 
-                    <div class="space-y-4">
-                      <div v-for="slug in ['super.superadmin', 'admin.admin', 'admin.mallas', 'admin.novedades']"
+                    <div class="space-y-3 overflow-y-auto pr-2 custom-scroll flex-1">
+                      <div
+                        v-for="slug in ['super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias', 'super.personal', 'admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.novedades']"
                         :key="slug"
-                        class="flex items-center justify-between p-4 rounded-2xl bg-black/5 border border-white/5">
-                        <div>
-                          <span class="text-[10px] font-black uppercase tracking-wider">{{ slug.replace('.', ' ')
-                          }}</span>
-                          <p class="text-[8px] opacity-40 font-bold uppercase">Módulo del sistema</p>
+                        class="flex items-center justify-between p-4 rounded-2xl bg-black/5 border border-white/5 transition-colors hover:bg-black/10">
+
+                        <div class="mr-4">
+                          <span class="text-[10px] font-black uppercase tracking-wider">
+                            {{ slug.replace('.', ' ') }}
+                          </span>
+                          <p class="text-[8px] opacity-40 font-bold uppercase leading-tight">Módulo del sistema</p>
                         </div>
 
-                        <label class="relative inline-flex items-center cursor-pointer">
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
                           <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
                             @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
                           <div
@@ -658,7 +663,7 @@ const uploadApkFile = async () => {
                     </div>
 
                     <button @click="selectedUserPerms = null"
-                      class="w-full mt-8 py-3 bg-[#FF8F00] text-black font-black text-[11px] rounded-xl active:scale-95 transition-all uppercase tracking-widest">
+                      class="w-full mt-6 py-3 bg-[#FF8F00] text-black font-black text-[11px] rounded-xl active:scale-95 transition-all uppercase tracking-widest shrink-0 shadow-lg shadow-orange-500/20">
                       Finalizar Cambios
                     </button>
                   </div>

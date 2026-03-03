@@ -22,20 +22,24 @@
       </div>
 
       <nav class="flex-1 px-3 space-y-2 mt-6">
-        <button @click="currentModule = 'novedades'"
-          :class="['nav-link-v2', currentModule === 'novedades' ? 'active' : '']">
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.asistencias']"
+          @click="currentModule = 'novedades'" :class="['nav-link-v2', currentModule === 'novedades' ? 'active' : '']">
           <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
-          <span v-if="isSidebarOpen">Seguimiento</span>
+          <span v-if="isSidebarOpen">Asistencias</span>
         </button>
-        <button @click="currentModule = 'mallas'" :class="['nav-link-v2', currentModule === 'mallas' ? 'active' : '']">
+
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.mallas']" @click="currentModule = 'mallas'"
+          :class="['nav-link-v2', currentModule === 'mallas' ? 'active' : '']">
           <div class="nav-icon"><i class="fas fa-cloud-arrow-up"></i></div>
           <span v-if="isSidebarOpen">Cargue Mallas</span>
         </button>
-        <!-- <button @click="currentModule = 'novedadusuario'"
+
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
+          @click="currentModule = 'novedadusuario'"
           :class="['nav-link-v2', currentModule === 'novedadusuario' ? 'active' : '']">
           <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
           <span v-if="isSidebarOpen">Novedades</span>
-        </button> -->
+        </button>
       </nav>
 
       <div class="p-4 space-y-2 border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
@@ -127,8 +131,19 @@ import MeshModule from '../components/admin/ModuloMallaUpload.vue';
 import '../assets/css/admin-style.css';
 
 const {
-  employee, loading, currentTime, filteredReport, searchQuery, currentModule, isSidebarOpen,
-  handleAttendance, logout, isDark, toggleTheme, allCompanies,    // <--- Agregar esta
-  selectedCompany, downloadExcelReport
+  employee, // <--- Este es tu "session"
+  loading,
+  currentTime,
+  filteredReport,
+  searchQuery,
+  currentModule,
+  isSidebarOpen,
+  handleAttendance,
+  logout,
+  isDark,
+  toggleTheme,
+  allCompanies,
+  selectedCompany,
+  downloadExcelReport
 } = adminOdoo();
 </script>
