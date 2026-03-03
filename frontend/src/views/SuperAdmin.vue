@@ -6,8 +6,16 @@ import { useCompanies } from '../composables/adminLogica/useCompanies.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
+import axios from 'axios';
+import { io } from 'socket.io-client';
 
+
+// --- 1. CONFIGURACIÓN DE SOCKETS Y NOTIFICACIONES ---
+const SOCKET_URL = import.meta.env.VITE_API_URL
+const notif = ref({ title: '', body: '', type: 'update' });
+const notificationLogs = ref([]);
 // --- Composables ---
+const props = defineProps({ isDark: Boolean });
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
 const {
@@ -87,6 +95,25 @@ const togglePermisoLocal = async (user, slug) => {
   } catch (e) {
     showNotification("Error al actualizar permisos", "error");
     console.error(e);
+  }
+};
+const sendNotification = async () => {
+  if (!notif.value.title || !notif.value.body) return;
+
+  // Debug para ver qué URL se está disparando exactamente
+  const targetUrl = `${import.meta.env.VITE_API_URL}/notifications`;
+  console.log("Enviando a:", targetUrl);
+
+  try {
+    const response = await axios.post(targetUrl, notif.value);
+    console.log("Respuesta servidor:", response.data);
+
+    // ... tu lógica de sockets e historial ...
+    showNotification("Notificación emitida con éxito");
+  } catch (error) {
+    // Si entra aquí, imprime el error completo para saber si es CORS o 500
+    console.error("Error detallado:", error);
+    showNotification("Error de conexión con el servidor", "error");
   }
 };
 // --- Estado Local Restante ---
@@ -234,6 +261,11 @@ const uploadApkFile = async () => {
         <button @click="currentTab = 'users'" :class="tabClass(currentTab === 'users')">
           <i class="fas fa-users-cog" :class="isSidebarOpen && 'mr-3'"></i>
           <span v-if="isSidebarOpen">Personal / Usuarios</span>
+        </button>
+        <button @click="currentTab = 'notifications'" :class="tabClass(currentTab === 'notifications')"
+          title="Notificaciones">
+          <i class="fas fa-bullhorn" :class="isSidebarOpen && 'mr-3'"></i>
+          <span v-if="isSidebarOpen">Notificar Cambios</span>
         </button>
       </nav>
 
@@ -670,6 +702,124 @@ const uploadApkFile = async () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+
+
+
+
+        <div v-if="currentTab === 'notifications'" class="animate-fade-in space-y-8 p-2">
+
+          <div
+            class="flex flex-col md:flex-row justify-between items-center p-6 rounded-3xl border transition-all duration-500 shadow-2xl gap-6"
+            :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-slate-200/50'">
+
+            <div class="flex-1">
+              <h2 class="text-xs font-black uppercase tracking-[0.3em] text-indigo-500">Difusión Global</h2>
+              <p class="text-[9px] font-bold uppercase mt-1"
+                :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
+                Emitir actualizaciones de sistema vía WebSockets & Push
+              </p>
+
+              <div class="mt-4 grid grid-cols-1 gap-4">
+                <input v-model="notif.title" type="text" placeholder="TÍTULO DEL COMUNICADO..."
+                  class="bg-transparent border-b border-slate-500/30 py-2 text-[10px] font-black uppercase outline-none focus:border-indigo-500 transition-all"
+                  :class="isDark ? 'text-white' : 'text-slate-800'" />
+
+                <textarea v-model="notif.body" rows="2" placeholder="DESCRIPCIÓN DE LOS CAMBIOS O NOTIFICACIÓN..."
+                  class="bg-transparent border border-slate-500/20 p-3 rounded-xl text-[10px] font-bold outline-none focus:border-indigo-500 transition-all resize-none"
+                  :class="isDark ? 'text-slate-300' : 'text-slate-600'"></textarea>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-4 w-full md:w-auto min-w-[200px]">
+              <div class="flex gap-2 justify-center">
+                <button v-for="t in ['info', 'update', 'alert']" :key="t" @click="notif.type = t"
+                  class="px-3 py-1 rounded-full text-[8px] font-black uppercase transition-all border"
+                  :class="notif.type === t ? 'bg-indigo-500 border-indigo-500 text-white' : 'opacity-40 border-slate-500'">
+                  {{ t }}
+                </button>
+              </div>
+
+              <button @click="sendNotification" :disabled="!notif.title || !notif.body"
+                class="w-full px-8 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-30 disabled:grayscale">
+                <div class="flex items-center justify-center gap-3">
+                  <i class="fas fa-paper-plane"></i>
+                  <span>Enviar Notificación</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-eye text-indigo-500 text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Vista previa en Clientes</h3>
+              </div>
+
+              <div
+                class="rounded-3xl border p-8 flex flex-col items-center justify-center min-h-[300px] transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/60 border-white/5' : 'bg-slate-50 border-slate-200'">
+
+                <div class="w-full max-w-sm rounded-2xl p-4 shadow-2xl border animate-bounce-subtle"
+                  :class="isDark ? 'bg-[#1e293b] border-indigo-500/30' : 'bg-white border-slate-200'">
+                  <div class="flex items-center gap-3 border-b pb-2 mb-2 border-slate-500/10">
+                    <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-indigo-500">{{ notif.title ||
+                      'Título del Mensaje' }}</span>
+                  </div>
+                  <p class="text-[10px] font-bold opacity-70" :class="isDark ? 'text-white' : 'text-slate-700'">
+                    {{ notif.body || 'Aquí aparecerá el cuerpo del mensaje que redactes arriba...' }}
+                  </p>
+                </div>
+                <p class="text-[8px] font-black uppercase opacity-30 mt-6 tracking-[0.4em]">Simulación de tiempo real
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 px-2">
+                <i class="fas fa-history text-blue-500 text-[10px]"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest"
+                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Logs de Envío</h3>
+              </div>
+
+              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
+                :class="isDark ? 'bg-[#0f172a]/80 border-indigo-500/10' : 'bg-white border-slate-200'">
+                <div class="max-h-[500px] overflow-y-auto custom-scroll">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
+                      <tr class="text-[8px] uppercase font-black"
+                        :class="isDark ? 'text-indigo-400/60' : 'text-slate-400'">
+                        <th class="p-4 border-b" :class="isDark ? 'border-indigo-500/10' : 'border-slate-100'">Mensaje
+                          Enviado</th>
+                        <th class="p-4 border-b text-center"
+                          :class="isDark ? 'border-indigo-500/10' : 'border-slate-100'">Tipo</th>
+                        <th class="p-4 border-b text-right"
+                          :class="isDark ? 'border-indigo-500/10' : 'border-slate-100'">Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
+                      <tr v-for="log in notificationLogs" :key="log.id"
+                        class="border-b border-white/5 transition-all hover:bg-indigo-500/5">
+                        <td class="p-4 truncate max-w-[200px]">{{ log.title }}</td>
+                        <td class="p-4 text-center">
+                          <span class="text-[8px] px-2 py-0.5 rounded-full border border-indigo-500/30 text-indigo-400">
+                            {{ log.type }}
+                          </span>
+                        </td>
+                        <td class="p-4 text-right opacity-40 font-mono">{{ log.date }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

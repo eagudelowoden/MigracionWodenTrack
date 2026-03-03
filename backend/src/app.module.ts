@@ -10,7 +10,7 @@ import { SubirContratosModule } from './subir-contratos/subir-contratos.module';
 import { ApkModule } from './apk/apk.module';
 import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
-
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -33,6 +33,7 @@ import { getDatabaseConfig } from './config/database.config'; // Tu archivo de c
     SubirContratosModule,
     ApkModule,
     CompaniesModule, // (Ya no está duplicado)
+    NotificationsModule, // <--- Agregado el módulo de notificaciones
   ],
   controllers: [AppController],
   providers: [AppService],

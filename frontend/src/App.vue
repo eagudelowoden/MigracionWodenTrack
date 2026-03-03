@@ -1,121 +1,129 @@
 <template>
-  <Transition name="fade">
-    <div v-if="nuevaActualizacion" 
-         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden"
-         style="background-color: rgba(2, 6, 23, 0.8); backdrop-filter: blur(12px);">
+<Transition name="slide-down">
+    <div v-if="anuncioSuperior"
+      class="fixed top-0 left-0 right-0 z-[10000] h-12 flex items-center justify-center px-6 shadow-2xl border-b backdrop-blur-md"
+      :class="isDark ? 'bg-red-700/95 border-red-500 text-white' : 'bg-red-600 border-red-700 text-white'">
       
-      <div class="flex flex-col items-center gap-6 p-8 rounded-3xl border shadow-2xl transition-all duration-500 max-w-sm w-full text-center"
-           :class="isDark ? 'bg-slate-900 border-white/10 shadow-black' : 'bg-white border-slate-200 shadow-slate-200/50'">
+      <div class="flex items-center gap-4 w-full max-w-7xl justify-center">
+        <i class="fas fa-exclamation-circle text-lg animate-pulse"></i>
         
-        <div class="flex flex-col items-center gap-3">
-          <div class="relative flex h-4 w-4 mb-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
-          </div>
-          
-          <h2 class="text-xl font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-900'">
-            Nueva Versión
-          </h2>
-          <p class="text-xs leading-relaxed" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            Tenemos actualizaciones. Para continuar, es necesario actualizar la versión.
-          </p>
-        </div>
+        <p class="text-[14px] font-bold tracking-wide leading-none font-sans italic">
+          {{ anuncioSuperior.body }}
+        </p>
 
-        <button @click="recargarPagina" 
-                class="group flex items-center justify-center gap-3 w-full py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                :class="isDark ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-900 text-white hover:bg-blue-600'">
-          <span class="text-xs font-black uppercase tracking-wider">Actualizar Ahora</span>
-          <svg class="w-4 h-4 transition-transform group-hover:rotate-180 duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+        <button @click="anuncioSuperior = null" 
+                class="ml-6 bg-black/20 hover:bg-black/40 h-8 w-8 rounded-full transition-all flex items-center justify-center group">
+          <i class="fas fa-times text-sm group-hover:scale-110"></i>
         </button>
       </div>
     </div>
   </Transition>
 
-  <router-view />
+  <Transition name="fade">
+    <div v-if="nuevaActualizacion" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden"
+      style="background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);">
+      <div class="flex flex-col items-center gap-6 p-8 rounded-3xl border shadow-2xl max-w-sm w-full text-center"
+        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+        <div class="flex flex-col items-center gap-3">
+          <div class="h-4 w-4 rounded-full bg-blue-500 animate-ping"></div>
+          <h2 class="text-xl font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-900'">
+            Nueva Versión</h2>
+          <p class="text-xs leading-relaxed" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hay cambios en el
+            sistema. Es necesario reiniciar para continuar.</p>
+        </div>
+        <button @click="recargarPagina"
+          class="w-full py-4 rounded-2xl bg-blue-600 text-white font-black uppercase text-xs tracking-wider hover:bg-blue-500 transition-all">
+          Actualizar Ahora
+        </button>
+      </div>
+    </div>
+  </Transition>
+
+  <Transition name="slide-up">
+    <div v-if="anuncioInferior"
+      class="fixed bottom-8 right-8 z-[9998] max-w-xs w-full p-4 rounded-2xl border shadow-2xl flex gap-4 transition-all"
+      :class="isDark ? 'bg-slate-900 border-indigo-500/30 text-white' : 'bg-white border-slate-200 text-slate-800'">
+      <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><i
+          class="fas fa-info-circle"></i></div>
+      <div class="flex-1 overflow-hidden">
+        <h4 class="text-[10px] font-black uppercase text-indigo-500">{{ anuncioInferior.title }}</h4>
+        <p class="text-[11px] font-bold opacity-70">{{ anuncioInferior.body }}</p>
+      </div>
+      <button @click="anuncioInferior = null" class="opacity-20 hover:opacity-100"><i class="fas fa-times"></i></button>
+    </div>
+  </Transition>
+
+  <main :class="{ 'pt-10 transition-all': anuncioSuperior }">
+    <router-view />
+  </main>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { io } from 'socket.io-client';
 import { useInactividad } from './composables/useInactividad';
 import { useAttendance } from './composables/UserLogica/useAttendance.js';
 
 const { isDark } = useAttendance();
-useInactividad(10); 
+useInactividad(10);
 
 const nuevaActualizacion = ref(false);
-// Limpiamos la URL base
+const anuncioInferior = ref(null);
+const anuncioSuperior = ref(null);
+
 const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
 
+// --- 🔵 LÓGICA DE NOTIFICACIONES (SOCKETS) ---
+const socket = io(API_BASE, { transports: ['websocket'], forceNew: true });
+
+const setupSockets = () => {
+  socket.on('onNotification', (data) => {
+    console.log("🔔 Notificación recibida:", data);
+
+    // Aquí el socket SOLO maneja mensajes visuales, no bloquea la versión
+    if (data.type === 'alert') {
+      anuncioSuperior.value = data;
+    } else {
+      anuncioInferior.value = data;
+      setTimeout(() => { anuncioInferior.value = null; }, 15000);
+    }
+  });
+};
+
+// --- 🟢 LÓGICA DE VERSIÓN (HTTP POLLING) ---
 const verificarVersion = async () => {
   try {
     const res = await fetch(`${API_BASE}/version?t=${Date.now()}`);
-
-    // --- DETECCIÓN DE MANTENIMIENTO (Tu lógica original) ---
     if (res.url.includes('mantenimiento.html') || res.status === 503) {
-      console.warn("SISTEMA EN MANTENIMIENTO: Redirigiendo...");
       window.location.reload(true);
       return;
     }
-
-    if (!res.ok) return;
-
     const data = await res.json();
     const versionServidor = String(data.version).trim();
     const versionGuardada = localStorage.getItem('app_version');
 
-    if (!versionGuardada) {
+    if (versionGuardada && versionServidor !== versionGuardada) {
+      nuevaActualizacion.value = true; // El bloqueo solo ocurre si cambia el archivo version.json
+    } else if (!versionGuardada) {
       localStorage.setItem('app_version', versionServidor);
-      return;
     }
-
-    // Activamos el bloqueo si las versiones son distintas
-    if (versionServidor !== versionGuardada) {
-      nuevaActualizacion.value = true;
-    }
-    
-  } catch (e) {
-    console.error("Error conectando al servidor de versiones");
-  }
+  } catch (e) { console.error("Error versión"); }
 };
 
 const recargarPagina = async () => {
   try {
     const res = await fetch(`${API_BASE}/version?t=${Date.now()}`);
-    if (res.url.includes('mantenimiento.html')) {
-      window.location.reload(true);
-      return;
-    }
     const data = await res.json();
-    
-    // 1. Guardamos la nueva versión
     localStorage.setItem('app_version', String(data.version).trim());
-
-    // 2. CERRAMOS SESIÓN (Borra lo que uses para el login)
-    localStorage.removeItem('user_session'); 
-    localStorage.removeItem('token');
-
-    // 3. Recarga total al login para limpiar memoria
-    window.location.href = '/login'; 
-  } catch (e) {
     localStorage.removeItem('user_session');
-    window.location.reload(true);
-  }
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  } catch (e) { window.location.reload(true); }
 };
 
 onMounted(() => {
   verificarVersion();
-  setInterval(verificarVersion, 30000); 
+  setupSockets();
+  setInterval(verificarVersion, 60000); // Verificación de versión cada minuto
 });
 </script>
-
-<style scoped>
-/* Transición simple para asegurar que se vea */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-</style>
