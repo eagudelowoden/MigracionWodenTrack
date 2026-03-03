@@ -643,7 +643,7 @@ const uploadApkFile = async () => {
                         class="flex items-center justify-between p-4 rounded-2xl bg-black/5 border border-white/5">
                         <div>
                           <span class="text-[10px] font-black uppercase tracking-wider">{{ slug.replace('.', ' ')
-                            }}</span>
+                          }}</span>
                           <p class="text-[8px] opacity-40 font-bold uppercase">Módulo del sistema</p>
                         </div>
 
