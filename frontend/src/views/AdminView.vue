@@ -23,7 +23,8 @@
 
       <nav class="flex-1 px-3 space-y-2 mt-6">
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.asistencias']"
-          @click="currentModule = 'novedades'" :class="['nav-link-v2', currentModule === 'novedades' ? 'active' : '']">
+          @click="currentModule = 'asistencias'"
+          :class="['nav-link-v2', currentModule === 'asistencias' ? 'active' : '']">
           <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
           <span v-if="isSidebarOpen">Asistencias</span>
         </button>
@@ -117,9 +118,76 @@
         </div>
       </header>
 
-      <div class="flex-1 p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-900/20">
-        <AttendanceModule v-if="currentModule === 'novedades'" :isDark="isDark" :company="selectedCompany" />
+      <div class="flex-1 p-4 overflow-y-auto bg-slate-50/50 dark:bg-slate-300/20 custom-scroll">
+
+        <AttendanceModule v-if="currentModule === 'asistencias'" :isDark="isDark" :company="selectedCompany" />
         <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" :company="selectedCompany" />
+
+        <div v-if="currentModule === 'novedadusuario'"
+          class="h-full flex flex-col items-center justify-center animate-fade-in py-6">
+
+          <div class="text-center mb-6">
+            <h2 class="text-lg font-black italic uppercase tracking-tighter transition-colors duration-500"
+              :class="isDark ? 'text-white' : 'text-slate-900'">
+              Panel de <span class="text-[#FF8F00]">Novedades</span>
+            </h2>
+            <div class="h-1 w-8 bg-[#FF8F00] mx-auto rounded-full mt-1 opacity-50"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl px-6">
+
+            <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.admin']"
+              @click="currentModule = 'view_novedad_admin'" class="hub-card-mini group"
+              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+
+              <div class="icon-wrap bg-orange-500/10 text-orange-500 group-hover:bg-orange-500 group-hover:text-black">
+                <i class="fas fa-user-shield text-xl"></i>
+              </div>
+              <div class="text-center">
+                <h3 class="font-black uppercase italic text-[11px] transition-colors"
+                  :class="isDark ? 'text-white' : 'text-slate-800'">Acceso Cordinadores</h3>
+                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
+                  :class="isDark ? 'text-white' : 'text-slate-600'">Planta</p>
+              </div>
+            </button>
+
+            <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.rrhh']"
+              @click="currentModule = 'view_novedad_rrhh'" class="hub-card-mini group"
+              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+
+              <div class="icon-wrap bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white">
+                <i class="fas fa-id-card text-xl"></i>
+              </div>
+              <div class="text-center">
+                <h3 class="font-black uppercase italic text-[11px] transition-colors"
+                  :class="isDark ? 'text-white' : 'text-slate-800'">Capital Humano</h3>
+                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
+                  :class="isDark ? 'text-white' : 'text-slate-600'">Nómina</p>
+              </div>
+            </button>
+
+            <button @click="currentModule = 'view_novedad_user'" class="hub-card-mini group"
+              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+
+              <div
+                class="icon-wrap bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white">
+                <i class="fas fa-user-edit text-xl"></i>
+              </div>
+              <div class="text-center">
+                <h3 class="font-black uppercase italic text-[11px] transition-colors"
+                  :class="isDark ? 'text-white' : 'text-slate-800'">Acceso Usuarios</h3>
+                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
+                  :class="isDark ? 'text-white' : 'text-slate-600'">Personal</p>
+              </div>
+            </button>
+
+          </div>
+        </div>
+
+        <NovedadesAdmin v-if="currentModule === 'view_novedad_admin'" />
+        <NovedadesRRHH v-if="currentModule === 'view_novedad_rrhh'" />
+        <NovedadesUsuario v-if="currentModule === 'view_novedad_user'" />
+
       </div>
     </main>
   </div>
@@ -128,6 +196,9 @@
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
 import AttendanceModule from '../components/admin/ModuloUsuariosAsistencias.vue';
 import MeshModule from '../components/admin/ModuloMallaUpload.vue';
+import NovedadesAdmin from './novedades/novedadesadminView.vue';
+import NovedadesRRHH from './novedades/novedadesRRHView.vue';
+import NovedadesUsuario from './novedades/novedadesusuarioView.vue';
 import '../assets/css/admin-style.css';
 
 const {

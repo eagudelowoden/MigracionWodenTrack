@@ -67,7 +67,7 @@ body {
   border: none;
   cursor: pointer;
   background: transparent;
-  color: #94a3b8; /* slate-400 */
+  color: #ffffff; /* slate-400 */
 }
 
 .nav-link.active {
@@ -100,7 +100,7 @@ body {
 }
 
 .btn-attendance:disabled {
-  background-color: #64748b;
+  background-color: #ffffff;
   opacity: 0.2;
   cursor: not-allowed;
 }
@@ -328,7 +328,7 @@ main.flex-1 {
 
 .btn-smart-in:disabled,
 .btn-smart-out:disabled {
-  background: #94a3b8;
+  background: #ffffff;
   opacity: 0.2;
   transform: none;
   box-shadow: none;
@@ -347,7 +347,7 @@ main.flex-1 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: #94a3b8;
+  color: #fdfeff;
   transition: all 0.2s ease;
   background: transparent;
   border: none;
@@ -511,7 +511,7 @@ main.flex-1 {
 /* Estado Desactivado (Compacto y Elegante) */
 .btn-header-smart:disabled {
   background: transparent;
-  color: #94a3b8; /* slate-400 */
+  color: #eaecf0; /* slate-400 */
   box-shadow: none;
   opacity: 0.3;
   cursor: not-allowed;
@@ -534,4 +534,67 @@ main.flex-1 {
   0% { letter-spacing: -0.5em; opacity: 0; }
   40% { opacity: 0.6; }
   100% { opacity: 1; }
+}
+.hub-card {
+  @apply bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 
+         p-8 rounded-[2.5rem] flex flex-col items-center transition-all duration-300 
+         hover:scale-105 hover:shadow-2xl active:scale-95 w-full;
+}
+
+.hub-icon {
+  @apply w-20 h-20 mb-4 rounded-3xl flex items-center justify-center transition-all duration-500;
+}
+
+/* Animación de entrada */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Estilo para las tarjetas del selector central */
+.hub-card {
+  @apply bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 p-8 rounded-[2.5rem] flex flex-col items-center transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 w-full;
+}
+
+.hub-icon {
+  @apply w-20 h-20 mb-4 rounded-3xl flex items-center justify-center transition-all duration-500;
+}
+
+/* Animación de entrada para que no aparezcan de golpe */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Asegurar que el contenedor ocupe el alto disponible */
+.flex-1 {
+  min-height: 0;
+}
+.hub-card-mini {
+  @apply border p-4 rounded-[1.5rem] 
+         flex flex-col items-center gap-3 transition-all duration-300 
+         hover:border-[#FF8F00]/50 hover:scale-105 active:scale-95;
+}
+
+/* En modo claro, agregamos un hover con sombra naranja sutil */
+.theme-light .hub-card-mini:hover {
+  box-shadow: 0 10px 15px -3px rgba(255, 143, 0, 0.1);
+}
+
+.icon-wrap {
+  @apply w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500;
 }

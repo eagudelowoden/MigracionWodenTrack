@@ -7,7 +7,8 @@ export function adminOdoo() {
   const router = useRouter();
   const att = useAttendance();
 
-  const currentModule = ref("novedades");
+  const currentModule = ref("asistencias");
+   
   const isSidebarOpen = ref(true);
   const report = ref([]);
   const searchQuery = ref("");
