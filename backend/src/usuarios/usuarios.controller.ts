@@ -67,6 +67,11 @@ export class UsuariosController {
       );
     }
   }
+  @Get('apk-info') // <--- Ruta final
+  getApkInfo() {
+    // Aquí va la lógica que escribiste antes
+    return this.usuariosService.getApkInfo(); 
+  }
 
   // --- NUEVO: PUENTE PARA LA HORA OFICIAL ---
   @Get('hora-oficial')

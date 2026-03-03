@@ -8,6 +8,7 @@ import {
 import { OdooService } from '../odoo/odoo.service';
 import { Usuario } from './entities/usuario.entity';
 import { DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import {
   getFechaColombia,
   decimalToMinutes,
@@ -15,9 +16,15 @@ import {
 import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators';
 import { Repository } from 'typeorm/repository/Repository.js';
 import { Permiso } from './entities/permiso.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+
 
 @Injectable()
 export class UsuariosService {
+  private readonly rootPath = path.resolve(__dirname, '..', '..', 'uploads', 'apk');
+  private readonly apkPath = path.join(this.rootPath, 'app-debug.apk'); // Verifica si se llama así o app.apk
+  private readonly jsonPath = path.join(this.rootPath, 'changelog.json');
   constructor(
     // ESTO ES LO QUE FALTA: Inyectar el repositorio
     @InjectRepository(Usuario)
@@ -27,7 +34,9 @@ export class UsuariosService {
     private readonly permisoRepo: Repository<Permiso>,
 
     private readonly odoo: OdooService,
+    
     private dataSource: DataSource,
+    private configService: ConfigService
   ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -797,5 +806,33 @@ export class UsuariosService {
   async removerModuloPermiso(idOdoo: number, modulo: string) {
     return await this.permisoRepo.delete({ usuario_id_odoo: idOdoo, modulos: modulo });
   }
+  getApkInfo() {
+    const fileExists = fs.existsSync(this.apkPath);
+    const baseUrl = this.configService.get<string>('VITE_API_URL') || 'http://localhost:8082';
 
+    let changelog = ["Mejoras de estabilidad"];
+    if (fs.existsSync(this.jsonPath)) {
+      try {
+        changelog = JSON.parse(fs.readFileSync(this.jsonPath, 'utf8'));
+      } catch (e) {
+        console.error("Error al leer changelog.json");
+      }
+    }
+
+    if (!fileExists) {
+      return { exists: false, version: "0.0.0", downloadUrl: null };
+    }
+
+    const stats = fs.statSync(this.apkPath);
+
+    return {
+      exists: true,
+      version: this.configService.get<string>('APP_VERSION') || '1.0.0',
+      size: (stats.size / (1024 * 1024)).toFixed(2),
+      lastUpdate: stats.mtime,
+      downloadUrl: `${baseUrl}/usuarios/download-apk`, // Ruta para descargar
+      changelog
+    };
+  }
 }
+
