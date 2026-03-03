@@ -84,7 +84,7 @@ export class UsuariosService {
     const esAnalistaMallasAdmin = cargo.includes('ANALISTA') && cargo.includes('MALLAS');
 
     // 3. LÓGICA DE ROLES
-    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE',  'DIRECTOR', 'SUPERVISOR LOGISTICO'];
+    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'DIRECTOR', 'SUPERVISOR LOGISTICO'];
 
     const esSuperAdmin = ['DESARROLLADOR', 'PRACTICANTE IT', 'ANALISTA IT'].some(palabra => cargo.includes(palabra));
 
@@ -782,18 +782,20 @@ export class UsuariosService {
   }
 
   async findAllLocal(pais?: string) {
+    const queryOptions: any = {
+      relations: ['permisos'], // Lo ponemos aquí para que SIEMPRE los traiga
+      order: { nombre: 'ASC' }
+    };
+
     if (pais && pais !== 'TODOS') {
-      return await this.usuarioRepo.find({
-        relations: ['permisos'],
-        where: { pais: pais },
-        order: { nombre: 'ASC' }
-      });
+      queryOptions.where = { pais: pais };
     }
-    return await this.usuarioRepo.find({ order: { nombre: 'ASC' } });
+
+    return await this.usuarioRepo.find(queryOptions);
   }
 
   async removerModuloPermiso(idOdoo: number, modulo: string) {
-  return await this.permisoRepo.delete({ usuario_id_odoo: idOdoo, modulos: modulo });
-}
+    return await this.permisoRepo.delete({ usuario_id_odoo: idOdoo, modulos: modulo });
+  }
 
 }

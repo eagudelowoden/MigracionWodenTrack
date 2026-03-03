@@ -8,7 +8,8 @@
           <div class="w-1 h-6 bg-[#FF8F00] rounded-full mr-3 group-hover:h-8 transition-all duration-300"></div>
 
           <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in">
-            <span class="text-xl font-bold tracking-tight text-white uppercase">
+            <span class="text-xl font-bold tracking-tight uppercase transition-colors duration-300"
+              :class="isDark ? 'text-white' : 'text-slate-900'">
               Woden
             </span>
             <span class="ml-1 text-xl font-light tracking-widest text-[#FF8F00] uppercase">

@@ -33,10 +33,7 @@ const {
   executeSync: syncAllUsers
 } = useUsuariosSync();
 
-const hasPerm = (user, slug) => {
-  if (!user.permisos) return false;
-  return user.permisos.some(p => p.modulos === slug);
-};
+
 
 // --- Observador (Watch) para el cambio de país ---
 watch(selectedCountry, async () => {
@@ -47,10 +44,22 @@ watch(selectedCountry, async () => {
     fetchOdooUsuarios()
   ]);
 });
+// --- 1. ESTADOS REACTIVOS (Nivel principal) ---
+const selectedUserPerms = ref(null);
+
+// --- 2. FUNCIONES DE INTERFAZ (Nivel principal) ---
+const openPerms = (user) => {
+  console.log("Abriendo permisos para:", user.nombre); // Para debugear
+  selectedUserPerms.value = user;
+};
+const hasPerm = (user, slug) => {
+  if (!user || !user.permisos) return false;
+  return user.permisos.some(p => p.modulos === slug);
+};
 const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
   try {
-    await fetch(`${import.meta.env.VITE_API_URL}/asignar-permiso`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/asignar-permiso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -60,11 +69,24 @@ const togglePermisoLocal = async (user, slug) => {
         adminName: 'Daniel'
       })
     });
-    // Refrescamos la lista local para que el icono cambie de color inmediatamente
+
+    if (!res.ok) throw new Error("Error en el servidor");
+
+    // Refrescamos la lista general de la DB
     await fetchDbUsuarios();
+
+    // Sincronizamos el modal para que el switch cambie de posición
+    if (selectedUserPerms.value) {
+      const actualizado = dbUsuarios.value.find(u => u.id_odoo === user.id_odoo);
+      if (actualizado) {
+        selectedUserPerms.value = actualizado;
+      }
+    }
+
     showNotification(`Permiso ${activo ? 'asignado' : 'removido'} correctamente`);
   } catch (e) {
     showNotification("Error al actualizar permisos", "error");
+    console.error(e);
   }
 };
 // --- Estado Local Restante ---
@@ -584,18 +606,11 @@ const uploadApkFile = async () => {
                       </td>
 
                       <td class="p-2 text-center">
-                        <div class="flex justify-center gap-2">
-                          <button @click="togglePermisoLocal(user, 'super.superadmin')"
-                            :class="hasPerm(user, 'super.superadmin') ? 'text-[#FF8F00]' : 'text-slate-400'"
-                            title="Acceso a SuperAdmin" class="transition-transform active:scale-75">
-                            <i class="fas fa-user-shield"></i>
-                          </button>
-                          <button @click="togglePermisoLocal(user, 'admin.admin')"
-                            :class="hasPerm(user, 'admin.admin') ? 'text-blue-500' : 'text-slate-400'"
-                            title="Acceso a Admin" class="transition-transform active:scale-75">
-                            <i class="fas fa-th"></i>
-                          </button>
-                        </div>
+                        <button @click="openPerms(user)"
+                          class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF8F00]/20 hover:border-[#FF8F00]/40 transition-all group">
+                          <i class="fas fa-key text-[10px] group-hover:text-[#FF8F00] transition-colors"
+                            :class="user.permisos?.length > 0 ? 'text-[#FF8F00]' : 'text-slate-500'"></i>
+                        </button>
                       </td>
 
                       <td class="p-2 text-center">
@@ -605,6 +620,49 @@ const uploadApkFile = async () => {
                     </tr>
                   </tbody>
                 </table>
+                <div v-if="selectedUserPerms"
+                  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+
+                  <div class="w-full max-w-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl animate-fade-in"
+                    :class="isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'">
+
+                    <div class="flex justify-between items-start mb-6">
+                      <div>
+                        <h3 class="text-xl font-black italic uppercase text-[#FF8F00]">Configurar Accesos</h3>
+                        <p class="text-[10px] font-bold opacity-50 uppercase tracking-widest">{{
+                          selectedUserPerms.nombre }}</p>
+                      </div>
+                      <button @click="selectedUserPerms = null" class="opacity-50 hover:opacity-100 transition-opacity">
+                        <i class="fas fa-times-circle text-xl"></i>
+                      </button>
+                    </div>
+
+                    <div class="space-y-4">
+                      <div v-for="slug in ['super.superadmin', 'admin.admin', 'admin.mallas', 'admin.novedades']"
+                        :key="slug"
+                        class="flex items-center justify-between p-4 rounded-2xl bg-black/5 border border-white/5">
+                        <div>
+                          <span class="text-[10px] font-black uppercase tracking-wider">{{ slug.replace('.', ' ')
+                            }}</span>
+                          <p class="text-[8px] opacity-40 font-bold uppercase">Módulo del sistema</p>
+                        </div>
+
+                        <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
+                            @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
+                          <div
+                            class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-[#FF8F00] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all">
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button @click="selectedUserPerms = null"
+                      class="w-full mt-8 py-3 bg-[#FF8F00] text-black font-black text-[11px] rounded-xl active:scale-95 transition-all uppercase tracking-widest">
+                      Finalizar Cambios
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
