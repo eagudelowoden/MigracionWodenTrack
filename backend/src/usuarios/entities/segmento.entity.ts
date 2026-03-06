@@ -12,4 +12,3 @@ export class Segmento {
   @OneToMany(() => Usuario, (usuario) => usuario.segmento)
   usuarios: Usuario[];
 }
-//Codigo funcionando correctamente, se ha creado la entidad Segmento con una relación OneToMany hacia la entidad Usuario. Cada segmento puede tener múltiples usuarios asociados.
