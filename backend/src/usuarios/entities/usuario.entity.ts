@@ -1,5 +1,7 @@
-import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
 import { Permiso } from './permiso.entity';
+import { Segmento } from './segmento.entity';
+import { Area } from './area.entity';
 
 @Entity('usuarios_registrados') // <--- Debe ser igual al nombre en SQL Server
 export class Usuario {
@@ -26,6 +28,14 @@ export class Usuario {
 
   @Column({ default: true })
   is_active: boolean;
+
+  @ManyToOne(() => Segmento, (segmento) => segmento.usuarios, { nullable: true })
+  @JoinColumn({ name: 'segmento_id' }) // Columna física en SQL Server
+  segmento: Segmento;
+
+  @ManyToOne(() => Area, (area) => area.usuarios, { nullable: true })
+  @JoinColumn({ name: 'area_id' }) // Columna física en SQL Server
+  area: Area;
 
   @OneToMany(() => Permiso, (permiso) => permiso.usuario)
   permisos: Permiso[];
