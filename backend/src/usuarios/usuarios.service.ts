@@ -22,6 +22,12 @@ import * as path from 'path';
 
 @Injectable()
 export class UsuariosService {
+  private syncProgress = { 
+    current: 0, 
+    total: 0, 
+    isCancelled: false, 
+    status: 'idle' 
+  };
   private readonly rootPath = path.resolve(__dirname, '..', '..', 'uploads', 'apk');
   private readonly apkPath = path.join(this.rootPath, 'app-debug.apk'); // Verifica si se llama así o app.apk
   private readonly jsonPath = path.join(this.rootPath, 'changelog.json');
@@ -36,7 +42,8 @@ export class UsuariosService {
     private readonly odoo: OdooService,
     
     private dataSource: DataSource,
-    private configService: ConfigService
+    private configService: ConfigService,
+    
   ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -710,34 +717,45 @@ export class UsuariosService {
       return horaActualDecimal < horaMalla ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
     }
   }
+  // Método para que el Frontend consulte cómo va todo
+  getProgress() {
+    return this.syncProgress;
+  }
 
-
-  async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
+  // Método para cancelar
+  cancelSync() {
+    this.syncProgress.isCancelled = true;
+    this.syncProgress.status = 'cancelled';
+  }
+async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
     try {
-      const uid = await this.odoo.authenticate();
+      // Reset de estado al iniciar
+      this.syncProgress = { current: 0, total: 0, isCancelled: false, status: 'syncing' };
 
-      // 1. Construcción del dominio dinámico
+      const uid = await this.odoo.authenticate();
       const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
 
-      // Si el departamento no es 'TODOS', lo agregamos al filtro de Odoo
       if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
         domain.push(['department_id.name', '=', deptoSeleccionado]);
       }
 
       const odooEmployees = await this.odoo.executeKw<any[]>(
-        'hr.employee',
-        'search_read',
-        [domain],
+        'hr.employee', 'search_read', [domain],
         { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
         uid
       );
 
+      this.syncProgress.total = odooEmployees.length;
       let nuevos = 0;
       let actualizados = 0;
 
-      for (const emp of odooEmployees) {
-        const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
+      for (const [index, emp] of odooEmployees.entries()) {
+        // VERIFICACIÓN DE CANCELACIÓN
+        if (this.syncProgress.isCancelled) {
+          return { status: 'info', message: 'Sincronización cancelada por el usuario.' };
+        }
 
+        const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
         const data = {
           id_odoo: emp.id,
           nombre: emp.name,
@@ -754,18 +772,79 @@ export class UsuariosService {
           await this.usuarioRepo.update(existing.id, data);
           actualizados++;
         }
+
+        // ACTUALIZAR PROGRESO
+        this.syncProgress.current = index + 1;
       }
 
+      this.syncProgress.status = 'completed';
       return {
         status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
         message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`
       };
 
     } catch (error) {
+      this.syncProgress.status = 'error';
       console.error(`Error sincronizando ${paisSeleccionado}:`, error);
       throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
     }
   }
+
+
+  // async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
+  //   try {
+  //     const uid = await this.odoo.authenticate();
+
+  //     // 1. Construcción del dominio dinámico
+  //     const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+
+  //     // Si el departamento no es 'TODOS', lo agregamos al filtro de Odoo
+  //     if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+  //       domain.push(['department_id.name', '=', deptoSeleccionado]);
+  //     }
+
+  //     const odooEmployees = await this.odoo.executeKw<any[]>(
+  //       'hr.employee',
+  //       'search_read',
+  //       [domain],
+  //       { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
+  //       uid
+  //     );
+
+  //     let nuevos = 0;
+  //     let actualizados = 0;
+
+  //     for (const emp of odooEmployees) {
+  //       const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
+
+  //       const data = {
+  //         id_odoo: emp.id,
+  //         nombre: emp.name,
+  //         identificacion: emp.identification_id || 'N/A',
+  //         cargo: emp.job_title || 'Sin Cargo',
+  //         departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
+  //         pais: paisSeleccionado,
+  //       };
+
+  //       if (!existing) {
+  //         await this.usuarioRepo.save({ ...data, id: emp.id });
+  //         nuevos++;
+  //       } else {
+  //         await this.usuarioRepo.update(existing.id, data);
+  //         actualizados++;
+  //       }
+  //     }
+
+  //     return {
+  //       status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
+  //       message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`
+  //     };
+
+  //   } catch (error) {
+  //     console.error(`Error sincronizando ${paisSeleccionado}:`, error);
+  //     throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
+  //   }
+  // }
 
 
   async getOdooEmployeesRaw(paisSeleccionado?: string) {

@@ -9,6 +9,8 @@ import '../assets/css/SuperAdmin.css';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
+// --- 1. CONFIGURACIÓN ---
+const API_URL = import.meta.env.VITE_API_URL;
 
 // --- 1. CONFIGURACIÓN DE SOCKETS Y NOTIFICACIONES ---
 const SOCKET_URL = import.meta.env.VITE_API_URL
@@ -19,7 +21,7 @@ const props = defineProps({ isDark: Boolean });
 const { logout, isDark, toggleTheme } = useAttendance();
 const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
 const {
-  dbCompanies, odooCompanies, isSyncing,
+  dbCompanies, isSyncing: isSyncingCompanies, odooCompanies,
   fetchDbCompanies, fetchOdooRaw, syncCompanies, toggleCompanyStatus
 } = useCompanies();
 
@@ -40,6 +42,58 @@ const {
   fetchOdooUsuarios,
   executeSync: syncAllUsers
 } = useUsuariosSync();
+
+// --- 3. ESTADOS PARA PROGRESO ---
+const progressPercent = ref(0);
+const progressDetail = ref({ current: 0, total: 0 });
+let progressTimer = null;
+// --- 4. FUNCIÓN DE SINCRONIZACIÓN CORREGIDA ---
+const executeSync = async () => {
+  if (selectedCountry.value === 'TODOS') return alert("Selecciona un país");
+
+  isSyncingUsers.value = true; // Activamos el estado del composable
+  progressPercent.value = 0;
+
+  // Polling para ver el progreso
+  progressTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_URL}/sincronizar/progreso`);
+      const data = await res.json();
+      progressDetail.value = { current: data.current, total: data.total };
+      if (data.total > 0) progressPercent.value = Math.round((data.current / data.total) * 100);
+      if (['completed', 'error', 'cancelled'].includes(data.status)) clearInterval(progressTimer);
+    } catch (e) { console.error("Error en polling", e); }
+  }, 500);
+
+  try {
+    const url = `${API_URL}/sincronizar/ejecutar?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
+    const res = await fetch(url, { method: "POST" });
+    const result = await res.json();
+
+    if (res.ok) {
+      await fetchDbUsuarios();
+      progressPercent.value = 100;
+      showNotification(result.message, 'success');
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (e) {
+    showNotification("Error en sincronización", "error");
+    console.error(e);
+  } finally {
+    clearInterval(progressTimer);
+    setTimeout(() => {
+      isSyncingUsers.value = false;
+      progressPercent.value = 0;
+    }, 2000);
+  }
+};
+
+const handleCancel = async () => {
+  await fetch(`${API_URL}/sincronizar/cancelar`, { method: "POST" });
+  isSyncingUsers.value = false;
+  clearInterval(progressTimer);
+};
 
 
 
@@ -402,16 +456,16 @@ const uploadApkFile = async () => {
               </p>
             </div>
             <div class="space-y-4 w-full md:w-auto">
-              <button @click="handleSyncCompanies" :disabled="isSyncing"
+              <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
                 class="w-full px-8 py-4 bg-[#FF8F00] text-black text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
                 <div class="flex items-center justify-center gap-3">
-                  <i class="fas" :class="isSyncing ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-                  <span>{{ isSyncing ? 'Verificando datos...' : 'Sincronizar Sedes' }}</span>
+                  <i class="fas" :class="isSyncingCompanies ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+                  <span>{{ isSyncingCompanies ? 'Verificando datos...' : 'Sincronizar Sedes' }}</span>
                 </div>
               </button>
 
               <Transition name="fade">
-                <div v-if="isSyncing"
+                <div v-if="isSyncingCompanies"
                   class="w-full bg-slate-500/10 h-1.5 rounded-full overflow-hidden border border-white/5">
                   <div
                     class="h-full bg-gradient-to-r from-[#FF8F00] to-orange-300 transition-all duration-300 shadow-[0_0_10px_#FF8F00]"
@@ -536,29 +590,46 @@ const uploadApkFile = async () => {
               </div>
             </div>
 
-            <div class="flex items-center gap-3 flex-1 max-w-2xl justify-end">
-              <div class="relative flex-1 max-w-[200px]">
-                <i class="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 opacity-20 text-[9px]"></i>
-                <input v-model="searchUser" type="text" placeholder="Buscar..."
-                  class="w-full pl-6 pr-2 py-1.5 bg-transparent border-b border-slate-500/20 focus:border-[#FF8F00] outline-none text-[10px] font-bold transition-all" />
+            <div class="flex items-center gap-6 flex-1 justify-end">
+
+              <div class="flex-1 max-w-[160px]">
+                <input v-model="searchUser" type="text" placeholder="BUSCAR USUARIO..."
+                  class="w-full py-1 bg-transparent border-b border-slate-200 focus:border-[#FF8F00] outline-none text-[10px] font-bold transition-all placeholder:text-slate-300" />
               </div>
 
               <select v-model="selectedCountry"
-                class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-blue-500 max-w-[100px] py-1">
-                <option value="TODOS">País</option>
+                class="bg-transparent border-b border-slate-200 outline-none text-[10px] font-black uppercase cursor-pointer text-blue-500 py-1 min-w-[100px] w-auto transition-colors hover:border-blue-400">
+                <option value="TODOS">PAÍS: TODOS</option>
                 <option v-for="c in odooCompanies" :key="c.id" :value="c.name">{{ c.name }}</option>
               </select>
 
               <select v-model="selectedDept"
-                class="bg-transparent border-b border-slate-500/20 outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] max-w-[100px] py-1">
+                class="bg-transparent border-b border-slate-200 outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] py-1 min-w-[120px] w-auto transition-colors hover:border-orange-300">
+                <option value="TODOS">DEP: TODOS</option>
                 <option v-for="dept in departamentosUnicos" :key="dept" :value="dept">{{ dept }}</option>
               </select>
 
-              <button @click="handleSyncUsers" :disabled="isSyncingUsers"
-                class="flex items-center gap-2 px-3 py-1.5 bg-[#FF8F00] text-black text-[9px] font-black uppercase rounded-lg hover:opacity-80 transition-all disabled:opacity-30 shrink-0">
-                <i class="fas" :class="isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-                <span>{{ isSyncingUsers ? '...' : 'Sinc' }}</span>
-              </button>
+              <div class="flex flex-col gap-1 min-w-[130px]">
+                <div class="flex items-center gap-2">
+                  <button @click="executeSync" :disabled="isSyncingUsers"
+                    class="relative flex-1 flex items-center justify-center h-7 px-4 rounded-md transition-all duration-300 active:scale-95 disabled:opacity-50"
+                    :class="isSyncingUsers ? 'bg-slate-100 text-slate-400' : 'bg-[#FF8F00] text-white'">
+                    <span class="text-[9px] font-black uppercase tracking-widest">
+                      {{ isSyncingUsers ? 'Cargando...' : 'Sincronizar' }}
+                    </span>
+                  </button>
+
+                  <button v-if="isSyncingUsers" @click="handleCancel"
+                    class="flex items-center justify-center w-7 h-7 text-rose-500 hover:bg-rose-50 rounded-md transition-all">
+                    <i class="fas fa-stop text-[8px]"></i>
+                  </button>
+                </div>
+
+                <div v-if="isSyncingUsers" class="w-full h-[2px] bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#FF8F00] transition-all duration-500"
+                    :style="{ width: progressPercent + '%' }"></div>
+                </div>
+              </div>
             </div>
           </div>
 

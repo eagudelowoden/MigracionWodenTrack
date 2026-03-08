@@ -13,7 +13,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) { }
+  constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post('login')
   async login(@Body() body: any) {
@@ -29,7 +29,7 @@ export class UsuariosController {
   @Get('mallas')
   async getMallas(
     @Query('company') company?: string,
-    @Query('departamento') departamento?: string // <--- CAPTURAR EL DEPARTAMENTO
+    @Query('departamento') departamento?: string, // <--- CAPTURAR EL DEPARTAMENTO
   ) {
     // Pasamos ambos parámetros al servicio en el orden correcto
     return await this.usuariosService.getAllMallas(company, departamento);
@@ -41,11 +41,16 @@ export class UsuariosController {
     @Query('company') company?: string,
     @Query('departamento') departamento?: string,
     @Query('startDate') startDate?: string, // <-- Nuevo
-    @Query('endDate') endDate?: string      // <-- Nuevo
-
+    @Query('endDate') endDate?: string, // <-- Nuevo
   ) {
     const soloHoy = hoy === 'true';
-    return await this.usuariosService.getReporteNovedades(soloHoy, company, startDate, endDate, departamento);
+    return await this.usuariosService.getReporteNovedades(
+      soloHoy,
+      company,
+      startDate,
+      endDate,
+      departamento,
+    );
   }
 
   /**
@@ -70,7 +75,7 @@ export class UsuariosController {
   @Get('apk-info') // <--- Ruta final
   getApkInfo() {
     // Aquí va la lógica que escribiste antes
-    return this.usuariosService.getApkInfo(); 
+    return this.usuariosService.getApkInfo();
   }
 
   // --- NUEVO: PUENTE PARA LA HORA OFICIAL ---
@@ -81,7 +86,9 @@ export class UsuariosController {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000); // 3 segundos máximo
 
-      const response = await fetch('http://3.133.217.145:8081/time-colombia', { signal: controller.signal });
+      const response = await fetch('http://3.133.217.145:8081/time-colombia', {
+        signal: controller.signal,
+      });
       clearTimeout(timeout);
 
       if (!response.ok) throw new Error();
@@ -93,7 +100,7 @@ export class UsuariosController {
       return {
         datetime: new Date().toISOString(),
         source: 'local_server_backup',
-        message: 'Hora local (Servidor externo no disponible)'
+        message: 'Hora local (Servidor externo no disponible)',
       };
     }
   }
@@ -111,23 +118,45 @@ export class UsuariosController {
   @Post('sincronizar/ejecutar')
   async sync(
     @Query('pais') pais: string,
-    @Query('depto') depto: string // <--- Recibimos el depto
+    @Query('depto') depto: string, // <--- Recibimos el depto
   ) {
     if (!pais) throw new BadRequestException('Debe seleccionar un país');
     return await this.usuariosService.syncUsuariosFromOdoo(pais, depto);
   }
 
+  @Get('sincronizar/progreso')
+  getSyncProgress() {
+    return this.usuariosService.getProgress();
+  }
+
+  @Post('sincronizar/cancelar')
+  cancelSync() {
+    this.usuariosService.cancelSync();
+    return { message: 'Señal de cancelación enviada' };
+  }
+
   @Post('asignar-permiso')
-  async asignarPermiso(@Body() body: { idOdoo: number, modulo: string, activo: boolean, adminName: string }) {
+  async asignarPermiso(
+    @Body()
+    body: {
+      idOdoo: number;
+      modulo: string;
+      activo: boolean;
+      adminName: string;
+    },
+  ) {
     const { idOdoo, modulo, activo, adminName } = body;
 
     if (activo) {
-      return await this.usuariosService.asignarModuloPermiso(idOdoo, modulo, 'admin', adminName);
+      return await this.usuariosService.asignarModuloPermiso(
+        idOdoo,
+        modulo,
+        'admin',
+        adminName,
+      );
     } else {
       // Método para eliminar el permiso si se desmarca el switch
       return await this.usuariosService.removerModuloPermiso(idOdoo, modulo);
     }
   }
-
 }
-
