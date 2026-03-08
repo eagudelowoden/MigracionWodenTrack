@@ -4,6 +4,8 @@ import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useApkRepo } from '../composables/adminLogica/useApkRepo.js';
 import { useCompanies } from '../composables/adminLogica/useCompanies.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
+import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
+import GestionEstructura from '../components/admin/GestionEstructura.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 import axios from 'axios';
@@ -24,6 +26,29 @@ const {
   dbCompanies, isSyncing: isSyncingCompanies, odooCompanies,
   fetchDbCompanies, fetchOdooRaw, syncCompanies, toggleCompanyStatus
 } = useCompanies();
+
+// 2. Extraer los métodos y estados
+const {
+  areas,
+  segmentos,
+  fetchDatos: fetchOrganizacion,
+  crearArea,
+  crearSegmento
+} = useOrganizacion();
+
+// 3. Crear la función puente para el evento @save del componente
+const handleSaveEstructura = async (data) => {
+  try {
+    if (data.tipo === 'area') {
+      await crearArea({ nombre: data.nombre, responsableId: data.responsableId });
+    } else {
+      await crearSegmento({ nombre: data.nombre, responsableId: data.responsableId });
+    }
+    showNotification(`${data.tipo.toUpperCase()} guardado con éxito`);
+  } catch (e) {
+    showNotification("Error al guardar la estructura", "error");
+  }
+};
 
 // IMPORTANTE: Extraemos TODO lo necesario del composable de usuarios
 // Eliminamos las declaraciones manuales de searchUser, selectedDept y los computed
@@ -204,6 +229,7 @@ onMounted(async () => {
     fetchDbCompanies(),
     fetchOdooRaw(),
     fetchDbUsuarios(),
+    fetchOrganizacion(),
     fetchOdooUsuarios()
   ]);
 });
@@ -320,6 +346,12 @@ const uploadApkFile = async () => {
           title="Notificaciones">
           <i class="fas fa-bullhorn" :class="isSidebarOpen && 'mr-3'"></i>
           <span v-if="isSidebarOpen">Notificar Cambios</span>
+        </button>
+
+        <button @click="currentTab = 'estructura'" :class="tabClass(currentTab === 'estructura')"
+          title="Estructura Organizacional">
+          <i class="fas fa-sitemap" :class="isSidebarOpen && 'mr-3'"></i>
+          <span v-if="isSidebarOpen">Estructura Org.</span>
         </button>
       </nav>
 
@@ -442,82 +474,84 @@ const uploadApkFile = async () => {
 
 
 
-  <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-4 p-2">
-  
-  <div class="flex items-center justify-between px-4 py-3 rounded-2xl border border-slate-500/10 bg-white/5">
-    <div class="flex items-center gap-4">
-      <div class="flex flex-col">
-        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Sincronización</h2>
-        <span class="text-[9px] opacity-50 font-bold uppercase tracking-tighter">Odoo ERP vs Local DB</span>
-      </div>
-      <div v-if="isSyncingCompanies" class="w-32 h-[3px] bg-slate-500/10 rounded-full overflow-hidden">
-        <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: syncProgress + '%' }"></div>
-      </div>
-    </div>
+        <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-4 p-2">
 
-    <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
-      class="h-8 px-5 rounded-lg bg-[#FF8F00] text-white text-[9px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 disabled:opacity-30 transition-all">
-      <i class="fas mr-2" :class="isSyncingCompanies ? 'fa-circle-notch fa-spin' : 'fa-sync-alt'"></i>
-      {{ isSyncingCompanies ? `${syncProgress}%` : 'Sincronizar Sedes' }}
-    </button>
-  </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    
-    <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
-      <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
-        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Origen: Odoo</h3>
-        <span class="text-[8px] font-bold text-blue-500">REAL-TIME</span>
-      </div>
-      <div class="max-h-[350px] overflow-y-auto custom-scroll">
-        <table class="w-full">
-          <tbody class="text-[10px]">
-            <tr v-for="c in odooCompanies" :key="c.id" class="border-b border-slate-500/5 hover:bg-white/[0.02] transition-colors">
-              <td class="p-3 font-mono text-blue-500/60 text-[9px]">#{{ c.id }}</td>
-              <td class="p-3 font-bold uppercase tracking-tight">{{ c.name }}</td>
-              <td class="p-3 text-right">
-                <i v-if="dbCompanies.some(db => db.id === c.id)" class="fas fa-check text-emerald-500 text-[9px]"></i>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
-      <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
-        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Destino: SQL Server</h3>
-        <span class="text-[8px] font-bold text-[#FF8F00]">LOCAL DB</span>
-      </div>
-      <div class="max-h-[350px] overflow-y-auto custom-scroll">
-        <table class="w-full text-left">
-          <tbody class="text-[10px]">
-            <tr v-for="comp in dbCompanies" :key="comp.id" 
-              class="border-b border-slate-500/5 transition-all"
-              :class="!comp.is_active ? 'opacity-30 grayscale' : 'hover:bg-white/[0.02]'">
-              <td class="p-3">
-                <div class="font-bold uppercase">{{ comp.name }}</div>
-                <div class="text-[7px] font-black tracking-tighter" :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'">
-                  {{ comp.is_active ? 'VISIBLE' : 'OCULTO' }}
+          <div class="flex items-center justify-between px-4 py-3 rounded-2xl border border-slate-500/10 bg-white/5">
+            <div class="flex items-center gap-4">
+              <div class="flex flex-col">
+                <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Sincronización</h2>
+                <span class="text-[9px] opacity-50 font-bold uppercase tracking-tighter">Odoo ERP vs Local DB</span>
+              </div>
+              <div v-if="isSyncingCompanies" class="w-32 h-[3px] bg-slate-500/10 rounded-full overflow-hidden">
+                <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: syncProgress + '%' }">
                 </div>
-              </td>
-              <td class="p-3 text-right">
-                <button @click="handleToggleCompany(comp.id, comp.is_active)"
-                  class="h-6 px-3 rounded-md border text-[8px] font-black uppercase transition-all"
-                  :class="comp.is_active 
-                    ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white' 
-                    : 'border-slate-500/30 text-slate-500 hover:bg-slate-500 hover:text-white'">
-                  {{ comp.is_active ? 'ON' : 'OFF' }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </div>
+            </div>
 
-  </div>
-</div>
+            <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
+              class="h-8 px-5 rounded-lg bg-[#FF8F00] text-white text-[9px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 disabled:opacity-30 transition-all">
+              <i class="fas mr-2" :class="isSyncingCompanies ? 'fa-circle-notch fa-spin' : 'fa-sync-alt'"></i>
+              {{ isSyncingCompanies ? `${syncProgress}%` : 'Sincronizar Sedes' }}
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
+              <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
+                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Origen: Odoo</h3>
+                <span class="text-[8px] font-bold text-blue-500">REAL-TIME</span>
+              </div>
+              <div class="max-h-[350px] overflow-y-auto custom-scroll">
+                <table class="w-full">
+                  <tbody class="text-[10px]">
+                    <tr v-for="c in odooCompanies" :key="c.id"
+                      class="border-b border-slate-500/5 hover:bg-white/[0.02] transition-colors">
+                      <td class="p-3 font-mono text-blue-500/60 text-[9px]">#{{ c.id }}</td>
+                      <td class="p-3 font-bold uppercase tracking-tight">{{ c.name }}</td>
+                      <td class="p-3 text-right">
+                        <i v-if="dbCompanies.some(db => db.id === c.id)"
+                          class="fas fa-check text-emerald-500 text-[9px]"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
+              <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
+                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Destino: SQL Server</h3>
+                <span class="text-[8px] font-bold text-[#FF8F00]">LOCAL DB</span>
+              </div>
+              <div class="max-h-[350px] overflow-y-auto custom-scroll">
+                <table class="w-full text-left">
+                  <tbody class="text-[10px]">
+                    <tr v-for="comp in dbCompanies" :key="comp.id" class="border-b border-slate-500/5 transition-all"
+                      :class="!comp.is_active ? 'opacity-30 grayscale' : 'hover:bg-white/[0.02]'">
+                      <td class="p-3">
+                        <div class="font-bold uppercase">{{ comp.name }}</div>
+                        <div class="text-[7px] font-black tracking-tighter"
+                          :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'">
+                          {{ comp.is_active ? 'VISIBLE' : 'OCULTO' }}
+                        </div>
+                      </td>
+                      <td class="p-3 text-right">
+                        <button @click="handleToggleCompany(comp.id, comp.is_active)"
+                          class="h-6 px-3 rounded-md border text-[8px] font-black uppercase transition-all" :class="comp.is_active
+                            ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white'
+                            : 'border-slate-500/30 text-slate-500 hover:bg-slate-500 hover:text-white'">
+                          {{ comp.is_active ? 'ON' : 'OFF' }}
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
 
 
         <div v-if="currentTab === 'users'" class="animate-fade-in space-y-3 p-0">
@@ -839,6 +873,13 @@ const uploadApkFile = async () => {
             </div>
 
           </div>
+        </div>
+
+
+
+        <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
+          <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
+            :segmentos="segmentos" @save="handleSaveEstructura" />
         </div>
 
 

@@ -11,6 +11,7 @@ import { ApkModule } from './apk/apk.module';
 import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 import { NotificationsModule } from './notifications/notifications.module';
+import { OrganizacionModule } from './organizacion/organizacion.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => getDatabaseConfig(configService),
+      useFactory: (configService: ConfigService) =>
+        getDatabaseConfig(configService),
     }),
 
     // 3. Tus módulos funcionales
@@ -33,9 +35,10 @@ import { NotificationsModule } from './notifications/notifications.module';
     SubirContratosModule,
     ApkModule,
     CompaniesModule, // (Ya no está duplicado)
-    NotificationsModule, // <--- Agregado el módulo de notificaciones
+    NotificationsModule,
+    OrganizacionModule, // <--- Agregado el módulo de notificaciones
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
