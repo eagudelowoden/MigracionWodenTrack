@@ -19,16 +19,21 @@ import { Permiso } from './entities/permiso.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
-
 @Injectable()
 export class UsuariosService {
-  private syncProgress = { 
-    current: 0, 
-    total: 0, 
-    isCancelled: false, 
-    status: 'idle' 
+  private syncProgress = {
+    current: 0,
+    total: 0,
+    isCancelled: false,
+    status: 'idle',
   };
-  private readonly rootPath = path.resolve(__dirname, '..', '..', 'uploads', 'apk');
+  private readonly rootPath = path.resolve(
+    __dirname,
+    '..',
+    '..',
+    'uploads',
+    'apk',
+  );
   private readonly apkPath = path.join(this.rootPath, 'app-debug.apk'); // Verifica si se llama así o app.apk
   private readonly jsonPath = path.join(this.rootPath, 'changelog.json');
   constructor(
@@ -40,11 +45,10 @@ export class UsuariosService {
     private readonly permisoRepo: Repository<Permiso>,
 
     private readonly odoo: OdooService,
-    
+
     private dataSource: DataSource,
     private configService: ConfigService,
-    
-  ) { }
+  ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -82,14 +86,16 @@ export class UsuariosService {
     console.log('--- DATOS CRUDOS DE ODOO ---');
     console.dir(emp, { depth: null });
     const cargoRaw = emp.job_id ? emp.job_id[1] : 'SIN CARGO';
-    const departamentoRaw = emp.department_id ? emp.department_id[1] : 'SIN DEPARTAMENTO';
+    const departamentoRaw = emp.department_id
+      ? emp.department_id[1]
+      : 'SIN DEPARTAMENTO';
 
     // 1. NORMALIZACIÓN: Quitamos tildes y pasamos a mayúsculas
     // Esto evita que "Información" no coincida con "INFORMACION"
     const cargo = cargoRaw
       .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
     console.log(`[CARGO]: Original: "${cargoRaw}" | Normalizado: "${cargo}"`);
     console.log(`[LOGIN]: Usuario: ${emp.name} | Depto: ${departamentoRaw}`);
 
@@ -97,44 +103,56 @@ export class UsuariosService {
 
     // 2. DETECCIÓN DE CASOS ESPECIALES
     // Buscamos palabras clave en lugar de la frase exacta para evitar líos con el "+" o espacios
-    const esAnalistaMallasAdmin = cargo.includes('ANALISTA') && cargo.includes('MALLAS');
+    const esAnalistaMallasAdmin =
+      cargo.includes('ANALISTA') && cargo.includes('MALLAS');
 
     // 3. LÓGICA DE ROLES
-    const palabrasAdmin = ['DESARROLLADOR', 'GERENTE', 'DIRECTOR', 'SUPERVISOR LOGISTICO'];
+    const palabrasAdmin = [
+      'DESARROLLADOR',
+      'GERENTE',
+      'DIRECTOR',
+      'SUPERVISOR LOGISTICO',
+    ];
 
-    const esSuperAdmin = ['DESARROLLADOR', 'PRACTICANTE IT', 'ANALISTA IT'].some(palabra => cargo.includes(palabra));
+    const esSuperAdmin = [
+      'DESARROLLADOR',
+      'PRACTICANTE IT',
+      'ANALISTA IT',
+    ].some((palabra) => cargo.includes(palabra));
 
     // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
     const esTI = /\b(IT|TI)\b/i.test(cargo);
 
     // Si tiene palabra de mando O es el analista especial de mallas
-    const tieneMandoGeneral = palabrasAdmin.some((palabra) => cargo.includes(palabra)) || esAnalistaMallasAdmin;
+    const tieneMandoGeneral =
+      palabrasAdmin.some((palabra) => cargo.includes(palabra)) ||
+      esAnalistaMallasAdmin;
 
     // Si está en la lista de usuarios PERO no es nuestro analista especial
-    const esUser = [
-      'AUXILIAR',
-      'PRACTICANTE',
-      'ANALISTA',
-      'APRENDIZ',
-      'ASISTENTE',
-      'INSPECTOR',
-    ].some((word) => cargo.includes(word)) && !esAnalistaMallasAdmin;
+    const esUser =
+      [
+        'AUXILIAR',
+        'PRACTICANTE',
+        'ANALISTA',
+        'APRENDIZ',
+        'ASISTENTE',
+        'INSPECTOR',
+      ].some((word) => cargo.includes(word)) && !esAnalistaMallasAdmin;
 
     // 4. ASIGNACIÓN FINAL
     // Ahora esAdmin será true para el Analista de Mallas porque tieneMandoGeneral es true
-    const esAdmin = (tieneMandoGeneral || esTI);
+    const esAdmin = tieneMandoGeneral || esTI;
     const rolAsignado = esAdmin ? 'admin' : 'user';
 
     // 1. BUSCAR PERMISOS EN LA BASE DE DATOS LOCAL
     const permisosDB = await this.permisoRepo.find({
-      where: { usuario_id_odoo: emp.id }
+      where: { usuario_id_odoo: emp.id },
     });
 
     const mapaPermisos = permisosDB.reduce((acc, p) => {
       acc[p.modulos] = p.nivel_acceso === 'admin';
       return acc;
     }, {});
-
 
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
@@ -194,6 +212,7 @@ export class UsuariosService {
 
     return {
       status: 'success',
+      id_odoo: emp.id,
       employee_id: emp.id,
       name: emp.name,
       job: cargoRaw,
@@ -206,10 +225,15 @@ export class UsuariosService {
       permisos: mapaPermisos,
     };
   }
-  async asignarModuloPermiso(idOdoo: number, modulo: string, nivel: string, adminName: string) {
+  async asignarModuloPermiso(
+    idOdoo: number,
+    modulo: string,
+    nivel: string,
+    adminName: string,
+  ) {
     // 1. Verificamos si ya existe el permiso
     const existe = await this.permisoRepo.findOne({
-      where: { usuario_id_odoo: idOdoo, modulos: modulo }
+      where: { usuario_id_odoo: idOdoo, modulos: modulo },
     });
 
     if (existe) {
@@ -224,7 +248,7 @@ export class UsuariosService {
       usuario_id_odoo: idOdoo,
       modulos: modulo,
       nivel_acceso: nivel,
-      asignado_por: adminName
+      asignado_por: adminName,
     });
 
     return await this.permisoRepo.save(nuevoPermiso);
@@ -457,8 +481,16 @@ export class UsuariosService {
     if (companyName && companyName.trim() !== '') {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
-    if (departamentoName && departamentoName.trim() !== '' && departamentoName !== 'Todas') {
-      domain.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    if (
+      departamentoName &&
+      departamentoName.trim() !== '' &&
+      departamentoName !== 'Todas'
+    ) {
+      domain.push([
+        'employee_id.department_id.name',
+        'ilike',
+        departamentoName,
+      ]);
     }
 
     // 2. EJECUTAR LA BÚSQUEDA
@@ -467,7 +499,12 @@ export class UsuariosService {
       'search_read',
       [domain], // Pasamos el dominio construido
       {
-        fields: ['employee_id', 'resource_calendar_id', 'job_id', 'department_id'],
+        fields: [
+          'employee_id',
+          'resource_calendar_id',
+          'job_id',
+          'department_id',
+        ],
         order: 'employee_id asc',
       },
       uid,
@@ -532,91 +569,165 @@ export class UsuariosService {
       };
     });
   }
+async getReporteNovedades(
+  soloHoy?: boolean,
+  companyName?: string,
+  startDate?: string,
+  endDate?: string,
+  departamentoName?: string,
+  areaId?: number,
+  segmentoId?: number,
+) {
+  const uid = await this.odoo.authenticate();
+  const { hoyFechaCorta } = getFechaColombia();
 
-  async getReporteNovedades(
-    soloHoy?: boolean,
-    companyName?: string,
-    startDate?: string,
-    endDate?: string,
-    departamentoName?: string,
-  ) {
-    const uid = await this.odoo.authenticate();
-    const { hoyFechaCorta } = getFechaColombia();
+  // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
+  let employeeIdsPorEstructura: number[] | null = null;
+  if (areaId || segmentoId) {
+    const where: any = {};
+    if (areaId) where.area_id = areaId;
+    if (segmentoId) where.segmento_id = segmentoId;
 
-    // 1. Configuración de Fechas
-    const inicio = soloHoy ? `${hoyFechaCorta} 00:00:00` : startDate ? `${startDate} 00:00:00` : null;
-    const fin = soloHoy ? `${hoyFechaCorta} 23:59:59` : endDate ? `${endDate} 23:59:59` : null;
+    const usuariosLocales = await this.usuarioRepo.find({
+      where,
+      select: ['id_odoo'],
+    });
 
-    // --- DOMINIO ASISTENCIAS (hr.attendance) ---
-    let domainAtt: any[] = [];
-    if (inicio) domainAtt.push(['check_in', '>=', inicio]);
-    if (fin) domainAtt.push(['check_in', '<=', fin]);
-    if (companyName && companyName !== 'Todas') domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-    if (departamentoName) domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    employeeIdsPorEstructura = usuariosLocales
+      .map((u) => u.id_odoo)
+      .filter((id) => id != null);
 
-    // --- DOMINIO LOGS BIOMÉTRICOS (attendance.log) ---
-    let domainLog: any[] = [];
-    if (inicio) domainLog.push(['punching_time', '>=', inicio]);
-    if (fin) domainLog.push(['punching_time', '<=', fin]);
-    if (companyName && companyName !== 'Todas') domainLog.push(['company_id.name', '=', companyName]);
-    if (departamentoName) domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
+    if (employeeIdsPorEstructura.length === 0) return [];
+  }
 
-    // 2. Ejecución en Paralelo
+  // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
+  const startDay = soloHoy ? hoyFechaCorta : startDate;
+  const endDay = soloHoy ? hoyFechaCorta : endDate;
+
+  // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia, 
+  // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
+  const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
+  
+  let finUTC: string | null = null;
+  if (endDay) {
+    const partes = endDay.split('-'); 
+    const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
+    fechaFin.setDate(fechaFin.getDate() + 1);
+    
+    const anio = fechaFin.getFullYear();
+    const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
+    const dia = String(fechaFin.getDate()).padStart(2, '0');
+    
+    // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
+    finUTC = `${anio}-${mes}-${dia} 04:59:59`;
+  }
+
+  // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
+  let domainAtt: any[] = [];
+  let domainLog: any[] = [];
+
+  if (inicioUTC) {
+    domainAtt.push(['check_in', '>=', inicioUTC]);
+    domainLog.push(['punching_time', '>=', inicioUTC]);
+  }
+  if (finUTC) {
+    domainAtt.push(['check_in', '<=', finUTC]);
+    domainLog.push(['punching_time', '<=', finUTC]);
+  }
+
+  if (companyName && companyName !== 'Todas' && companyName !== '') {
+    domainAtt.push(['employee_id.company_id.name', '=', companyName]);
+    domainLog.push(['company_id.name', '=', companyName]);
+  }
+
+  if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
+    domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
+  }
+
+  if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+    domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
+  }
+
+  try {
     const [attendances, logs] = await Promise.all([
-      this.odoo.executeKw<any[]>('hr.attendance', 'search_read', [domainAtt], {
-        fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
-        order: 'check_in desc',
-        limit: soloHoy ? 500 : 5000,
-      }, uid),
-      this.odoo.executeKw<any[]>('attendance.log', 'search_read', [domainLog], {
-        fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
-        order: 'punching_time desc',
-        limit: soloHoy ? 500 : 5000,
-      }, uid)
+      this.odoo.executeKw<any[]>(
+        'hr.attendance', 'search_read', [domainAtt],
+        {
+          fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
+          order: 'check_in desc', limit: 3000, 
+        },
+        uid,
+      ),
+      this.odoo.executeKw<any[]>(
+        'attendance.log', 'search_read', [domainLog],
+        {
+          fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
+          order: 'punching_time desc', limit: 3000,
+        },
+        uid,
+      ),
     ]);
 
-    // 3. Mapeo de Asistencias (Normal)
-    const resAttendances = attendances.map((att) => ({
-      id: `att_${att.id}`, // Prefijo para evitar colisiones de ID en Vue
-      empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-      department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-      c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-      c_salida: att.x_studio_tipo_salida || 'N/A',
-      check_in: att.check_in || null,
-      check_out: att.check_out || null,
-      fecha: att.check_in ? att.check_in.split(' ')[0] : 'N/A',
-      tipo: 'ASISTENCIA'
-    }));
+    // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
+    const toLocal = (utcDate: string) => {
+      if (!utcDate) return null;
+      const d = new Date(utcDate.replace(' ', 'T') + 'Z');
+      d.setHours(d.getHours() - 5); // Restar 5 horas para Colombia
+      
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    };
 
-    // 4. Mapeo de Logs (Biométrico)
+    // --- 5. MAPEO FINAL ---
+    const resAttendances = attendances.map((att) => {
+      const localIn = toLocal(att.check_in);
+      const localOut = toLocal(att.check_out);
+      return {
+        id: `att_${att.id}`,
+        empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+        c_salida: att.x_studio_tipo_salida || 'N/A',
+        check_in: localIn,
+        check_out: localOut,
+        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+        tipo: 'ASISTENCIA',
+        estado: att.check_out ? 'Finalizado' : 'En curso',
+      };
+    });
+
     const resLogs = logs.map((log) => {
+      const localTime = toLocal(log.punching_time);
       const esEntrada = log.status === '0' || log.status === '2';
-      const esSalida = log.status === '1';
-
       return {
         id: `log_${log.id}`,
         empleado: log.employee_id ? log.employee_id[1] : 'Desconocido',
         department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
-
-        // Disfrazamos para que la tabla lo entienda:
-        check_in: esEntrada ? log.punching_time : null,
-        check_out: esSalida ? log.punching_time : null,
-
-        c_entrada: esEntrada ? (log.status === '2' ? 'BIOMÉTRICO' : 'BIOMÉTRICO') : 'N/A',
-        c_salida: esSalida ? 'BIOMÉTRICO' : 'N/A',
-
-        fecha: log.punching_time ? log.punching_time.split(' ')[0] : 'N/A',
-        tipo: 'LOG CRUDO'
+        check_in: esEntrada ? localTime : null,
+        check_out: !esEntrada ? localTime : null,
+        c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
+        c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
+        fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+        tipo: 'LOG CRUDO',
+        estado: 'Biométrico',
       };
     });
 
-    // 5. Unir y ordenar por la fecha más reciente
+    // --- 6. UNIÓN Y ORDENAMIENTO ---
     return [...resAttendances, ...resLogs].sort((a, b) => {
-      const dateA = new Date(a.check_in || a.check_out || 0).getTime();
-      const dateB = new Date(b.check_in || b.check_out || 0).getTime();
-      return dateB - dateA;
+      const timeA = new Date((a.check_in || a.check_out || '0').replace(' ', 'T')).getTime();
+      const timeB = new Date((b.check_in || b.check_out || '0').replace(' ', 'T')).getTime();
+      return timeB - timeA;
     });
+
+  } catch (error) {
+    console.error('Error en reporte:', error);
+    throw error;
   }
+}
   async getAttendanceStatus(employee_id: number) {
     try {
       const { hoyFechaCorta } = getFechaColombia();
@@ -727,10 +838,18 @@ export class UsuariosService {
     this.syncProgress.isCancelled = true;
     this.syncProgress.status = 'cancelled';
   }
-async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
+  async syncUsuariosFromOdoo(
+    paisSeleccionado: string,
+    deptoSeleccionado?: string,
+  ) {
     try {
       // Reset de estado al iniciar
-      this.syncProgress = { current: 0, total: 0, isCancelled: false, status: 'syncing' };
+      this.syncProgress = {
+        current: 0,
+        total: 0,
+        isCancelled: false,
+        status: 'syncing',
+      };
 
       const uid = await this.odoo.authenticate();
       const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
@@ -740,9 +859,19 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
       }
 
       const odooEmployees = await this.odoo.executeKw<any[]>(
-        'hr.employee', 'search_read', [domain],
-        { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
-        uid
+        'hr.employee',
+        'search_read',
+        [domain],
+        {
+          fields: [
+            'id',
+            'name',
+            'identification_id',
+            'job_title',
+            'department_id',
+          ],
+        },
+        uid,
       );
 
       this.syncProgress.total = odooEmployees.length;
@@ -752,16 +881,23 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
       for (const [index, emp] of odooEmployees.entries()) {
         // VERIFICACIÓN DE CANCELACIÓN
         if (this.syncProgress.isCancelled) {
-          return { status: 'info', message: 'Sincronización cancelada por el usuario.' };
+          return {
+            status: 'info',
+            message: 'Sincronización cancelada por el usuario.',
+          };
         }
 
-        const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
+        const existing = await this.usuarioRepo.findOne({
+          where: { id_odoo: emp.id },
+        });
         const data = {
           id_odoo: emp.id,
           nombre: emp.name,
           identificacion: emp.identification_id || 'N/A',
           cargo: emp.job_title || 'Sin Cargo',
-          departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
+          departamento: emp.department_id
+            ? emp.department_id[1]
+            : 'Sin Departamento',
           pais: paisSeleccionado,
         };
 
@@ -780,16 +916,16 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
       this.syncProgress.status = 'completed';
       return {
         status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-        message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`
+        message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`,
       };
-
     } catch (error) {
       this.syncProgress.status = 'error';
       console.error(`Error sincronizando ${paisSeleccionado}:`, error);
-      throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
+      throw new InternalServerErrorException(
+        'Error al sincronizar empleados con Odoo',
+      );
     }
   }
-
 
   // async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
   //   try {
@@ -846,7 +982,6 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
   //   }
   // }
 
-
   async getOdooEmployeesRaw(paisSeleccionado?: string) {
     const uid = await this.odoo.authenticate();
 
@@ -863,16 +998,23 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
       'search_read',
       [domain], // <--- Odoo requiere que el domain vaya envuelto en otro array
       {
-        fields: ['id', 'name', 'identification_id', 'job_title', 'department_id', 'company_id']
+        fields: [
+          'id',
+          'name',
+          'identification_id',
+          'job_title',
+          'department_id',
+          'company_id',
+        ],
       },
-      uid
+      uid,
     );
   }
 
   async findAllLocal(pais?: string) {
     const queryOptions: any = {
       relations: ['permisos'], // Lo ponemos aquí para que SIEMPRE los traiga
-      order: { nombre: 'ASC' }
+      order: { nombre: 'ASC' },
     };
 
     if (pais && pais !== 'TODOS') {
@@ -883,23 +1025,27 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
   }
 
   async removerModuloPermiso(idOdoo: number, modulo: string) {
-    return await this.permisoRepo.delete({ usuario_id_odoo: idOdoo, modulos: modulo });
+    return await this.permisoRepo.delete({
+      usuario_id_odoo: idOdoo,
+      modulos: modulo,
+    });
   }
   getApkInfo() {
     const fileExists = fs.existsSync(this.apkPath);
-    const baseUrl = this.configService.get<string>('VITE_API_URL') || 'http://localhost:8082';
+    const baseUrl =
+      this.configService.get<string>('VITE_API_URL') || 'http://localhost:8082';
 
-    let changelog = ["Mejoras de estabilidad"];
+    let changelog = ['Mejoras de estabilidad'];
     if (fs.existsSync(this.jsonPath)) {
       try {
         changelog = JSON.parse(fs.readFileSync(this.jsonPath, 'utf8'));
       } catch (e) {
-        console.error("Error al leer changelog.json");
+        console.error('Error al leer changelog.json');
       }
     }
 
     if (!fileExists) {
-      return { exists: false, version: "0.0.0", downloadUrl: null };
+      return { exists: false, version: '0.0.0', downloadUrl: null };
     }
 
     const stats = fs.statSync(this.apkPath);
@@ -910,8 +1056,58 @@ async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string)
       size: (stats.size / (1024 * 1024)).toFixed(2),
       lastUpdate: stats.mtime,
       downloadUrl: `${baseUrl}/usuarios/download-apk`, // Ruta para descargar
-      changelog
+      changelog,
     };
   }
-}
 
+  async actualizarEstructuraLocal(idOdoo: number, campo: string, valor: any) {
+    try {
+      const usuario = await this.usuarioRepo.findOne({
+        where: { id_odoo: idOdoo },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException(
+          `Usuario con ID Odoo ${idOdoo} no encontrado`,
+        );
+      }
+
+      // Al haber agregado las columnas en la entidad, esto ahora funcionará:
+      usuario[campo] = valor === null ? null : valor;
+
+      await this.usuarioRepo.save(usuario);
+
+      return {
+        status: 'success',
+        message: `Asignación de ${campo} exitosa`,
+      };
+    } catch (error) {
+      console.error('Error al actualizar estructura:', error);
+      throw new InternalServerErrorException(
+        'Error al guardar: ' + error.message,
+      );
+    }
+  }
+async obtenerPerfilConEstructura(idOdoo: number) {
+  // --- ESTE ES EL TEST DE DEPURACIÓN ---
+  const todos = await this.usuarioRepo.find({ take: 5 });
+  console.log("--- DEBUG DB ---");
+  console.log("ID Odoo que busco:", idOdoo);
+  console.log("Contenido actual de la tabla (5 primeros):", todos);
+  // ------------------------------------
+
+  const usuario = await this.usuarioRepo.findOne({
+    where: [
+      { id_odoo: idOdoo },
+      { id: idOdoo }
+    ],
+    relations: ['area', 'segmento'],
+  });
+
+  if (!usuario) {
+    throw new NotFoundException(`Usuario ${idOdoo} no hallado en la tabla usuarios_registrados`);
+  }
+
+  return usuario;
+}
+}

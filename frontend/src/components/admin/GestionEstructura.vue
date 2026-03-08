@@ -39,16 +39,41 @@
                      :class="isDark ? 'text-white' : 'text-slate-800'"/>
             </div>
 
-            <div>
+            <div class="relative">
               <label class="text-[8px] font-black opacity-40 uppercase ml-2">Asignar Responsable (Jefe)</label>
-              <select v-model="form.responsableId" 
-                      class="w-full mt-1 bg-black/5 border border-white/5 p-4 rounded-2xl text-[10px] font-bold outline-none focus:border-[#FF8F00] appearance-none"
-                      :class="isDark ? 'text-white' : 'text-slate-800'">
-                <option :value="null" disabled>SELECCIONE UN LÍDER...</option>
-                <option v-for="u in usuarios" :key="u.id" :value="u.id">
-                  {{ u.nombre }} - {{ u.cargo || 'Sin Cargo' }}
-                </option>
-              </select>
+              
+              <div class="relative mt-1">
+                <input 
+                  type="text" 
+                  v-model="searchQuery" 
+                  @focus="showDropdown = true"
+                  placeholder="ESCRIBE PARA BUSCAR..."
+                  class="w-full bg-black/5 border border-white/5 p-4 rounded-2xl text-[10px] font-bold outline-none focus:border-[#FF8F00] transition-all"
+                  :class="isDark ? 'text-white' : 'text-slate-800'"
+                />
+                <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 opacity-20 text-[10px]"></i>
+              </div>
+
+              <div v-if="showDropdown && searchQuery" 
+                   class="absolute z-50 w-full mt-2 rounded-2xl border shadow-2xl overflow-hidden backdrop-blur-xl"
+                   :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                
+                <div class="max-h-[200px] overflow-y-auto custom-scroll">
+                  <div v-for="u in filteredUsers" :key="u.id"
+                       @click="selectUser(u)"
+                       class="p-4 cursor-pointer transition-all border-b last:border-0"
+                       :class="isDark ? 'hover:bg-white/5 border-white/5' : 'hover:bg-slate-50 border-slate-100'">
+                    <div class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ u.nombre }}</div>
+                    <div class="text-[8px] font-bold opacity-40 uppercase">{{ u.cargo || 'Sin Cargo' }}</div>
+                  </div>
+                  
+                  <div v-if="filteredUsers.length === 0" class="p-4 text-[10px] text-center opacity-40 font-bold uppercase">
+                    No se encontraron resultados
+                  </div>
+                </div>
+              </div>
+              
+              <div v-if="showDropdown" @click="showDropdown = false" class="fixed inset-0 z-40"></div>
             </div>
 
             <button @click="submitForm" 
@@ -109,11 +134,31 @@ const props = defineProps({
 
 const emit = defineEmits(['save']);
 
+// --- ESTADOS DEL BUSCADOR ---
+const searchQuery = ref('');
+const showDropdown = ref(false);
+
 const form = ref({
   tipo: 'area',
   nombre: '',
   responsableId: null
 });
+
+// --- LÓGICA DE FILTRADO ---
+const filteredUsers = computed(() => {
+  if (!searchQuery.value) return [];
+  const query = searchQuery.value.toLowerCase();
+  return props.usuarios.filter(u => 
+    u.nombre.toLowerCase().includes(query) || 
+    (u.cargo && u.cargo.toLowerCase().includes(query))
+  );
+});
+
+const selectUser = (user) => {
+  form.value.responsableId = user.id;
+  searchQuery.value = user.nombre; // Mostramos el nombre seleccionado en el input
+  showDropdown.value = false;
+};
 
 const listaCombinada = computed(() => {
   const a = props.areas.map(i => ({ ...i, tipo: 'area' }));
@@ -125,6 +170,7 @@ const submitForm = () => {
   emit('save', { ...form.value });
   form.value.nombre = '';
   form.value.responsableId = null;
+  searchQuery.value = ''; // Limpiar buscador
 };
 </script>
 
@@ -132,4 +178,13 @@ const submitForm = () => {
 .custom-scroll::-webkit-scrollbar { width: 4px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 .custom-scroll::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.2); border-radius: 10px; }
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>

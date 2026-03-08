@@ -8,6 +8,7 @@ import {
   Query,
   Param,
   BadRequestException,
+  Patch,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 
@@ -35,21 +36,27 @@ export class UsuariosController {
     return await this.usuariosService.getAllMallas(company, departamento);
   }
 
-  @Get('reporte-novedades')
+@Get('reporte-novedades')
   async getReporte(
     @Query('hoy') hoy?: string,
     @Query('company') company?: string,
     @Query('departamento') departamento?: string,
-    @Query('startDate') startDate?: string, // <-- Nuevo
-    @Query('endDate') endDate?: string, // <-- Nuevo
+    @Query('area_id') area_id?: string,           
+    @Query('segmento_id') segmento_id?: string,   
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     const soloHoy = hoy === 'true';
+    
     return await this.usuariosService.getReporteNovedades(
       soloHoy,
       company,
       startDate,
       endDate,
       departamento,
+      // Cambiamos 'null' por 'undefined' para que TS no se queje
+      area_id ? Number(area_id) : undefined, 
+      segmento_id ? Number(segmento_id) : undefined,
     );
   }
 
@@ -158,5 +165,26 @@ export class UsuariosController {
       // Método para eliminar el permiso si se desmarca el switch
       return await this.usuariosService.removerModuloPermiso(idOdoo, modulo);
     }
+  }
+
+  @Post('actualizar-estructura') // <--- Cambiado de Patch a Post
+  async actualizarEstructura(
+    @Body() body: { idOdoo: number; campo: string; valor: any },
+  ) {
+    const { idOdoo, campo, valor } = body;
+
+    if (!['area_id', 'segmento_id'].includes(campo)) {
+      throw new BadRequestException('Campo no permitido');
+    }
+
+    return await this.usuariosService.actualizarEstructuraLocal(
+      idOdoo,
+      campo,
+      valor,
+    );
+  }
+  @Get('perfil-completo/:idOdoo')
+  async getPerfilCompleto(@Param('idOdoo') idOdoo: string) {
+    return await this.usuariosService.obtenerPerfilConEstructura(Number(idOdoo));
   }
 }

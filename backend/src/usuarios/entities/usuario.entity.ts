@@ -29,9 +29,15 @@ export class Usuario {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ nullable: true })
+  segmento_id: number;
+
   @ManyToOne(() => Segmento, (segmento) => segmento.usuarios, { nullable: true })
   @JoinColumn({ name: 'segmento_id' }) // Columna física en SQL Server
   segmento: Segmento;
+
+  @Column({ nullable: true })
+  area_id: number;
 
   @ManyToOne(() => Area, (area) => area.usuarios, { nullable: true })
   @JoinColumn({ name: 'area_id' }) // Columna física en SQL Server

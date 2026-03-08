@@ -45,31 +45,46 @@ export function adminOdoo() {
       console.error("Error cargando compañías:", err);
     }
   };
-  const fetchReport = async () => {
-    try {
-      // 1. Obtenemos el departamento que guardamos en el login
-      // 'att.employee' viene de useAttendance()
-      const departamentoUsuario = att.employee.value?.department || "";
+const fetchReport = async () => {
+  try {
+    // 1. Obtenemos los datos base
+    const departamentoUsuario = att.employee.value?.department || "";
+    const params = new URLSearchParams();
 
-      // 2. Creamos los parámetros
-      const queryParams = new URLSearchParams({
-        hoy: "true",
-        company: selectedCompany.value || "Todas",
-        departamento: departamentoUsuario, // <--- AQUÍ AGREGAMOS EL DEPARTAMENTO
-      });
+    // 2. Parámetros obligatorios y de fecha
+    params.append("hoy", "true");
+    params.append("company", selectedCompany.value || "Todas");
 
-      // 3. La URL final quedará: .../reporte-novedades?hoy=true&company=...&departamento=...
-      const urlFinal = `${API_BASE_URL}/reporte-novedades?${queryParams.toString()}`;
-
-      console.log("Petición enviada a:", urlFinal); // Para que verifiques en consola
-
-      const res = await fetch(urlFinal);
-      const data = await res.json();
-      report.value = data;
-    } catch (err) {
-      console.error("Error al obtener el reporte:", err);
+    // --- LÓGICA DE PRIORIDAD DE FILTRADO ---
+    
+    // Si el usuario seleccionó un ÁREA o SEGMENTO específico de la DB Local:
+    if (selectedArea.value || selectedSegmento.value) {
+      if (selectedArea.value) params.append("area_id", selectedArea.value);
+      if (selectedSegmento.value) params.append("segmento_id", selectedSegmento.value);
+      
+      // NOTA: Al enviar area_id, el Backend ignorará el departamento para 
+      // traer exactamente a las personas de esa área local.
+    } 
+    // Si NO hay área seleccionada, usamos el departamento del perfil/login
+    else if (departamentoUsuario && departamentoUsuario !== "DEPARTAMENTOS") {
+      params.append("departamento", departamentoUsuario);
     }
-  };
+
+    // 3. Construcción de URL y Petición
+    const urlFinal = `${API_BASE_URL}/reporte-novedades?${params.toString()}`;
+    
+    console.log("Ejecutando reporte con prioridad de área local:", urlFinal);
+
+    const res = await fetch(urlFinal);
+    const data = await res.json();
+    
+    // Asignamos a la variable que uses para mostrar (report o rawData)
+    report.value = data; 
+    
+  } catch (err) {
+    console.error("Error al obtener el reporte:", err);
+  }
+};
 
   const handleAttendance = async () => {
     if (!att.employee.value) return;

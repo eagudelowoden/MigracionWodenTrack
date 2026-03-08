@@ -31,22 +31,42 @@
             class="bg-transparent text-[13px] outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
         </div>
 
-        <div class="relative group">
-          <select v-if="esAdmin" v-model="selectedDepartment"
-            class="pl-3 pr-8 py-1.5 text-[11px] font-bold uppercase rounded border outline-none appearance-none cursor-pointer shadow-sm w-40 transition-all"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
-            <option value="">TODOS LOS DEPTOS</option>
-            <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-          </select>
+        <div class="relative group flex gap-2">
+          <template v-if="esAdmin">
+            <div class="relative">
+              <select v-model="selectedDepartment"
+                class="pl-3 pr-8 py-1.5 text-[11px] font-bold uppercase rounded border outline-none appearance-none cursor-pointer shadow-sm w-44 transition-all"
+                :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+                <option value="">TODOS LOS DEPTOS</option>
+                <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
+              </select>
+              <i
+                class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
+            </div>
+          </template>
 
-          <div v-else
-            class="pl-3 pr-3 py-1.5 text-[10px] font-bold uppercase rounded border bg-orange-500/10 border-orange-500/20 text-orange-600 flex items-center gap-2">
-            <i class="fas fa-shield-halved"></i>
-            {{ miDepto || 'MI DEPARTAMENTO' }}
-          </div>
+          <template v-else>
+            <div class="flex items-center gap-2">
+              <template v-if="misResponsabilidades.length > 0">
+                <div v-for="(item, index) in misResponsabilidades" :key="index" :class="[
+                  'pl-3 pr-3 py-1.5 text-[10px] font-black uppercase rounded-lg border flex items-center gap-2 shadow-sm transition-all hover:scale-105',
+                  item.clase
+                ]" :title="`${item.tipo} bajo tu responsabilidad`">
+                  <i :class="item.icono" class="opacity-70"></i>
+                  <span class="opacity-60">{{ item.tipo }}:</span>
+                  <span>{{ item.nombre }}</span>
+                </div>
+              </template>
 
-          <i v-if="esAdmin"
-            class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
+              <template v-else>
+                <div
+                  class="pl-3 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border bg-slate-500/10 border-slate-500/20 text-slate-500 flex items-center gap-2">
+                  <i class="fas fa-eye-slash opacity-70"></i>
+                  Sin Asignación
+                </div>
+              </template>
+            </div>
+          </template>
         </div>
 
         <div class="relative group">
@@ -230,6 +250,8 @@ const {
   filterHoy,
   downloadReport,
   clearFilters,
+  selectedArea,      // <--- Extraer aquí
+  selectedSegmento,  // <--- Extraer aquí
   selectedCompany
 } = useCargarAsistencias();
 
@@ -238,6 +260,10 @@ const { isDark: isDarkTheme } = useAttendance();
 const session = JSON.parse(localStorage.getItem("user_session") || "{}");
 const esAdmin = session.role === 'admin';
 const miDepto = session.department;
+const idLogueado = session.id_odoo;
+const userProfile = ref(null);
+const loadingProfile = ref(true);
+const misResponsabilidades = ref([]); // Lista para guardar etiquetas dinámicas
 
 // --- LÓGICA DE PAGINACIÓN ---
 const currentPage = ref(1);
@@ -247,6 +273,53 @@ const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
   return reportData.value.slice(start, end);
+});
+
+onMounted(async () => {
+  const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
+
+  if (esAdmin) {
+    await fetchReporte();
+  } else {
+    try {
+      const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
+      if (!resp.ok) throw new Error("No se pudo obtener el perfil");
+
+      const perfil = await resp.json();
+      userProfile.value = perfil;
+
+      // --- CREAR LA LISTA DE RESPONSABILIDADES ---
+      misResponsabilidades.value = []; // Limpiamos
+
+      if (perfil.area) {
+        misResponsabilidades.value.push({
+          tipo: 'Área',
+          nombre: perfil.area.nombre,
+          id: perfil.area_id,
+          clase: 'bg-blue-500/10 border-blue-500/20 text-blue-500',
+          icono: 'fas fa-sitemap'
+        });
+        selectedArea.value = perfil.area_id;
+      }
+
+      // if (perfil.segmento) {
+      //   misResponsabilidades.value.push({
+      //     tipo: 'Segmento',
+      //     nombre: perfil.segmento.nombre,
+      //     id: perfil.segmento_id,
+      //     clase: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
+      //     icono: 'fas fa-layer-group'
+      //   });
+      //   selectedSegmento.value = perfil.segmento_id;
+      // }
+
+      await fetchReporte();
+
+    } catch (e) {
+      console.error("Error:", e);
+      await fetchReporte();
+    }
+  }
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));

@@ -176,6 +176,30 @@ const togglePermisoLocal = async (user, slug) => {
     console.error(e);
   }
 };
+
+const updateUserStructure = async (user, field) => {
+  const value = user[field];
+
+  try {
+    // Agregamos /usuarios/ a la ruta
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/actualizar-estructura`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idOdoo: user.id_odoo,
+        campo: field,
+        valor: value
+      })
+    });
+
+    if (!res.ok) throw new Error("Error en la respuesta del servidor");
+
+    showNotification("Cambio guardado en la base de datos", "success");
+  } catch (e) {
+    showNotification("No se pudo guardar el cambio", "error");
+    console.error(e);
+  }
+};
 const sendNotification = async () => {
   if (!notif.value.title || !notif.value.body) return;
 
@@ -311,73 +335,81 @@ const uploadApkFile = async () => {
       </div>
     </Transition>
 
+    <button v-if="!isSidebarOpen" @click="isSidebarOpen = true"
+      class="lg:hidden fixed top-4 left-4 z-[60] w-10 h-10 bg-[#FF8F00] text-black rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
+      class="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[45]"></div>
+
     <aside :class="[
-      'fixed lg:relative z-50 h-screen transition-all duration-500 border-r flex flex-col p-6',
-      isDark ? 'bg-[#0f172a] border-white/5' : 'bg-white border-slate-200',
-      isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0 lg:p-4'
+      'fixed lg:relative z-50 h-screen transition-[width,transform] duration-300 ease-in-out border-r flex flex-col',
+      isDark ? 'bg-[#0f172a] border-white/5 text-white' : 'bg-white border-slate-200 text-slate-800',
+      /* En móvil: translate-x para esconder. En PC: cambia ancho de 64 a 16 */
+      isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-16 lg:translate-x-0'
     ]">
-      <div class="flex items-center gap-3 mb-10" :class="!isSidebarOpen && 'justify-center'">
-        <div
-          class="w-10 h-10 shrink-0 bg-[#FF8F00] rounded-2xl flex items-center justify-center text-black shadow-lg shadow-[#FF8F00]/20">
-          <i class="fas fa-shield-alt"></i>
+
+      <button @click="isSidebarOpen = !isSidebarOpen"
+        class="absolute -right-2.5 top-8 w-5 h-5 bg-[#FF8F00] text-black rounded-full shadow-md hover:scale-110 transition-all z-[60] flex items-center justify-center text-[8px]"
+        :class="[!isSidebarOpen ? 'rotate-180' : '', !isSidebarOpen && 'hidden lg:flex']">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <div v-show="isSidebarOpen || isSidebarOpen === false"
+        class="flex flex-col h-full p-4 overflow-hidden transition-all" :class="!isSidebarOpen && 'lg:p-2'">
+
+        <div class="flex items-center gap-3 mb-8" :class="!isSidebarOpen && 'lg:justify-center'">
+          <div
+            class="w-8 h-8 shrink-0 bg-[#FF8F00] rounded-xl flex items-center justify-center text-black shadow-lg shadow-[#FF8F00]/20">
+            <i class="fas fa-shield-alt text-sm"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="font-black italic text-lg tracking-tighter truncate uppercase">
+            Woden<span class="text-[#FF8F00]">Admin</span>
+          </span>
         </div>
-        <span v-if="isSidebarOpen" class="font-black italic text-xl tracking-tighter">WODEN<span
-            class="text-[#FF8F00]">ADMIN</span></span>
-      </div>
 
-      <nav class="flex-1 space-y-3">
-        <button @click="currentTab = 'stats'" :class="tabClass(currentTab === 'stats')" title="Dashboard">
-          <i class="fas fa-chart-pie" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Dashboard</span>
-        </button>
-        <button @click="currentTab = 'apk'" :class="tabClass(currentTab === 'apk')" title="Gestionar APK">
-          <i class="fab fa-android" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Gestionar APK</span>
-        </button>
-        <button @click="currentTab = 'companies'" :class="tabClass(currentTab === 'companies')" title="Compañías">
-          <i class="fas fa-building" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Compañías</span>
-        </button>
-        <button @click="currentTab = 'users'" :class="tabClass(currentTab === 'users')">
-          <i class="fas fa-users-cog" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Personal / Usuarios</span>
-        </button>
-        <button @click="currentTab = 'notifications'" :class="tabClass(currentTab === 'notifications')"
-          title="Notificaciones">
-          <i class="fas fa-bullhorn" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Notificar Cambios</span>
-        </button>
+        <nav class="flex-1 space-y-1">
+          <button v-for="(item, key) in {
+            stats: ['fas fa-chart-pie', 'Dashboard'],
+            apk: ['fab fa-android', 'APK'],
+            companies: ['fas fa-building', 'Empresas'],
+            users: ['fas fa-users-cog', 'Personal'],
+            notifications: ['fas fa-bullhorn', 'Avisos'],
+            estructura: ['fas fa-sitemap', 'Organización']
+          }" :key="key" @click="currentTab = key" :class="[
+            'w-full flex items-center rounded-lg transition-all duration-200 p-2.5 text-[10px] font-bold uppercase',
+            currentTab === key ? 'bg-[#FF8F00] text-black shadow-md' : 'hover:bg-slate-500/10',
+            !isSidebarOpen && 'lg:justify-center'
+          ]" :title="item[1]">
+            <i :class="[item[0], isSidebarOpen ? 'mr-3 text-sm' : 'text-lg']"></i>
+            <span v-if="isSidebarOpen" class="truncate">{{ item[1] }}</span>
+          </button>
+        </nav>
 
-        <button @click="currentTab = 'estructura'" :class="tabClass(currentTab === 'estructura')"
-          title="Estructura Organizacional">
-          <i class="fas fa-sitemap" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Estructura Org.</span>
-        </button>
-      </nav>
+        <div class="mt-auto pt-4 space-y-1 border-t border-white/5">
+          <button @click="toggleTheme"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-slate-500/10"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i
+              :class="[isDark ? 'fas fa-sun text-yellow-500' : 'fas fa-moon text-indigo-500', isSidebarOpen && 'mr-3']"></i>
+            <span v-if="isSidebarOpen">Tema</span>
+          </button>
 
-      <div class="space-y-4">
-        <button @click="toggleTheme"
-          class="w-full flex items-center p-3 rounded-xl text-[10px] font-bold uppercase transition-all hover:bg-slate-500/10"
-          :class="!isSidebarOpen && 'justify-center'">
-          <i
-            :class="[isDark ? 'fas fa-sun text-yellow-500' : 'fas fa-moon text-indigo-500', isSidebarOpen && 'mr-3']"></i>
-          <span v-if="isSidebarOpen">{{ isDark ? 'Modo Claro' : 'Modo Oscuro' }}</span>
-        </button>
-        <button @click="logout"
-          class="w-full flex items-center p-3 text-[10px] font-black uppercase text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-          :class="!isSidebarOpen && 'justify-center'">
-          <i class="fas fa-sign-out-alt" :class="isSidebarOpen && 'mr-3'"></i>
-          <span v-if="isSidebarOpen">Salir</span>
-        </button>
+          <button @click="logout"
+            class="w-full flex items-center p-2 text-[9px] font-black uppercase text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-sign-out-alt" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Salir</span>
+          </button>
+        </div>
       </div>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
       <header class="h-16 flex items-center justify-between px-8 border-b transition-colors"
         :class="isDark ? 'bg-[#0f172a]/50 border-white/5' : 'bg-white border-slate-200'">
-        <button @click="isSidebarOpen = !isSidebarOpen" class="p-2 rounded-lg hover:bg-slate-500/10">
-          <i class="fas fa-bars"></i>
-        </button>
+
         <div class="flex items-center gap-4">
           <span
             class="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase rounded-full">Sistema
@@ -722,27 +754,104 @@ const uploadApkFile = async () => {
                         <i class="fas fa-times-circle text-xl"></i>
                       </button>
                     </div>
+                    <div class="space-y-4 overflow-y-auto pr-2 custom-scroll flex-1">
 
-                    <div class="space-y-3 overflow-y-auto pr-2 custom-scroll flex-1">
-                      <div
-                        v-for="slug in ['super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias', 'super.personal', 'admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.novedades']"
-                        :key="slug"
-                        class="flex items-center justify-between p-4 rounded-2xl bg-black/5 border border-white/5 transition-colors hover:bg-black/10">
-
-                        <div class="mr-4">
-                          <span class="text-[10px] font-black uppercase tracking-wider">
-                            {{ slug.replace('.', ' ') }}
-                          </span>
-                          <p class="text-[8px] opacity-40 font-bold uppercase leading-tight">Módulo del sistema</p>
+                      <div :class="[
+                        'p-5 rounded-[2rem] border transition-all duration-300',
+                        isDark ? 'bg-white/[0.02] border-white/10 shadow-xl' : 'bg-slate-50 border-slate-200 shadow-sm'
+                      ]">
+                        <div class="flex items-center gap-2 mb-5">
+                          <div class="w-6 h-6 rounded-lg bg-[#FF8F00]/20 flex items-center justify-center">
+                            <i class="fas fa-layer-group text-[10px] text-[#FF8F00]"></i>
+                          </div>
+                          <span class="text-[10px] font-black uppercase tracking-[0.15em] opacity-70">Estructura
+                            Organizacional</span>
                         </div>
 
-                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                          <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
-                            @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
-                          <div
-                            class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-[#FF8F00] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all">
+                        <div class="grid grid-cols-2 gap-4">
+                          <div class="group space-y-2">
+                            <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
+                              <span class="w-1 h-1 bg-blue-500 rounded-full"></span> Área Actual
+                            </label>
+                            <div class="relative">
+                              <select v-model="selectedUserPerms.area_id"
+                                @change="updateUserStructure(selectedUserPerms, 'area_id')"
+                                class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer"
+                                :class="isDark ? 'text-white' : 'text-slate-800'">
+                                <option :value="null">-- SIN ÁREA --</option>
+                                <option v-for="a in areas" :key="a.id" :value="a.id">{{ a.nombre }}</option>
+                              </select>
+                              <i
+                                class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
+                            </div>
                           </div>
-                        </label>
+
+                          <div class="group space-y-2">
+                            <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
+                              <span class="w-1 h-1 bg-emerald-500 rounded-full"></span> Segmento
+                            </label>
+                            <div class="relative">
+                              <select v-model="selectedUserPerms.segmento_id"
+                                @change="updateUserStructure(selectedUserPerms, 'segmento_id')"
+                                class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                :class="isDark ? 'text-white' : 'text-slate-800'">
+                                <option :value="null">-- SIN SEGMENTO --</option>
+                                <option v-for="s in segmentos" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+                              </select>
+                              <i
+                                class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-4 py-2">
+                        <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1">
+                        </div>
+                        <span class="text-[9px] font-black opacity-40 uppercase tracking-[0.2em]">Módulos y
+                          Permisos</span>
+                        <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1">
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-1 gap-2">
+                        <div
+                          v-for="slug in ['super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias', 'super.personal', 'admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.novedades']"
+                          :key="slug"
+                          class="group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200"
+                          :class="isDark
+                            ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/10'
+                            : 'bg-white border-slate-200 hover:border-[#FF8F00]/30 hover:shadow-md'">
+
+                          <div class="flex items-center gap-4">
+                            <div :class="[
+                              'w-1.5 h-8 rounded-full transition-all duration-500',
+                              hasPerm(selectedUserPerms, slug) ? 'bg-[#FF8F00] shadow-[0_0_10px_#FF8F00]/40' : 'bg-slate-700/20'
+                            ]"></div>
+
+                            <div>
+                              <span
+                                class="text-[10px] font-black uppercase tracking-wider block group-hover:text-[#FF8F00] transition-colors">
+                                {{ slug.split('.')[1] }}
+                                <span class="text-[8px] opacity-30 ml-1 font-normal italic">({{ slug.split('.')[0]
+                                  }})</span>
+                              </span>
+                              <p class="text-[8px] opacity-40 font-bold uppercase">Acceso al sistema</p>
+                            </div>
+                          </div>
+
+                          <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
+                              @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
+                            <div class="w-9 h-5 bg-slate-700/30 rounded-full peer 
+          peer-checked:bg-[#FF8F00] 
+          after:content-[''] after:absolute after:top-[4px] after:left-[4px] 
+          after:bg-white after:rounded-full after:h-3 after:w-3 
+          after:transition-all peer-checked:after:translate-x-4
+          shadow-inner">
+                            </div>
+                          </label>
+                        </div>
                       </div>
                     </div>
 

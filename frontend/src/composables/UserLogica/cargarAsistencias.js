@@ -11,6 +11,8 @@ export function useCargarAsistencias() {
   const currentPage = ref(1);
   const itemsPerPage = ref(15); // Lotes de 10 para diseño compacto
   const rawData = ref([]);
+  const selectedArea = ref(null);
+  const selectedSegmento = ref(null);
   // Variable para el switch de "Hoy"
   const filterHoy = ref(true);
 
@@ -53,43 +55,79 @@ export function useCargarAsistencias() {
       fetchReporte();
     },
   );
-  // ... dentro de useCargarAsistencias ...
-  // Dentro de useCargarAsistencias.js
-  const fetchReporte = async () => {
-    loading.value = true;
-    try {
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const deptoUsuario = session.department || "";
+const fetchReporte = async () => {
+  loading.value = true;
+  try {
+    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    
+    url.searchParams.append("hoy", filterHoy.value.toString());
+    if (startDate.value) url.searchParams.append("startDate", startDate.value); // Ojo: startDate con d mayúscula según tu NestJS
+    if (endDate.value) url.searchParams.append("endDate", endDate.value);
+    if (selectedCompany.value) url.searchParams.append("company", selectedCompany.value);
 
-      // --- PARÁMETROS ---
-      url.searchParams.append("hoy", filterHoy.value.toString());
-
-      // AGREGA ESTO: Enviar fechas si existen
-      if (startDate.value)
-        url.searchParams.append("start_date", startDate.value);
-      if (endDate.value) url.searchParams.append("end_date", endDate.value);
-
-      if (selectedCompany.value) {
-        url.searchParams.append("company", selectedCompany.value);
-      }
-
-      const deptoAEnviar = selectedDepartment.value || deptoUsuario;
+    // --- PRIORIDAD AL FILTRADO POR ÁREA (DB LOCAL) ---
+    if (selectedArea.value) {
+      url.searchParams.append("area_id", selectedArea.value);
+      // Si hay área local, NO enviamos departamento de Odoo para que no choque
+    } else {
+      // Solo si NO hay área seleccionada, enviamos el departamento
+      const deptoAEnviar = selectedDepartment.value;
       if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
         url.searchParams.append("departamento", deptoAEnviar);
       }
-
-      url.searchParams.append("_t", Date.now().toString());
-
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      rawData.value = data;
-    } catch (err) {
-      console.error("Error:", err);
-    } finally {
-      loading.value = false;
     }
-  };
+
+    if (selectedSegmento.value) {
+      url.searchParams.append("segmento_id", selectedSegmento.value);
+    }
+
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    rawData.value = data;
+  } catch (err) {
+    console.error("Error:", err);
+  } finally {
+    loading.value = false;
+  }
+};
+  watch([selectedArea, selectedSegmento], () => {
+    fetchReporte();
+  });
+  // const fetchReporte = async () => {
+  //   loading.value = true;
+  //   try {
+  //     const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+  //     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+  //     const deptoUsuario = session.department || "";
+
+  //     // --- PARÁMETROS ---
+  //     url.searchParams.append("hoy", filterHoy.value.toString());
+
+  //     // AGREGA ESTO: Enviar fechas si existen
+  //     if (startDate.value)
+  //       url.searchParams.append("start_date", startDate.value);
+  //     if (endDate.value) url.searchParams.append("end_date", endDate.value);
+
+  //     if (selectedCompany.value) {
+  //       url.searchParams.append("company", selectedCompany.value);
+  //     }
+
+  //     const deptoAEnviar = selectedDepartment.value || deptoUsuario;
+  //     if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
+  //       url.searchParams.append("departamento", deptoAEnviar);
+  //     }
+
+  //     url.searchParams.append("_t", Date.now().toString());
+
+  //     const res = await fetch(url.toString());
+  //     const data = await res.json();
+  //     rawData.value = data;
+  //   } catch (err) {
+  //     console.error("Error:", err);
+  //   } finally {
+  //     loading.value = false;
+  //   }
+  // };
 
   // Escuchar cambios en filterHoy para recargar automáticamente
   watch(filterHoy, () => {
@@ -237,18 +275,20 @@ export function useCargarAsistencias() {
     }
   };
 
-  return {
-    reportData: filteredReport,
+return {
+    reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
     search,
     selectedDepartment,
     startDate,
     endDate,
-    filterHoy, // IMPORTANTE: Exponer esta variable
-    departments,
+    filterHoy,
     loading,
     fetchReporte,
-    downloadReport,
+    downloadReport, // Tu función de descarga
     clearFilters,
     selectedCompany,
+    // EXPOSEMOS LAS NUEVAS VARIABLES
+    selectedArea,
+    selectedSegmento
   };
 }
