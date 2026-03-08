@@ -442,135 +442,82 @@ const uploadApkFile = async () => {
 
 
 
-        <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-8 p-2">
+  <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-4 p-2">
+  
+  <div class="flex items-center justify-between px-4 py-3 rounded-2xl border border-slate-500/10 bg-white/5">
+    <div class="flex items-center gap-4">
+      <div class="flex flex-col">
+        <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Sincronización</h2>
+        <span class="text-[9px] opacity-50 font-bold uppercase tracking-tighter">Odoo ERP vs Local DB</span>
+      </div>
+      <div v-if="isSyncingCompanies" class="w-32 h-[3px] bg-slate-500/10 rounded-full overflow-hidden">
+        <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: syncProgress + '%' }"></div>
+      </div>
+    </div>
 
-          <div class="flex justify-between items-center p-6 rounded-3xl border transition-all duration-500 shadow-2xl"
-            :class="isDark
-              ? 'bg-white/5 border-white/10'
-              : 'bg-white border-slate-200 shadow-slate-200/50'">
-            <div>
-              <h2 class="text-xs font-black uppercase tracking-[0.3em] text-[#FF8F00]">Sincronización Maestra</h2>
-              <p class="text-[9px] font-bold uppercase mt-1"
-                :class="isDark ? 'opacity-50 text-white' : 'text-slate-500'">
-                Comparativa: Odoo ERP vs WodenTrack DB
-              </p>
-            </div>
-            <div class="space-y-4 w-full md:w-auto">
-              <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
-                class="w-full px-8 py-4 bg-[#FF8F00] text-black text-[11px] font-black uppercase rounded-2xl shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
-                <div class="flex items-center justify-center gap-3">
-                  <i class="fas" :class="isSyncingCompanies ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
-                  <span>{{ isSyncingCompanies ? 'Verificando datos...' : 'Sincronizar Sedes' }}</span>
+    <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
+      class="h-8 px-5 rounded-lg bg-[#FF8F00] text-white text-[9px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 disabled:opacity-30 transition-all">
+      <i class="fas mr-2" :class="isSyncingCompanies ? 'fa-circle-notch fa-spin' : 'fa-sync-alt'"></i>
+      {{ isSyncingCompanies ? `${syncProgress}%` : 'Sincronizar Sedes' }}
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    
+    <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
+      <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
+        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Origen: Odoo</h3>
+        <span class="text-[8px] font-bold text-blue-500">REAL-TIME</span>
+      </div>
+      <div class="max-h-[350px] overflow-y-auto custom-scroll">
+        <table class="w-full">
+          <tbody class="text-[10px]">
+            <tr v-for="c in odooCompanies" :key="c.id" class="border-b border-slate-500/5 hover:bg-white/[0.02] transition-colors">
+              <td class="p-3 font-mono text-blue-500/60 text-[9px]">#{{ c.id }}</td>
+              <td class="p-3 font-bold uppercase tracking-tight">{{ c.name }}</td>
+              <td class="p-3 text-right">
+                <i v-if="dbCompanies.some(db => db.id === c.id)" class="fas fa-check text-emerald-500 text-[9px]"></i>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
+      <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
+        <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Destino: SQL Server</h3>
+        <span class="text-[8px] font-bold text-[#FF8F00]">LOCAL DB</span>
+      </div>
+      <div class="max-h-[350px] overflow-y-auto custom-scroll">
+        <table class="w-full text-left">
+          <tbody class="text-[10px]">
+            <tr v-for="comp in dbCompanies" :key="comp.id" 
+              class="border-b border-slate-500/5 transition-all"
+              :class="!comp.is_active ? 'opacity-30 grayscale' : 'hover:bg-white/[0.02]'">
+              <td class="p-3">
+                <div class="font-bold uppercase">{{ comp.name }}</div>
+                <div class="text-[7px] font-black tracking-tighter" :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'">
+                  {{ comp.is_active ? 'VISIBLE' : 'OCULTO' }}
                 </div>
-              </button>
+              </td>
+              <td class="p-3 text-right">
+                <button @click="handleToggleCompany(comp.id, comp.is_active)"
+                  class="h-6 px-3 rounded-md border text-[8px] font-black uppercase transition-all"
+                  :class="comp.is_active 
+                    ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white' 
+                    : 'border-slate-500/30 text-slate-500 hover:bg-slate-500 hover:text-white'">
+                  {{ comp.is_active ? 'ON' : 'OFF' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-              <Transition name="fade">
-                <div v-if="isSyncingCompanies"
-                  class="w-full bg-slate-500/10 h-1.5 rounded-full overflow-hidden border border-white/5">
-                  <div
-                    class="h-full bg-gradient-to-r from-[#FF8F00] to-orange-300 transition-all duration-300 shadow-[0_0_10px_#FF8F00]"
-                    :style="{ width: syncProgress + '%' }">
-                  </div>
-                </div>
-              </Transition>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-server text-[#FF8F00] text-[10px]"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">Origen: Odoo ERP</h3>
-              </div>
-
-              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
-                :class="isDark ? 'bg-[#0f172a]/60 border-white/5' : 'bg-white border-slate-200'">
-                <div class="max-h-[500px] overflow-y-auto custom-scroll">
-                  <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
-                      <tr class="text-[8px] uppercase font-black"
-                        :class="isDark ? 'opacity-40 text-white' : 'text-slate-400'">
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">ID</th>
-                        <th class="p-4 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">Nombre en ERP
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                      <tr v-for="c in odooCompanies" :key="c.id" class="border-b border-white/5">
-                        <td class="p-4 text-blue-400 font-mono">#{{ c.id }}</td>
-                        <td class="p-4 uppercase flex items-center justify-between">
-                          {{ c.name }}
-                          <i v-if="dbCompanies.some(db => db.id === c.id)"
-                            class="fas fa-check-circle text-emerald-500 text-[10px]" title="Ya en base de datos"></i>
-                        </td>
-                      </tr>
-                      <tr v-if="odooCompanies.length === 0">
-                        <td colspan="2" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">Cargando
-                          datos de Odoo...</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-center gap-3 px-2">
-                <i class="fas fa-database text-blue-500 text-[10px]"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'opacity-70 text-white' : 'text-slate-600'">DB Local: WodenTrack</h3>
-              </div>
-
-              <div class="rounded-3xl border overflow-hidden shadow-2xl transition-all duration-500"
-                :class="isDark ? 'bg-[#0f172a]/80 border-[#FF8F00]/10' : 'bg-white border-slate-200'">
-                <div class="max-h-[500px] overflow-y-auto custom-scroll">
-                  <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 z-10" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
-                      <tr class="text-[8px] uppercase font-black"
-                        :class="isDark ? 'text-[#FF8F00]/60' : 'text-slate-400'">
-                        <th class="p-4 border-b" :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Compañía
-                          Local</th>
-                        <th class="p-4 border-b text-center"
-                          :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Estado</th>
-                        <th class="p-4 border-b text-right"
-                          :class="isDark ? 'border-[#FF8F00]/10' : 'border-slate-100'">Visible</th>
-                      </tr>
-                    </thead>
-                    <tbody class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
-                      <tr v-for="comp in dbCompanies" :key="comp.id" class="border-b transition-all" :class="[
-                        isDark ? 'border-white/5 hover:bg-[#FF8F00]/5' : 'border-slate-50 hover:bg-slate-50',
-                        !comp.is_active && 'opacity-30 grayscale'
-                      ]">
-                        <td class="p-4 truncate max-w-[200px]">{{ comp.name }}</td>
-                        <td class="p-4 text-center">
-                          <span :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'"
-                            class="text-[8px] font-black tracking-tighter">
-                            {{ comp.is_active ? '● ACTIVA' : '○ OCULTA' }}
-                          </span>
-                        </td>
-                        <td class="p-4 text-right text-black">
-                          <button @click="handleToggleCompany(comp.id, comp.is_active)"
-                            class="w-10 h-5 rounded-full relative transition-all"
-                            :class="comp.is_active ? 'bg-emerald-600' : 'bg-slate-300'">
-                            <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all"
-                              :class="comp.is_active ? 'translate-x-5' : 'translate-x-0'"></div>
-                          </button>
-                        </td>
-                      </tr>
-                      <tr v-if="dbCompanies.length === 0">
-                        <td colspan="3" class="p-10 text-center opacity-30 text-[10px] uppercase font-black">No hay
-                          datos en SQL Server</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+  </div>
+</div>
 
 
         <div v-if="currentTab === 'users'" class="animate-fade-in space-y-3 p-0">
