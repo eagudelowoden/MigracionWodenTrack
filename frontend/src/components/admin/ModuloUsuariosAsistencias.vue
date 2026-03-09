@@ -169,12 +169,12 @@
 
               <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
                 :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
-                {{ formatDateTime(item.check_in) }}
+                {{ formatSoloHora(item.check_in) }}
               </td>
 
               <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
                 :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
-                {{ formatDateTime(item.check_out) }}
+                {{ formatSoloHora(item.check_out) }}
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
@@ -363,23 +363,46 @@ onMounted(() => {
 });
 
 
-// --- HELPERS ---
-const formatDateTime = (value) => {
-  if (!value || value === 'N/A') return '--/--/-- --:--';
+// // --- HELPERS ---
+// const formatDateTime = (value) => {
+//   if (!value || value === 'N/A') return '--/--/-- --:--';
 
-  // 1. Ajustamos el desfase de Odoo (UTC a Local)
-  const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
+//   // 1. Ajustamos el desfase de Odoo (UTC a Local)
+//   const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
 
-  // 2. Usamos toLocaleString (en lugar de toLocaleTimeString)
-  return dateUtc.toLocaleString('es-CO', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true // Cambia a false si prefieres formato 24h
-  });
+//   // 2. Usamos toLocaleString (en lugar de toLocaleTimeString)
+//   return dateUtc.toLocaleString('es-CO', {
+//     year: 'numeric',
+//     month: '2-digit',
+//     day: '2-digit',
+//     hour: '2-digit',
+//     minute: '2-digit',
+//     second: '2-digit',
+//     hour12: true // Cambia a false si prefieres formato 24h
+//   });
+// }
+
+const formatSoloHora = (value) => {
+  if (!value || value === 'N/A') return '--/--/-- --:--:--';
+  
+  try {
+    // El valor viene como "2026-03-09 10:09:51"
+    const [fecha, hora] = value.split(' ');
+    const [anio, mes, dia] = fecha.split('-');
+    const [hh, mm, ss] = hora.split(':'); // Extraemos 'ss' (segundos)
+
+    let h = parseInt(hh);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+
+    // Retorna: 09-03-2026 10:09:51 AM
+    // Usamos padStart en h por si quieres que el 9 aparezca como 09
+    const horaFormateada = String(h).padStart(2, '0');
+    
+    return `${dia}-${mes}-${anio} ${horaFormateada}:${mm}:${ss} ${ampm}`;
+  } catch (e) {
+    return value; 
+  }
 }
 
 const getStatusClass = (status) => {

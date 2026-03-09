@@ -48,7 +48,7 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -569,165 +569,174 @@ export class UsuariosService {
       };
     });
   }
-async getReporteNovedades(
-  soloHoy?: boolean,
-  companyName?: string,
-  startDate?: string,
-  endDate?: string,
-  departamentoName?: string,
-  areaId?: number,
-  segmentoId?: number,
-) {
-  const uid = await this.odoo.authenticate();
-  const { hoyFechaCorta } = getFechaColombia();
+  async getReporteNovedades(
+    soloHoy?: boolean,
+    companyName?: string,
+    startDate?: string,
+    endDate?: string,
+    departamentoName?: string,
+    areaId?: number,
+    segmentoId?: number,
+  ) {
+    const uid = await this.odoo.authenticate();
+    const { hoyFechaCorta } = getFechaColombia();
 
-  // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
-  let employeeIdsPorEstructura: number[] | null = null;
-  if (areaId || segmentoId) {
-    const where: any = {};
-    if (areaId) where.area_id = areaId;
-    if (segmentoId) where.segmento_id = segmentoId;
+    // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
+    let employeeIdsPorEstructura: number[] | null = null;
+    if (areaId || segmentoId) {
+      const where: any = {};
+      if (areaId) where.area_id = areaId;
+      if (segmentoId) where.segmento_id = segmentoId;
 
-    const usuariosLocales = await this.usuarioRepo.find({
-      where,
-      select: ['id_odoo'],
-    });
+      const usuariosLocales = await this.usuarioRepo.find({
+        where,
+        select: ['id_odoo'],
+      });
 
-    employeeIdsPorEstructura = usuariosLocales
-      .map((u) => u.id_odoo)
-      .filter((id) => id != null);
+      employeeIdsPorEstructura = usuariosLocales
+        .map((u) => u.id_odoo)
+        .filter((id) => id != null);
 
-    if (employeeIdsPorEstructura.length === 0) return [];
-  }
+      if (employeeIdsPorEstructura.length === 0) return [];
+    }
 
-  // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
-  const startDay = soloHoy ? hoyFechaCorta : startDate;
-  const endDay = soloHoy ? hoyFechaCorta : endDate;
+    // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
+    const startDay = soloHoy ? hoyFechaCorta : startDate;
+    const endDay = soloHoy ? hoyFechaCorta : endDate;
 
-  // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia, 
-  // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
-  const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
-  
-  let finUTC: string | null = null;
-  if (endDay) {
-    const partes = endDay.split('-'); 
-    const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-    // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
-    fechaFin.setDate(fechaFin.getDate() + 1);
-    
-    const anio = fechaFin.getFullYear();
-    const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
-    const dia = String(fechaFin.getDate()).padStart(2, '0');
-    
-    // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
-    finUTC = `${anio}-${mes}-${dia} 04:59:59`;
-  }
+    // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia, 
+    // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
+    const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
-  // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
-  let domainAtt: any[] = [];
-  let domainLog: any[] = [];
+    let finUTC: string | null = null;
+    if (endDay) {
+      const partes = endDay.split('-');
+      const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
+      fechaFin.setDate(fechaFin.getDate() + 1);
 
-  if (inicioUTC) {
-    domainAtt.push(['check_in', '>=', inicioUTC]);
-    domainLog.push(['punching_time', '>=', inicioUTC]);
-  }
-  if (finUTC) {
-    domainAtt.push(['check_in', '<=', finUTC]);
-    domainLog.push(['punching_time', '<=', finUTC]);
-  }
+      const anio = fechaFin.getFullYear();
+      const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
+      const dia = String(fechaFin.getDate()).padStart(2, '0');
 
-  if (companyName && companyName !== 'Todas' && companyName !== '') {
-    domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-    domainLog.push(['company_id.name', '=', companyName]);
-  }
+      // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
+      finUTC = `${anio}-${mes}-${dia} 04:59:59`;
+    }
 
-  if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
-    domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
-    domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
-  }
+    // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
+    let domainAtt: any[] = [];
+    let domainLog: any[] = [];
 
-  if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-    domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
-    domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
-  }
+    if (inicioUTC) {
+      domainAtt.push(['check_in', '>=', inicioUTC]);
+      domainLog.push(['punching_time', '>=', inicioUTC]);
+    }
+    if (finUTC) {
+      domainAtt.push(['check_in', '<=', finUTC]);
+      domainLog.push(['punching_time', '<=', finUTC]);
+    }
 
-  try {
-    const [attendances, logs] = await Promise.all([
-      this.odoo.executeKw<any[]>(
-        'hr.attendance', 'search_read', [domainAtt],
-        {
-          fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
-          order: 'check_in desc', limit: 3000, 
-        },
-        uid,
-      ),
-      this.odoo.executeKw<any[]>(
-        'attendance.log', 'search_read', [domainLog],
-        {
-          fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
-          order: 'punching_time desc', limit: 3000,
-        },
-        uid,
-      ),
-    ]);
+    if (companyName && companyName !== 'Todas' && companyName !== '') {
+      domainAtt.push(['employee_id.company_id.name', '=', companyName]);
+      domainLog.push(['company_id.name', '=', companyName]);
+    }
 
-    // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
-    const toLocal = (utcDate: string) => {
-      if (!utcDate) return null;
-      const d = new Date(utcDate.replace(' ', 'T') + 'Z');
-      d.setHours(d.getHours() - 5); // Restar 5 horas para Colombia
-      
-      const pad = (n: number) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    };
+    if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
+      domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+      domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
+    }
 
-    // --- 5. MAPEO FINAL ---
-    const resAttendances = attendances.map((att) => {
-      const localIn = toLocal(att.check_in);
-      const localOut = toLocal(att.check_out);
-      return {
-        id: `att_${att.id}`,
-        empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
-        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-        c_salida: att.x_studio_tipo_salida || 'N/A',
-        check_in: localIn,
-        check_out: localOut,
-        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-        tipo: 'ASISTENCIA',
-        estado: att.check_out ? 'Finalizado' : 'En curso',
+    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
+      domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    }
+
+    try {
+      const [attendances, logs] = await Promise.all([
+        this.odoo.executeKw<any[]>(
+          'hr.attendance', 'search_read', [domainAtt],
+          {
+            fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
+            order: 'check_in desc', limit: 3000,
+          },
+          uid,
+        ),
+        this.odoo.executeKw<any[]>(
+          'attendance.log', 'search_read', [domainLog],
+          {
+            fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
+            order: 'punching_time desc', limit: 3000,
+          },
+          uid,
+        ),
+      ]);
+
+      // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
+      const toLocal = (utcDate: string) => {
+        if (!utcDate) return null;
+
+        // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
+        // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
+        const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+
+        // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
+        return new Intl.DateTimeFormat('sv-SE', { // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
+          timeZone: 'America/Bogota',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(fechaUTC).replace('T', ' ');
       };
-    });
+      // --- 5. MAPEO FINAL ---
+      const resAttendances = attendances.map((att) => {
+        const localIn = toLocal(att.check_in);
+        const localOut = toLocal(att.check_out);
+        return {
+          id: `att_${att.id}`,
+          empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+          department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+          c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+          c_salida: att.x_studio_tipo_salida || 'N/A',
+          check_in: localIn,
+          check_out: localOut,
+          fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+          tipo: 'ASISTENCIA',
+          estado: att.check_out ? 'Finalizado' : 'En curso',
+        };
+      });
 
-    const resLogs = logs.map((log) => {
-      const localTime = toLocal(log.punching_time);
-      const esEntrada = log.status === '0' || log.status === '2';
-      return {
-        id: `log_${log.id}`,
-        empleado: log.employee_id ? log.employee_id[1] : 'Desconocido',
-        department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
-        check_in: esEntrada ? localTime : null,
-        check_out: !esEntrada ? localTime : null,
-        c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
-        c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
-        fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-        tipo: 'LOG CRUDO',
-        estado: 'Biométrico',
-      };
-    });
+      const resLogs = logs.map((log) => {
+        const localTime = toLocal(log.punching_time);
+        const esEntrada = log.status === '0' || log.status === '2';
+        return {
+          id: `log_${log.id}`,
+          empleado: log.employee_id ? log.employee_id[1] : 'Desconocido',
+          department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
+          check_in: esEntrada ? localTime : null,
+          check_out: !esEntrada ? localTime : null,
+          c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
+          c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
+          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+          tipo: 'LOG CRUDO',
+          estado: 'Biométrico',
+        };
+      });
 
-    // --- 6. UNIÓN Y ORDENAMIENTO ---
-    return [...resAttendances, ...resLogs].sort((a, b) => {
-      const timeA = new Date((a.check_in || a.check_out || '0').replace(' ', 'T')).getTime();
-      const timeB = new Date((b.check_in || b.check_out || '0').replace(' ', 'T')).getTime();
-      return timeB - timeA;
-    });
+      // --- 6. UNIÓN Y ORDENAMIENTO ---
+      return [...resAttendances, ...resLogs].sort((a, b) => {
+        const timeA = new Date((a.check_in || a.check_out || '0').replace(' ', 'T')).getTime();
+        const timeB = new Date((b.check_in || b.check_out || '0').replace(' ', 'T')).getTime();
+        return timeB - timeA;
+      });
 
-  } catch (error) {
-    console.error('Error en reporte:', error);
-    throw error;
+    } catch (error) {
+      console.error('Error en reporte:', error);
+      throw error;
+    }
   }
-}
   async getAttendanceStatus(employee_id: number) {
     try {
       const { hoyFechaCorta } = getFechaColombia();
@@ -1088,26 +1097,26 @@ async getReporteNovedades(
       );
     }
   }
-async obtenerPerfilConEstructura(idOdoo: number) {
-  // --- ESTE ES EL TEST DE DEPURACIÓN ---
-  const todos = await this.usuarioRepo.find({ take: 5 });
-  console.log("--- DEBUG DB ---");
-  console.log("ID Odoo que busco:", idOdoo);
-  console.log("Contenido actual de la tabla (5 primeros):", todos);
-  // ------------------------------------
+  async obtenerPerfilConEstructura(idOdoo: number) {
+    // --- ESTE ES EL TEST DE DEPURACIÓN ---
+    const todos = await this.usuarioRepo.find({ take: 5 });
+    console.log("--- DEBUG DB ---");
+    console.log("ID Odoo que busco:", idOdoo);
+    console.log("Contenido actual de la tabla (5 primeros):", todos);
+    // ------------------------------------
 
-  const usuario = await this.usuarioRepo.findOne({
-    where: [
-      { id_odoo: idOdoo },
-      { id: idOdoo }
-    ],
-    relations: ['area', 'segmento'],
-  });
+    const usuario = await this.usuarioRepo.findOne({
+      where: [
+        { id_odoo: idOdoo },
+        { id: idOdoo }
+      ],
+      relations: ['area', 'segmento'],
+    });
 
-  if (!usuario) {
-    throw new NotFoundException(`Usuario ${idOdoo} no hallado en la tabla usuarios_registrados`);
+    if (!usuario) {
+      throw new NotFoundException(`Usuario ${idOdoo} no hallado en la tabla usuarios_registrados`);
+    }
+
+    return usuario;
   }
-
-  return usuario;
-}
 }
