@@ -180,100 +180,101 @@ const fetchReporte = async () => {
       return matchesSearch && matchesDept && matchesDate;
     });
   });
-  const downloadReport = async () => {
-    if (filteredReport.value.length === 0) {
-      alert("No hay datos para exportar");
-      return;
-    }
+const downloadReport = async () => {
+  if (filteredReport.value.length === 0) {
+    alert("No hay datos para exportar");
+    return;
+  }
 
-    loading.value = true;
+  loading.value = true;
 
-    /**
-     * Función para ajustar la fecha UTC de Odoo a la hora local de Colombia (UTC-5)
-     * Esto elimina el desfase de 5 horas en el Excel.
-     */
-    const ajustarHoraLocal = (fechaUTC) => {
-      if (!fechaUTC || fechaUTC === "N/A" || fechaUTC === "null") return "N/A";
-      try {
-        // Forzamos la interpretación como UTC agregando el sufijo
-        const fecha = new Date(fechaUTC.replace(/-/g, "/") + " UTC");
-        return fecha.toLocaleTimeString("es-CO", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
-      } catch (e) {
-        console.error("Error al transformar fecha:", e);
-        return fechaUTC;
-      }
-    };
-
+ /**
+   * Extrae la hora en formato 24h (00:00:00 - 23:59:59)
+   * Ideal para reportes técnicos o militares.
+   */
+  const formatHoraParaExcel = (value) => {
+    if (!value || value === 'N/A' || value === 'null') return 'N/A';
+    
     try {
-      // 1. Mapeamos los datos para el envío, corrigiendo el desfase horario
-      const dataFiltrada = filteredReport.value.map((item) => ({
-        Colaborador: item.empleado,
-        Cédula: item.doc_number || "N/A",
-        Departamento: item.department_id,
-        Fecha: item.fecha,
-        Entrada: ajustarHoraLocal(item.check_in),
-        Salida: ajustarHoraLocal(item.check_out),
-        Estatus_Entrada: item.c_entrada || "N/A",
-        Estatus_Salida: item.c_salida || "N/A",
-        Estado: item.estado,
-      }));
+      // El valor de la API viene como "2026-03-09 18:09:51"
+      const partes = value.split(' ');
+      if (partes.length < 2) return value; 
 
-      // 2. Petición al servidor NestJS
-      const response = await fetch(
-        `${API_BASE_URL}/reports/asistencias/export`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFiltrada),
-        },
-      );
+      const horaCompleta = partes[1]; // "18:09:51"
+      const [hh, mm, ss] = horaCompleta.split(':');
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al generar el archivo");
-      }
-
-      // 3. Procesar la descarga del archivo Blob
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      // 4. Construcción del nombre del archivo
-      const ahora = new Date();
-      const fechaCorta = ahora.toISOString().slice(0, 10);
-      const horaCorta = ahora
-        .toLocaleTimeString("es-CO", { hour12: false })
-        .replace(/:/g, "-");
-
-      // Si tienes variables de rango de fecha, las incluimos en el nombre
-      const range =
-        typeof startDate !== "undefined" && startDate.value
-          ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
-          : "";
-
-      link.setAttribute(
-        "download",
-        `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
-      );
-
-      // 5. Disparar descarga y limpiar
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error en descarga:", error);
-      alert(`Error al descargar el reporte: ${error.message}`);
-    } finally {
-      loading.value = false;
+      // Simplemente retornamos los componentes tal cual
+      // Esto asegura que 6 PM sea "18:09:51"
+      return `${hh}:${mm}:${ss}`;
+    } catch (e) {
+      return value; 
     }
   };
+
+  try {
+    // 1. Mapeamos los datos enviando el TEXTO ya formateado
+    const dataFiltrada = filteredReport.value.map((item) => ({
+      Colaborador: item.empleado,
+      Cédula: item.doc_number || "N/A",
+      Departamento: item.department_id,
+      Fecha: item.fecha, // "2026-03-09"
+      Entrada: formatHoraParaExcel(item.check_in), // "10:09:51 AM"
+      Salida: formatHoraParaExcel(item.check_out), // "06:05:20 PM"
+      Estatus_Entrada: item.c_entrada || "N/A",
+      Estatus_Salida: item.c_salida || "N/A",
+      Estado: item.estado,
+    }));
+
+    // 2. Petición al servidor NestJS
+    const response = await fetch(
+      `${API_BASE_URL}/reports/asistencias/export`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataFiltrada),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Error al generar el archivo");
+    }
+
+    // 3. Procesar la descarga
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    // 4. Nombre del archivo
+    const ahora = new Date();
+    const fechaCorta = ahora.toISOString().slice(0, 10);
+    const horaCorta = ahora
+      .toLocaleTimeString("es-CO", { hour12: false })
+      .replace(/:/g, "-");
+
+    const range = (typeof startDate !== "undefined" && startDate.value)
+        ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
+        : "";
+
+    link.setAttribute(
+      "download",
+      `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
+    );
+
+    // 5. Disparar descarga
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Error en descarga:", error);
+    alert(`Error al descargar el reporte: ${error.message}`);
+  } finally {
+    loading.value = false;
+  }
+};
 
 return {
     reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
