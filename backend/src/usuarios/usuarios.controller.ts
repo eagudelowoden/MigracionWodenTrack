@@ -14,7 +14,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(private readonly usuariosService: UsuariosService) { }
 
   @Post('login')
   async login(@Body() body: any) {
@@ -36,26 +36,26 @@ export class UsuariosController {
     return await this.usuariosService.getAllMallas(company, departamento);
   }
 
-@Get('reporte-novedades')
+  @Get('reporte-novedades')
   async getReporte(
     @Query('hoy') hoy?: string,
     @Query('company') company?: string,
-    @Query('departamento') departamento?: string,
-    @Query('area_id') area_id?: string,           
-    @Query('segmento_id') segmento_id?: string,   
+    // @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     const soloHoy = hoy === 'true';
-    
+
     return await this.usuariosService.getReporteNovedades(
       soloHoy,
       company,
       startDate,
       endDate,
-      departamento,
+      // departamento,
       // Cambiamos 'null' por 'undefined' para que TS no se queje
-      area_id ? Number(area_id) : undefined, 
+      area_id ? Number(area_id) : undefined,
       segmento_id ? Number(segmento_id) : undefined,
     );
   }

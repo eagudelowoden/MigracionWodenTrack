@@ -32,110 +32,99 @@ export function useCargarAsistencias() {
       Math.ceil(filteredReport.value.length / itemsPerPage.value),
     );
   });
-  // Resetear página cuando cambie la compañía o búsqueda
-  watch([search, selectedDepartment, startDate, endDate, filterHoy], () => {
-    currentPage.value = 1;
-  });
-  // OBSERVADOR CLAVE: Si el usuario toca el calendario, apagamos "Hoy" y buscamos
-  // 2. Un solo observador para disparar la búsqueda
   watch(
-    [startDate, endDate, filterHoy, selectedCompany],
-    ([newStart, newEnd, newHoy], [oldStart, oldEnd, oldHoy]) => {
-      // Si el usuario cambió una fecha manualmente, apagamos el switch de "Hoy"
+    [
+      search,
+      selectedDepartment,
+      startDate,
+      endDate,
+      filterHoy,
+      selectedCompany,
+      selectedArea,
+      selectedSegmento,
+    ],
+    (
+      [newSearch, newDept, newStart, newEnd, newHoy],
+      [oldSearch, oldDept, oldStart, oldEnd, oldHoy],
+    ) => {
+      // 1. Reset de página si cambian filtros
+      currentPage.value = 1;
+
+      // 2. Lógica de "Hoy" vs Fechas Manuales
+      // Evitamos el bucle infinito: solo cambiamos filterHoy si realmente hubo un cambio de fecha manual
       if (
+        newHoy &&
         (newStart !== oldStart || newEnd !== oldEnd) &&
         (newStart || newEnd)
       ) {
-        if (filterHoy.value) {
-          filterHoy.value = false;
-          return; // No ejecutamos fetchReporte aquí, porque el cambio de filterHoy disparará este mismo watch otra vez
-        }
+        filterHoy.value = false;
+        return; // El cambio de filterHoy disparará este watch de nuevo, ahí se hará el fetch
       }
 
+      // 3. OPTIMIZACIÓN: No llamar a la API si solo cambió el "search" o "departamento"
+      // porque esos ya los filtras en el FRONTEND con el computed 'filteredReport'
+      if (newSearch !== oldSearch || newDept !== oldDept) {
+        return; // No hace falta ir al servidor para filtrar por nombre si ya tenemos la data
+      }
+
+      // 4. Ejecución de la petición (Solo para cambios que requieren nueva data de Odoo/DB)
       fetchReporte();
     },
+    { deep: true },
   );
-const fetchReporte = async () => {
-  loading.value = true;
-  try {
-    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-    
-    url.searchParams.append("hoy", filterHoy.value.toString());
-    if (startDate.value) url.searchParams.append("startDate", startDate.value); // Ojo: startDate con d mayúscula según tu NestJS
-    if (endDate.value) url.searchParams.append("endDate", endDate.value);
-    if (selectedCompany.value) url.searchParams.append("company", selectedCompany.value);
+  const fetchReporte = async () => {
+    loading.value = true;
+    try {
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
 
-    // --- PRIORIDAD AL FILTRADO POR ÁREA (DB LOCAL) ---
-    if (selectedArea.value) {
-      url.searchParams.append("area_id", selectedArea.value);
-      // Si hay área local, NO enviamos departamento de Odoo para que no choque
-    } else {
-      // Solo si NO hay área seleccionada, enviamos el departamento
-      const deptoAEnviar = selectedDepartment.value;
-      if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
-        url.searchParams.append("departamento", deptoAEnviar);
+      // 1. Parámetros de tiempo
+      url.searchParams.append("hoy", filterHoy.value.toString());
+      if (startDate.value)
+        url.searchParams.append("startDate", startDate.value);
+      if (endDate.value) url.searchParams.append("endDate", endDate.value);
+
+      // 2. Parámetros de organización
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        url.searchParams.append("company", selectedCompany.value);
       }
+
+      if (selectedSegmento.value) {
+        url.searchParams.append("segmento_id", selectedSegmento.value);
+      }
+
+      // 3. Lógica de Filtrado Local Estricto
+      if (selectedArea.value) {
+        // Prioridad 1: Tenemos el área exacta de la DB local
+        url.searchParams.append("area_id", selectedArea.value);
+      } else if (
+        selectedDepartment.value &&
+        selectedDepartment.value !== "DEPARTAMENTOS"
+      ) {
+        /**
+         * Prioridad 2: No hay área manual, pero hay departamento.
+         * Mandamos el flag 'solo_con_area' para que el Backend (NestJS)
+         * filtre los empleados del departamento contra la tabla local de usuarios.
+         */
+        url.searchParams.append("solo_con_area", "true");
+        // url.searchParams.append("departamento", selectedDepartment.value);
+      }
+
+      // 4. Petición
+      const res = await fetch(url.toString());
+
+      if (!res.ok) throw new Error("Error en la respuesta del servidor");
+
+      const data = await res.json();
+
+      // 5. Asignación de datos
+      rawData.value = data;
+    } catch (err) {
+      console.error("Error al obtener el reporte:", err);
+      rawData.value = []; // Limpiamos datos en caso de error
+    } finally {
+      loading.value = false;
     }
-
-    if (selectedSegmento.value) {
-      url.searchParams.append("segmento_id", selectedSegmento.value);
-    }
-
-    const res = await fetch(url.toString());
-    const data = await res.json();
-    rawData.value = data;
-  } catch (err) {
-    console.error("Error:", err);
-  } finally {
-    loading.value = false;
-  }
-};
-  watch([selectedArea, selectedSegmento], () => {
-    fetchReporte();
-  });
-  // const fetchReporte = async () => {
-  //   loading.value = true;
-  //   try {
-  //     const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-  //     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-  //     const deptoUsuario = session.department || "";
-
-  //     // --- PARÁMETROS ---
-  //     url.searchParams.append("hoy", filterHoy.value.toString());
-
-  //     // AGREGA ESTO: Enviar fechas si existen
-  //     if (startDate.value)
-  //       url.searchParams.append("start_date", startDate.value);
-  //     if (endDate.value) url.searchParams.append("end_date", endDate.value);
-
-  //     if (selectedCompany.value) {
-  //       url.searchParams.append("company", selectedCompany.value);
-  //     }
-
-  //     const deptoAEnviar = selectedDepartment.value || deptoUsuario;
-  //     if (deptoAEnviar && deptoAEnviar !== "DEPARTAMENTOS") {
-  //       url.searchParams.append("departamento", deptoAEnviar);
-  //     }
-
-  //     url.searchParams.append("_t", Date.now().toString());
-
-  //     const res = await fetch(url.toString());
-  //     const data = await res.json();
-  //     rawData.value = data;
-  //   } catch (err) {
-  //     console.error("Error:", err);
-  //   } finally {
-  //     loading.value = false;
-  //   }
-  // };
-
-  // Escuchar cambios en filterHoy para recargar automáticamente
-  watch(filterHoy, () => {
-    fetchReporte();
-  });
-  watch(selectedCompany, () => {
-    fetchReporte();
-  });
+  };
 
   const clearFilters = () => {
     search.value = "";
@@ -180,103 +169,103 @@ const fetchReporte = async () => {
       return matchesSearch && matchesDept && matchesDate;
     });
   });
-const downloadReport = async () => {
-  if (filteredReport.value.length === 0) {
-    alert("No hay datos para exportar");
-    return;
-  }
+  const downloadReport = async () => {
+    if (filteredReport.value.length === 0) {
+      alert("No hay datos para exportar");
+      return;
+    }
 
-  loading.value = true;
+    loading.value = true;
 
- /**
-   * Extrae la hora en formato 24h (00:00:00 - 23:59:59)
-   * Ideal para reportes técnicos o militares.
-   */
-  const formatHoraParaExcel = (value) => {
-    if (!value || value === 'N/A' || value === 'null') return 'N/A';
-    
+    /**
+     * Extrae la hora en formato 24h (00:00:00 - 23:59:59)
+     * Ideal para reportes técnicos o militares.
+     */
+    const formatHoraParaExcel = (value) => {
+      if (!value || value === "N/A" || value === "null") return "N/A";
+
+      try {
+        // El valor de la API viene como "2026-03-09 18:09:51"
+        const partes = value.split(" ");
+        if (partes.length < 2) return value;
+
+        const horaCompleta = partes[1]; // "18:09:51"
+        const [hh, mm, ss] = horaCompleta.split(":");
+
+        // Simplemente retornamos los componentes tal cual
+        // Esto asegura que 6 PM sea "18:09:51"
+        return `${hh}:${mm}:${ss}`;
+      } catch (e) {
+        return value;
+      }
+    };
+
     try {
-      // El valor de la API viene como "2026-03-09 18:09:51"
-      const partes = value.split(' ');
-      if (partes.length < 2) return value; 
+      // 1. Mapeamos los datos enviando el TEXTO ya formateado
+      const dataFiltrada = filteredReport.value.map((item) => ({
+        Colaborador: item.empleado,
+        Cédula: item.doc_number || "N/A",
+        Departamento: item.department_id,
+        Fecha: item.fecha, // "2026-03-09"
+        Entrada: formatHoraParaExcel(item.check_in), // "10:09:51 AM"
+        Salida: formatHoraParaExcel(item.check_out), // "06:05:20 PM"
+        Estatus_Entrada: item.c_entrada || "N/A",
+        Estatus_Salida: item.c_salida || "N/A",
+        Estado: item.estado,
+      }));
 
-      const horaCompleta = partes[1]; // "18:09:51"
-      const [hh, mm, ss] = horaCompleta.split(':');
+      // 2. Petición al servidor NestJS
+      const response = await fetch(
+        `${API_BASE_URL}/reports/asistencias/export`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataFiltrada),
+        },
+      );
 
-      // Simplemente retornamos los componentes tal cual
-      // Esto asegura que 6 PM sea "18:09:51"
-      return `${hh}:${mm}:${ss}`;
-    } catch (e) {
-      return value; 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al generar el archivo");
+      }
+
+      // 3. Procesar la descarga
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // 4. Nombre del archivo
+      const ahora = new Date();
+      const fechaCorta = ahora.toISOString().slice(0, 10);
+      const horaCorta = ahora
+        .toLocaleTimeString("es-CO", { hour12: false })
+        .replace(/:/g, "-");
+
+      const range =
+        typeof startDate !== "undefined" && startDate.value
+          ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
+          : "";
+
+      link.setAttribute(
+        "download",
+        `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
+      );
+
+      // 5. Disparar descarga
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error en descarga:", error);
+      alert(`Error al descargar el reporte: ${error.message}`);
+    } finally {
+      loading.value = false;
     }
   };
 
-  try {
-    // 1. Mapeamos los datos enviando el TEXTO ya formateado
-    const dataFiltrada = filteredReport.value.map((item) => ({
-      Colaborador: item.empleado,
-      Cédula: item.doc_number || "N/A",
-      Departamento: item.department_id,
-      Fecha: item.fecha, // "2026-03-09"
-      Entrada: formatHoraParaExcel(item.check_in), // "10:09:51 AM"
-      Salida: formatHoraParaExcel(item.check_out), // "06:05:20 PM"
-      Estatus_Entrada: item.c_entrada || "N/A",
-      Estatus_Salida: item.c_salida || "N/A",
-      Estado: item.estado,
-    }));
-
-    // 2. Petición al servidor NestJS
-    const response = await fetch(
-      `${API_BASE_URL}/reports/asistencias/export`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataFiltrada),
-      },
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Error al generar el archivo");
-    }
-
-    // 3. Procesar la descarga
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-
-    // 4. Nombre del archivo
-    const ahora = new Date();
-    const fechaCorta = ahora.toISOString().slice(0, 10);
-    const horaCorta = ahora
-      .toLocaleTimeString("es-CO", { hour12: false })
-      .replace(/:/g, "-");
-
-    const range = (typeof startDate !== "undefined" && startDate.value)
-        ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
-        : "";
-
-    link.setAttribute(
-      "download",
-      `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
-    );
-
-    // 5. Disparar descarga
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-  } catch (error) {
-    console.error("Error en descarga:", error);
-    alert(`Error al descargar el reporte: ${error.message}`);
-  } finally {
-    loading.value = false;
-  }
-};
-
-return {
+  return {
     reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
     search,
     selectedDepartment,
@@ -285,11 +274,10 @@ return {
     filterHoy,
     loading,
     fetchReporte,
-    downloadReport, // Tu función de descarga
+    downloadReport,
     clearFilters,
     selectedCompany,
-    // EXPOSEMOS LAS NUEVAS VARIABLES
     selectedArea,
-    selectedSegmento
+    selectedSegmento,
   };
 }

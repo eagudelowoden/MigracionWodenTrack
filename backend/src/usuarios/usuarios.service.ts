@@ -109,15 +109,10 @@ export class UsuariosService {
     // 3. LÓGICA DE ROLES
     const palabrasAdmin = [
       'DESARROLLADOR',
-      'GERENTE',
-      'DIRECTOR',
-      'SUPERVISOR LOGISTICO',
     ];
 
     const esSuperAdmin = [
       'DESARROLLADOR',
-      'PRACTICANTE IT',
-      'ANALISTA IT',
     ].some((palabra) => cargo.includes(palabra));
 
     // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
@@ -574,7 +569,7 @@ export class UsuariosService {
     companyName?: string,
     startDate?: string,
     endDate?: string,
-    departamentoName?: string,
+    // departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
   ) {
@@ -641,10 +636,10 @@ export class UsuariosService {
       domainLog.push(['company_id.name', '=', companyName]);
     }
 
-    if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
-      domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
-      domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
-    }
+    // if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
+    //   domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    //   domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
+    // }
 
     if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
       domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);

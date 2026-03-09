@@ -313,13 +313,12 @@ onMounted(async () => {
       //   selectedSegmento.value = perfil.segmento_id;
       // }
 
-      await fetchReporte();
-
     } catch (e) {
       console.error("Error:", e);
-      await fetchReporte();
+
     }
   }
+  await fetchReporte();
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));
@@ -333,7 +332,7 @@ watch([reportData, search, selectedDepartment, filterHoy, startDate, endDate], (
 watch(() => props.company, (newCompany) => {
   if (newCompany) {
     selectedCompany.value = newCompany;
-    fetchReporte(); // Esta será la única llamada inicial necesaria
+    // fetchReporte(); // Esta será la única llamada inicial necesaria
   }
 }, { immediate: true }); // El immediate: true reemplaza la necesidad del onMounted
 
@@ -350,41 +349,21 @@ onMounted(() => {
   fetchReporte();
 });
 
-watch(() => props.department, (newDepartament) => {
-  if (selectedDepartment) selectedDepartment.value = newDepartament;
-  fetchReporte();
-});
+// watch(() => props.department, (newDepartament) => {
+//   if (selectedDepartment) selectedDepartment.value = newDepartament;
+//   fetchReporte();
+// });
 
-onMounted(() => {
-  if (props.department && selectedDepartment) {
-    selectedDepartment.value = props.department;
-  }
-  fetchReporte();
-});
-
-
-// // --- HELPERS ---
-// const formatDateTime = (value) => {
-//   if (!value || value === 'N/A') return '--/--/-- --:--';
-
-//   // 1. Ajustamos el desfase de Odoo (UTC a Local)
-//   const dateUtc = new Date(value.replace(' ', 'T') + 'Z');
-
-//   // 2. Usamos toLocaleString (en lugar de toLocaleTimeString)
-//   return dateUtc.toLocaleString('es-CO', {
-//     year: 'numeric',
-//     month: '2-digit',
-//     day: '2-digit',
-//     hour: '2-digit',
-//     minute: '2-digit',
-//     second: '2-digit',
-//     hour12: true // Cambia a false si prefieres formato 24h
-//   });
-// }
+// onMounted(() => {
+//   if (props.department && selectedDepartment) {
+//     selectedDepartment.value = props.department;
+//   }
+//   fetchReporte();
+// });
 
 const formatSoloHora = (value) => {
   if (!value || value === 'N/A') return '--/--/-- --:--:--';
-  
+
   try {
     // El valor viene como "2026-03-09 10:09:51"
     const [fecha, hora] = value.split(' ');
@@ -398,10 +377,10 @@ const formatSoloHora = (value) => {
     // Retorna: 09-03-2026 10:09:51 AM
     // Usamos padStart en h por si quieres que el 9 aparezca como 09
     const horaFormateada = String(h).padStart(2, '0');
-    
+
     return `${dia}-${mes}-${anio} ${horaFormateada}:${mm}:${ss} ${ampm}`;
   } catch (e) {
-    return value; 
+    return value;
   }
 }
 
