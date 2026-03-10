@@ -349,17 +349,6 @@ onMounted(() => {
   fetchReporte();
 });
 
-// watch(() => props.department, (newDepartament) => {
-//   if (selectedDepartment) selectedDepartment.value = newDepartament;
-//   fetchReporte();
-// });
-
-// onMounted(() => {
-//   if (props.department && selectedDepartment) {
-//     selectedDepartment.value = props.department;
-//   }
-//   fetchReporte();
-// });
 
 const formatSoloHora = (value) => {
   if (!value || value === 'N/A') return '--/--/-- --:--:--';
