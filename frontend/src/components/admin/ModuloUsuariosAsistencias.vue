@@ -110,9 +110,9 @@
                 </div>
               </th>
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Indentificación
+                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center justify-center gap-2">
+                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Identificación
                 </div>
               </th>
               <th
