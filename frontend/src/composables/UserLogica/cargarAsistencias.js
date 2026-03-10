@@ -32,45 +32,52 @@ export function useCargarAsistencias() {
       Math.ceil(filteredReport.value.length / itemsPerPage.value),
     );
   });
+  let debounceTimeout = null;
+
   watch(
     [
-      search,
-      selectedDepartment,
+      filterHoy,
       startDate,
       endDate,
-      filterHoy,
       selectedCompany,
       selectedArea,
       selectedSegmento,
     ],
-    (
-      [newSearch, newDept, newStart, newEnd, newHoy],
-      [oldSearch, oldDept, oldStart, oldEnd, oldHoy],
-    ) => {
-      // 1. Reset de página si cambian filtros
-      currentPage.value = 1;
+    async (newValues, oldValues) => {
+      const [newHoy, newStart, newEnd, newCompany, newArea] = newValues;
+      const [oldHoy, oldStart, oldEnd] = oldValues;
 
-      // 2. Lógica de "Hoy" vs Fechas Manuales
-      // Evitamos el bucle infinito: solo cambiamos filterHoy si realmente hubo un cambio de fecha manual
+      // 1. Lógica de limpieza de fechas (Hoy vs Manual)
+      if (newHoy && !oldHoy) {
+        startDate.value = "";
+        endDate.value = "";
+      }
+
       if (
-        newHoy &&
         (newStart !== oldStart || newEnd !== oldEnd) &&
-        (newStart || newEnd)
+        (newStart || newEnd) &&
+        filterHoy.value
       ) {
         filterHoy.value = false;
-        return; // El cambio de filterHoy disparará este watch de nuevo, ahí se hará el fetch
+        return; // Este return es clave: el cambio de filterHoy re-disparará el watch
       }
 
-      // 3. OPTIMIZACIÓN: No llamar a la API si solo cambió el "search" o "departamento"
-      // porque esos ya los filtras en el FRONTEND con el computed 'filteredReport'
-      if (newSearch !== oldSearch || newDept !== oldDept) {
-        return; // No hace falta ir al servidor para filtrar por nombre si ya tenemos la data
-      }
+      // --- EL FILTRO DE SEGURIDAD ---
+      // Si no hay compañía, abortamos. Esto evita la llamada "?hoy=true" inicial.
+      if (!newCompany || newCompany === "") return;
 
-      // 4. Ejecución de la petición (Solo para cambios que requieren nueva data de Odoo/DB)
-      fetchReporte();
+      // Si no es admin y aún no tenemos el área, esperamos (opcional según tu flujo)
+      // if (!esAdmin && !newArea) return;
+
+      // 2. Reset de página
+      currentPage.value = 1;
+
+      // 3. ENCAPSULAMIENTO CON DEBOUNCE
+      // Esto agrupa los cambios de Area y Company en una sola petición
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+
+      debounceTimeout = setTimeout(async () => {}, 150); // 150ms es suficiente para que el onMounted termine de setear todo
     },
-    { deep: true },
   );
   const fetchReporte = async () => {
     loading.value = true;
@@ -105,7 +112,7 @@ export function useCargarAsistencias() {
          * Mandamos el flag 'solo_con_area' para que el Backend (NestJS)
          * filtre los empleados del departamento contra la tabla local de usuarios.
          */
-        url.searchParams.append("solo_con_area", "true");
+        // url.searchParams.append("solo_con_area", "true");
         // url.searchParams.append("departamento", selectedDepartment.value);
       }
 

@@ -278,47 +278,27 @@ const paginatedData = computed(() => {
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
-  if (esAdmin) {
-    await fetchReporte();
-  } else {
+  // 1. Cargar perfil si no es admin
+  if (!esAdmin) {
     try {
       const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
-      if (!resp.ok) throw new Error("No se pudo obtener el perfil");
-
-      const perfil = await resp.json();
-      userProfile.value = perfil;
-
-      // --- CREAR LA LISTA DE RESPONSABILIDADES ---
-      misResponsabilidades.value = []; // Limpiamos
-
-      if (perfil.area) {
-        misResponsabilidades.value.push({
-          tipo: 'Área',
-          nombre: perfil.area.nombre,
-          id: perfil.area_id,
-          clase: 'bg-blue-500/10 border-blue-500/20 text-blue-500',
-          icono: 'fas fa-sitemap'
-        });
-        selectedArea.value = perfil.area_id;
+      if (resp.ok) {
+        const perfil = await resp.json();
+        userProfile.value = perfil;
+        // Al asignar esto, el WATCH se activará automáticamente
+        if (perfil.area_id) selectedArea.value = perfil.area_id;
+        if (miDepto) selectedDepartment.value = miDepto;
       }
-
-      // if (perfil.segmento) {
-      //   misResponsabilidades.value.push({
-      //     tipo: 'Segmento',
-      //     nombre: perfil.segmento.nombre,
-      //     id: perfil.segmento_id,
-      //     clase: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
-      //     icono: 'fas fa-layer-group'
-      //   });
-      //   selectedSegmento.value = perfil.segmento_id;
-      // }
-
     } catch (e) {
-      console.error("Error:", e);
-
+      console.error("Error cargando perfil:", e);
     }
   }
-  await fetchReporte();
+
+  // 2. Sincronizar compañía de props
+  if (props.company) {
+    selectedCompany.value = props.company;
+  }
+  fetchReporte();
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));
@@ -332,22 +312,20 @@ watch([reportData, search, selectedDepartment, filterHoy, startDate, endDate], (
 watch(() => props.company, (newCompany) => {
   if (newCompany) {
     selectedCompany.value = newCompany;
-    // fetchReporte(); // Esta será la única llamada inicial necesaria
   }
-}, { immediate: true }); // El immediate: true reemplaza la necesidad del onMounted
+}, { immediate: true });
 
-onMounted(() => {
-  if (props.company) {
-    selectedCompany.value = props.company;
-  }
-  // No llames a fetchReporte() aquí si el watch de props.company ya lo hará
-});
-onMounted(() => {
-  if (!esAdmin && miDepto) {
-    selectedDepartment.value = miDepto;
-  }
-  fetchReporte();
-});
+// onMounted(() => {
+//   if (props.company) {
+//     selectedCompany.value = props.company;
+//   }
+// });
+// onMounted(() => {
+//   if (!esAdmin && miDepto) {
+//     selectedDepartment.value = miDepto;
+//   }
+//   fetchReporte();
+// });
 
 
 const formatSoloHora = (value) => {
@@ -386,7 +364,6 @@ const getStatusClass = (status) => {
 </script>
 
 <style scoped>
-/* Transición suave para los cambios de página */
 .table-wrapper {
   max-height: calc(107vh - 180px);
 }
