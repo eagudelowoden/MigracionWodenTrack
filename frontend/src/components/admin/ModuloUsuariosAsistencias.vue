@@ -110,6 +110,12 @@
                 </div>
               </th>
               <th
+                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Indentificación
+                </div>
+              </th>
+              <th
                 class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 <div class="flex items-center justify-center gap-2">
                   <i class="fas fa-sign-in-alt text-[9px] opacity-60"></i> Entrada
@@ -165,6 +171,11 @@
                     </span>
                   </div>
                 </div>
+              </td>
+
+              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
+                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+                {{ item.cc || 'Sin CC' }}
               </td>
 
               <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
@@ -363,34 +374,4 @@ const getStatusClass = (status) => {
 };
 </script>
 
-<style scoped>
-.table-wrapper {
-  max-height: calc(107vh - 180px);
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  filter: invert(0.5);
-}
-
-.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-}
-
-/* Animación de entrada */
-.animate-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
+<style scoped></style>

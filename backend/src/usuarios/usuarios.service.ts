@@ -648,23 +648,28 @@ export class UsuariosService {
 
     try {
       const [attendances, logs] = await Promise.all([
-        this.odoo.executeKw<any[]>(
-          'hr.attendance', 'search_read', [domainAtt],
-          {
-            fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
-            order: 'check_in desc', limit: 3000,
-          },
-          uid,
-        ),
-        this.odoo.executeKw<any[]>(
-          'attendance.log', 'search_read', [domainLog],
-          {
-            fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
-            order: 'punching_time desc', limit: 3000,
-          },
-          uid,
-        ),
+        this.odoo.executeKw<any[]>('hr.attendance', 'search_read', [domainAtt], {
+          fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
+          order: 'check_in desc', limit: 3000,
+        }, uid),
+        this.odoo.executeKw<any[]>('attendance.log', 'search_read', [domainLog], {
+          fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
+          order: 'punching_time desc', limit: 3000,
+        }, uid),
       ]);
+      const nombresAsistencias = attendances.map(a => a.employee_id?.[1]);
+      const nombresLogs = logs.map(l => l.employee_id?.[1]);
+      const nombresUnicos = [...new Set([...nombresAsistencias, ...nombresLogs])].filter(Boolean);
+
+      let partnerMap: Record<string, string> = {};
+      if (nombresUnicos.length > 0) {
+        const partners = await this.odoo.executeKw<any[]>('res.partner', 'search_read',
+          [[['name', 'in', nombresUnicos]]],
+          { fields: ['name', 'doc_number'] },
+          uid
+        );
+        partnerMap = Object.fromEntries(partners.map(p => [p.name, p.doc_number]));
+      }
 
       // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
       const toLocal = (utcDate: string) => {
@@ -687,11 +692,18 @@ export class UsuariosService {
       };
       // --- 5. MAPEO FINAL ---
       const resAttendances = attendances.map((att) => {
+        // 1. Convertimos las fechas a local una sola vez por cada registro
         const localIn = toLocal(att.check_in);
         const localOut = toLocal(att.check_out);
+
+        // 2. Obtenemos el nombre para buscar en el mapa de partners
+        const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+
+        // 3. Retornamos el objeto organizado
         return {
           id: `att_${att.id}`,
-          empleado: att.employee_id ? att.employee_id[1] : 'Desconocido',
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
           department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
           c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
           c_salida: att.x_studio_tipo_salida || 'N/A',
@@ -706,9 +718,17 @@ export class UsuariosService {
       const resLogs = logs.map((log) => {
         const localTime = toLocal(log.punching_time);
         const esEntrada = log.status === '0' || log.status === '2';
+
+        // 1. Extraemos el nombre del empleado del log
+        const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+
         return {
           id: `log_${log.id}`,
-          empleado: log.employee_id ? log.employee_id[1] : 'Desconocido',
+
+          // 2. Asignamos el nombre y buscamos el documento en el mapa
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
+
           department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
           check_in: esEntrada ? localTime : null,
           check_out: !esEntrada ? localTime : null,
