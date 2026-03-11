@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden transition-colors duration-700"
-    :class="isDark ? 'bg-[#0f172a] text-white' : 'bg-[#F8FAFC] text-slate-900'">
+    :class="isDark ? 'bg-[#3F4A6E] text-white' : 'bg-[#F8FAFC] text-slate-900'">
     
     <div class="absolute inset-0 z-0 pointer-events-none">
       <div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse"

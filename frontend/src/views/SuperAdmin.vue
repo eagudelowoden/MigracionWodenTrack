@@ -324,7 +324,7 @@ const uploadApkFile = async () => {
 </script>
 <template>
   <div class="flex min-h-screen transition-colors duration-500"
-    :class="isDark ? 'bg-[#020617] text-slate-200' : 'bg-[#F8FAFC] text-slate-800'">
+    :class="isDark ? 'bg-[#334157] text-slate-200' : 'bg-[#F8FAFC] text-slate-800'">
 
     <Transition name="notification">
       <div v-if="notification.show"
@@ -345,7 +345,7 @@ const uploadApkFile = async () => {
 
     <aside :class="[
       'fixed lg:relative z-50 h-screen transition-[width,transform] duration-300 ease-in-out border-r flex flex-col',
-      isDark ? 'bg-[#0f172a] border-white/5 text-white' : 'bg-white border-slate-200 text-slate-800',
+      isDark ? 'bg-[#273045] border-white/5 text-white' : 'bg-white border-slate-200 text-slate-800',
       /* En móvil: translate-x para esconder. En PC: cambia ancho de 64 a 16 */
       isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-16 lg:translate-x-0'
     ]">
@@ -607,21 +607,33 @@ const uploadApkFile = async () => {
 
               <div class="flex-1 max-w-[160px]">
                 <input v-model="searchUser" type="text" placeholder="BUSCAR USUARIO..."
-                  class="w-full py-1 bg-transparent border-b border-slate-200 focus:border-[#FF8F00] outline-none text-[10px] font-bold transition-all placeholder:text-slate-300" />
+                  class="font-mono-custom w-full py-1 bg-transparent border-b outline-none text-[13px] font-bold transition-all"
+                  :class="isDark
+                    ? 'border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-[#FF8F00]'
+                    : 'border-slate-200 text-slate-800 placeholder:text-slate-300 focus:border-[#FF8F00]'" />
               </div>
 
               <select v-model="selectedCountry"
-                class="bg-transparent border-b border-slate-200 outline-none text-[10px] font-black uppercase cursor-pointer text-blue-500 py-1 min-w-[100px] w-auto transition-colors hover:border-blue-400">
-                <option value="TODOS">PAÍS: TODOS</option>
-                <option v-for="c in odooCompanies" :key="c.id" :value="c.name">{{ c.name }}</option>
+                class="font-mono-custom bg-transparent border-b outline-none text-[13px] font-black uppercase cursor-pointer text-blue-500 py-1 min-w-[100px] w-auto transition-colors"
+                :class="isDark ? 'border-white/10 hover:border-blue-400' : 'border-slate-200 hover:border-blue-400'">
+                <option value="TODOS" :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">PAÍS:
+                  TODOS</option>
+                <option v-for="c in odooCompanies" :key="c.id" :value="c.name"
+                  :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">
+                  {{ c.name }}
+                </option>
               </select>
 
               <select v-model="selectedDept"
-                class="bg-transparent border-b border-slate-200 outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] py-1 min-w-[120px] w-auto transition-colors hover:border-orange-300">
-                <option value="TODOS">DEP: TODOS</option>
-                <option v-for="dept in departamentosUnicos" :key="dept" :value="dept">{{ dept }}</option>
+                class="font-mono-custom bg-transparent border-b outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] py-1 min-w-[120px] w-auto transition-colors"
+                :class="isDark ? 'border-white/10 hover:border-orange-300' : 'border-slate-200 hover:border-orange-300'">
+                <option value="TODOS" :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">DEP: TODOS
+                </option>
+                <option v-for="dept in departamentosUnicos" :key="dept" :value="dept"
+                  :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">
+                  {{ dept }}
+                </option>
               </select>
-
               <div class="flex flex-col gap-1 min-w-[130px]">
                 <div class="flex items-center gap-2">
                   <button @click="executeSync" :disabled="isSyncingUsers"
@@ -646,221 +658,112 @@ const uploadApkFile = async () => {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 font-mono-custom">
 
-            <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
-              :class="isDark ? 'bg-slate-900/40' : 'bg-white shadow-sm'">
+            <div class="rounded-xl border border-white/10 overflow-hidden flex flex-col h-[520px]"
+              :class="isDark ? 'bg-slate-900/40' : 'bg-white shadow-lg'">
 
-              <div class="p-2 border-b border-white/5 flex justify-between items-center bg-blue-500/5">
-                <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Odoo ERP</span>
-                <span class="text-[8px] font-bold opacity-40">{{ filteredOdoo?.length }} items</span>
+              <div class="p-3 border-b border-white/10 flex justify-between items-center bg-blue-500/10">
+                <span class="text-[12px] font-bold uppercase text-blue-400 tracking-wider">Odoo ERP System</span>
+                <span class="text-[10px] font-bold opacity-50 px-2 py-0.5 bg-blue-500/10 rounded">{{
+                  filteredOdoo?.length }} Items</span>
               </div>
 
-              <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
+              <div class="flex-1 overflow-y-auto custom-scroll relative">
                 <table class="w-full text-left border-collapse table-fixed">
                   <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
-                    <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
-                      <th class="p-2 border-b border-white/5 w-12 text-center">ID</th>
-                      <th class="p-2 border-b border-white/5 w-1/2">Colaborador</th>
-                      <th class="p-2 border-b border-white/5 w-1/3">Departamento</th>
+                    <tr class="text-[10px] uppercase font-bold text-slate-500 border-b border-white/10">
+                      <th class="p-3 w-16 text-center">ID</th>
+                      <th class="p-3 w-1/2">Colaborador</th>
+                      <th class="p-3 w-1/3">Departamento</th>
                     </tr>
                   </thead>
-                  <tbody class="text-[10px] font-bold">
+
+                  <tbody class="divide-y divide-white/5">
                     <tr v-for="u in (filteredOdoo || [])" :key="u.id"
-                      class="border-b border-white/5 hover:bg-blue-500/5 transition-colors">
-                      <td class="p-2 font-mono text-blue-400 text-center">#{{ u.id }}</td>
-                      <td class="p-2">
+                      class="hover:bg-blue-500/5 transition-colors group">
+
+                      <td class="p-3 text-center text-blue-400 font-bold text-[11px]">
+                        {{ u.id }}
+                      </td>
+
+                      <td class="p-3">
                         <div class="flex flex-col truncate">
-                          <span class="font-black uppercase truncate"
-                            :class="isDark ? 'text-slate-100' : 'text-slate-900'">{{ u.name }}</span>
-                          <span class="text-[8px] font-bold text-[#FF8F00] truncate tracking-tight">{{ u.job_title ||
-                            '---' }}</span>
+                          <span class="font-bold text-[13px] uppercase truncate"
+                            :class="isDark ? 'text-slate-100' : 'text-slate-900'">
+                            {{ u.name }}
+                          </span>
+                          <span class="text-[10px] font-semibold text-orange-400/90 truncate mt-0.5">
+                            {{ u.job_title || '---' }}
+                          </span>
                         </div>
                       </td>
-                      <td class="p-2 truncate italic opacity-60 text-[9px]">{{ u.department_id ? u.department_id[1] :
-                        'S/A' }}</td>
+
+                      <td class="p-3 truncate text-[11px] font-medium"
+                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                        {{ u.department_id ? u.department_id[1] : 'S/A' }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <div class="rounded-xl border border-white/5 overflow-hidden flex flex-col h-[500px]"
-              :class="isDark ? 'bg-slate-900/60' : 'bg-white shadow-sm'">
+            <div class="rounded-xl border border-white/10 overflow-hidden flex flex-col h-[520px]"
+              :class="isDark ? 'bg-slate-900/60' : 'bg-white shadow-lg'">
 
-              <div class="p-2 border-b border-white/5 flex justify-between items-center bg-emerald-500/5">
-                <span class="text-[9px] font-black uppercase text-emerald-500 tracking-widest">WodenTrack SQL</span>
-                <span class="text-[8px] font-bold opacity-40">{{ filteredLocal?.length }} items</span>
+              <div class="p-3 border-b border-white/10 flex justify-between items-center bg-emerald-500/10">
+                <span class="text-[12px] font-bold uppercase text-emerald-400 tracking-wider">WodenTrack SQL</span>
+                <span class="text-[10px] font-bold opacity-50 px-2 py-0.5 bg-emerald-500/10 rounded">{{
+                  filteredLocal?.length }} Items</span>
               </div>
 
-              <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scroll relative">
+              <div class="flex-1 overflow-y-auto custom-scroll relative">
                 <table class="w-full text-left border-collapse table-fixed">
                   <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
-                    <tr class="text-[9px] uppercase font-black tracking-wider text-slate-500">
-                      <th class="p-2 border-b border-white/5 w-20">Cédula</th>
-                      <th class="p-2 border-b border-white/5">Nombre / Depto</th>
-                      <th class="p-2 border-b border-white/5 w-24 text-center">Accesos Modulares</th>
-                      <th class="p-2 border-b border-white/5 w-10 text-center">Est</th>
+                    <tr class="text-[10px] uppercase font-bold text-slate-500 border-b border-white/10">
+                      <th class="p-3 w-24">Cédula</th>
+                      <th class="p-3">Nombre / Depto</th>
+                      <th class="p-3 w-20 text-center">Acceso</th>
+                      <th class="p-3 w-12 text-center">Est</th>
                     </tr>
                   </thead>
-                  <tbody class="text-[10px] font-bold">
-                    <tr v-for="user in filteredLocal" :key="user.id_odoo" class="border-b transition-all"
-                      :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-100 hover:bg-slate-50'">
 
-                      <td class="p-2 font-mono font-black text-emerald-500 truncate">{{ user.identificacion }}</td>
+                  <tbody class="divide-y divide-white/5">
+                    <tr v-for="user in filteredLocal" :key="user.id_odoo"
+                      class="hover:bg-emerald-500/5 transition-all group">
 
-                      <td class="p-2">
+                      <td class="p-3 font-bold text-emerald-500 text-[11px] tracking-tighter">
+                        {{ user.identificacion }}
+                      </td>
+
+                      <td class="p-3">
                         <div class="flex flex-col truncate">
-                          <span class="font-black uppercase truncate"
+                          <span class="font-bold text-[13px] uppercase truncate"
                             :class="isDark ? 'text-slate-100' : 'text-slate-800'">
                             {{ user.nombre }}
                           </span>
-                          <span class="text-[8px] font-bold text-blue-500 mt-0.5 truncate">
+                          <span class="text-[10px] font-bold text-blue-400 mt-0.5 truncate">
                             {{ user.departamento }}
                           </span>
                         </div>
                       </td>
 
-                      <td class="p-2 text-center">
+                      <td class="p-3 text-center">
                         <button @click="openPerms(user)"
-                          class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#FF8F00]/20 hover:border-[#FF8F00]/40 transition-all group">
-                          <i class="fas fa-key text-[10px] group-hover:text-[#FF8F00] transition-colors"
-                            :class="user.permisos?.length > 0 ? 'text-[#FF8F00]' : 'text-slate-500'"></i>
+                          class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 inline-flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+                          <i class="fas fa-key text-[12px]"
+                            :class="user.permisos?.length > 0 ? 'text-orange-400' : 'text-slate-600'"></i>
                         </button>
                       </td>
 
-                      <td class="p-2 text-center">
+                      <td class="p-3 text-center">
                         <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
-                          class="w-1.5 h-1.5 rounded-full inline-block"></div>
+                          class="w-2.5 h-2.5 rounded-full inline-block shadow-lg"></div>
                       </td>
                     </tr>
                   </tbody>
                 </table>
-                <div v-if="selectedUserPerms"
-                  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-
-                  <div
-                    class="w-full max-w-md max-h-[90vh] rounded-[2.5rem] border border-white/10 p-8 shadow-2xl animate-fade-in flex flex-col"
-                    :class="isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'">
-
-                    <div class="flex justify-between items-start mb-6 shrink-0">
-                      <div>
-                        <h3 class="text-xl font-black italic uppercase text-[#FF8F00]">Configurar Accesos</h3>
-                        <p class="text-[10px] font-bold opacity-50 uppercase tracking-widest">
-                          {{ selectedUserPerms.nombre }}
-                        </p>
-                      </div>
-                      <button @click="selectedUserPerms = null" class="opacity-50 hover:opacity-100 transition-opacity">
-                        <i class="fas fa-times-circle text-xl"></i>
-                      </button>
-                    </div>
-                    <div class="space-y-4 overflow-y-auto pr-2 custom-scroll flex-1">
-
-                      <div :class="[
-                        'p-5 rounded-[2rem] border transition-all duration-300',
-                        isDark ? 'bg-white/[0.02] border-white/10 shadow-xl' : 'bg-slate-50 border-slate-200 shadow-sm'
-                      ]">
-                        <div class="flex items-center gap-2 mb-5">
-                          <div class="w-6 h-6 rounded-lg bg-[#FF8F00]/20 flex items-center justify-center">
-                            <i class="fas fa-layer-group text-[10px] text-[#FF8F00]"></i>
-                          </div>
-                          <span class="text-[10px] font-black uppercase tracking-[0.15em] opacity-70">Estructura
-                            Organizacional</span>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                          <div class="group space-y-2">
-                            <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
-                              <span class="w-1 h-1 bg-blue-500 rounded-full"></span> Área Actual
-                            </label>
-                            <div class="relative">
-                              <select v-model="selectedUserPerms.area_id"
-                                @change="updateUserStructure(selectedUserPerms, 'area_id')"
-                                class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer"
-                                :class="isDark ? 'text-white' : 'text-slate-800'">
-                                <option :value="null">-- SIN ÁREA --</option>
-                                <option v-for="a in areas" :key="a.id" :value="a.id">{{ a.nombre }}</option>
-                              </select>
-                              <i
-                                class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
-                            </div>
-                          </div>
-
-                          <div class="group space-y-2">
-                            <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
-                              <span class="w-1 h-1 bg-emerald-500 rounded-full"></span> Segmento
-                            </label>
-                            <div class="relative">
-                              <select v-model="selectedUserPerms.segmento_id"
-                                @change="updateUserStructure(selectedUserPerms, 'segmento_id')"
-                                class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
-                                :class="isDark ? 'text-white' : 'text-slate-800'">
-                                <option :value="null">-- SIN SEGMENTO --</option>
-                                <option v-for="s in segmentos" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-                              </select>
-                              <i
-                                class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="flex items-center gap-4 py-2">
-                        <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1">
-                        </div>
-                        <span class="text-[9px] font-black opacity-40 uppercase tracking-[0.2em]">Módulos y
-                          Permisos</span>
-                        <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1">
-                        </div>
-                      </div>
-
-                      <div class="grid grid-cols-1 gap-2">
-                        <div
-                          v-for="slug in ['super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias', 'super.personal', 'admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.novedades']"
-                          :key="slug"
-                          class="group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200"
-                          :class="isDark
-                            ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/10'
-                            : 'bg-white border-slate-200 hover:border-[#FF8F00]/30 hover:shadow-md'">
-
-                          <div class="flex items-center gap-4">
-                            <div :class="[
-                              'w-1.5 h-8 rounded-full transition-all duration-500',
-                              hasPerm(selectedUserPerms, slug) ? 'bg-[#FF8F00] shadow-[0_0_10px_#FF8F00]/40' : 'bg-slate-700/20'
-                            ]"></div>
-
-                            <div>
-                              <span
-                                class="text-[10px] font-black uppercase tracking-wider block group-hover:text-[#FF8F00] transition-colors">
-                                {{ slug.split('.')[1] }}
-                                <span class="text-[8px] opacity-30 ml-1 font-normal italic">({{ slug.split('.')[0]
-                                  }})</span>
-                              </span>
-                              <p class="text-[8px] opacity-40 font-bold uppercase">Acceso al sistema</p>
-                            </div>
-                          </div>
-
-                          <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
-                              @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
-                            <div class="w-9 h-5 bg-slate-700/30 rounded-full peer 
-          peer-checked:bg-[#FF8F00] 
-          after:content-[''] after:absolute after:top-[4px] after:left-[4px] 
-          after:bg-white after:rounded-full after:h-3 after:w-3 
-          after:transition-all peer-checked:after:translate-x-4
-          shadow-inner">
-                            </div>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button @click="selectedUserPerms = null"
-                      class="w-full mt-6 py-3 bg-[#FF8F00] text-black font-black text-[11px] rounded-xl active:scale-95 transition-all uppercase tracking-widest shrink-0 shadow-lg shadow-orange-500/20">
-                      Finalizar Cambios
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

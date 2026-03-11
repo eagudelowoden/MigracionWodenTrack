@@ -1,7 +1,7 @@
 <template>
   <div class="admin-layout transition-colors duration-500" :class="isDark ? 'theme-dark' : 'theme-light'">
 
-    <aside class="sidebar" :style="{ backgroundColor: isDark ? '#334157' : '#f8fafc' }"
+    <aside class="sidebar" :style="{ backgroundColor: isDark ? '#273045' : '#f8fafc' }"
       :class="[isSidebarOpen ? 'sidebar-open' : 'sidebar-closed']">
       <div class="sidebar-header px-6 py-8">
         <div class="flex items-center group cursor-default">
@@ -57,10 +57,10 @@
 
     <main class="flex-1 flex flex-col min-w-0 h-full">
       <header class="h-16 flex items-center justify-between px-6 shrink-0 z-40 transition-all"
-        :class="isDark ? 'bg-[#0f172a] border-b border-white/5' : 'bg-white border-b border-slate-200 shadow-sm'">
+        :class="isDark ? 'bg-[#273045] border-b border-white/5' : 'bg-white border-b border-slate-200 shadow-sm'">
 
         <div class="flex items-center gap-6">
-          <button @click="isSidebarOpen = !isSidebarOpen" class="text-slate-400 hover:text-[#FF8F00] transition-colors">
+          <button @click="isSidebarOpen = !isSidebarOpen" class="text-slate-400 hover:text-[#273045] transition-colors">
             <i class="fas fa-bars-staggered text-lg"></i>
           </button>
 
@@ -118,7 +118,7 @@
         </div>
       </header>
 
-      <div class="flex-1 p-4 overflow-y-auto bg-slate-50/50 dark:bg-slate-300/20 custom-scroll">
+      <div class="flex-1 p-4 overflow-y-auto font-round-custom bg-slate-50/50 dark:bg-[#3F4A6E]/40 custom-scroll">
 
         <AttendanceModule v-if="currentModule === 'asistencias'" :isDark="isDark" :company="selectedCompany" />
         <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" :company="selectedCompany" />

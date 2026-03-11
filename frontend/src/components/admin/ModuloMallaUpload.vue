@@ -2,20 +2,26 @@
   <div class="mesh-container space-y-4 flex flex-col h-full overflow-hidden animate-fade-in">
 
     <div
-      class="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl border border-dashed transition-all shrink-0"
-      :class="isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200 shadow-sm'">
+      class="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl border border-dashed transition-all shrink-0 font-round-custom"
+      :class="isDark ? 'bg-[#3F4A6E]/80 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-600 border border-amber-500/20">
+          class="flex-shrink-0 w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500 border border-amber-500/20">
           <i class="fas fa-calendar-check text-sm"></i>
         </div>
+
         <div class="leading-tight">
-          <h2 class="text-xs font-black uppercase tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-xs font-black uppercase tracking-tight font-round-custom"
+            :class="isDark ? 'text-white' : 'text-slate-800'">
             Mallas
           </h2>
-          <p class="text-[9px] text-amber-500 font-bold uppercase tracking-tighter">Horarios</p>
+          <p class="text-[9px] text-amber-500 font-black uppercase tracking-[0.15em] font-round-custom">
+            Horarios
+          </p>
         </div>
       </div>
+
 
       <div class="flex items-center gap-2">
         <div class="relative">
@@ -41,11 +47,11 @@
     </div>
 
     <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#1a1d2d] border-[#2d324d]' : 'bg-white border-slate-200 shadow-sm'">
+      :class="isDark ? 'bg-[#3F4A6E] border-[#3F4A6E]' : 'bg-white border-slate-200 shadow-sm'">
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar ">
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#2D3A5F]' : 'bg-[#3B4C7A]'">
+            <tr :class="isDark ? 'bg-[#2D3A5F]' : 'bg-[#3F4A6E]'">
               <th
                 class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 <div class="flex items-center gap-2">
@@ -101,12 +107,16 @@
                 </span>
               </td>
 
-              <td class="px-4 py-3 border-b font-mono text-[13px]"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-                {{ persona.cargo }}
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase font-round-custom tracking-[0.1em]"
+                  :class="isDark
+                    ? 'bg-white/10 text-white border border-white/10'
+                    : 'bg-slate-100 text-slate-800 border border-slate-200'">
+                  {{ persona.cargo }}
+                </span>
               </td>
-              <td class="px-4 py-3 border-b font-mono text-[13px]"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
+              <td class="px-4 py-3 border-b font-round-custom text-[11px] font-medium"
+                :class="isDark ? 'border-white/5 text-white' : 'border-slate-100 text-slate-500'">
                 {{ persona.departamento }}
               </td>
 
@@ -137,8 +147,8 @@
 
       <div v-if="paginatedMallas?.length"
         class="px-6 py-3 border-t flex items-center justify-between shrink-0 transition-colors z-40 shadow-inner"
-        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-100 bg-white'">
-        <span class="text-[10px] font-black uppercase opacity-90 text-[#5858E8]">Total: {{ totalRecords }}</span>
+        :class="isDark ? 'border-white/5 bg-[#3C4361]' : 'border-slate-100 bg-white'">
+        <span class="text-[10px] font-black uppercase opacity-90 text-[#D8DAE3]">Total: {{ totalRecords }}</span>
         <div class="flex items-center gap-2">
           <button @click="currentPage--" :disabled="currentPage === 1" class="btn-pagination">
             <i class="fas fa-chevron-left text-xs"></i>

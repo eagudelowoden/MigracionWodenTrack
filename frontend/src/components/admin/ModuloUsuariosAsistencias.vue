@@ -96,13 +96,14 @@
       </div>
     </div>
 
-    <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#1a1d2d] border-[#2d324d]' : 'bg-white border-slate-200 shadow-sm'">
+    <div
+      class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300 font-round-custom"
+      :class="isDark ? 'bg-[#253045] border-[#2d324d]' : 'bg-white border-slate-200 shadow-sm'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar ">
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#2D3A5F]' : 'bg-[#3B4C7A]'">
+            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#3F4A6E]'">
               <th
                 class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                 <div class="flex items-center gap-2">
