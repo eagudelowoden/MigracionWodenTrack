@@ -1,98 +1,84 @@
 <template>
   <div class="novedades-container-main space-y-1 h-full animate-in fade-in duration-500 flex flex-col">
 
-    <div class="flex flex-wrap items-center justify-between gap-1 px-1 shrink-0">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center justify-center w-7 h-8 rounded-lg bg-[#FF8F00]/10 text-[#FF8F00]">
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 font-round-custom mt-2"
+      :class="isDark ? 'bg-[#3F4A6E]/10 border-white/10 shadow-lg' : 'bg-white border-slate-200 shadow-sm'">
+
+      <div class="relative flex items-center shrink-0 ml-1 gap-3">
+        <span
+          class="lg:hidden absolute -top-3.5 left-0 px-1 text-[10px] font-black uppercase tracking-widest leading-none transition-colors"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          Asistencias
+        </span>
+
+        <div
+          class="flex items-center justify-center w-8 h-8 rounded-xl bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20 shadow-sm">
           <i class="fas fa-clipboard-list text-sm"></i>
         </div>
-        <h2 class="text-lg font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
+
+        <h2 class="hidden lg:block text-lg font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
           Asistencias
         </h2>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+
         <button @click="filterHoy = !filterHoy"
-          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all hover:scale-105 active:scale-95"
+          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all hover:scale-105 active:scale-95"
           title="Filtrar solo hoy">
           <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
           HOY
         </button>
 
         <div :class="{ 'opacity-40 pointer-events-none grayscale': filterHoy }"
-          class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-all">
-          <span class="text-[12px] text-slate-400 uppercase font-bold">Desde</span>
+          class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-all">
           <input v-model="startDate" type="date"
-            class="bg-transparent text-[13px] outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
+            class="bg-transparent text-[12px] font-bold outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
           <div class="w-[1px] h-3 bg-slate-300 dark:bg-slate-600"></div>
-          <span class="text-[12px] text-slate-400 uppercase font-bold">Hasta</span>
           <input v-model="endDate" type="date"
-            class="bg-transparent text-[13px] outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
+            class="bg-transparent text-[12px] font-bold outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
         </div>
 
-        <div class="relative group flex gap-2">
+        <div class="flex items-center gap-2">
           <template v-if="esAdmin">
             <div class="relative">
               <select v-model="selectedDepartment"
-                class="pl-3 pr-8 py-1.5 text-[11px] font-bold uppercase rounded border outline-none appearance-none cursor-pointer shadow-sm w-44 transition-all"
+                class="pl-3 pr-8 py-1.5 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm font-round-custom"
                 :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
-                <option value="">TODOS LOS DEPTOS</option>
+                <option value="">DEPARTAMENTOS</option>
                 <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
               </select>
               <i
-                class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none text-slate-400"></i>
+                class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none"></i>
             </div>
           </template>
 
-          <template v-else>
-            <div class="flex items-center gap-2">
-              <template v-if="misResponsabilidades.length > 0">
-                <div v-for="(item, index) in misResponsabilidades" :key="index" :class="[
-                  'pl-3 pr-3 py-1.5 text-[10px] font-black uppercase rounded-lg border flex items-center gap-2 shadow-sm transition-all hover:scale-105',
-                  item.clase
-                ]" :title="`${item.tipo} bajo tu responsabilidad`">
-                  <i :class="item.icono" class="opacity-70"></i>
-                  <span class="opacity-60">{{ item.tipo }}:</span>
-                  <span>{{ item.nombre }}</span>
-                </div>
-              </template>
-
-              <template v-else>
-                <div
-                  class="pl-3 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border bg-slate-500/10 border-slate-500/20 text-slate-500 flex items-center gap-2">
-                  <i class="fas fa-eye-slash opacity-70"></i>
-                  Sin Asignación
-                </div>
-              </template>
-            </div>
-          </template>
+          <div class="relative group">
+            <input v-model="search" type="text" placeholder="BUSCAR..."
+              class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 shadow-sm transition-all font-round-custom"
+              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+            <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
+          </div>
         </div>
 
-        <div class="relative group">
-          <input v-model="search" type="text" placeholder="BUSCAR COLABORADOR..."
-            class="pl-8 pr-3 py-1.5 text-[11px] font-bold uppercase rounded border outline-none w-48 shadow-sm transition-all"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
-          <i class="fas fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
+        <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
+          <button @click="clearFilters" class="p-2 text-slate-400 hover:text-rose-500 transition-all" title="Limpiar">
+            <i class="fas fa-filter-circle-xmark text-sm"></i>
+          </button>
+
+          <button @click="fetchReporte" class="p-2 text-slate-500 hover:text-[#FF8F00] transition-all"
+            title="Actualizar">
+            <i class="fas fa-arrows-rotate text-sm" :class="{ 'fa-spin': loading }"></i>
+          </button>
+
+          <button @click="downloadReport" :disabled="loading || reportData.length === 0"
+            class="ml-1 p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+            title="Exportar Excel">
+            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"></i>
+          </button>
         </div>
-
-        <button @click="clearFilters" class="p-2 text-slate-400 hover:text-rose-500 transition-colors"
-          title="Limpiar filtros">
-          <i class="fas fa-filter-circle-xmark text-sm"></i>
-        </button>
-
-        <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-        <button @click="fetchReporte" class="p-2 text-slate-500 hover:text-[#FF8F00] transition-colors"
-          title="Actualizar datos">
-          <i class="fas fa-arrows-rotate text-sm" :class="{ 'fa-spin': loading }"></i>
-        </button>
-
-        <button @click="downloadReport" :disabled="loading || reportData.length === 0"
-          class="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 disabled:opacity-50 shadow-sm"
-          title="Exportar Excel">
-          <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"></i>
-        </button>
       </div>
     </div>
 
