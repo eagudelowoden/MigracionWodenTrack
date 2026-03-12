@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen flex items-center justify-center transition-all duration-700 p-4 font-mono-custom"
     :class="isDark ? 'bg-[#3F4A6E] theme-dark' : 'bg-[#F8FAFC] theme-light'">
-
     <div class="woden-card relative" :class="isDark ? 'card-dark' : 'card-light'">
 
       <div>

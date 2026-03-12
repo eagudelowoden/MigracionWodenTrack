@@ -160,6 +160,50 @@
         </div>
       </div>
     </div>
+    <div v-show="showResultModal" 
+     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+  
+  <div class="bg-white dark:bg-slate-950 max-w-sm w-full rounded-2xl shadow-xl border border-slate-200/60 dark:border-white/5 overflow-hidden transition-all">
+    
+    <div class="flex items-center justify-between px-5 py-4">
+      <h3 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
+        Estado de Carga
+      </h3>
+      <button @click="showResultModal = false" class="text-slate-300 hover:text-slate-600 dark:hover:text-white transition-colors">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+
+    <div class="px-5 pb-6">
+      <div v-if="uploadSuccessMessage" 
+           class="mb-4 flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+        <div class="h-1.5 w-1.5 rounded-full bg-current"></div>
+        <p class="text-sm font-medium">{{ uploadSuccessMessage }}</p>
+      </div>
+
+      <div v-if="uploadErrors?.length > 0" class="space-y-1">
+        <p class="text-[10px] font-semibold text-rose-500/80 mb-2 px-1">INCIDENCIAS DETECTADAS</p>
+        
+        <div class="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <div v-for="(err, idx) in uploadErrors" :key="idx"
+               class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
+            <span class="text-[9px] font-mono text-slate-400 mt-0.5">#{{ err.fila }}</span>
+            <div class="flex-1">
+              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight">
+                <span class="text-slate-400 dark:text-slate-500 font-normal">{{ err.campo }}:</span> {{ err.error }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button @click="showResultModal = false"
+              class="w-full mt-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all">
+        Continuar
+      </button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
