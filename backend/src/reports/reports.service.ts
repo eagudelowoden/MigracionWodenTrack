@@ -13,7 +13,7 @@ export class ReportsService {
     try {
       const uid = await this.odoo.authenticate();
 
-      // 0. MAPEO DE ESTADOS (De técnico a legible)
+      // 0. MAPEO DE ESTADOS
       const stateLabels: Record<string, string> = {
         'draft': 'Nuevo',
         'open': 'En proceso',
@@ -23,15 +23,10 @@ export class ReportsService {
 
       // 1. CONSTRUIR EL DOMINIO DINÁMICO
       const domain: any[] = [];
-
-      // Filtro por compañía
       if (companyName && companyName !== 'Todas') {
         domain.push(['company_id.name', '=', companyName]);
       }
-
-      // Filtro por departamento (AQUÍ ESTÁ EL CAMBIO CLAVE)
       if (departamento && departamento !== '' && departamento !== 'Todas') {
-        // Usamos ilike para evitar líos con la tilde de "TECNOLOGÍAS"
         domain.push(['employee_id.department_id.name', 'ilike', departamento]);
       }
 
@@ -39,56 +34,75 @@ export class ReportsService {
       const contratos = await this.odoo.executeKw<any[]>(
         'hr.contract',
         'search_read',
-        [domain], // Pasamos el array de filtros
+        [domain],
         {
-          fields: [
-            'name',
-            'company_id',
-            'employee_id',
-            'job_id',
-            'resource_calendar_id',
-            'date_start',
-            'date_end',
-            'state',
-            'department_id'
-          ]
+          fields: ['name', 'company_id', 'employee_id', 'job_id', 'resource_calendar_id', 'date_start', 'date_end', 'state', 'department_id']
         },
         uid,
       );
 
-      // Si no hay contratos, lanzamos una pequeña advertencia para no generar un Excel vacío
       if (!contratos || contratos.length === 0) {
         throw new NotFoundException(`No se encontraron contratos para la compañía ${companyName} en el departamento ${departamento}`);
       }
 
+      // --- REFUERZO: Traer info de Empleados ---
+      const employeeIds = [...new Set(contratos.map(c => c.employee_id[0]))];
+      const employeesDetail = await this.odoo.executeKw<any[]>(
+        'hr.employee',
+        'search_read',
+        [[['id', 'in', employeeIds]]],
+        { fields: ['id', 'job_title', 'department_id'] },
+        uid
+      );
+
       const idMap = new Map();
 
-      // 3. OBTENER IDs EXTERNOS (Metadatos de Odoo)
-      try {
-        const contractIds = contratos.map(c => c.id);
-        const externalIds = await this.odoo.executeKw<any[]>(
-          'ir.model.data',
-          'search_read',
-          [[
-            ['model', '=', 'hr.contract'],
-            ['res_id', 'in', contractIds]
-          ]],
-          { fields: ['res_id', 'module', 'name'] },
-          uid,
-        );
+      // 3. OBTENER IDs EXTERNOS (Metadatos)
+      const contractIds = contratos.map(c => c.id);
+      const externalIds = await this.odoo.executeKw<any[]>(
+        'ir.model.data',
+        'search_read',
+        [[['model', '=', 'hr.contract'], ['res_id', 'in', contractIds]]],
+        { fields: ['res_id', 'module', 'name'] },
+        uid,
+      );
 
-        externalIds.forEach(item => {
-          idMap.set(item.res_id, `${item.module}.${item.name}`);
-        });
-      } catch (e) {
-        console.warn("Odoo limitó el acceso a metadatos. Usando IDs numéricos.");
+      externalIds.forEach(item => {
+        idMap.set(item.res_id, `${item.module}.${item.name}`);
+      });
+
+      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE (Para que Odoo lo acepte al importar) ---
+      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE ---
+      for (const con of contratos) {
+        if (!idMap.has(con.id)) {
+          try {
+            // Creamos un nombre único para el ID externo
+            const nuevoNombre = `hr_contract_${con.id}_${Math.random().toString(36).substring(7)}`;
+
+            // AQUÍ ESTABA EL ERROR: Agregamos 'uid' como 5to argumento
+            await this.odoo.executeKw(
+              'ir.model.data',
+              'create',
+              [[{
+                name: nuevoNombre,
+                model: 'hr.contract',
+                module: '__export__',
+                res_id: con.id
+              }]],
+              {},    // El cuarto argumento son las 'options' (vació en este caso)
+              uid    // El quinto argumento es el 'uid' (EL QUE FALTABA)
+            );
+
+            idMap.set(con.id, `__export__.${nuevoNombre}`);
+          } catch (e) {
+            console.warn(`No se pudo crear ID externo para contrato ${con.id}, se usará ID numérico.`);
+          }
+        }
       }
 
-      // 4. GENERACIÓN DEL EXCEL (ExcelJS)
+      // 4. GENERACIÓN DEL EXCEL
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Carga de Mallas');
-
-
 
       worksheet.columns = [
         { header: 'id', key: 'id', width: 35 },
@@ -103,28 +117,31 @@ export class ReportsService {
         { header: 'Departamento', key: 'department', width: 25 },
       ];
 
-      // Estilo Naranja (Igual que el anterior)
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
 
       // 5. LLENAR DATOS
       contratos.forEach(con => {
-
+        const empInfo = employeesDetail.find(e => e.id === con.employee_id[0]);
         const estadoVisible = stateLabels[con.state] || con.state || '';
 
         worksheet.addRow({
+          // Ahora idMap siempre debería tener el formato __export__.xxxx
           id: idMap.get(con.id) || con.id,
           company: Array.isArray(con.company_id) ? con.company_id[1] : '',
-
           employee: Array.isArray(con.employee_id) ? con.employee_id[1] : '',
-          state: estadoVisible, // <--- Aplicamos el cambio aquí
+          state: estadoVisible,
           date_end: con.date_end || '',
           date_start: con.date_start || '',
           calendar: Array.isArray(con.resource_calendar_id) ? con.resource_calendar_id[1] : '',
-          job: Array.isArray(con.job_id) ? con.job_id[1] : '',
+          job: Array.isArray(con.job_id)
+            ? con.job_id[1]
+            : (empInfo && empInfo.job_title ? empInfo.job_title : 'No asignado'),
           name: con.name || '',
-          department: Array.isArray(con.department_id) ? con.department_id[1] : '',
+          department: Array.isArray(con.department_id)
+            ? con.department_id[1]
+            : (empInfo && Array.isArray(empInfo.department_id) ? empInfo.department_id[1] : 'No asignado'),
         });
       });
 
