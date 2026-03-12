@@ -127,3 +127,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transform: translateY(0);
   }
 }
+/* Contenedor del scroll sutil */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;  /* Ancho del scroll vertical */
+  height: 6px; /* Alto del scroll horizontal */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Fondo invisible para que no se vea el "camino" */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3); /* Color gris suave con transparencia */
+  border-radius: 10px; /* Bordes muy redondeados */
+  transition: background 0.3s ease;
+}
+
+/* Cuando pasas el mouse por encima del scroll, se nota un poco más */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5); 
+}
+
+/* Soporte para Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+
+.font-round-custom {
+  font-family: 'Quicksand', sans-serif !important;
+}

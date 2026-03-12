@@ -118,7 +118,7 @@
         </div>
       </header>
 
-      <div class="flex-1 p-4 overflow-y-auto font-round-custom bg-slate-50/50 dark:bg-[#3F4A6E]/40 custom-scroll">
+      <div class="flex-1 p-4 overflow-y-auto font-round-custom bg-slate-50/50 dark:bg-[#f5f5f5]/40 custom-scroll">
 
         <AttendanceModule v-if="currentModule === 'asistencias'" :isDark="isDark" :company="selectedCompany" />
         <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" :company="selectedCompany" />

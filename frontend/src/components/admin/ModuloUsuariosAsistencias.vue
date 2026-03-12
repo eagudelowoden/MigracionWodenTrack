@@ -1,52 +1,56 @@
 <template>
-  <div class="novedades-container-main space-y-1 h-full animate-in fade-in duration-500 flex flex-col">
+  <div class="novedades-container-main h-full animate-in fade-in duration-500 flex flex-col gap-2">
 
     <div
-      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 font-round-custom mt-2"
-      :class="isDark ? 'bg-[#3F4A6E]/10 border-white/10 shadow-lg' : 'bg-white border-slate-200 shadow-sm'">
+      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 font-round-custom -mt-3 shadow-sm"
+      :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
 
-      <div class="relative flex items-center shrink-0 ml-1 gap-3">
+      <div class="relative flex items-center shrink-0 ml-1 gap-3 font-round-custom">
         <span
-          class="lg:hidden absolute -top-3.5 left-0 px-1 text-[10px] font-black uppercase tracking-widest leading-none transition-colors"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          class="lg:hidden absolute -top-4 left-0 px-1 text-[8px] font-bold uppercase tracking-[0.15em] leading-none transition-colors"
+          :class="isDark ? 'text-slate-500' : 'text-slate-400'">
           Asistencias
         </span>
 
         <div
-          class="flex items-center justify-center w-8 h-8 rounded-xl bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20 shadow-sm">
-          <i class="fas fa-clipboard-list text-sm"></i>
+          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#FF8F00] text-white shadow-sm shadow-orange-500/20">
+          <i class="fas fa-clipboard-list text-xs"></i>
         </div>
 
-        <h2 class="hidden lg:block text-lg font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
+        <h2 class="hidden lg:block text-base font-bold tracking-tight"
+          :class="isDark ? 'text-white' : 'text-slate-800'">
           Asistencias
         </h2>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-
+      <div class="flex flex-wrap items-center gap-1.5">
         <button @click="filterHoy = !filterHoy"
-          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500')"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all hover:scale-105 active:scale-95"
+          class="flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
+          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
           title="Filtrar solo hoy">
           <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
           HOY
         </button>
 
-        <div :class="{ 'opacity-40 pointer-events-none grayscale': filterHoy }"
-          class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 transition-all">
+        <div class="flex items-center gap-2 px-2 py-0.5 rounded-lg border transition-all" :class="[
+          filterHoy ? 'opacity-40 pointer-events-none grayscale' : '',
+          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        ]">
           <input v-model="startDate" type="date"
-            class="bg-transparent text-[12px] font-bold outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
+            class="bg-transparent text-[11px] font-bold outline-none w-26 cursor-pointer"
+            :class="isDark ? 'text-slate-300' : 'text-slate-600'">
           <div class="w-[1px] h-3 bg-slate-300 dark:bg-slate-600"></div>
           <input v-model="endDate" type="date"
-            class="bg-transparent text-[12px] font-bold outline-none text-slate-600 dark:text-slate-300 w-28 cursor-pointer">
+            class="bg-transparent text-[11px] font-bold outline-none w-26 cursor-pointer"
+            :class="isDark ? 'text-slate-300' : 'text-slate-600'">
         </div>
 
         <div class="flex items-center gap-2">
           <template v-if="esAdmin">
             <div class="relative">
               <select v-model="selectedDepartment"
-                class="pl-3 pr-8 py-1.5 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm font-round-custom"
-                :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+                class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
+                :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
                 <option value="">DEPARTAMENTOS</option>
                 <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
               </select>
@@ -57,26 +61,22 @@
 
           <div class="relative group">
             <input v-model="search" type="text" placeholder="BUSCAR..."
-              class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 shadow-sm transition-all font-round-custom"
+              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 shadow-sm transition-all"
               :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
             <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           </div>
         </div>
 
         <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
-          <button @click="clearFilters" class="p-2 text-slate-400 hover:text-rose-500 transition-all" title="Limpiar">
-            <i class="fas fa-filter-circle-xmark text-sm"></i>
+          <button @click="clearFilters" class="p-1.5 text-slate-400 hover:text-rose-500 transition-all">
+            <i class="fas fa-filter-circle-xmark text-base"></i>
           </button>
-
-          <button @click="fetchReporte" class="p-2 text-slate-500 hover:text-[#FF8F00] transition-all"
-            title="Actualizar">
-            <i class="fas fa-arrows-rotate text-sm" :class="{ 'fa-spin': loading }"></i>
+          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-[#FF8F00] transition-all">
+            <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': loading }"></i>
           </button>
-
           <button @click="downloadReport" :disabled="loading || reportData.length === 0"
-            class="ml-1 p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 disabled:opacity-50 shadow-sm"
-            title="Exportar Excel">
-            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"></i>
+            class="ml-1 p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
+            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
           </button>
         </div>
       </div>
@@ -84,60 +84,44 @@
 
     <div
       class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300 font-round-custom"
-      :class="isDark ? 'bg-[#253045] border-[#2d324d]' : 'bg-white border-slate-200 shadow-sm'">
+      :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
 
-      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar ">
-        <table class="w-full border-separate border-spacing-0">
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
+        <table class="w-full border-separate border-spacing-0 font-round-custom">
           <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#3F4A6E]'">
+            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#334155]'">
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Colaborador
-                </div>
-              </th>
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Colaborador</th>
               <th
-                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center justify-center gap-2">
-                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Identificación
-                </div>
-              </th>
+                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Identificación</th>
               <th
-                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center justify-center gap-2">
-                  <i class="fas fa-sign-in-alt text-[9px] opacity-60"></i> Entrada
-                </div>
-              </th>
+                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Entrada</th>
               <th
-                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center justify-center gap-2">
-                  <i class="fas fa-sign-out-alt text-[9px] opacity-60"></i> Salida
-                </div>
-              </th>
+                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Salida</th>
               <th
-                class="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                Estatus Entrada
-              </th>
+                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Estatus Entrada</th>
               <th
-                class="px-10 py-4 text-right text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                Estatus Salida
-              </th>
+                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
+                Estatus Salida</th>
             </tr>
           </thead>
 
           <tbody class="divide-y-0">
             <tr v-if="loading" v-for="n in 8" :key="'loader-' + n">
-              <td colspan="5" class="px-4 py-4">
+              <td colspan="6" class="px-4 py-4">
                 <div class="h-4 w-full rounded animate-pulse" :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
               </td>
             </tr>
 
             <tr v-else v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
               :class="[
-                index % 2 !== 0
-                  ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-100/80')
-                  : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50/50'
+                index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50'
               ]">
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
@@ -146,45 +130,43 @@
                     class="avatar-mini w-8 h-8 rounded-full bg-slate-500/20 flex items-center justify-center shrink-0">
                     <i class="fas fa-user text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-500'"></i>
                   </div>
-                  <div class="flex flex-col min-w-0">
-                    <span class="text-[11px] font-bold uppercase tracking-wider leading-none mb-1"
-                      :class="isDark ? 'text-white' : 'text-slate-800'">
+                  <div class="flex flex-col">
+                    <span class="text-[11px] font-bold uppercase tracking-tight"
+                      :class="isDark ? 'text-white' : 'text-slate-900'">
                       {{ item.empleado }}
                     </span>
-                    <span class="text-[9px] font-semibold flex items-center gap-1.5 uppercase tracking-wide"
-                      :class="isDark ? 'text-orange-400/90' : 'text-orange-600'">
-                      <i class="fas fa-tag text-[7px]"></i>
-                      {{ item.department_id || 'Sin Departamento' }}
+                    <span class="text-[9px] font-bold" :class="isDark ? 'text-orange-400/90' : 'text-orange-600'">
+                      {{ item.department_id || 'Sin Depto' }}
                     </span>
                   </div>
                 </div>
               </td>
 
-              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
-                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
-                {{ item.cc || 'Sin CC' }}
+              <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
+                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
+                {{ item.cc }}
               </td>
 
-              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
-                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+              <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
+                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
                 {{ formatSoloHora(item.check_in) }}
               </td>
 
-              <td class="px-4 py-3 text-center border-b font-mono font-bold text-[13px]"
-                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+              <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
+                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
                 {{ formatSoloHora(item.check_out) }}
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="[getStatusClass(item.c_entrada), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
-                  class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
+                <span :class="getStatusClass(item.c_entrada)"
+                  class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                   {{ item.c_entrada || 'OK' }}
                 </span>
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="[getStatusClass(item.c_salida), isDark ? 'bg-opacity-10' : 'bg-opacity-10']"
-                  class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-widest transition-all">
+                <span :class="getStatusClass(item.c_salida)"
+                  class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                   {{ item.c_salida || 'OK' }}
                 </span>
               </td>
@@ -194,30 +176,30 @@
       </div>
 
       <div v-if="paginatedData?.length"
-        class="px-4 py-1.5 border-t flex items-center justify-between shrink-0 transition-colors z-40"
-        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-100 bg-white'">
+        class="px-4 py-2 border-t flex items-center justify-between font-round-custom shadow-inner"
+        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
 
-        <span class="text-[9px] font-black uppercase tracking-tighter opacity-90"
-          :class="isDark ? 'text-[#5858E8]' : 'text-slate-500'">
-          Total: {{ reportData.length }} <span class="hidden sm:inline">registros</span>
+        <span class="text-[10px] font-bold uppercase tracking-wide"
+          :class="isDark ? 'text-[#5858E8]' : 'text-slate-600'">
+          Total: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ reportData.length }}</span>
         </span>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
           <button @click="currentPage--" :disabled="currentPage === 1"
-            class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-500/10 disabled:opacity-5 transition-all">
-            <i class="fas fa-chevron-left text-[8px]"></i>
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            <i class="fas fa-chevron-left text-[9px]"></i>
           </button>
 
-          <div class="flex items-center px-2 py-0.5 rounded bg-slate-500/5 border border-slate-500/10 font-mono">
-            <span class="text-[10px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ currentPage
-            }}</span>
-            <span class="text-[9px] mx-1 opacity-90">/</span>
-            <span class="text-[9px] font-bold opacity-90">{{ totalPages }}</span>
+          <div class="flex items-center px-3 py-1 rounded-lg text-[11px] font-bold border"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-300 text-slate-900 shadow-sm'">
+            {{ currentPage }} <span class="mx-1.5 opacity-40">/</span> {{ totalPages }}
           </div>
 
           <button @click="currentPage++" :disabled="currentPage >= totalPages"
-            class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-500/10 disabled:opacity-5 transition-all">
-            <i class="fas fa-chevron-right text-[8px]"></i>
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
       </div>
