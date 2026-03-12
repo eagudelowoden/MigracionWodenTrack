@@ -1,18 +1,18 @@
 <template>
-<Transition name="slide-down">
+  <Transition name="slide-down">
     <div v-if="anuncioSuperior"
       class="fixed top-0 left-0 right-0 z-[10000] h-12 flex items-center justify-center px-6 shadow-2xl border-b backdrop-blur-md"
       :class="isDark ? 'bg-red-700/95 border-red-500 text-white' : 'bg-red-600 border-red-700 text-white'">
-      
+
       <div class="flex items-center gap-4 w-full max-w-7xl justify-center">
         <i class="fas fa-exclamation-circle text-lg animate-pulse"></i>
-        
+
         <p class="text-[14px] font-bold tracking-wide leading-none font-sans italic">
           {{ anuncioSuperior.body }}
         </p>
 
-        <button @click="anuncioSuperior = null" 
-                class="ml-6 bg-black/20 hover:bg-black/40 h-8 w-8 rounded-full transition-all flex items-center justify-center group">
+        <button @click="anuncioSuperior = null"
+          class="ml-6 bg-black/20 hover:bg-black/40 h-8 w-8 rounded-full transition-all flex items-center justify-center group">
           <i class="fas fa-times text-sm group-hover:scale-110"></i>
         </button>
       </div>
