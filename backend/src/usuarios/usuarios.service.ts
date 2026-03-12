@@ -943,61 +943,6 @@ export class UsuariosService {
     }
   }
 
-  // async syncUsuariosFromOdoo(paisSeleccionado: string, deptoSeleccionado?: string) {
-  //   try {
-  //     const uid = await this.odoo.authenticate();
-
-  //     // 1. Construcción del dominio dinámico
-  //     const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
-
-  //     // Si el departamento no es 'TODOS', lo agregamos al filtro de Odoo
-  //     if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
-  //       domain.push(['department_id.name', '=', deptoSeleccionado]);
-  //     }
-
-  //     const odooEmployees = await this.odoo.executeKw<any[]>(
-  //       'hr.employee',
-  //       'search_read',
-  //       [domain],
-  //       { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
-  //       uid
-  //     );
-
-  //     let nuevos = 0;
-  //     let actualizados = 0;
-
-  //     for (const emp of odooEmployees) {
-  //       const existing = await this.usuarioRepo.findOne({ where: { id_odoo: emp.id } });
-
-  //       const data = {
-  //         id_odoo: emp.id,
-  //         nombre: emp.name,
-  //         identificacion: emp.identification_id || 'N/A',
-  //         cargo: emp.job_title || 'Sin Cargo',
-  //         departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
-  //         pais: paisSeleccionado,
-  //       };
-
-  //       if (!existing) {
-  //         await this.usuarioRepo.save({ ...data, id: emp.id });
-  //         nuevos++;
-  //       } else {
-  //         await this.usuarioRepo.update(existing.id, data);
-  //         actualizados++;
-  //       }
-  //     }
-
-  //     return {
-  //       status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-  //       message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`
-  //     };
-
-  //   } catch (error) {
-  //     console.error(`Error sincronizando ${paisSeleccionado}:`, error);
-  //     throw new InternalServerErrorException('Error al sincronizar empleados con Odoo');
-  //   }
-  // }
-
   async getOdooEmployeesRaw(paisSeleccionado?: string) {
     const uid = await this.odoo.authenticate();
 

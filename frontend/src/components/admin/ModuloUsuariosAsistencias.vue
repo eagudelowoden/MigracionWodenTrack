@@ -258,26 +258,39 @@ const paginatedData = computed(() => {
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
-  // 1. Cargar perfil si no es admin
-  if (!esAdmin) {
+  // 1. Sincronizar compañía de las props primero
+  if (props.company) {
+    selectedCompany.value = props.company;
+  }
+
+  // 2. Cargar perfil si NO es superAdmin (para coordinadores/líderes)
+  // Nota: Usa el rol o una bandera que indique que necesita filtro de área
+  if (!session.isSuperAdmin) { 
     try {
       const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
       if (resp.ok) {
         const perfil = await resp.json();
         userProfile.value = perfil;
-        // Al asignar esto, el WATCH se activará automáticamente
-        if (perfil.area_id) selectedArea.value = perfil.area_id;
-        if (miDepto) selectedDepartment.value = miDepto;
+
+        // ASIGNACIÓN CLAVE: Esto dispara el watch en el composable
+        if (perfil.area?.id) {
+          selectedArea.value = perfil.area.id; 
+        }
+        if (perfil.segmento?.id) {
+          selectedSegmento.value = perfil.segmento.id;
+        }
+        
+        // Si el usuario tiene un departamento asignado en Odoo/Local
+        if (perfil.departamento) {
+          selectedDepartment.value = perfil.departamento;
+        }
       }
     } catch (e) {
       console.error("Error cargando perfil:", e);
     }
   }
 
-  // 2. Sincronizar compañía de props
-  if (props.company) {
-    selectedCompany.value = props.company;
-  }
+  // 3. Ejecutar carga inicial
   fetchReporte();
 });
 
@@ -294,18 +307,6 @@ watch(() => props.company, (newCompany) => {
     selectedCompany.value = newCompany;
   }
 }, { immediate: true });
-
-// onMounted(() => {
-//   if (props.company) {
-//     selectedCompany.value = props.company;
-//   }
-// });
-// onMounted(() => {
-//   if (!esAdmin && miDepto) {
-//     selectedDepartment.value = miDepto;
-//   }
-//   fetchReporte();
-// });
 
 
 const formatSoloHora = (value) => {
