@@ -1,57 +1,103 @@
 <template>
   <div class="admin-layout transition-colors duration-500" :class="isDark ? 'theme-dark' : 'theme-light'">
 
-    <aside class="sidebar" :style="{ backgroundColor: isDark ? '#273045' : '#f8fafc' }"
-      :class="[isSidebarOpen ? 'sidebar-open' : 'sidebar-closed']">
-      <div class="sidebar-header px-6 py-8">
-        <div class="flex items-center group cursor-default">
-          <div class="w-1 h-6 bg-[#FF8F00] rounded-full mr-3 group-hover:h-8 transition-all duration-300"></div>
+    <aside class="relative flex flex-col transition-all duration-500 ease-in-out z-50 border-r"
+      :style="{ backgroundColor: isDark ? '#273045' : '#ffffff' }"
+      :class="[isSidebarOpen ? 'w-56' : 'w-16', isDark ? 'border-white/5 shadow-2xl shadow-black/40' : 'border-slate-200 shadow-sm']">
 
-          <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in">
-            <span class="text-xl font-bold tracking-tight uppercase transition-colors duration-300"
+      <div class="relative h-16 flex items-center px-5 shrink-0 overflow-hidden">
+        <div class="flex items-center group cursor-default">
+          <div class="w-1 h-5 bg-[#FF8F00] rounded-full group-hover:h-7 transition-all duration-300"></div>
+
+          <div class="h-4 w-[1px] mx-3 opacity-20" :class="isDark ? 'bg-white' : 'bg-slate-900'"></div>
+
+          <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in whitespace-nowrap">
+            <span class="text-sm font-black tracking-tight uppercase transition-colors duration-300"
               :class="isDark ? 'text-white' : 'text-slate-900'">
               Woden
             </span>
-            <span class="ml-1 text-xl font-light tracking-widest text-[#FF8F00] uppercase">
+            <span class="ml-1 text-sm font-light tracking-widest text-[#FF8F00] uppercase">
               Track
             </span>
           </div>
         </div>
 
-
+        <div class="absolute bottom-0 left-4 right-4 h-[1px]"
+          :class="isDark ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent' : 'bg-gradient-to-r from-transparent via-slate-200 to-transparent'">
+        </div>
       </div>
 
-      <nav class="flex-1 px-3 space-y-2 mt-6">
+      <nav class="flex-1 px-2 space-y-1.5 mt-4 overflow-y-auto custom-scroll">
+
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.asistencias']"
           @click="currentModule = 'asistencias'"
-          :class="['nav-link-v2', currentModule === 'asistencias' ? 'active' : '']">
-          <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
-          <span v-if="isSidebarOpen">Asistencias</span>
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="currentModule === 'asistencias'
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Asistencias</span>
+
+          <div v-if="currentModule === 'asistencias'"
+            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.mallas']" @click="currentModule = 'mallas'"
-          :class="['nav-link-v2', currentModule === 'mallas' ? 'active' : '']">
-          <div class="nav-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-          <span v-if="isSidebarOpen">Cargue Mallas</span>
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="currentModule === 'mallas'
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-cloud-arrow-up text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue Mallas</span>
+
+          <div v-if="currentModule === 'mallas'"
+            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
           @click="currentModule = 'novedadusuario'"
-          :class="['nav-link-v2', currentModule === 'novedadusuario' ? 'active' : '']">
-          <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
-          <span v-if="isSidebarOpen">Novedades</span>
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="['novedadusuario', 'view_novedad_admin', 'view_novedad_rrhh', 'view_novedad_user'].includes(currentModule)
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-bullhorn text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Novedades</span>
+
+          <div
+            v-if="['novedadusuario', 'view_novedad_admin', 'view_novedad_rrhh', 'view_novedad_user'].includes(currentModule)"
+            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
         </button>
+
       </nav>
 
-      <div class="p-4 space-y-2 border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-        <button @click="toggleTheme" class="nav-link-v2">
-          <div class="nav-icon"><i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'"></i></div>
-          <span v-if="isSidebarOpen">{{ isDark ? 'Luz' : 'Oscuro' }}</span>
+      <div class="p-2 space-y-1 mt-auto border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+
+        <button @click="toggleTheme"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-orange-500 transition-all">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-xs"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' :
+            'Oscuro' }}</span>
         </button>
-        <button @click="logout" class="nav-link-v2 logout">
-          <div class="nav-icon"><i class="fas fa-power-off"></i></div>
-          <span v-if="isSidebarOpen">Salir</span>
+
+        <button @click="logout"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-power-off text-xs"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">Salir</span>
         </button>
+
       </div>
     </aside>
 
