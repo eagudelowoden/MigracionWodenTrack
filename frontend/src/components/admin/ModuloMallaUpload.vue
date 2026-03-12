@@ -1,122 +1,110 @@
 <template>
-  <div class="mesh-container space-y-4 flex flex-col h-full overflow-hidden animate-fade-in">
+  <div class="mesh-container h-full animate-fade-in flex flex-col gap-2 font-round-custom">
 
     <div
-      class="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl border border-dashed transition-all shrink-0 font-round-custom"
-      :class="isDark ? 'bg-[#3F4A6E]/80 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 -mt-3 shadow-sm"
+      :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
 
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500 border border-amber-500/20">
-          <i class="fas fa-calendar-check text-sm"></i>
+          class="flex-shrink-0 w-7 h-7 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-sm shadow-amber-500/20">
+          <i class="fas fa-calendar-check text-xs"></i>
         </div>
 
         <div class="leading-tight">
-          <h2 class="text-xs font-black uppercase tracking-tight font-round-custom"
-            :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-sm font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
             Mallas
           </h2>
-          <p class="text-[9px] text-amber-500 font-black uppercase tracking-[0.15em] font-round-custom">
+          <p class="text-[8px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-[0.15em]">
             Horarios
           </p>
         </div>
       </div>
 
-
       <div class="flex items-center gap-2">
         <div class="relative">
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
-            class="pl-8 pr-3 py-1.5 text-[11px] font-bold uppercase rounded-lg border bg-transparent outline-none w-32 md:w-44"
-            :class="isDark ? 'border-slate-700 text-white focus:border-amber-500' : 'border-slate-200 text-slate-700 focus:border-amber-500'" />
+            class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 md:w-44 transition-all"
+            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
         </div>
 
-        <button @click="downloadMallaTemplate"
-          class="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
-          <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
-        </button>
+        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
+          <button @click="downloadMallaTemplate"
+            class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            title="Descargar Plantilla">
+            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+          </button>
 
-        <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
-        <label for="fileInput"
-          class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
-          :class="{ 'opacity-50 pointer-events-none': isUploading }">
-          <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-          <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
-        </label>
+          <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
+          <label for="fileInput"
+            class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
+            :class="{ 'opacity-50 pointer-events-none': isUploading }">
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+            <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
+          </label>
+        </div>
       </div>
     </div>
 
     <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#3F4A6E] border-[#3F4A6E]' : 'bg-white border-slate-200 shadow-sm'">
-      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar ">
+      :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
+
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#2D3A5F]' : 'bg-[#3F4A6E]'">
+            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#334155]'">
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-user-circle text-[9px] opacity-60"></i> Colaborador
-                </div>
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                <div class="flex items-center gap-2"><i class="fas fa-user-circle opacity-60"></i> Colaborador</div>
               </th>
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-fingerprint text-[9px] opacity-60"></i> Cargo
-                </div>
-              </th>
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Cargo</th>
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-fingerprint text-[9px] opacity-60"></i> Departamento
-                </div>
-              </th>
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Departamento</th>
               <th
-                class="px-4 py-4 text-left text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center gap-2">
-                  <i class="fas fa-layer-group text-[9px] opacity-60"></i> Malla
-                </div>
-              </th>
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Malla</th>
               <th
-                class="px-4 py-4 text-center text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                Jornada
-              </th>
+                class="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Jornada</th>
               <th
-                class="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                <div class="flex items-center justify-end gap-2">
-                  <i class="fas fa-clock text-[9px] opacity-60"></i> Horario
-                </div>
-              </th>
+                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Horario</th>
             </tr>
           </thead>
 
           <tbody class="divide-y-0">
-            <tr v-if="isLoading" v-for="n in 5" :key="'loader-' + n">
-              <td colspan="5" class="px-4 py-4">
+            <tr v-if="isLoading" v-for="n in 8" :key="'loader-' + n">
+              <td colspan="6" class="px-4 py-4">
                 <div class="h-4 w-full rounded animate-pulse bg-slate-500/10"></div>
               </td>
             </tr>
 
             <tr v-else v-for="(persona, index) in paginatedMallas" :key="index"
               class="group transition-all duration-150" :class="[
-                index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-100/80') : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-100'
+                index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-amber-50/50'
               ]">
+
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span class="text-[11px] font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-700'">
+                <span class="text-[11px] font-bold uppercase tracking-tight"
+                  :class="isDark ? 'text-white' : 'text-slate-900'">
                   {{ persona.nombre }}
                 </span>
               </td>
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase font-round-custom tracking-[0.1em]"
-                  :class="isDark
-                    ? 'bg-white/10 text-white border border-white/10'
-                    : 'bg-slate-100 text-slate-800 border border-slate-200'">
+                <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border"
+                  :class="isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-700 border-slate-200'">
                   {{ persona.cargo }}
                 </span>
               </td>
-              <td class="px-4 py-3 border-b font-round-custom text-[11px] font-medium"
-                :class="isDark ? 'border-white/5 text-white' : 'border-slate-100 text-slate-500'">
+
+              <td class="px-4 py-3 border-b text-[10px] font-bold"
+                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
                 {{ persona.departamento }}
               </td>
 
@@ -132,12 +120,12 @@
               </td>
 
               <td class="px-4 py-3 text-center uppercase text-[9px] font-black border-b"
-                :class="[isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600']">
+                :class="isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600'">
                 {{ persona.jornada }}
               </td>
 
-              <td class="px-4 py-3 text-right font-mono text-[11px] font-black border-b"
-                :class="[isDark ? 'border-white/5 text-slate-100' : 'border-slate-100 text-slate-700']">
+              <td class="px-4 py-3 text-right font-bold text-[11px] border-b"
+                :class="isDark ? 'border-white/5 text-white' : 'border-slate-100 text-slate-800'">
                 {{ persona.horario }}
               </td>
             </tr>
@@ -145,64 +133,29 @@
         </table>
       </div>
 
-      <div v-if="paginatedMallas?.length"
-        class="px-6 py-3 border-t flex items-center justify-between shrink-0 transition-colors z-40 shadow-inner"
-        :class="isDark ? 'border-white/5 bg-[#3C4361]' : 'border-slate-100 bg-white'">
-        <span class="text-[10px] font-black uppercase opacity-90 text-[#D8DAE3]">Total: {{ totalRecords }}</span>
-        <div class="flex items-center gap-2">
-          <button @click="currentPage--" :disabled="currentPage === 1" class="btn-pagination">
-            <i class="fas fa-chevron-left text-xs"></i>
-          </button>
-          <span class="text-[10px] font-black uppercase tracking-tighter">
-            Pág {{ currentPage }} de {{ totalPages }}
-          </span>
-          <button @click="currentPage++" :disabled="currentPage >= totalPages" class="btn-pagination">
-            <i class="fas fa-chevron-right text-xs"></i>
-          </button>
-        </div>
-      </div>
-    </div>
+      <div v-if="paginatedMallas?.length" class="px-4 py-2 border-t flex items-center justify-between shadow-inner"
+        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
 
-    <div v-if="showResultModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
-      <div
-        class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-500/10">
-        <div class="px-6 py-4 border-b border-slate-500/10 flex justify-between items-center">
-          <h3 class="text-xs font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Resultado de Carga
-          </h3>
-          <button @click="showResultModal = false" class="text-slate-400 hover:text-rose-500">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
+        <span class="text-[10px] font-bold uppercase" :class="isDark ? 'text-[#D8DAE3]' : 'text-slate-600'">
+          Total: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ totalRecords }}</span>
+        </span>
 
-        <div class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          <div v-if="uploadSuccessMessage"
-            class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold uppercase mb-4 text-center">
-            {{ uploadSuccessMessage }}
+        <div class="flex items-center gap-3">
+          <button @click="currentPage--" :disabled="currentPage === 1"
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            <i class="fas fa-chevron-left text-[9px]"></i>
+          </button>
+
+          <div class="px-3 py-1 rounded-lg text-[11px] font-bold border"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-300 text-slate-900 shadow-sm'">
+            {{ currentPage }} <span class="mx-1.5 opacity-40">/</span> {{ totalPages }}
           </div>
 
-          <div v-if="uploadErrors && uploadErrors.length > 0">
-            <p class="text-[10px] font-black uppercase text-rose-500 mb-3 tracking-widest">Errores detectados:</p>
-            <div class="space-y-2">
-              <div v-for="(err, idx) in uploadErrors" :key="idx"
-                class="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl">
-                <div class="flex justify-between text-[9px] font-black uppercase mb-1">
-                  <span>Fila: {{ err.fila }}</span>
-                  <span class="text-rose-500">{{ err.campo }}</span>
-                </div>
-                <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-300 leading-tight">
-                  {{ err.error }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4 bg-slate-500/5 flex justify-end">
-          <button @click="showResultModal = false"
-            class="px-6 py-2 bg-slate-900 text-white text-[10px] font-black uppercase rounded-lg hover:bg-amber-500 transition-colors">
-            Cerrar
+          <button @click="currentPage++" :disabled="currentPage >= totalPages"
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
       </div>
