@@ -276,14 +276,14 @@ onMounted(async () => {
         if (perfil.area?.id) {
           selectedArea.value = perfil.area.id; 
         }
-        if (perfil.segmento?.id) {
-          selectedSegmento.value = perfil.segmento.id;
-        }
+        // if (perfil.segmento?.id) {
+        //   selectedSegmento.value = perfil.segmento.id;
+        // }
         
-        // Si el usuario tiene un departamento asignado en Odoo/Local
-        if (perfil.departamento) {
-          selectedDepartment.value = perfil.departamento;
-        }
+        // // Si el usuario tiene un departamento asignado en Odoo/Local
+        // if (perfil.departamento) {
+        //   selectedDepartment.value = perfil.departamento;
+        // }
       }
     } catch (e) {
       console.error("Error cargando perfil:", e);
