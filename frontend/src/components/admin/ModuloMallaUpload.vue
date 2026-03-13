@@ -206,50 +206,10 @@
 </div>
   </div>
 </template>
-
-<style scoped>
-/* Scrollbar Integrado */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(227, 156, 45, 0.2);
-  border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(227, 156, 45, 0.5);
-}
-
-.btn-pagination {
-  @apply w-8 h-8 flex items-center justify-center rounded-full border border-transparent transition-all hover:bg-slate-500/10 disabled:opacity-10 text-xs;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
 <script setup>
 import { onMounted, watch } from 'vue';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
+import '../../assets/css/modulo-mallas.css';
 
 const props = defineProps({
   isDark: Boolean,
