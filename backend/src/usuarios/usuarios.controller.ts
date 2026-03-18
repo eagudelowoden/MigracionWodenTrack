@@ -14,7 +14,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) { }
+  constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post('login')
   async login(@Body() body: any) {
@@ -185,6 +185,8 @@ export class UsuariosController {
   }
   @Get('perfil-completo/:idOdoo')
   async getPerfilCompleto(@Param('idOdoo') idOdoo: string) {
-    return await this.usuariosService.obtenerPerfilConEstructura(Number(idOdoo));
+    return await this.usuariosService.obtenerPerfilConEstructura(
+      Number(idOdoo),
+    );
   }
 }

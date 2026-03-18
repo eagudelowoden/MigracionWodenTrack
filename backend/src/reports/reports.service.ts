@@ -210,21 +210,28 @@ export class ReportsService {
       headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF107C41' } };
 
       // 4. LLENADO DE FILAS
-      data.forEach(item => {
-        const nombreEmpleado = item.empleado || item.Colaborador;
+     // 4. LLENADO DE FILAS
+data.forEach(item => {
+  // Normalizamos el nombre del empleado buscando todas las variantes posibles
+  const nombreEmpleado = item.empleado || item.Colaborador || item.colaborador;
 
-        worksheet.addRow({
-          colaborador: nombreEmpleado || 'N/A',
-          // Intentamos obtener la cédula del mapa que llenamos con res.partner
-          cedula: item.doc_number || item.Cedula || cedulaMap.get(nombreEmpleado) || 'N/A',
-          depto: item.department_id || item.Departamento || 'N/A',
-          fecha: item.fecha || item.Fecha || 'N/A',
-          entrada: item.check_in || item.Entrada || 'N/A',
-          salida: item.check_out || item.Salida || 'N/A',
-          estatus_entrada: item.c_entrada || item.Estatus_Entrada || 'N/A',
-          estatus_salida: item.c_salida || item.Estatus_Salida || 'N/A'
-        });
-      });
+  worksheet.addRow({
+    colaborador: nombreEmpleado || 'N/A',
+    
+    // Agregamos item.Cédula (con tilde) que es como lo tenías en el frontend
+    cedula: item.doc_number || item.Cedula || item.Cédula || cedulaMap.get(nombreEmpleado) || 'N/A',
+    
+    depto: item.department_id || item.Departamento || item.departamento || 'N/A',
+    fecha: item.fecha || item.Fecha || 'N/A',
+    
+    // Asegúrate que coincida con Entrada / Salida o check_in / check_out
+    entrada: item.check_in || item.Entrada || item.entrada || 'N/A',
+    salida: item.check_out || item.Salida || item.salida || 'N/A',
+    
+    estatus_entrada: item.c_entrada || item.Estatus_Entrada || 'N/A',
+    estatus_salida: item.c_salida || item.Estatus_Salida || 'N/A'
+  });
+});
 
       const buffer = await workbook.xlsx.writeBuffer();
       return Buffer.from(buffer as ArrayBuffer);

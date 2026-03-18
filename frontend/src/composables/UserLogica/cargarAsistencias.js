@@ -65,7 +65,7 @@ export function useCargarAsistencias() {
       // --- EL FILTRO DE SEGURIDAD ---
       // Si no hay compañía, abortamos. Esto evita la llamada "?hoy=true" inicial.
       if (!newCompany || newCompany === "") return;
-      
+
       // Si no es admin y aún no tenemos el área, esperamos (opcional según tu flujo)
       // if (!esAdmin && !newArea) return;
 
@@ -79,7 +79,7 @@ export function useCargarAsistencias() {
       debounceTimeout = setTimeout(async () => {
         // await fetchReporte();
       }, 150);
-    },  
+    },
   );
   const fetchReporte = async () => {
     loading.value = true;
