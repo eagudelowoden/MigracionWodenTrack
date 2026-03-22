@@ -172,68 +172,147 @@
         <div v-if="currentModule === 'novedadusuario'"
           class="h-full flex flex-col items-center justify-center animate-fade-in py-6">
 
-          <div class="text-center mb-6">
+          <!-- Header -->
+          <div class="text-center mb-8">
             <h2 class="text-lg font-black italic uppercase tracking-tighter transition-colors duration-500"
               :class="isDark ? 'text-white' : 'text-slate-900'">
               Panel de <span class="text-[#FF8F00]">Novedades</span>
             </h2>
-            <div class="h-1 w-8 bg-[#FF8F00] mx-auto rounded-full mt-1 opacity-50"></div>
+            <div class="h-0.5 w-10 bg-[#FF8F00] mx-auto rounded-full mt-2"></div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl px-6">
+          <!-- Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl px-6">
 
+            <!-- Admin Card -->
             <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.admin']"
-              @click="currentModule = 'view_novedad_admin'" class="hub-card-mini group"
-              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+              @click="currentModule = 'view_novedad_admin'"
+              class="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden"
+              :class="isDark
+                ? 'bg-[#252b3b] border-white/10 hover:border-orange-500 hover:shadow-[0_0_0_1px_rgba(255,143,0,0.5),0_0_30px_rgba(255,143,0,0.2)]'
+                : 'bg-white border-slate-200 hover:border-orange-400 shadow-sm hover:shadow-[0_0_20px_rgba(255,143,0,0.15)]'">
 
-              <div class="icon-wrap bg-orange-500/10 text-orange-500 group-hover:bg-orange-500 group-hover:text-black">
-                <i class="fas fa-user-shield text-xl"></i>
+              <!-- Esquina decorativa top-left -->
+              <div class="absolute top-0 left-0 w-8 h-8 overflow-hidden rounded-tl-xl">
+                <div class="absolute -top-4 -left-4 w-8 h-8 rotate-45 transition-all duration-300" :class="isDark
+                  ? 'bg-orange-500/20 group-hover:bg-orange-500/50'
+                  : 'bg-orange-400/15 group-hover:bg-orange-400/40'">
+                </div>
               </div>
-              <div class="text-center">
-                <h3 class="font-black uppercase italic text-[11px] transition-colors"
-                  :class="isDark ? 'text-white' : 'text-slate-800'">Acceso Cordinadores</h3>
-                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
-                  :class="isDark ? 'text-white' : 'text-slate-600'">Planta</p>
+
+              <!-- Línea top brillante -->
+              <div class="absolute top-0 left-4 right-4 h-px transition-all duration-300" :class="isDark
+                ? 'bg-gradient-to-r from-transparent via-orange-500/0 to-transparent group-hover:via-orange-500/80'
+                : 'bg-gradient-to-r from-transparent via-orange-400/0 to-transparent group-hover:via-orange-400/60'">
+              </div>
+
+              <div class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300"
+                :class="isDark
+                  ? 'bg-orange-500/15 text-orange-400 group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(255,143,0,0.6)]'
+                  : 'bg-orange-500/10 text-orange-500 group-hover:bg-orange-500 group-hover:text-white'">
+                <i class="fas fa-user-shield text-lg"></i>
+              </div>
+
+              <div class="text-center relative">
+                <h3 class="font-black uppercase italic text-[11px] tracking-wide transition-colors"
+                  :class="isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-800'">
+                  Acceso Coordinadores
+                </h3>
+                <p class="text-[9px] font-bold uppercase tracking-widest mt-0.5 transition-colors"
+                  :class="isDark ? 'text-slate-500 group-hover:text-orange-400' : 'text-slate-400'">
+                  Planta
+                </p>
               </div>
             </button>
 
+            <!-- RRHH Card -->
             <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.rrhh']"
-              @click="currentModule = 'view_novedad_rrhh'" class="hub-card-mini group"
-              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+              @click="currentModule = 'view_novedad_rrhh'"
+              class="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden"
+              :class="isDark
+                ? 'bg-[#252b3b] border-white/10 hover:border-blue-500 hover:shadow-[0_0_0_1px_rgba(59,130,246,0.5),0_0_30px_rgba(59,130,246,0.2)]'
+                : 'bg-white border-slate-200 hover:border-blue-400 shadow-sm hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]'">
 
-              <div class="icon-wrap bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white">
-                <i class="fas fa-id-card text-xl"></i>
+              <!-- Esquina decorativa top-left -->
+              <div class="absolute top-0 left-0 w-8 h-8 overflow-hidden rounded-tl-xl">
+                <div class="absolute -top-4 -left-4 w-8 h-8 rotate-45 transition-all duration-300" :class="isDark
+                  ? 'bg-blue-500/20 group-hover:bg-blue-500/50'
+                  : 'bg-blue-400/15 group-hover:bg-blue-400/40'">
+                </div>
               </div>
-              <div class="text-center">
-                <h3 class="font-black uppercase italic text-[11px] transition-colors"
-                  :class="isDark ? 'text-white' : 'text-slate-800'">Capital Humano</h3>
-                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
-                  :class="isDark ? 'text-white' : 'text-slate-600'">Nómina</p>
+
+              <!-- Línea top brillante -->
+              <div class="absolute top-0 left-4 right-4 h-px transition-all duration-300" :class="isDark
+                ? 'bg-gradient-to-r from-transparent via-blue-500/0 to-transparent group-hover:via-blue-500/80'
+                : 'bg-gradient-to-r from-transparent via-blue-400/0 to-transparent group-hover:via-blue-400/60'">
+              </div>
+
+              <div class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300"
+                :class="isDark
+                  ? 'bg-blue-500/15 text-blue-400 group-hover:bg-blue-500 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                  : 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white'">
+                <i class="fas fa-id-card text-lg"></i>
+              </div>
+
+              <div class="text-center relative">
+                <h3 class="font-black uppercase italic text-[11px] tracking-wide transition-colors"
+                  :class="isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-800'">
+                  Capital Humano
+                </h3>
+                <p class="text-[9px] font-bold uppercase tracking-widest mt-0.5 transition-colors"
+                  :class="isDark ? 'text-slate-500 group-hover:text-blue-400' : 'text-slate-400'">
+                  Nómina
+                </p>
               </div>
             </button>
 
-            <button @click="currentModule = 'view_novedad_user'" class="hub-card-mini group"
-              :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'">
+            <!-- User Card -->
+            <button @click="currentModule = 'view_novedad_user'"
+              class="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden"
+              :class="isDark
+                ? 'bg-[#252b3b] border-white/10 hover:border-emerald-500 hover:shadow-[0_0_0_1px_rgba(16,185,129,0.5),0_0_30px_rgba(16,185,129,0.2)]'
+                : 'bg-white border-slate-200 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]'">
 
-              <div
-                class="icon-wrap bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white">
-                <i class="fas fa-user-edit text-xl"></i>
+              <!-- Esquina decorativa top-left -->
+              <div class="absolute top-0 left-0 w-8 h-8 overflow-hidden rounded-tl-xl">
+                <div class="absolute -top-4 -left-4 w-8 h-8 rotate-45 transition-all duration-300" :class="isDark
+                  ? 'bg-emerald-500/20 group-hover:bg-emerald-500/50'
+                  : 'bg-emerald-400/15 group-hover:bg-emerald-400/40'">
+                </div>
               </div>
-              <div class="text-center">
-                <h3 class="font-black uppercase italic text-[11px] transition-colors"
-                  :class="isDark ? 'text-white' : 'text-slate-800'">Acceso Usuarios</h3>
-                <p class="text-[7px] opacity-40 font-bold uppercase tracking-tight"
-                  :class="isDark ? 'text-white' : 'text-slate-600'">Personal</p>
+
+              <!-- Línea top brillante -->
+              <div class="absolute top-0 left-4 right-4 h-px transition-all duration-300" :class="isDark
+                ? 'bg-gradient-to-r from-transparent via-emerald-500/0 to-transparent group-hover:via-emerald-500/80'
+                : 'bg-gradient-to-r from-transparent via-emerald-400/0 to-transparent group-hover:via-emerald-400/60'">
+              </div>
+
+              <div class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300"
+                :class="isDark
+                  ? 'bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)]'
+                  : 'bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white'">
+                <i class="fas fa-user-edit text-lg"></i>
+              </div>
+
+              <div class="text-center relative">
+                <h3 class="font-black uppercase italic text-[11px] tracking-wide transition-colors"
+                  :class="isDark ? 'text-slate-200 group-hover:text-white' : 'text-slate-800'">
+                  Acceso Usuarios
+                </h3>
+                <p class="text-[9px] font-bold uppercase tracking-widest mt-0.5 transition-colors"
+                  :class="isDark ? 'text-slate-500 group-hover:text-emerald-400' : 'text-slate-400'">
+                  Personal
+                </p>
               </div>
             </button>
 
           </div>
         </div>
 
-        <NovedadesAdmin v-if="currentModule === 'view_novedad_admin'" />
-        <NovedadesRRHH v-if="currentModule === 'view_novedad_rrhh'" />
-        <NovedadesUsuario v-if="currentModule === 'view_novedad_user'" />
-
+        <NovedadesAdmin v-if="currentModule === 'view_novedad_admin'" :isDark="isDark" :company="selectedCompany" />
+        <NovedadesRRHH v-if="currentModule === 'view_novedad_rrhh'" :isDark="isDark" :company="selectedCompany" />
+        <NovedadesUsuario v-if="currentModule === 'view_novedad_user'" :isDark="isDark" :company="selectedCompany"
+          :employee="employee" />
       </div>
     </main>
   </div>
