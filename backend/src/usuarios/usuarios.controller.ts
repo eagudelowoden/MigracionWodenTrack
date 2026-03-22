@@ -141,6 +141,15 @@ export class UsuariosController {
     this.usuariosService.cancelSync();
     return { message: 'Señal de cancelación enviada' };
   }
+  // usuarios.controller.ts
+@Post('sincronizar/preview')
+async syncPreview(
+  @Query('pais') pais: string,
+  @Query('depto') depto: string,
+) {
+  if (!pais) throw new BadRequestException('Debe seleccionar un país');
+  return await this.usuariosService.previewSync(pais, depto);
+}
 
   @Post('asignar-permiso')
   async asignarPermiso(

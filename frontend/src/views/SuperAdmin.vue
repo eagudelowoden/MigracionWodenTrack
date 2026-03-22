@@ -71,15 +71,32 @@ const {
 // --- 3. ESTADOS PARA PROGRESO ---
 const progressPercent = ref(0);
 const progressDetail = ref({ current: 0, total: 0 });
+const syncPreview = ref(null);
+const isFetchingPreview = ref(false);
 let progressTimer = null;
-// --- 4. FUNCIÓN DE SINCRONIZACIÓN CORREGIDA ---
-const executeSync = async () => {
+
+const fetchSyncPreview = async () => {
   if (selectedCountry.value === 'TODOS') return alert("Selecciona un país");
 
-  isSyncingUsers.value = true; // Activamos el estado del composable
+  isFetchingPreview.value = true;
+  try {
+    const url = `${API_URL}/sincronizar/preview?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
+    const res = await fetch(url, { method: 'POST' });
+    syncPreview.value = await res.json();
+  } catch (e) {
+    showNotification("Error al obtener preview", "error");
+  } finally {
+    isFetchingPreview.value = false;
+  }
+};
+// --- 4. FUNCIÓN DE SINCRONIZACIÓN CORREGIDA ---
+const executeSync = async () => {
+  syncPreview.value = null; // Cierra el modal
+  if (selectedCountry.value === 'TODOS') return;
+
+  isSyncingUsers.value = true;
   progressPercent.value = 0;
 
-  // Polling para ver el progreso
   progressTimer = setInterval(async () => {
     try {
       const res = await fetch(`${API_URL}/sincronizar/progreso`);
@@ -357,7 +374,7 @@ const uploadApkFile = async () => {
       </button>
 
       <div v-show="isSidebarOpen || isSidebarOpen === false"
-        class="flex flex-col h-full p-4 overflow-hidden transition-all" :class="!isSidebarOpen && 'lg:p-2'">
+        class="flex flex-col h-full p-2 overflow-hidden transition-all" :class="!isSidebarOpen && 'lg:p-2'">
 
         <div class="flex items-center gap-3 mb-8" :class="!isSidebarOpen && 'lg:justify-center'">
           <div
@@ -407,7 +424,7 @@ const uploadApkFile = async () => {
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-      <header class="h-16 flex items-center justify-between px-8 border-b transition-colors"
+      <header class="h-10 flex items-center justify-between px-8 border-b transition-colors"
         :class="isDark ? 'bg-[#0f172a]/50 border-white/5' : 'bg-white border-slate-200'">
 
         <div class="flex items-center gap-4">
@@ -603,7 +620,7 @@ const uploadApkFile = async () => {
               </div>
             </div>
 
-            <div class="flex items-center gap-6 flex-1 justify-end">
+            <div class="flex flex-wrap items-center gap-3 flex-1 justify-end min-w-0">
 
               <div class="flex-1 max-w-[160px]">
                 <input v-model="searchUser" type="text" placeholder="BUSCAR USUARIO..."
@@ -636,13 +653,77 @@ const uploadApkFile = async () => {
               </select>
               <div class="flex flex-col gap-1 min-w-[130px]">
                 <div class="flex items-center gap-2">
-                  <button @click="executeSync" :disabled="isSyncingUsers"
+                  <button @click="fetchSyncPreview" :disabled="isSyncingUsers || isFetchingPreview"
                     class="relative flex-1 flex items-center justify-center h-7 px-4 rounded-md transition-all duration-300 active:scale-95 disabled:opacity-50"
-                    :class="isSyncingUsers ? 'bg-slate-100 text-slate-400' : 'bg-[#FF8F00] text-white'">
+                    :class="isSyncingUsers || isFetchingPreview ? 'bg-slate-100 text-slate-400' : 'bg-[#FF8F00] text-white'">
+                    <i class="fas mr-1.5 text-[9px]"
+                      :class="isFetchingPreview ? 'fa-spinner fa-spin' : isSyncingUsers ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
                     <span class="text-[9px] font-black uppercase tracking-widest">
-                      {{ isSyncingUsers ? 'Cargando...' : 'Sincronizar' }}
+                      {{ isFetchingPreview ? 'Analizando...' : isSyncingUsers ? 'Cargando...' : 'Sincronizar' }}
                     </span>
                   </button>
+                  <!-- MODAL DE PREVIEW -->
+                  <Teleport to="body">
+                    <div v-if="syncPreview"
+                      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                      <div class="w-full max-w-md rounded-2xl border border-white/10 p-6"
+                        :class="isDark ? 'bg-slate-900' : 'bg-white'">
+
+                        <h3 class="text-sm font-black uppercase tracking-widest mb-4"
+                          :class="isDark ? 'text-white' : 'text-slate-800'">
+                          Resumen de sincronización
+                        </h3>
+
+                        <!-- Contadores -->
+                        <div class="grid grid-cols-3 gap-3 mb-5">
+                          <div class="rounded-xl bg-emerald-500/10 p-3 text-center">
+                            <div class="text-2xl font-black text-emerald-400">{{ syncPreview.summary.nuevos }}</div>
+                            <div class="text-[10px] font-bold text-slate-500 mt-1">Nuevos</div>
+                          </div>
+                          <div class="rounded-xl bg-blue-500/10 p-3 text-center">
+                            <div class="text-2xl font-black text-blue-400">{{ syncPreview.summary.actualizados }}</div>
+                            <div class="text-[10px] font-bold text-slate-500 mt-1">Actualizados</div>
+                          </div>
+                          <div class="rounded-xl bg-rose-500/10 p-3 text-center">
+                            <div class="text-2xl font-black text-rose-400">{{ syncPreview.summary.aEliminar }}</div>
+                            <div class="text-[10px] font-bold text-slate-500 mt-1">A eliminar</div>
+                          </div>
+                        </div>
+
+                        <!-- Lista de eliminados -->
+                        <div v-if="syncPreview.toDelete.length > 0" class="mb-5">
+                          <p class="text-[10px] font-black uppercase text-rose-400 mb-2 tracking-wider">
+                            🗑️ Registros que se eliminarán:
+                          </p>
+                          <div class="max-h-40 overflow-y-auto custom-scroll space-y-1">
+                            <div v-for="u in syncPreview.toDelete" :key="u.id_odoo"
+                              class="flex items-center justify-between text-[11px] p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                              <span class="font-bold" :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{ u.nombre
+                                }}</span>
+                              <span class="text-rose-400 font-mono">{{ u.identificacion }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p v-else class="text-[11px] text-slate-500 mb-5">
+                          ✅ No hay registros a eliminar.
+                        </p>
+
+                        <!-- Botones -->
+                        <div class="flex gap-3">
+                          <button @click="syncPreview = null"
+                            class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider border border-white/10 transition-all hover:bg-white/5"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+                            Cancelar
+                          </button>
+                          <button @click="executeSync"
+                            class="flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider bg-[#FF8F00] text-black hover:bg-[#FF8F00]/90 transition-all">
+                            Confirmar sync
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </Teleport>
 
                   <button v-if="isSyncingUsers" @click="handleCancel"
                     class="flex items-center justify-center w-7 h-7 text-rose-500 hover:bg-rose-50 rounded-md transition-all">

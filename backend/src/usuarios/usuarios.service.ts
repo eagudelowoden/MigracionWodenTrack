@@ -48,7 +48,7 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -107,13 +107,11 @@ export class UsuariosService {
       cargo.includes('ANALISTA') && cargo.includes('MALLAS');
 
     // 3. LÓGICA DE ROLES
-    const palabrasAdmin = [
-      'DESARROLLADOR',
-    ];
+    const palabrasAdmin = ['DESARROLLADOR'];
 
-    const esSuperAdmin = [
-      'DESARROLLADOR',
-    ].some((palabra) => cargo.includes(palabra));
+    const esSuperAdmin = ['DESARROLLADOR'].some((palabra) =>
+      cargo.includes(palabra),
+    );
 
     // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
     const esTI = /\b(IT|TI)\b/i.test(cargo);
@@ -461,7 +459,9 @@ export class UsuariosService {
   async getAllMallas(companyName?: string, departamentoName?: string) {
     const uid = await this.odoo.authenticate();
     const now = new Date();
-    const dayOfWeekOdoo = (now.getDay() === 0 ? 6 : now.getDay() - 1).toString();
+    const dayOfWeekOdoo = (
+      now.getDay() === 0 ? 6 : now.getDay() - 1
+    ).toString();
 
     const domain: any[] = [
       ['state', 'in', ['open', 'draft']],
@@ -471,8 +471,16 @@ export class UsuariosService {
     if (companyName && companyName.trim() !== '') {
       domain.push(['employee_id.company_id.name', '=', companyName]);
     }
-    if (departamentoName && departamentoName.trim() !== '' && departamentoName !== 'Todas') {
-      domain.push(['employee_id.department_id.name', 'ilike', departamentoName]);
+    if (
+      departamentoName &&
+      departamentoName.trim() !== '' &&
+      departamentoName !== 'Todas'
+    ) {
+      domain.push([
+        'employee_id.department_id.name',
+        'ilike',
+        departamentoName,
+      ]);
     }
 
     // 2. EJECUTAR LA BÚSQUEDA
@@ -484,8 +492,8 @@ export class UsuariosService {
         fields: [
           'employee_id',
           'resource_calendar_id',
-          'job_id',         // Cargo del contrato
-          'department_id',  // Departamento del contrato
+          'job_id', // Cargo del contrato
+          'department_id', // Departamento del contrato
         ],
         order: 'employee_id asc',
       },
@@ -496,7 +504,7 @@ export class UsuariosService {
 
     // --- NUEVA LÓGICA: Obtener detalles de los Empleados ---
     // Extraemos los IDs de los empleados de los contratos
-    const employeeIds = [...new Set(contracts.map(c => c.employee_id[0]))];
+    const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
 
     const employeesDetail = await this.odoo.executeKw<any[]>(
       'hr.employee',
@@ -505,17 +513,26 @@ export class UsuariosService {
       {
         fields: ['id', 'job_title', 'department_id'],
       },
-      uid
+      uid,
     );
 
     // 3. OBTENER LAS MALLAS (Se mantiene igual)
-    const calendarIds = [...new Set(contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id))];
+    const calendarIds = [
+      ...new Set(
+        contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
+      ),
+    ];
     let allMallas: any[] = [];
     if (calendarIds.length > 0) {
       allMallas = await this.odoo.executeKw<any[]>(
         'resource.calendar.attendance',
         'search_read',
-        [[['calendar_id', 'in', calendarIds], ['dayofweek', '=', dayOfWeekOdoo]]],
+        [
+          [
+            ['calendar_id', 'in', calendarIds],
+            ['dayofweek', '=', dayOfWeekOdoo],
+          ],
+        ],
         { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
         uid,
       );
@@ -524,16 +541,25 @@ export class UsuariosService {
     // 4. MAPEO FINAL MEJORADO
     return contracts.map((con) => {
       // Buscamos el detalle del empleado para rescatar cargo/depto si el contrato no los tiene
-      const empInfo = employeesDetail.find(e => e.id === con.employee_id[0]);
+      const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
 
-      const mallaEmp = allMallas.find((m) => m.calendar_id[0] === con.resource_calendar_id?.[0]);
+      const mallaEmp = allMallas.find(
+        (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
+      );
+      console.log('resource_calendar_id:', con.resource_calendar_id);
+      console.log('allMallas[0]:', allMallas[0]); // ver estructura real
 
       let horario = 'No programado';
       let jornada = 'N/A';
       if (mallaEmp) {
         horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
         const period = mallaEmp.day_period;
-        jornada = period === 'morning' ? 'Diurna' : period === 'afternoon' ? 'Tarde' : 'Nocturna';
+        jornada =
+          period === 'morning'
+            ? 'Diurna'
+            : period === 'afternoon'
+              ? 'Tarde'
+              : 'Nocturna';
       }
 
       return {
@@ -542,14 +568,20 @@ export class UsuariosService {
         // PRIORIDAD: 1. Depto Contrato -> 2. Depto Empleado -> 3. "No asignado"
         departamento: Array.isArray(con.department_id)
           ? con.department_id[1]
-          : (empInfo && Array.isArray(empInfo.department_id) ? empInfo.department_id[1] : 'No asignado'),
+          : empInfo && Array.isArray(empInfo.department_id)
+            ? empInfo.department_id[1]
+            : 'No asignado',
 
-        malla: con.resource_calendar_id ? con.resource_calendar_id[1] : 'Sin Malla',
+        malla: con.resource_calendar_id
+          ? con.resource_calendar_id[1]
+          : 'Sin Malla',
 
         // PRIORIDAD: 1. Cargo Contrato -> 2. Job Title de Empleado -> 3. "No asignado"
         cargo: Array.isArray(con.job_id)
           ? con.job_id[1]
-          : (empInfo && empInfo.job_title ? empInfo.job_title : 'No asignado'),
+          : empInfo && empInfo.job_title
+            ? empInfo.job_title
+            : 'No asignado',
 
         jornada: jornada,
         horario: horario,
@@ -591,14 +623,18 @@ export class UsuariosService {
     const startDay = soloHoy ? hoyFechaCorta : startDate;
     const endDay = soloHoy ? hoyFechaCorta : endDate;
 
-    // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia, 
+    // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia,
     // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
     let finUTC: string | null = null;
     if (endDay) {
       const partes = endDay.split('-');
-      const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      const fechaFin = new Date(
+        Number(partes[0]),
+        Number(partes[1]) - 1,
+        Number(partes[2]),
+      );
       // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
       fechaFin.setDate(fechaFin.getDate() + 1);
 
@@ -640,27 +676,60 @@ export class UsuariosService {
 
     try {
       const [attendances, logs] = await Promise.all([
-        this.odoo.executeKw<any[]>('hr.attendance', 'search_read', [domainAtt], {
-          fields: ['employee_id', 'check_in', 'check_out', 'department_id', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
-          order: 'check_in desc', limit: 3000,
-        }, uid),
-        this.odoo.executeKw<any[]>('attendance.log', 'search_read', [domainLog], {
-          fields: ['employee_id', 'punching_time', 'status', 'x_studio_related_field_j40wn', 'device'],
-          order: 'punching_time desc', limit: 3000,
-        }, uid),
+        this.odoo.executeKw<any[]>(
+          'hr.attendance',
+          'search_read',
+          [domainAtt],
+          {
+            fields: [
+              'employee_id',
+              'check_in',
+              'check_out',
+              'department_id',
+              'x_studio_tipo_entrada',
+              'x_studio_tipo_salida',
+            ],
+            order: 'check_in desc',
+            limit: 3000,
+          },
+          uid,
+        ),
+        this.odoo.executeKw<any[]>(
+          'attendance.log',
+          'search_read',
+          [domainLog],
+          {
+            fields: [
+              'employee_id',
+              'punching_time',
+              'status',
+              'x_studio_related_field_j40wn',
+              'device',
+            ],
+            order: 'punching_time desc',
+            limit: 3000,
+          },
+          uid,
+        ),
       ]);
-      const nombresAsistencias = attendances.map(a => a.employee_id?.[1]);
-      const nombresLogs = logs.map(l => l.employee_id?.[1]);
-      const nombresUnicos = [...new Set([...nombresAsistencias, ...nombresLogs])].filter(Boolean);
+      const nombresAsistencias = attendances.map((a) => a.employee_id?.[1]);
+      const nombresLogs = logs.map((l) => l.employee_id?.[1]);
+      const nombresUnicos = [
+        ...new Set([...nombresAsistencias, ...nombresLogs]),
+      ].filter(Boolean);
 
       let partnerMap: Record<string, string> = {};
       if (nombresUnicos.length > 0) {
-        const partners = await this.odoo.executeKw<any[]>('res.partner', 'search_read',
+        const partners = await this.odoo.executeKw<any[]>(
+          'res.partner',
+          'search_read',
           [[['name', 'in', nombresUnicos]]],
           { fields: ['name', 'doc_number'] },
-          uid
+          uid,
         );
-        partnerMap = Object.fromEntries(partners.map(p => [p.name, p.doc_number]));
+        partnerMap = Object.fromEntries(
+          partners.map((p) => [p.name, p.doc_number]),
+        );
       }
 
       // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
@@ -672,7 +741,8 @@ export class UsuariosService {
         const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
 
         // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
-        return new Intl.DateTimeFormat('sv-SE', { // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
+        return new Intl.DateTimeFormat('sv-SE', {
+          // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
           timeZone: 'America/Bogota',
           year: 'numeric',
           month: '2-digit',
@@ -680,7 +750,9 @@ export class UsuariosService {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
-        }).format(fechaUTC).replace('T', ' ');
+        })
+          .format(fechaUTC)
+          .replace('T', ' ');
       };
       // --- 5. MAPEO FINAL ---
       const resAttendances = attendances.map((att) => {
@@ -721,7 +793,9 @@ export class UsuariosService {
           empleado: nombre,
           cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
 
-          department_id: log.x_studio_related_field_j40wn ? log.x_studio_related_field_j40wn[1] : 'SIN DEPTO',
+          department_id: log.x_studio_related_field_j40wn
+            ? log.x_studio_related_field_j40wn[1]
+            : 'SIN DEPTO',
           check_in: esEntrada ? localTime : null,
           check_out: !esEntrada ? localTime : null,
           c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
@@ -734,11 +808,14 @@ export class UsuariosService {
 
       // --- 6. UNIÓN Y ORDENAMIENTO ---
       return [...resAttendances, ...resLogs].sort((a, b) => {
-        const timeA = new Date((a.check_in || a.check_out || '0').replace(' ', 'T')).getTime();
-        const timeB = new Date((b.check_in || b.check_out || '0').replace(' ', 'T')).getTime();
+        const timeA = new Date(
+          (a.check_in || a.check_out || '0').replace(' ', 'T'),
+        ).getTime();
+        const timeB = new Date(
+          (b.check_in || b.check_out || '0').replace(' ', 'T'),
+        ).getTime();
         return timeB - timeA;
       });
-
     } catch (error) {
       console.error('Error en reporte:', error);
       throw error;
@@ -848,100 +925,177 @@ export class UsuariosService {
   getProgress() {
     return this.syncProgress;
   }
+  // usuarios.service.ts
+async previewSync(paisSeleccionado: string, deptoSeleccionado?: string) {
+  const uid = await this.odoo.authenticate();
+  const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+
+  if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+    domain.push(['department_id.name', '=', deptoSeleccionado]);
+  }
+
+  const odooEmployees = await this.odoo.executeKw<any[]>(
+    'hr.employee', 'search_read', [domain],
+    { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
+    uid,
+  );
+
+  // IDs de Odoo
+  const odooIds = new Set(odooEmployees.map(e => e.id));
+
+  // Registros actuales en DB para ese país/depto
+  const dbQuery = this.usuarioRepo.createQueryBuilder('u')
+    .where('u.pais = :pais', { pais: paisSeleccionado });
+
+  if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+    dbQuery.andWhere('u.departamento = :depto', { departamento: deptoSeleccionado });
+  }
+
+  const dbUsers = await dbQuery.getMany();
+  const dbIds = new Set(dbUsers.map(u => u.id_odoo));
+
+  // Clasificar
+  const toCreate = odooEmployees.filter(e => !dbIds.has(e.id));
+  const toUpdate = odooEmployees.filter(e => dbIds.has(e.id));
+  const toDelete = dbUsers.filter(u => !odooIds.has(u.id_odoo));
+
+  return {
+    summary: {
+      nuevos: toCreate.length,
+      actualizados: toUpdate.length,
+      aEliminar: toDelete.length,
+    },
+    toCreate: toCreate.map(e => ({ id_odoo: e.id, nombre: e.name, identificacion: e.identification_id })),
+    toUpdate: toUpdate.map(e => ({ id_odoo: e.id, nombre: e.name, identificacion: e.identification_id })),
+    toDelete: toDelete.map(u => ({ id: u.id, id_odoo: u.id_odoo, nombre: u.nombre, identificacion: u.identificacion })),
+  };
+}
 
   // Método para cancelar
   cancelSync() {
     this.syncProgress.isCancelled = true;
     this.syncProgress.status = 'cancelled';
   }
-  async syncUsuariosFromOdoo(
-    paisSeleccionado: string,
-    deptoSeleccionado?: string,
-  ) {
-    try {
-      // Reset de estado al iniciar
-      this.syncProgress = {
-        current: 0,
-        total: 0,
-        isCancelled: false,
-        status: 'syncing',
-      };
+async syncUsuariosFromOdoo(
+  paisSeleccionado: string,
+  deptoSeleccionado?: string,
+) {
+  try {
+    // Reset de estado al iniciar
+    this.syncProgress = {
+      current: 0,
+      total: 0,
+      isCancelled: false,
+      status: 'syncing',
+    };
 
-      const uid = await this.odoo.authenticate();
-      const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+    const uid = await this.odoo.authenticate();
+    const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
 
-      if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
-        domain.push(['department_id.name', '=', deptoSeleccionado]);
-      }
-
-      const odooEmployees = await this.odoo.executeKw<any[]>(
-        'hr.employee',
-        'search_read',
-        [domain],
-        {
-          fields: [
-            'id',
-            'name',
-            'identification_id',
-            'job_title',
-            'department_id',
-          ],
-        },
-        uid,
-      );
-
-      this.syncProgress.total = odooEmployees.length;
-      let nuevos = 0;
-      let actualizados = 0;
-
-      for (const [index, emp] of odooEmployees.entries()) {
-        // VERIFICACIÓN DE CANCELACIÓN
-        if (this.syncProgress.isCancelled) {
-          return {
-            status: 'info',
-            message: 'Sincronización cancelada por el usuario.',
-          };
-        }
-
-        const existing = await this.usuarioRepo.findOne({
-          where: { id_odoo: emp.id },
-        });
-        const data = {
-          id_odoo: emp.id,
-          nombre: emp.name,
-          identificacion: emp.identification_id || 'N/A',
-          cargo: emp.job_title || 'Sin Cargo',
-          departamento: emp.department_id
-            ? emp.department_id[1]
-            : 'Sin Departamento',
-          pais: paisSeleccionado,
-        };
-
-        if (!existing) {
-          await this.usuarioRepo.save({ ...data, id: emp.id });
-          nuevos++;
-        } else {
-          await this.usuarioRepo.update(existing.id, data);
-          actualizados++;
-        }
-
-        // ACTUALIZAR PROGRESO
-        this.syncProgress.current = index + 1;
-      }
-
-      this.syncProgress.status = 'completed';
-      return {
-        status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-        message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`,
-      };
-    } catch (error) {
-      this.syncProgress.status = 'error';
-      console.error(`Error sincronizando ${paisSeleccionado}:`, error);
-      throw new InternalServerErrorException(
-        'Error al sincronizar empleados con Odoo',
-      );
+    if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+      domain.push(['department_id.name', '=', deptoSeleccionado]);
     }
+
+    const odooEmployees = await this.odoo.executeKw<any[]>(
+      'hr.employee',
+      'search_read',
+      [domain],
+      {
+        fields: [
+          'id',
+          'name',
+          'identification_id',
+          'job_title',
+          'department_id',
+        ],
+      },
+      uid,
+    );
+
+    // ── CALCULAR ELIMINADOS ANTES DEL LOOP ──────────────────────────────
+    const odooIds = new Set(odooEmployees.map((e) => e.id));
+
+    const dbQuery = this.usuarioRepo.createQueryBuilder('u')
+      .where('u.pais = :pais', { pais: paisSeleccionado });
+
+    if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+      dbQuery.andWhere('u.departamento = :depto', { depto: deptoSeleccionado });
+    }
+
+    const dbUsers = await dbQuery.getMany();
+    const toDelete = dbUsers.filter((u) => !odooIds.has(u.id_odoo));
+    // ────────────────────────────────────────────────────────────────────
+
+    // Total = upserts + eliminaciones
+    this.syncProgress.total = odooEmployees.length + toDelete.length;
+    let nuevos = 0;
+    let actualizados = 0;
+    let eliminados = 0;
+
+    // ── FASE 1: UPSERT ───────────────────────────────────────────────────
+    for (const [index, emp] of odooEmployees.entries()) {
+      if (this.syncProgress.isCancelled) {
+        return {
+          status: 'info',
+          message: 'Sincronización cancelada por el usuario.',
+        };
+      }
+
+      const existing = await this.usuarioRepo.findOne({
+        where: { id_odoo: emp.id },
+      });
+
+      const data = {
+        id_odoo: emp.id,
+        nombre: emp.name,
+        identificacion: emp.identification_id || 'N/A',
+        cargo: emp.job_title || 'Sin Cargo',
+        departamento: emp.department_id
+          ? emp.department_id[1]
+          : 'Sin Departamento',
+        pais: paisSeleccionado,
+      };
+
+      if (!existing) {
+        await this.usuarioRepo.save({ ...data, id: emp.id });
+        nuevos++;
+      } else {
+        await this.usuarioRepo.update(existing.id, data);
+        actualizados++;
+      }
+
+      this.syncProgress.current = index + 1;
+    }
+
+    // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
+    for (const user of toDelete) {
+      if (this.syncProgress.isCancelled) {
+        return {
+          status: 'info',
+          message: `Sincronización cancelada. ${eliminados} eliminados hasta el momento.`,
+        };
+      }
+
+      await this.usuarioRepo.delete(user.id);
+      eliminados++;
+      this.syncProgress.current = odooEmployees.length + eliminados;
+    }
+    // ────────────────────────────────────────────────────────────────────
+
+    this.syncProgress.status = 'completed';
+    return {
+      status: 'success',
+      message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
+    };
+
+  } catch (error) {
+    this.syncProgress.status = 'error';
+    console.error(`Error sincronizando ${paisSeleccionado}:`, error);
+    throw new InternalServerErrorException(
+      'Error al sincronizar empleados con Odoo',
+    );
   }
+}
 
   async getOdooEmployeesRaw(paisSeleccionado?: string) {
     const uid = await this.odoo.authenticate();
@@ -1052,21 +1206,20 @@ export class UsuariosService {
   async obtenerPerfilConEstructura(idOdoo: number) {
     // --- ESTE ES EL TEST DE DEPURACIÓN ---
     const todos = await this.usuarioRepo.find({ take: 5 });
-    console.log("--- DEBUG DB ---");
-    console.log("ID Odoo que busco:", idOdoo);
-    console.log("Contenido actual de la tabla (5 primeros):", todos);
+    console.log('--- DEBUG DB ---');
+    console.log('ID Odoo que busco:', idOdoo);
+    console.log('Contenido actual de la tabla (5 primeros):', todos);
     // ------------------------------------
 
     const usuario = await this.usuarioRepo.findOne({
-      where: [
-        { id_odoo: idOdoo },
-        { id: idOdoo }
-      ],
+      where: [{ id_odoo: idOdoo }, { id: idOdoo }],
       relations: ['area', 'segmento'],
     });
 
     if (!usuario) {
-      throw new NotFoundException(`Usuario ${idOdoo} no hallado en la tabla usuarios_registrados`);
+      throw new NotFoundException(
+        `Usuario ${idOdoo} no hallado en la tabla usuarios_registrados`,
+      );
     }
 
     return usuario;
