@@ -1,11 +1,11 @@
 <template>
-  <div class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-2">
+  <div class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1">
 
     <!-- Header SEPARADO -->
-    <div class="flex items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
+    <div class="flex items-center justify-between gap-2 p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
       :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
-      <div class="flex items-center gap-3 ml-1">
+      <div class="flex items-center gap-2 ml-1">
         <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#FF8F00] text-white shadow-sm shrink-0">
           <i class="fas fa-file-signature text-xs"></i>
         </div>
