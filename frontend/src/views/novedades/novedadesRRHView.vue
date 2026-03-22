@@ -10,8 +10,7 @@
           <i class="fas fa-user-check text-xs"></i>
         </div>
         <div>
-          <h2 class="text-base font-black uppercase tracking-tighter"
-            :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-base font-black uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-800'">
             Gestión <span class="text-[#FF8F00]">RRHH</span>
           </h2>
           <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
@@ -40,8 +39,7 @@
           </select>
         </div>
 
-        <button @click="resetFilters"
-          class="p-1.5 rounded-lg border transition-colors hover:text-[#FF8F00]"
+        <button @click="resetFilters" class="p-1.5 rounded-lg border transition-colors hover:text-[#FF8F00]"
           :class="isDark ? 'border-[#2d3548] bg-[#273045] text-slate-400' : 'border-slate-200 bg-white text-slate-500'">
           <i class="fas fa-sync-alt text-[10px]"></i>
         </button>
@@ -58,29 +56,33 @@
           <table class="w-full border-separate border-spacing-0">
             <thead class="sticky top-0 z-10">
               <tr class="bg-[#334155]">
-                <th class="px-5 py-3 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <th
+                  class="px-5 py-3 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Colaborador</th>
-                <th class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <th
+                  class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Área / Cargo</th>
-                <th class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <th
+                  class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Novedad</th>
-                <th class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <th
+                  class="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Días</th>
-                <th class="px-5 py-3 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                <th
+                  class="px-5 py-3 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Acción</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, idx) in novedadesFiltradas" :key="idx"
-                class="group transition-all duration-150"
-                :class="[
-                  idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                  isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50'
-                ]">
+              <tr v-for="(item, idx) in novedadesFiltradas" :key="idx" class="group transition-all duration-150" :class="[
+                idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50'
+              ]">
 
                 <td class="px-5 py-3 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-xs font-black text-[#FF8F00] shrink-0">
+                    <div
+                      class="w-8 h-8 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-xs font-black text-[#FF8F00] shrink-0">
                       {{ item.nombre.charAt(0) }}
                     </div>
                     <div class="flex flex-col">
@@ -107,8 +109,8 @@
                 </td>
 
                 <td class="px-4 py-3 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <span class="text-[11px] font-black"
-                    :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.dias }}</span>
+                  <span class="text-[11px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.dias
+                    }}</span>
                 </td>
 
                 <td class="px-5 py-3 text-right border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
@@ -135,19 +137,19 @@
       </div>
 
       <!-- Mobile -->
-      <div class="md:hidden flex-1 overflow-y-auto divide-y"
-        :class="isDark ? 'divide-[#2d3548]' : 'divide-slate-100'">
-        <div v-for="(item, idx) in novedadesFiltradas" :key="'mob-'+idx" class="p-4 space-y-3">
+      <div class="md:hidden flex-1 overflow-y-auto divide-y" :class="isDark ? 'divide-[#2d3548]' : 'divide-slate-100'">
+        <div v-for="(item, idx) in novedadesFiltradas" :key="'mob-' + idx" class="p-4 space-y-3">
           <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00]">
+              <div
+                class="w-8 h-8 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00]">
                 {{ item.nombre.charAt(0) }}
               </div>
               <span class="text-[10px] font-black uppercase tracking-tight"
                 :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</span>
             </div>
-            <span class="px-2 py-1 rounded text-[8px] font-black uppercase"
-              :class="getCatTag(item.categoria)">{{ item.categoria }}</span>
+            <span class="px-2 py-1 rounded text-[8px] font-black uppercase" :class="getCatTag(item.categoria)">{{
+              item.categoria }}</span>
           </div>
           <div class="flex items-center justify-between text-[9px] font-bold uppercase opacity-60">
             <span>{{ item.cargo }} • {{ item.departamento }}</span>
@@ -202,8 +204,16 @@ const verSoporte = (url) => window.open(url, '_blank');
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

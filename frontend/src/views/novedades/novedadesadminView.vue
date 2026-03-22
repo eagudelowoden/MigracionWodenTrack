@@ -10,8 +10,7 @@
           <i class="fas fa-file-signature text-xs"></i>
         </div>
         <div>
-          <h2 class="text-base font-black uppercase tracking-tighter"
-            :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-base font-black uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-800'">
             Registro <span class="text-[#FF8F00]">Novedad</span>
           </h2>
           <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
@@ -47,7 +46,8 @@
           <div class="flex flex-col gap-1.5">
             <label class="text-[9px] font-black uppercase tracking-widest ml-1"
               :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
-            <div class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all text-xs"
+            <div
+              class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all text-xs"
               :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
               <i class="fas fa-id-card text-[#FF8F00]/80 text-sm"></i>
               <input type="number" v-model="form.cedula" placeholder="Número identificación..." required
@@ -163,8 +163,16 @@ const handleSubmit = () => {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
