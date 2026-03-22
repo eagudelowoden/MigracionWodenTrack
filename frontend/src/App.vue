@@ -76,11 +76,31 @@ const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
 // --- 🔵 LÓGICA DE NOTIFICACIONES (SOCKETS) ---
 const socket = io(API_BASE, { transports: ['websocket'], forceNew: true });
 
+const cargarAnuncioActivo = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/notifications/active`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.is_active) {
+      if (data.type === 'alert') {
+        anuncioSuperior.value = data;
+      } else {
+        anuncioInferior.value = data;
+      }
+    }
+  } catch (e) {
+    console.error("Error cargando anuncio:", e);
+  }
+};
+
+
 const setupSockets = () => {
   socket.on('onNotification', (data) => {
-    console.log("🔔 Notificación recibida:", data);
-
-    // Aquí el socket SOLO maneja mensajes visuales, no bloquea la versión
+    if (data.is_active === false) {
+      anuncioSuperior.value = null;
+      anuncioInferior.value = null;
+      return;
+    }
     if (data.type === 'alert') {
       anuncioSuperior.value = data;
     } else {
@@ -89,7 +109,6 @@ const setupSockets = () => {
     }
   });
 };
-
 // --- 🟢 LÓGICA DE VERSIÓN (HTTP POLLING) ---
 const verificarVersion = async () => {
   try {
@@ -122,8 +141,9 @@ const recargarPagina = async () => {
 };
 
 onMounted(() => {
+  cargarAnuncioActivo(); // 👈 Carga el activo al entrar
   verificarVersion();
-  setupSockets();
-  setInterval(verificarVersion, 60000); // Verificación de versión cada minuto
+  setupSockets(); // ✅ ahora existe
+  setInterval(verificarVersion, 60000);
 });
 </script>

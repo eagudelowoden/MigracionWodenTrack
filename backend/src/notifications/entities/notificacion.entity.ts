@@ -1,19 +1,23 @@
-import { Entity, Column, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+// src/notifications/announcement.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-@Entity('global_announcements')
+@Entity('announcements')
 export class Announcement {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
+  title: string;
+
+  @Column('text')
   body: string;
 
-  @Column()
-  type: string;
+  @Column({ default: 'info' })
+  type: string; // 'info' | 'update' | 'alert'
 
-  @Column({ default: false })
-  active: boolean;
+  @Column({ default: true })
+  is_active: boolean;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @CreateDateColumn()
+  created_at: Date;
 }

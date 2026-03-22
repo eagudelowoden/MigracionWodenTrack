@@ -1,45 +1,54 @@
+// notifications.service.ts
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Announcement } from './entities/notificacion.entity';
 import { NotificationsGateway } from './notifications.gateway';
-
-export interface NotificationLog {
-    id: number;
-    title: string;
-    body: string;
-    type: string;
-    date: string;
-}
 
 @Injectable()
 export class NotificationsService {
-    private notificationLogs: NotificationLog[] = [];
+  constructor(
+    @InjectRepository(Announcement)
+    private announcementRepo: Repository<Announcement>,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
-    constructor(private readonly notificationsGateway: NotificationsGateway) { }
+  // Crear y emitir por socket
+  async broadcast(data: any) {
+    const announcement = this.announcementRepo.create({
+      title: data.title,
+      body: data.body,
+      type: data.type || 'info',
+      is_active: true,
+    });
 
-    async broadcast(data: any) {
-        const newLog: NotificationLog = {
-            id: Date.now(),
-            title: data.title,
-            body: data.body,
-            type: data.type || 'info',
-            date: new Date().toLocaleTimeString('es-CO', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            })
-        };
+    const saved = await this.announcementRepo.save(announcement);
+    this.notificationsGateway.sendGlobalNotification(saved);
 
-        this.notificationLogs.unshift(newLog);
+    return { success: true, data: saved };
+  }
 
-        if (this.notificationLogs.length > 15) {
-            this.notificationLogs.pop();
-        }
+  // El que se usa al cargar la app: devuelve el anuncio activo más reciente
+  async getActiveAnnouncement(): Promise<Announcement | null> {
+    return await this.announcementRepo.findOne({
+      where: { is_active: true },
+      order: { created_at: 'DESC' },
+    });
+  }
 
-        this.notificationsGateway.sendGlobalNotification(newLog);
+  // Historial para los logs del admin
+  async getHistory(): Promise<Announcement[]> {
+    return await this.announcementRepo.find({
+      order: { created_at: 'DESC' },
+      take: 15,
+    });
+  }
 
-        return { success: true, data: newLog };
-    }
-
-    async getHistory(): Promise<NotificationLog[]> {
-        return this.notificationLogs;
-    }
+  // Desactivar un anuncio
+  async deactivate(id: number) {
+    await this.announcementRepo.update(id, { is_active: false });
+    // Emite null para que los clientes limpien el banner
+    this.notificationsGateway.sendGlobalNotification({ id, is_active: false });
+    return { success: true };
+  }
 }
