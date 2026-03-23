@@ -80,6 +80,7 @@ export class NovedadesService {
         { expiresIn: 3600 },
       );
     }
+    // ← ruta relativa está bien, el frontend ya sabe usar /novedades/:id/file
     return `/uploads/novedades/${storageKey}`;
   }
 
