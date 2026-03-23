@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'; // Importamos watch y quitamos computed (ya vienen del composable)
+import { ref, onMounted, watch } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
@@ -9,6 +9,7 @@ import GestionApk from '../components/admin/SuperAdmin/GestionApk.vue';
 import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vue';
 import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
 import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
+import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -297,126 +298,12 @@ onMounted(async () => {
         </div>
       </div>
     </main>
-    <div v-if="selectedUserPerms"
-      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
 
-      <div
-        class="w-full max-w-md max-h-[90vh] rounded-[2.5rem] border border-white/10 p-8 shadow-2xl animate-fade-in flex flex-col"
-        :class="isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'">
 
-        <div class="flex justify-between items-start mb-6 shrink-0">
-          <div>
-            <h3 class="text-xl font-black italic uppercase text-[#FF8F00]">Configurar Accesos</h3>
-            <p class="text-[10px] font-bold opacity-50 uppercase tracking-widest">
-              {{ selectedUserPerms.nombre }}
-            </p>
-          </div>
-          <button @click="selectedUserPerms = null" class="opacity-50 hover:opacity-100 transition-opacity">
-            <i class="fas fa-times-circle text-xl"></i>
-          </button>
-        </div>
 
-        <div class="space-y-4 overflow-y-auto pr-2 custom-scroll flex-1">
-
-          <div :class="[
-            'p-5 rounded-[2rem] border transition-all duration-300',
-            isDark ? 'bg-white/[0.02] border-white/10 shadow-xl' : 'bg-slate-50 border-slate-200 shadow-sm'
-          ]">
-            <div class="flex items-center gap-2 mb-5">
-              <div class="w-6 h-6 rounded-lg bg-[#FF8F00]/20 flex items-center justify-center">
-                <i class="fas fa-layer-group text-[10px] text-[#FF8F00]"></i>
-              </div>
-              <span class="text-[10px] font-black uppercase tracking-[0.15em] opacity-70">Estructura
-                Organizacional</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div class="group space-y-2">
-                <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
-                  <span class="w-1 h-1 bg-blue-500 rounded-full"></span> Área Actual
-                </label>
-                <div class="relative">
-                  <select v-model="selectedUserPerms.area_id"
-                    @change="updateUserStructure(selectedUserPerms, 'area_id')"
-                    class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer"
-                    :class="isDark ? 'text-white' : 'text-slate-800'">
-                    <option :value="null">-- SIN ÁREA --</option>
-                    <option v-for="a in areas" :key="a.id" :value="a.id">{{ a.nombre }}</option>
-                  </select>
-                  <i
-                    class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
-                </div>
-              </div>
-
-              <div class="group space-y-2">
-                <label class="text-[9px] font-bold opacity-50 uppercase ml-1 flex items-center gap-1">
-                  <span class="w-1 h-1 bg-emerald-500 rounded-full"></span> Segmento
-                </label>
-                <div class="relative">
-                  <select v-model="selectedUserPerms.segmento_id"
-                    @change="updateUserStructure(selectedUserPerms, 'segmento_id')"
-                    class="w-full bg-black/10 border border-white/5 p-3 rounded-2xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
-                    :class="isDark ? 'text-white' : 'text-slate-800'">
-                    <option :value="null">-- SIN SEGMENTO --</option>
-                    <option v-for="s in segmentos" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-                  </select>
-                  <i
-                    class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] opacity-30 pointer-events-none"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 py-2">
-            <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1"></div>
-            <span class="text-[9px] font-black opacity-40 uppercase tracking-[0.2em]">Módulos y Permisos</span>
-            <div class="h-[1px] bg-gradient-to-r from-transparent via-[#FF8F00]/20 to-transparent flex-1"></div>
-          </div>
-
-          <div class="grid grid-cols-1 gap-2">
-            <div
-              v-for="slug in ['super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias', 'super.personal', 'admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.novedades']"
-              :key="slug"
-              class="group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200"
-              :class="isDark
-                ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/10'
-                : 'bg-white border-slate-200 hover:border-[#FF8F00]/30 hover:shadow-md'">
-
-              <div class="flex items-center gap-4">
-                <div :class="[
-                  'w-1.5 h-8 rounded-full transition-all duration-500',
-                  hasPerm(selectedUserPerms, slug) ? 'bg-[#FF8F00] shadow-[0_0_10px_#FF8F00]/40' : 'bg-slate-700/20'
-                ]"></div>
-                <div>
-                  <span
-                    class="text-[10px] font-black uppercase tracking-wider block group-hover:text-[#FF8F00] transition-colors">
-                    {{ slug.split('.')[1] }}
-                    <span class="text-[8px] opacity-30 ml-1 font-normal italic">({{ slug.split('.')[0] }})</span>
-                  </span>
-                  <p class="text-[8px] opacity-40 font-bold uppercase">Acceso al sistema</p>
-                </div>
-              </div>
-
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" :checked="hasPerm(selectedUserPerms, slug)"
-                  @change="togglePermisoLocal(selectedUserPerms, slug)" class="sr-only peer">
-                <div class="w-9 h-5 bg-slate-700/30 rounded-full peer 
-              peer-checked:bg-[#FF8F00] 
-              after:content-[''] after:absolute after:top-[4px] after:left-[4px] 
-              after:bg-white after:rounded-full after:h-3 after:w-3 
-              after:transition-all peer-checked:after:translate-x-4
-              shadow-inner">
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <button @click="selectedUserPerms = null"
-          class="w-full mt-6 py-3 bg-[#FF8F00] text-black font-black text-[11px] rounded-xl active:scale-95 transition-all uppercase tracking-widest shrink-0 shadow-lg shadow-orange-500/20">
-          Finalizar Cambios
-        </button>
-      </div>
-    </div>
+    <!-- TEMPLATE — al final del template, antes del cierre -->
+    <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
+      @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
+      @update-structure="updateUserStructure($event.user, $event.field)" />
   </div>
 </template>
