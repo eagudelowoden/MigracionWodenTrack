@@ -7,6 +7,7 @@ import { Segmento } from '../usuarios/entities/segmento.entity'; // <--- IMPORTA
 import { Area } from '../usuarios/entities/area.entity'; // <--- IMPORTANTE
 import { Announcement } from 'src/notifications/entities/notificacion.entity';
 import { PermisoDepartamento } from '../usuarios/entities/permiso-departamento.entity';
+import { Novedad } from '../novedades/entities/novedad.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -25,6 +26,7 @@ export const getDatabaseConfig = (
     Area,
     Announcement,
     PermisoDepartamento,
+    Novedad,
   ],
   autoLoadEntities: true, // 👈 agrega esta
   synchronize: true,
