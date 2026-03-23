@@ -78,68 +78,9 @@ const hasPerm = (user, slug) => {
   if (!user || !user.permisos) return false;
   return user.permisos.some(p => p.modulos === slug);
 };
-const togglePermisoLocal = async (user, slug) => {
-  const activo = !hasPerm(user, slug);
-  try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/asignar-permiso`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idOdoo: user.id_odoo,
-        modulo: slug,
-        activo: activo,
-        adminName: 'Daniel'
-      })
-    });
-
-    if (!res.ok) throw new Error("Error en el servidor");
-
-    // Refrescamos la lista general de la DB
-    await fetchDbUsuarios();
-
-    // Sincronizamos el modal para que el switch cambie de posición
-    if (selectedUserPerms.value) {
-      const actualizado = dbUsuarios.value.find(u => u.id_odoo === user.id_odoo);
-      if (actualizado) {
-        selectedUserPerms.value = actualizado;
-      }
-    }
-
-    showNotification(`Permiso ${activo ? 'asignado' : 'removido'} correctamente`);
-  } catch (e) {
-    showNotification("Error al actualizar permisos", "error");
-    console.error(e);
-  }
-};
-
-const updateUserStructure = async (user, field) => {
-  const value = user[field];
-
-  try {
-    // Agregamos /usuarios/ a la ruta
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/actualizar-estructura`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idOdoo: user.id_odoo,
-        campo: field,
-        valor: value
-      })
-    });
-
-    if (!res.ok) throw new Error("Error en la respuesta del servidor");
-
-    showNotification("Cambio guardado en la base de datos", "success");
-  } catch (e) {
-    showNotification("No se pudo guardar el cambio", "error");
-    console.error(e);
-  }
-};
-
 // --- Estado Local Restante ---
 const currentTab = ref('stats');
 const isSidebarOpen = ref(true);
-
 
 
 // --- Sistema de Notificación ---
@@ -298,7 +239,6 @@ onMounted(async () => {
         </div>
       </div>
     </main>
-
 
 
     <!-- TEMPLATE — al final del template, antes del cierre -->
