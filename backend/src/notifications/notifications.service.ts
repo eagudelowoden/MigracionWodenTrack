@@ -43,6 +43,14 @@ export class NotificationsService {
       take: 15,
     });
   }
+  async deactivateAll() {
+    await this.announcementRepo.update(
+      { is_active: true },
+      { is_active: false },
+    );
+    this.notificationsGateway.sendGlobalNotification({ is_active: false });
+    return { success: true };
+  }
 
   // Desactivar un anuncio
   async deactivate(id: number) {

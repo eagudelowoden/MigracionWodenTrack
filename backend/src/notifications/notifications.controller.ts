@@ -16,6 +16,10 @@ export class NotificationsController {
   async findAll() {
     return await this.notificationsService.getHistory();
   }
+  @Get('history')
+  getHistory() {
+    return this.notificationsService.getHistory();
+  }
 
   // Para la app al arrancar: el anuncio activo
   @Get('active')
@@ -23,9 +27,13 @@ export class NotificationsController {
     return await this.notificationsService.getActiveAnnouncement();
   }
 
-  // Para desactivar desde el admin
-  @Patch(':id/deactivate')
-  async deactivate(@Param('id') id: number) {
-    return await this.notificationsService.deactivate(id);
+  @Post('deactivate-all') // 👈 este debe ir ANTES de :id
+  deactivateAll() {
+    return this.notificationsService.deactivateAll();
+  }
+
+  @Post(':id/deactivate') // 👈 este va después
+  deactivate(@Param('id') id: number) {
+    return this.notificationsService.deactivate(id);
   }
 }
