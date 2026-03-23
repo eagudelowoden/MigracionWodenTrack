@@ -7,6 +7,8 @@ import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
 import GestionEstructura from '../components/admin/SuperAdmin/GestionEstructura.vue';
 import Notificaciones from '../components/admin/SuperAdmin/GestionNotificaciones.vue';
 import GestionApk from '../components/admin/SuperAdmin/GestionApk.vue';
+import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vue';
+import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 import axios from 'axios';
@@ -23,11 +25,7 @@ const notificationLogs = ref([]);
 // --- Composables ---
 const props = defineProps({ isDark: Boolean });
 const { logout, isDark, toggleTheme } = useAttendance();
-// const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
-const {
-  dbCompanies, isSyncing: isSyncingCompanies, odooCompanies,
-  fetchDbCompanies, fetchOdooRaw, syncCompanies, toggleCompanyStatus
-} = useCompanies();
+
 
 // 2. Extraer los métodos y estados
 const {
@@ -236,77 +234,16 @@ const showNotification = (msg, type = 'success') => {
   setTimeout(() => notification.value.show = false, 5000);
 };
 
-// --- Clases dinámicas para navegación ---
 
 // --- Carga Inicial ---
 onMounted(async () => {
-  await fetchApkInfo();
-  if (apkData.value) localChangelog.value = [...apkData.value.changelog];
-
-  // Cargamos datos iniciales
   await Promise.all([
-    fetchDbCompanies(),
-    fetchOdooRaw(),
     fetchDbUsuarios(),
     fetchOrganizacion(),
     fetchOdooUsuarios(),
-    fetchNotificationLogs()
   ]);
 });
 
-// --- Lógica de Compañías ---
-const handleSyncCompanies = async () => {
-  syncProgress.value = 5;
-  const progressTimer = setInterval(() => { if (syncProgress.value < 85) syncProgress.value += 2; }, 100);
-
-  try {
-    const res = await syncCompanies();
-    syncProgress.value = 100;
-    showNotification(res.message, res.status === 'info' ? 'warning' : 'success');
-    await fetchDbCompanies();
-  } catch (e) {
-    showNotification("Error en la comunicación", "error");
-  } finally {
-    clearInterval(progressTimer);
-    setTimeout(() => { syncProgress.value = 0; }, 1000);
-  }
-};
-
-const handleToggleCompany = async (id, currentStatus) => {
-  try {
-    await toggleCompanyStatus(id, currentStatus);
-    showNotification("Estado actualizado");
-    await fetchDbCompanies();
-  } catch (e) {
-    showNotification("Error al cambiar estado", "error");
-  }
-};
-
-// // --- Lógica de APK ---
-// const addNote = () => localChangelog.value.push("");
-// const removeNote = (i) => localChangelog.value.splice(i, 1);
-// const handleFileUpload = (e) => { selectedFile.value = e.target.files[0]; };
-
-// const saveChangelog = async () => {
-//   try {
-//     await guardarNovedades(localChangelog.value);
-//     showNotification("Historial guardado");
-//   } catch (e) {
-//     showNotification("Error al guardar", "error");
-//   }
-// };
-
-// const uploadApkFile = async () => {
-//   if (!selectedFile.value) return;
-//   try {
-//     await subirApk(selectedFile.value);
-//     showNotification("APK publicada correctamente");
-//     selectedFile.value = null;
-//     await fetchApkInfo();
-//   } catch (e) {
-//     showNotification("Error al subir archivo", "error");
-//   }
-// };
 </script>
 <template>
   <div class="flex min-h-screen transition-colors duration-500"
@@ -424,283 +361,36 @@ const handleToggleCompany = async (id, currentStatus) => {
           </div>
         </div>
 
+
+        <!-- TEMPLATE APK -->
         <div v-if="currentTab === 'apk'" class="animate-fade-in max-w-5xl">
           <GestionApk :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
         </div>
 
 
-        <div v-if="currentTab === 'companies'" class="animate-fade-in space-y-4 p-2">
-
-          <div class="flex items-center justify-between px-4 py-3 rounded-2xl border border-slate-500/10 bg-white/5">
-            <div class="flex items-center gap-4">
-              <div class="flex flex-col">
-                <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF8F00]">Sincronización</h2>
-                <span class="text-[9px] opacity-50 font-bold uppercase tracking-tighter">Odoo ERP vs Local DB</span>
-              </div>
-              <div v-if="isSyncingCompanies" class="w-32 h-[3px] bg-slate-500/10 rounded-full overflow-hidden">
-                <div class="h-full bg-[#FF8F00] transition-all duration-300" :style="{ width: syncProgress + '%' }">
-                </div>
-              </div>
-            </div>
-
-            <button @click="handleSyncCompanies" :disabled="isSyncingCompanies"
-              class="h-8 px-5 rounded-lg bg-[#FF8F00] text-white text-[9px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 disabled:opacity-30 transition-all">
-              <i class="fas mr-2" :class="isSyncingCompanies ? 'fa-circle-notch fa-spin' : 'fa-sync-alt'"></i>
-              {{ isSyncingCompanies ? `${syncProgress}%` : 'Sincronizar Sedes' }}
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-            <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
-              <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
-                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Origen: Odoo</h3>
-                <span class="text-[8px] font-bold text-blue-500">REAL-TIME</span>
-              </div>
-              <div class="max-h-[350px] overflow-y-auto custom-scroll">
-                <table class="w-full">
-                  <tbody class="text-[10px]">
-                    <tr v-for="c in odooCompanies" :key="c.id"
-                      class="border-b border-slate-500/5 hover:bg-white/[0.02] transition-colors">
-                      <td class="p-3 font-mono text-blue-500/60 text-[9px]">#{{ c.id }}</td>
-                      <td class="p-3 font-bold uppercase tracking-tight">{{ c.name }}</td>
-                      <td class="p-3 text-right">
-                        <i v-if="dbCompanies.some(db => db.id === c.id)"
-                          class="fas fa-check text-emerald-500 text-[9px]"></i>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-slate-500/10 overflow-hidden bg-white/5">
-              <div class="p-3 border-b border-slate-500/10 flex items-center justify-between bg-white/[0.02]">
-                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-60">Destino: SQL Server</h3>
-                <span class="text-[8px] font-bold text-[#FF8F00]">LOCAL DB</span>
-              </div>
-              <div class="max-h-[350px] overflow-y-auto custom-scroll">
-                <table class="w-full text-left">
-                  <tbody class="text-[10px]">
-                    <tr v-for="comp in dbCompanies" :key="comp.id" class="border-b border-slate-500/5 transition-all"
-                      :class="!comp.is_active ? 'opacity-30 grayscale' : 'hover:bg-white/[0.02]'">
-                      <td class="p-3">
-                        <div class="font-bold uppercase">{{ comp.name }}</div>
-                        <div class="text-[7px] font-black tracking-tighter"
-                          :class="comp.is_active ? 'text-emerald-500' : 'text-rose-500'">
-                          {{ comp.is_active ? 'VISIBLE' : 'OCULTO' }}
-                        </div>
-                      </td>
-                      <td class="p-3 text-right">
-                        <button @click="handleToggleCompany(comp.id, comp.is_active)"
-                          class="h-6 px-3 rounded-md border text-[8px] font-black uppercase transition-all" :class="comp.is_active
-                            ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white'
-                            : 'border-slate-500/30 text-slate-500 hover:bg-slate-500 hover:text-white'">
-                          {{ comp.is_active ? 'ON' : 'OFF' }}
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
+        <!-- TEMPLATE COMPAÑIAS -->
+        <div v-if="currentTab === 'companies'" class="animate-fade-in p-2">
+          <GestionCompanias :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
         </div>
 
 
-        <div v-if="currentTab === 'users'" class="animate-fade-in space-y-3 p-0">
-
-          <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-2 rounded-xl border"
-            :class="isDark ? 'bg-slate-900/40 border-white/5' : 'bg-white border-slate-200 shadow-sm'">
-
-            <div class="flex items-center gap-3">
-              <div
-                class="w-7 h-7 bg-[#FF8F00] rounded-lg flex items-center justify-center text-black shadow-lg shadow-[#FF8F00]/20">
-                <i class="fas fa-users-cog text-[10px]"></i>
-              </div>
-              <div>
-                <h2 class="text-[10px] font-black uppercase tracking-wider text-[#FF8F00] leading-none">Gestión Personal
-                </h2>
-                <p class="text-[8px] font-bold opacity-40 uppercase tracking-tighter mt-0.5">Odoo vs SQL</p>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3 flex-1 justify-end min-w-0">
-
-              <div class="flex-1 max-w-[160px]">
-                <input v-model="searchUser" type="text" placeholder="BUSCAR USUARIO..."
-                  class="font-mono-custom w-full py-1 bg-transparent border-b outline-none text-[13px] font-bold transition-all"
-                  :class="isDark
-                    ? 'border-white/10 text-slate-200 placeholder:text-slate-500 focus:border-[#FF8F00]'
-                    : 'border-slate-200 text-slate-800 placeholder:text-slate-300 focus:border-[#FF8F00]'" />
-              </div>
-
-              <select v-model="selectedCountry"
-                class="font-mono-custom bg-transparent border-b outline-none text-[13px] font-black uppercase cursor-pointer text-blue-500 py-1 min-w-[100px] w-auto transition-colors"
-                :class="isDark ? 'border-white/10 hover:border-blue-400' : 'border-slate-200 hover:border-blue-400'">
-                <option value="TODOS" :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">PAÍS:
-                  TODOS</option>
-                <option v-for="c in odooCompanies" :key="c.id" :value="c.name"
-                  :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">
-                  {{ c.name }}
-                </option>
-              </select>
-
-              <select v-model="selectedDept"
-                class="font-mono-custom bg-transparent border-b outline-none text-[10px] font-black uppercase cursor-pointer text-[#FF8F00] py-1 min-w-[120px] w-auto transition-colors"
-                :class="isDark ? 'border-white/10 hover:border-orange-300' : 'border-slate-200 hover:border-orange-300'">
-                <option value="TODOS" :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">DEP: TODOS
-                </option>
-                <option v-for="dept in departamentosUnicos" :key="dept" :value="dept"
-                  :class="isDark ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800'">
-                  {{ dept }}
-                </option>
-              </select>
-              <div class="flex flex-col gap-1 min-w-[130px]">
-                <div class="flex items-center gap-2">
-                  <button @click="executeSync" :disabled="isSyncingUsers"
-                    class="relative flex-1 flex items-center justify-center h-7 px-4 rounded-md transition-all duration-300 active:scale-95 disabled:opacity-50"
-                    :class="isSyncingUsers ? 'bg-slate-100 text-slate-400' : 'bg-[#FF8F00] text-white'">
-                    <span class="text-[9px] font-black uppercase tracking-widest">
-                      {{ isSyncingUsers ? 'Cargando...' : 'Sincronizar' }}
-                    </span>
-                  </button>
-
-                  <button v-if="isSyncingUsers" @click="handleCancel"
-                    class="flex items-center justify-center w-7 h-7 text-rose-500 hover:bg-rose-50 rounded-md transition-all">
-                    <i class="fas fa-stop text-[8px]"></i>
-                  </button>
-                </div>
-
-                <div v-if="isSyncingUsers" class="w-full h-[2px] bg-slate-100 rounded-full overflow-hidden">
-                  <div class="h-full bg-[#FF8F00] transition-all duration-500"
-                    :style="{ width: progressPercent + '%' }"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 font-mono-custom">
-
-            <div class="rounded-xl border border-white/10 overflow-hidden flex flex-col h-[520px]"
-              :class="isDark ? 'bg-slate-900/40' : 'bg-white shadow-lg'">
-
-              <div class="p-3 border-b border-white/10 flex justify-between items-center bg-blue-500/10">
-                <span class="text-[12px] font-bold uppercase text-blue-400 tracking-wider">Odoo ERP System</span>
-                <span class="text-[10px] font-bold opacity-50 px-2 py-0.5 bg-blue-500/10 rounded">{{
-                  filteredOdoo?.length }} Items</span>
-              </div>
-
-              <div class="flex-1 overflow-y-auto custom-scroll relative">
-                <table class="w-full text-left border-collapse table-fixed">
-                  <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#161f33]' : 'bg-slate-50'">
-                    <tr class="text-[10px] uppercase font-bold text-slate-500 border-b border-white/10">
-                      <th class="p-3 w-16 text-center">ID</th>
-                      <th class="p-3 w-1/2">Colaborador</th>
-                      <th class="p-3 w-1/3">Departamento</th>
-                    </tr>
-                  </thead>
-
-                  <tbody class="divide-y divide-white/5">
-                    <tr v-for="u in (filteredOdoo || [])" :key="u.id"
-                      class="hover:bg-blue-500/5 transition-colors group">
-
-                      <td class="p-3 text-center text-blue-400 font-bold text-[11px]">
-                        {{ u.id }}
-                      </td>
-
-                      <td class="p-3">
-                        <div class="flex flex-col truncate">
-                          <span class="font-bold text-[13px] uppercase truncate"
-                            :class="isDark ? 'text-slate-100' : 'text-slate-900'">
-                            {{ u.name }}
-                          </span>
-                          <span class="text-[10px] font-semibold text-orange-400/90 truncate mt-0.5">
-                            {{ u.job_title || '---' }}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td class="p-3 truncate text-[11px] font-medium"
-                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                        {{ u.department_id ? u.department_id[1] : 'S/A' }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="rounded-xl border border-white/10 overflow-hidden flex flex-col h-[520px]"
-              :class="isDark ? 'bg-slate-900/60' : 'bg-white shadow-lg'">
-
-              <div class="p-3 border-b border-white/10 flex justify-between items-center bg-emerald-500/10">
-                <span class="text-[12px] font-bold uppercase text-emerald-400 tracking-wider">WodenTrack SQL</span>
-                <span class="text-[10px] font-bold opacity-50 px-2 py-0.5 bg-emerald-500/10 rounded">{{
-                  filteredLocal?.length }} Items</span>
-              </div>
-
-              <div class="flex-1 overflow-y-auto custom-scroll relative">
-                <table class="w-full text-left border-collapse table-fixed">
-                  <thead class="sticky top-0 z-20" :class="isDark ? 'bg-[#1e273a]' : 'bg-slate-50'">
-                    <tr class="text-[10px] uppercase font-bold text-slate-500 border-b border-white/10">
-                      <th class="p-3 w-24">Cédula</th>
-                      <th class="p-3">Nombre / Depto</th>
-                      <th class="p-3 w-20 text-center">Acceso</th>
-                      <th class="p-3 w-12 text-center">Est</th>
-                    </tr>
-                  </thead>
-
-                  <tbody class="divide-y divide-white/5">
-                    <tr v-for="user in filteredLocal" :key="user.id_odoo"
-                      class="hover:bg-emerald-500/5 transition-all group">
-
-                      <td class="p-3 font-bold text-emerald-500 text-[11px] tracking-tighter">
-                        {{ user.identificacion }}
-                      </td>
-
-                      <td class="p-3">
-                        <div class="flex flex-col truncate">
-                          <span class="font-bold text-[13px] uppercase truncate"
-                            :class="isDark ? 'text-slate-100' : 'text-slate-800'">
-                            {{ user.nombre }}
-                          </span>
-                          <span class="text-[10px] font-bold text-blue-400 mt-0.5 truncate">
-                            {{ user.departamento }}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td class="p-3 text-center">
-                        <button @click="openPerms(user)"
-                          class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 inline-flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
-                          <i class="fas fa-key text-[12px]"
-                            :class="user.permisos?.length > 0 ? 'text-orange-400' : 'text-slate-600'"></i>
-                        </button>
-                      </td>
-
-                      <td class="p-3 text-center">
-                        <div :class="user.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
-                          class="w-2.5 h-2.5 rounded-full inline-block shadow-lg"></div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        <!-- TEMPLATE USUARIOS-->
+        <div v-if="currentTab === 'users'" class="animate-fade-in p-2">
+          <GestionUsuarios :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
         </div>
 
 
 
-
+        <!-- TEMPLATE NOTIFICACIONES -->
         <div v-if="currentTab === 'notifications'" class="animate-fade-in p-2">
           <Notificaciones :isDark="isDark" :apiUrl="API_URL"
             @notification-sent="showNotification('Notificación enviada')" />
         </div>
 
 
+        <!-- TEMPLATE AREAS Y SEGMENTOS -->
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" @save="handleSaveEstructura" />
