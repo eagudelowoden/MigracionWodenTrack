@@ -10,18 +10,18 @@
                     <i class="fas fa-users-cog text-black text-[10px]"></i>
                 </div>
                 <div>
-                    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-amber-500">Gestión de personal
+                    <h2 class="text-[10px] font-semibold uppercase tracking-wider text-amber-500">Gestión de personal
                     </h2>
                     <p class="text-[9px] font-medium opacity-40 uppercase tracking-wide"
                         :class="isDark ? 'text-white' : 'text-slate-500'">Odoo ERP vs SQL Server</p>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 flex-1 justify-end">
+            <div class="flex flex-wrap items-center gap-1 flex-1 justify-end">
 
                 <!-- BUSCAR -->
                 <input v-model="searchUser" type="text" placeholder="Buscar usuario..."
-                    class="bg-transparent border-b outline-none text-[12px] font-medium transition-all py-1 min-w-[130px]"
+                    class="bg-transparent border-b outline-none text-[12px] font-medium transition-all py-1 min-w-[110px]"
                     :class="isDark
                         ? 'border-white/10 text-white placeholder:text-white/30 focus:border-amber-500'
                         : 'border-slate-200 text-slate-700 placeholder:text-slate-300 focus:border-amber-500'" />
@@ -106,24 +106,53 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="u in (filteredOdoo ?? [])" :key="u.id" class="border-b transition-all"
-                                :class="isDark ? 'border-white/5 hover:bg-blue-500/5' : 'border-slate-100 hover:bg-blue-50/50'">
-                                <td class="px-3 py-2 text-center text-blue-400 font-mono text-[10px]">{{ u.id }}</td>
-                                <td class="px-3 py-2">
-                                    <div class="text-[12px] font-semibold truncate"
-                                        :class="isDark ? 'text-white' : 'text-slate-800'">{{ u.name }}</div>
-                                    <div class="text-[10px] font-medium text-amber-400 truncate mt-0.5">
-                                        {{ u.job_title || '—' }}
-                                    </div>
-                                </td>
-                                <td class="px-3 py-2 text-[11px] font-medium truncate"
-                                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                                    {{ u.department_id ? u.department_id[1] : 'S/A' }}
-                                </td>
-                            </tr>
-                            <tr v-if="!filteredOdoo?.length">
-                                <td colspan="3" class="px-3 py-8 text-center text-[11px] opacity-30">Sin registros</td>
-                            </tr>
+                            <!-- SKELETON -->
+                            <template v-if="isLoading">
+                                <tr v-for="i in 8" :key="'sk-o-' + i" class="border-b"
+                                    :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                                    <td class="px-3 py-2.5 text-center">
+                                        <div class="h-3 w-8 rounded-md mx-auto animate-pulse"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                    </td>
+                                    <td class="px-3 py-2.5">
+                                        <div class="h-3 rounded-md animate-pulse mb-1.5"
+                                            :style="{ width: (50 + (i * 13) % 35) + '%' }"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                        <div class="h-2.5 rounded-md animate-pulse"
+                                            :style="{ width: (30 + (i * 7) % 25) + '%' }"
+                                            :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
+                                    </td>
+                                    <td class="px-3 py-2.5">
+                                        <div class="h-3 rounded-md animate-pulse"
+                                            :style="{ width: (40 + (i * 9) % 30) + '%' }"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- DATOS -->
+                            <template v-else>
+                                <tr v-for="u in (filteredOdoo ?? [])" :key="u.id" class="border-b transition-all"
+                                    :class="isDark ? 'border-white/5 hover:bg-blue-500/5' : 'border-slate-100 hover:bg-blue-50/50'">
+                                    <td class="px-3 py-2 text-center text-blue-400 font-mono text-[10px]">{{ u.id }}
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <div class="text-[12px] font-semibold truncate"
+                                            :class="isDark ? 'text-white' : 'text-slate-800'">{{ u.name }}</div>
+                                        <div class="text-[10px] font-medium text-amber-400 truncate mt-0.5">
+                                            {{ u.job_title || '—' }}
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2 text-[11px] font-medium truncate"
+                                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                        {{ u.department_id ? u.department_id[1] : 'S/A' }}
+                                    </td>
+                                </tr>
+                                <tr v-if="!filteredOdoo?.length">
+                                    <td colspan="3" class="px-3 py-8 text-center text-[11px] opacity-30">Sin registros
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -146,7 +175,8 @@
                             <tr class="text-[9px] font-semibold uppercase tracking-wider"
                                 :class="isDark ? 'text-white/30' : 'text-slate-400'">
                                 <th class="px-3 py-2 w-24 border-b"
-                                    :class="isDark ? 'border-white/5' : 'border-slate-100'">Cédula</th>
+                                    :class="isDark ? 'border-white/5' : 'border-slate-100'">Cédula
+                                </th>
                                 <th class="px-3 py-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                                     Nombre</th>
                                 <th class="px-3 py-2 w-16 text-center border-b"
@@ -215,6 +245,7 @@ const { odooCompanies, fetchOdooRaw } = useCompanies();
 
 const progressPercent = ref(0);
 const isRefreshing = ref(false);
+const isLoading = ref(true);
 let progressTimer = null;
 
 const handleRefresh = async () => {
@@ -274,5 +305,12 @@ watch(selectedCountry, async () => {
     await Promise.all([fetchDbUsuarios(), fetchOdooUsuarios()]);
 });
 
-onMounted(() => Promise.all([fetchDbUsuarios(), fetchOdooUsuarios(), fetchOdooRaw()]));
+onMounted(async () => {
+    isLoading.value = true;
+    try {
+        await Promise.all([fetchDbUsuarios(), fetchOdooUsuarios(), fetchOdooRaw()]);
+    } finally {
+        isLoading.value = false;
+    }
+});
 </script>

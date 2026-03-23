@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'; // Importamos watch y quitamos computed (ya vienen del composable)
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
-import { useCompanies } from '../composables/adminLogica/useCompanies.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
 import GestionEstructura from '../components/admin/SuperAdmin/GestionEstructura.vue';
@@ -9,20 +8,14 @@ import Notificaciones from '../components/admin/SuperAdmin/GestionNotificaciones
 import GestionApk from '../components/admin/SuperAdmin/GestionApk.vue';
 import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vue';
 import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
+import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
-import axios from 'axios';
-import { io } from 'socket.io-client';
 
 
 // --- 1. CONFIGURACIÓN ---
 const API_URL = import.meta.env.VITE_API_URL;
 
-// --- 1. CONFIGURACIÓN DE SOCKETS Y NOTIFICACIONES ---
-const SOCKET_URL = import.meta.env.VITE_API_URL
-const notif = ref({ title: '', body: '', type: 'update' });
-const notificationLogs = ref([]);
-// --- Composables ---
 const props = defineProps({ isDark: Boolean });
 const { logout, isDark, toggleTheme } = useAttendance();
 
@@ -54,90 +47,14 @@ const handleSaveEstructura = async (data) => {
 // Eliminamos las declaraciones manuales de searchUser, selectedDept y los computed
 const {
   dbUsuarios,
-  odooUsuarios,
   isSyncing: isSyncingUsers,
   syncProgress: userSyncProgress,
-  searchUser,
   selectedDept,
   selectedCountry,
-  departamentosUnicos,
-  filteredOdoo,
-  filteredLocal,
   fetchDbUsuarios,
   fetchOdooUsuarios,
   executeSync: syncAllUsers
 } = useUsuariosSync();
-
-// --- 3. ESTADOS PARA PROGRESO ---
-const progressPercent = ref(0);
-const progressDetail = ref({ current: 0, total: 0 });
-const syncPreview = ref(null);
-const isFetchingPreview = ref(false);
-let progressTimer = null;
-
-const fetchSyncPreview = async () => {
-  if (selectedCountry.value === 'TODOS') return alert("Selecciona un país");
-
-  isFetchingPreview.value = true;
-  try {
-    const url = `${API_URL}/sincronizar/preview?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
-    const res = await fetch(url, { method: 'POST' });
-    syncPreview.value = await res.json();
-  } catch (e) {
-    showNotification("Error al obtener preview", "error");
-  } finally {
-    isFetchingPreview.value = false;
-  }
-};
-// --- 4. FUNCIÓN DE SINCRONIZACIÓN CORREGIDA ---
-const executeSync = async () => {
-  if (selectedCountry.value === 'TODOS') return alert("Selecciona un país");
-
-  isSyncingUsers.value = true; // Activamos el estado del composable
-  progressPercent.value = 0;
-
-  // Polling para ver el progreso
-  progressTimer = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}/sincronizar/progreso`);
-      const data = await res.json();
-      progressDetail.value = { current: data.current, total: data.total };
-      if (data.total > 0) progressPercent.value = Math.round((data.current / data.total) * 100);
-      if (['completed', 'error', 'cancelled'].includes(data.status)) clearInterval(progressTimer);
-    } catch (e) { console.error("Error en polling", e); }
-  }, 500);
-
-  try {
-    const url = `${API_URL}/sincronizar/ejecutar?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
-    const res = await fetch(url, { method: "POST" });
-    const result = await res.json();
-
-    if (res.ok) {
-      await fetchDbUsuarios();
-      progressPercent.value = 100;
-      showNotification(result.message, 'success');
-    } else {
-      throw new Error(result.message);
-    }
-  } catch (e) {
-    showNotification("Error en sincronización", "error");
-    console.error(e);
-  } finally {
-    clearInterval(progressTimer);
-    setTimeout(() => {
-      isSyncingUsers.value = false;
-      progressPercent.value = 0;
-    }, 2000);
-  }
-};
-
-const handleCancel = async () => {
-  await fetch(`${API_URL}/sincronizar/cancelar`, { method: "POST" });
-  isSyncingUsers.value = false;
-  clearInterval(progressTimer);
-};
-
-
 
 // --- Observador (Watch) para el cambio de país ---
 watch(selectedCountry, async () => {
@@ -221,11 +138,8 @@ const updateUserStructure = async (user, field) => {
 // --- Estado Local Restante ---
 const currentTab = ref('stats');
 const isSidebarOpen = ref(true);
-const syncProgress = ref(0);
-const mallasData = ref([]);
-const asistenciasHoy = ref(0);
-// const selectedFile = ref(null);
-const localChangelog = ref([]);
+
+
 
 // --- Sistema de Notificación ---
 const notification = ref({ show: false, message: '', type: 'success' });
@@ -342,23 +256,9 @@ onMounted(async () => {
 
       <div class="flex-1 p-4 lg:p-4 overflow-y-auto">
 
-        <div v-if="currentTab === 'stats'" class="animate-fade-in space-y-8">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="stat-card" :class="isDark ? 'card-dark' : 'card-light'">
-              <div class="flex justify-between items-start mb-4">
-                <span class="label">Total Empleados</span>
-                <i class="fas fa-users text-blue-500 opacity-50"></i>
-              </div>
-              <span class="value">{{ mallasData.length }}</span>
-            </div>
-            <div class="stat-card destaque">
-              <div class="flex justify-between items-start mb-4">
-                <span class="label">Asistencias Hoy</span>
-                <i class="fas fa-check-double text-[#FF8F00] opacity-50"></i>
-              </div>
-              <span class="value">{{ asistenciasHoy }}</span>
-            </div>
-          </div>
+        <!-- TEMPLATE DASHBOARD -->
+        <div v-if="currentTab === 'stats'" class="animate-fade-in p-2">
+          <GestionDashboard :isDark="isDark" />
         </div>
 
 
@@ -395,10 +295,6 @@ onMounted(async () => {
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" @save="handleSaveEstructura" />
         </div>
-
-
-
-
       </div>
     </main>
     <div v-if="selectedUserPerms"
