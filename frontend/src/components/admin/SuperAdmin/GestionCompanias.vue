@@ -27,7 +27,8 @@
                 <button @click="handleRefresh" :disabled="isRefreshing"
                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all" :class="isDark
                         ? 'border-white/10 text-white/40 hover:bg-white/5 hover:text-white'
-                        : 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600'" title="Refrescar datos">
+                        : 'border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600'"
+                    title="Refrescar datos">
                     <i class="fas fa-rotate text-[11px]" :class="isRefreshing ? 'fa-spin' : ''"></i>
                 </button>
 

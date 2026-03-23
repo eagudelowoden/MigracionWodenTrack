@@ -103,7 +103,7 @@
                 :class="item.tipo === 'area' ? 'bg-blue-500' : 'bg-emerald-500'"></span>
               <div>
                 <div class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre
-                  }}</div>
+                }}</div>
                 <div class="text-[9px] font-medium opacity-40 mt-0.5">
                   Resp: {{ item.responsable?.nombre || 'S/A' }}
                 </div>
