@@ -13,6 +13,8 @@ export function adminOdoo() {
   const report = ref([]);
   const searchQuery = ref("");
   const isExporting = ref(false);
+  const selectedArea = ref(null);   
+  const selectedSegmento = ref(null);
 
   // --- NUEVAS VARIABLES PARA COMPAÑÍAS ---
   const allCompanies = ref([]);
@@ -189,5 +191,7 @@ export function adminOdoo() {
     handleAttendance,
     downloadExcelReport,
     filteredReport,
+    selectedArea,
+    selectedSegmento,
   };
 }

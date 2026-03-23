@@ -38,17 +38,15 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="text-[9px] font-semibold uppercase tracking-wider opacity-40 block mb-1.5
-                  flex items-center gap-1">
+                                <label
+                                    class="text-[9px] font-semibold uppercase tracking-wider opacity-40 block mb-1.5 flex items-center gap-1">
                                     <span class="w-1.5 h-1.5 bg-blue-400 rounded-full inline-block"></span> Área
                                 </label>
                                 <div class="relative">
                                     <select v-model="modelValue.area_id"
                                         @change="emit('update-structure', { user: modelValue, field: 'area_id' })"
                                         class="w-full rounded-lg px-3 py-2 pr-7 text-[11px] font-medium outline-none border transition-all appearance-none cursor-pointer"
-                                        :class="isDark
-                                            ? 'bg-white/5 border-white/10 text-white focus:border-amber-500'
-                                            : 'bg-white border-slate-200 text-slate-700 focus:border-amber-400'">
+                                        :class="isDark ? 'bg-white/5 border-white/10 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-400'">
                                         <option :value="null">Sin área</option>
                                         <option v-for="a in areas" :key="a.id" :value="a.id"
                                             :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ a.nombre }}</option>
@@ -59,17 +57,15 @@
                             </div>
 
                             <div>
-                                <label class="text-[9px] font-semibold uppercase tracking-wider opacity-40 block mb-1.5
-                  flex items-center gap-1">
+                                <label
+                                    class="text-[9px] font-semibold uppercase tracking-wider opacity-40 block mb-1.5 flex items-center gap-1">
                                     <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block"></span> Segmento
                                 </label>
                                 <div class="relative">
                                     <select v-model="modelValue.segmento_id"
                                         @change="emit('update-structure', { user: modelValue, field: 'segmento_id' })"
                                         class="w-full rounded-lg px-3 py-2 pr-7 text-[11px] font-medium outline-none border transition-all appearance-none cursor-pointer"
-                                        :class="isDark
-                                            ? 'bg-white/5 border-white/10 text-white focus:border-emerald-500'
-                                            : 'bg-white border-slate-200 text-slate-700 focus:border-emerald-400'">
+                                        :class="isDark ? 'bg-white/5 border-white/10 text-white focus:border-emerald-500' : 'bg-white border-slate-200 text-slate-700 focus:border-emerald-400'">
                                         <option :value="null">Sin segmento</option>
                                         <option v-for="s in segmentos" :key="s.id" :value="s.id"
                                             :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ s.nombre }}</option>
@@ -93,9 +89,7 @@
                     <div class="space-y-1.5">
                         <div v-for="slug in MODULOS" :key="slug"
                             class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
-                            :class="isDark
-                                ? 'bg-white/[0.02] border-white/5 hover:bg-white/5'
-                                : 'bg-white border-slate-200 hover:border-amber-300/50'">
+                            :class="isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-amber-300/50'">
 
                             <div class="flex items-center gap-3">
                                 <div class="w-1 h-7 rounded-full transition-all"
@@ -124,6 +118,71 @@
                             </label>
                         </div>
                     </div>
+
+                    <!-- DEPARTAMENTOS VISIBLES -->
+                    <template v-if="hasPerm('admin.filtro_departamento')">
+                        <div class="flex items-center gap-3">
+                            <div class="h-px flex-1 bg-blue-500/10"></div>
+                            <span class="text-[9px] font-semibold uppercase tracking-widest opacity-30">Departamentos
+                                visibles</span>
+                            <div class="h-px flex-1 bg-blue-500/10"></div>
+                        </div>
+
+                        <div class="rounded-xl border p-4 space-y-3"
+                            :class="isDark ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-200'">
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded-md bg-blue-500/10 flex items-center justify-center">
+                                        <i class="fas fa-filter text-blue-400 text-[9px]"></i>
+                                    </div>
+                                    <span class="text-[10px] font-semibold uppercase tracking-wider opacity-60">
+                                        Seleccionar departamentos
+                                    </span>
+                                </div>
+                                <span
+                                    class="text-[9px] font-semibold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                    {{ deptosSeleccionados.length }} seleccionados
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-1 custom-scroll">
+                                <template v-if="todosLosDepartamentos?.length">
+                                    <label v-for="dept in todosLosDepartamentos" :key="dept"
+                                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all"
+                                        :class="deptosSeleccionados.includes(dept)
+                                            ? isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-300'
+                                            : isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-slate-300'">
+                                        <input type="checkbox" :checked="deptosSeleccionados.includes(dept)"
+                                            @change="toggleDept(dept)" class="sr-only">
+                                        <div class="w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-all"
+                                            :class="deptosSeleccionados.includes(dept)
+                                                ? 'bg-blue-500 border-blue-500'
+                                                : isDark ? 'border-white/20' : 'border-slate-300'">
+                                            <i v-if="deptosSeleccionados.includes(dept)"
+                                                class="fas fa-check text-white text-[8px]"></i>
+                                        </div>
+                                        <span class="text-[10px] font-medium truncate"
+                                            :class="isDark ? 'text-white/70' : 'text-slate-600'">{{ dept }}</span>
+                                    </label>
+                                </template>
+                                <div v-else class="col-span-2 text-center py-4 text-[11px] opacity-30">
+                                    Sin departamentos disponibles
+                                </div>
+                            </div>
+
+                            <button @click="guardarDeptos" :disabled="isSavingDeptos"
+                                class="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 border"
+                                :class="isDark
+                                    ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border-blue-500/20'
+                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200'">
+                                <i class="fas text-[10px]"
+                                    :class="isSavingDeptos ? 'fa-circle-notch fa-spin' : 'fa-save'"></i>
+                                {{ isSavingDeptos ? 'Guardando...' : 'Guardar departamentos' }}
+                            </button>
+                        </div>
+                    </template>
+
                 </div>
 
                 <!-- FOOTER -->
@@ -139,6 +198,8 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue';
+
 const MODULOS = [
     'super.superadmin',
     'super.dashboard',
@@ -149,13 +210,16 @@ const MODULOS = [
     'admin.asistencias',
     'admin.mallas',
     'admin.novedades',
+    'admin.filtro_departamento',
 ];
 
 const props = defineProps({
-    modelValue: Object,   // el usuario seleccionado (v-model)
+    modelValue: Object,
     isDark: Boolean,
     areas: Array,
     segmentos: Array,
+    todosLosDepartamentos: Array,
+    apiUrl: String,
 });
 
 const emit = defineEmits([
@@ -163,6 +227,38 @@ const emit = defineEmits([
     'toggle-perm',
     'update-structure',
 ]);
+
+const deptosSeleccionados = ref([]);
+const isSavingDeptos = ref(false);
+watch(() => props.modelValue, async (user) => {
+    if (!user) return;
+    try {
+        const res = await fetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
+        const data = await res.json();
+        deptosSeleccionados.value = Array.isArray(data) ? data : [];
+    } catch (e) {
+        deptosSeleccionados.value = [];
+    }
+}, { immediate: true });
+
+const toggleDept = (dept) => {
+    const idx = deptosSeleccionados.value.indexOf(dept);
+    if (idx === -1) deptosSeleccionados.value.push(dept);
+    else deptosSeleccionados.value.splice(idx, 1);
+};
+
+const guardarDeptos = async () => {
+    isSavingDeptos.value = true;
+    try {
+        await fetch(`${props.apiUrl}/departamentos-permitidos/${props.modelValue.id_odoo}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ departamentos: deptosSeleccionados.value }),
+        });
+    } finally {
+        isSavingDeptos.value = false;
+    }
+};
 
 const hasPerm = (slug) => {
     if (!props.modelValue?.permisos) return false;

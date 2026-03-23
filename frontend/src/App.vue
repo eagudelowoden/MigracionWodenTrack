@@ -80,13 +80,14 @@ const cargarAnuncioActivo = async () => {
   try {
     const res = await fetch(`${API_BASE}/usuarios/notifications/active`);
     if (!res.ok) return;
-    const data = await res.json();
+
+    const text = await res.text(); // 👈 primero como texto
+    if (!text) return;             // 👈 si está vacío, salir
+
+    const data = JSON.parse(text); // 👈 luego parsear
     if (data && data.is_active) {
-      if (data.type === 'alert') {
-        anuncioSuperior.value = data;
-      } else {
-        anuncioInferior.value = data;
-      }
+      if (data.type === 'alert') anuncioSuperior.value = data;
+      else anuncioInferior.value = data;
     }
   } catch (e) {
     console.error("Error cargando anuncio:", e);

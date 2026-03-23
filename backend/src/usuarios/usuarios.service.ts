@@ -16,6 +16,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators';
 import { Repository } from 'typeorm/repository/Repository.js';
 import { Permiso } from './entities/permiso.entity';
+import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,6 +49,9 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
+
+    @InjectRepository(PermisoDepartamento) // 👈 agrega
+    private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
   ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -926,69 +930,7 @@ export class UsuariosService {
     return this.syncProgress;
   }
   // usuarios.service.ts
-async previewSync(paisSeleccionado: string, deptoSeleccionado?: string) {
-  const uid = await this.odoo.authenticate();
-  const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
-
-  if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
-    domain.push(['department_id.name', '=', deptoSeleccionado]);
-  }
-
-  const odooEmployees = await this.odoo.executeKw<any[]>(
-    'hr.employee', 'search_read', [domain],
-    { fields: ['id', 'name', 'identification_id', 'job_title', 'department_id'] },
-    uid,
-  );
-
-  // IDs de Odoo
-  const odooIds = new Set(odooEmployees.map(e => e.id));
-
-  // Registros actuales en DB para ese país/depto
-  const dbQuery = this.usuarioRepo.createQueryBuilder('u')
-    .where('u.pais = :pais', { pais: paisSeleccionado });
-
-  if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
-    dbQuery.andWhere('u.departamento = :depto', { departamento: deptoSeleccionado });
-  }
-
-  const dbUsers = await dbQuery.getMany();
-  const dbIds = new Set(dbUsers.map(u => u.id_odoo));
-
-  // Clasificar
-  const toCreate = odooEmployees.filter(e => !dbIds.has(e.id));
-  const toUpdate = odooEmployees.filter(e => dbIds.has(e.id));
-  const toDelete = dbUsers.filter(u => !odooIds.has(u.id_odoo));
-
-  return {
-    summary: {
-      nuevos: toCreate.length,
-      actualizados: toUpdate.length,
-      aEliminar: toDelete.length,
-    },
-    toCreate: toCreate.map(e => ({ id_odoo: e.id, nombre: e.name, identificacion: e.identification_id })),
-    toUpdate: toUpdate.map(e => ({ id_odoo: e.id, nombre: e.name, identificacion: e.identification_id })),
-    toDelete: toDelete.map(u => ({ id: u.id, id_odoo: u.id_odoo, nombre: u.nombre, identificacion: u.identificacion })),
-  };
-}
-
-  // Método para cancelar
-  cancelSync() {
-    this.syncProgress.isCancelled = true;
-    this.syncProgress.status = 'cancelled';
-  }
-async syncUsuariosFromOdoo(
-  paisSeleccionado: string,
-  deptoSeleccionado?: string,
-) {
-  try {
-    // Reset de estado al iniciar
-    this.syncProgress = {
-      current: 0,
-      total: 0,
-      isCancelled: false,
-      status: 'syncing',
-    };
-
+  async previewSync(paisSeleccionado: string, deptoSeleccionado?: string) {
     const uid = await this.odoo.authenticate();
     const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
 
@@ -1012,90 +954,180 @@ async syncUsuariosFromOdoo(
       uid,
     );
 
-    // ── CALCULAR ELIMINADOS ANTES DEL LOOP ──────────────────────────────
+    // IDs de Odoo
     const odooIds = new Set(odooEmployees.map((e) => e.id));
 
-    const dbQuery = this.usuarioRepo.createQueryBuilder('u')
+    // Registros actuales en DB para ese país/depto
+    const dbQuery = this.usuarioRepo
+      .createQueryBuilder('u')
       .where('u.pais = :pais', { pais: paisSeleccionado });
 
     if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
-      dbQuery.andWhere('u.departamento = :depto', { depto: deptoSeleccionado });
+      dbQuery.andWhere('u.departamento = :depto', {
+        departamento: deptoSeleccionado,
+      });
     }
 
     const dbUsers = await dbQuery.getMany();
+    const dbIds = new Set(dbUsers.map((u) => u.id_odoo));
+
+    // Clasificar
+    const toCreate = odooEmployees.filter((e) => !dbIds.has(e.id));
+    const toUpdate = odooEmployees.filter((e) => dbIds.has(e.id));
     const toDelete = dbUsers.filter((u) => !odooIds.has(u.id_odoo));
-    // ────────────────────────────────────────────────────────────────────
 
-    // Total = upserts + eliminaciones
-    this.syncProgress.total = odooEmployees.length + toDelete.length;
-    let nuevos = 0;
-    let actualizados = 0;
-    let eliminados = 0;
+    return {
+      summary: {
+        nuevos: toCreate.length,
+        actualizados: toUpdate.length,
+        aEliminar: toDelete.length,
+      },
+      toCreate: toCreate.map((e) => ({
+        id_odoo: e.id,
+        nombre: e.name,
+        identificacion: e.identification_id,
+      })),
+      toUpdate: toUpdate.map((e) => ({
+        id_odoo: e.id,
+        nombre: e.name,
+        identificacion: e.identification_id,
+      })),
+      toDelete: toDelete.map((u) => ({
+        id: u.id,
+        id_odoo: u.id_odoo,
+        nombre: u.nombre,
+        identificacion: u.identificacion,
+      })),
+    };
+  }
 
-    // ── FASE 1: UPSERT ───────────────────────────────────────────────────
-    for (const [index, emp] of odooEmployees.entries()) {
-      if (this.syncProgress.isCancelled) {
-        return {
-          status: 'info',
-          message: 'Sincronización cancelada por el usuario.',
-        };
-      }
-
-      const existing = await this.usuarioRepo.findOne({
-        where: { id_odoo: emp.id },
-      });
-
-      const data = {
-        id_odoo: emp.id,
-        nombre: emp.name,
-        identificacion: emp.identification_id || 'N/A',
-        cargo: emp.job_title || 'Sin Cargo',
-        departamento: emp.department_id
-          ? emp.department_id[1]
-          : 'Sin Departamento',
-        pais: paisSeleccionado,
+  // Método para cancelar
+  cancelSync() {
+    this.syncProgress.isCancelled = true;
+    this.syncProgress.status = 'cancelled';
+  }
+  async syncUsuariosFromOdoo(
+    paisSeleccionado: string,
+    deptoSeleccionado?: string,
+  ) {
+    try {
+      // Reset de estado al iniciar
+      this.syncProgress = {
+        current: 0,
+        total: 0,
+        isCancelled: false,
+        status: 'syncing',
       };
 
-      if (!existing) {
-        await this.usuarioRepo.save({ ...data, id: emp.id });
-        nuevos++;
-      } else {
-        await this.usuarioRepo.update(existing.id, data);
-        actualizados++;
+      const uid = await this.odoo.authenticate();
+      const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+
+      if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+        domain.push(['department_id.name', '=', deptoSeleccionado]);
       }
 
-      this.syncProgress.current = index + 1;
-    }
+      const odooEmployees = await this.odoo.executeKw<any[]>(
+        'hr.employee',
+        'search_read',
+        [domain],
+        {
+          fields: [
+            'id',
+            'name',
+            'identification_id',
+            'job_title',
+            'department_id',
+          ],
+        },
+        uid,
+      );
 
-    // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
-    for (const user of toDelete) {
-      if (this.syncProgress.isCancelled) {
-        return {
-          status: 'info',
-          message: `Sincronización cancelada. ${eliminados} eliminados hasta el momento.`,
+      // ── CALCULAR ELIMINADOS ANTES DEL LOOP ──────────────────────────────
+      const odooIds = new Set(odooEmployees.map((e) => e.id));
+
+      const dbQuery = this.usuarioRepo
+        .createQueryBuilder('u')
+        .where('u.pais = :pais', { pais: paisSeleccionado });
+
+      if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+        dbQuery.andWhere('u.departamento = :depto', {
+          depto: deptoSeleccionado,
+        });
+      }
+
+      const dbUsers = await dbQuery.getMany();
+      const toDelete = dbUsers.filter((u) => !odooIds.has(u.id_odoo));
+      // ────────────────────────────────────────────────────────────────────
+
+      // Total = upserts + eliminaciones
+      this.syncProgress.total = odooEmployees.length + toDelete.length;
+      let nuevos = 0;
+      let actualizados = 0;
+      let eliminados = 0;
+
+      // ── FASE 1: UPSERT ───────────────────────────────────────────────────
+      for (const [index, emp] of odooEmployees.entries()) {
+        if (this.syncProgress.isCancelled) {
+          return {
+            status: 'info',
+            message: 'Sincronización cancelada por el usuario.',
+          };
+        }
+
+        const existing = await this.usuarioRepo.findOne({
+          where: { id_odoo: emp.id },
+        });
+
+        const data = {
+          id_odoo: emp.id,
+          nombre: emp.name,
+          identificacion: emp.identification_id || 'N/A',
+          cargo: emp.job_title || 'Sin Cargo',
+          departamento: emp.department_id
+            ? emp.department_id[1]
+            : 'Sin Departamento',
+          pais: paisSeleccionado,
         };
+
+        if (!existing) {
+          await this.usuarioRepo.save({ ...data, id: emp.id });
+          nuevos++;
+        } else {
+          await this.usuarioRepo.update(existing.id, data);
+          actualizados++;
+        }
+
+        this.syncProgress.current = index + 1;
       }
 
-      await this.usuarioRepo.delete(user.id);
-      eliminados++;
-      this.syncProgress.current = odooEmployees.length + eliminados;
+      // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
+      for (const user of toDelete) {
+        if (this.syncProgress.isCancelled) {
+          return {
+            status: 'info',
+            message: `Sincronización cancelada. ${eliminados} eliminados hasta el momento.`,
+          };
+        }
+
+        await this.usuarioRepo.delete(user.id);
+        eliminados++;
+        this.syncProgress.current = odooEmployees.length + eliminados;
+      }
+      // ────────────────────────────────────────────────────────────────────
+
+      this.syncProgress.status = 'completed';
+      return {
+        status: 'success',
+        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
+      };
+    } catch (error) {
+      this.syncProgress.status = 'error';
+      console.error(`Error sincronizando ${paisSeleccionado}:`, error);
+      throw new InternalServerErrorException(
+        'Error al sincronizar empleados con Odoo',
+      );
     }
-    // ────────────────────────────────────────────────────────────────────
-
-    this.syncProgress.status = 'completed';
-    return {
-      status: 'success',
-      message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
-    };
-
-  } catch (error) {
-    this.syncProgress.status = 'error';
-    console.error(`Error sincronizando ${paisSeleccionado}:`, error);
-    throw new InternalServerErrorException(
-      'Error al sincronizar empleados con Odoo',
-    );
   }
-}
 
   async getOdooEmployeesRaw(paisSeleccionado?: string) {
     const uid = await this.odoo.authenticate();
@@ -1213,7 +1245,7 @@ async syncUsuariosFromOdoo(
 
     const usuario = await this.usuarioRepo.findOne({
       where: [{ id_odoo: idOdoo }, { id: idOdoo }],
-      relations: ['area', 'segmento'],
+      relations: ['area', 'segmento', 'permisos'],
     });
 
     if (!usuario) {
@@ -1223,5 +1255,27 @@ async syncUsuariosFromOdoo(
     }
 
     return usuario;
+  }
+
+  async getDeptosPermitidos(idOdoo: number): Promise<string[]> {
+    const permisos = await this.permisoDeptRepo.find({
+      where: { id_odoo: idOdoo },
+    });
+    return permisos.map((p) => p.departamento);
+  }
+
+  async setDeptosPermitidos(
+    idOdoo: number,
+    departamentos: string[],
+  ): Promise<{ success: boolean }> {
+    // Borra los anteriores y guarda los nuevos
+    await this.permisoDeptRepo.delete({ id_odoo: idOdoo });
+    if (departamentos.length) {
+      const nuevos = departamentos.map((d) =>
+        this.permisoDeptRepo.create({ id_odoo: idOdoo, departamento: d }),
+      );
+      await this.permisoDeptRepo.save(nuevos);
+    }
+    return { success: true };
   }
 }

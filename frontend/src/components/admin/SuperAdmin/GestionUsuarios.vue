@@ -186,35 +186,66 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="user in (filteredLocal ?? [])" :key="user.id_odoo"
-                                class="border-b transition-all"
-                                :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-100 hover:bg-emerald-50/50'">
-                                <td class="px-3 py-2 font-mono text-emerald-400 text-[10px] font-semibold">
-                                    {{ user.identificacion }}
-                                </td>
-                                <td class="px-3 py-2">
-                                    <div class="text-[12px] font-semibold truncate"
-                                        :class="isDark ? 'text-white' : 'text-slate-800'">{{ user.nombre }}</div>
-                                    <div class="text-[10px] font-medium text-blue-400 truncate mt-0.5">
-                                        {{ user.departamento }}
-                                    </div>
-                                </td>
-                                <td class="px-3 py-2 text-center">
-                                    <button @click="emit('open-perms', user)"
-                                        class="w-7 h-7 rounded-lg border inline-flex items-center justify-center hover:scale-105 transition-all"
-                                        :class="isDark ? 'bg-slate-800 border-white/10' : 'bg-slate-100 border-slate-200'">
-                                        <i class="fas fa-key text-[10px]"
-                                            :class="user.permisos?.length > 0 ? 'text-amber-400' : 'text-slate-400'"></i>
-                                    </button>
-                                </td>
-                                <td class="px-3 py-2 text-center">
-                                    <span class="w-2 h-2 rounded-full inline-block"
-                                        :class="user.is_active ? 'bg-emerald-400' : 'bg-red-400'"></span>
-                                </td>
-                            </tr>
-                            <tr v-if="!filteredLocal?.length">
-                                <td colspan="4" class="px-3 py-8 text-center text-[11px] opacity-30">Sin registros</td>
-                            </tr>
+                            <!-- SKELETON -->
+                            <template v-if="isLoading">
+                                <tr v-for="i in 8" :key="'sk-l-' + i" class="border-b"
+                                    :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                                    <td class="px-3 py-2.5">
+                                        <div class="h-3 w-16 rounded-md animate-pulse"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                    </td>
+                                    <td class="px-3 py-2.5">
+                                        <div class="h-3 rounded-md animate-pulse mb-1.5"
+                                            :style="{ width: (50 + (i * 11) % 35) + '%' }"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                        <div class="h-2.5 rounded-md animate-pulse"
+                                            :style="{ width: (25 + (i * 8) % 25) + '%' }"
+                                            :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-center">
+                                        <div class="h-7 w-7 rounded-lg animate-pulse mx-auto"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-center">
+                                        <div class="h-2.5 w-2.5 rounded-full animate-pulse mx-auto"
+                                            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- DATOS -->
+                            <template v-else>
+                                <tr v-for="user in (filteredLocal ?? [])" :key="user.id_odoo"
+                                    class="border-b transition-all"
+                                    :class="isDark ? 'border-white/5 hover:bg-emerald-500/5' : 'border-slate-100 hover:bg-emerald-50/50'">
+                                    <td class="px-3 py-2 font-mono text-emerald-400 text-[10px] font-semibold">
+                                        {{ user.identificacion }}
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <div class="text-[12px] font-semibold truncate"
+                                            :class="isDark ? 'text-white' : 'text-slate-800'">{{ user.nombre }}</div>
+                                        <div class="text-[10px] font-medium text-blue-400 truncate mt-0.5">
+                                            {{ user.departamento }}
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+                                        <button @click="emit('open-perms', user)"
+                                            class="w-7 h-7 rounded-lg border inline-flex items-center justify-center hover:scale-105 transition-all"
+                                            :class="isDark ? 'bg-slate-800 border-white/10' : 'bg-slate-100 border-slate-200'">
+                                            <i class="fas fa-key text-[10px]"
+                                                :class="user.permisos?.length > 0 ? 'text-amber-400' : 'text-slate-400'"></i>
+                                        </button>
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+                                        <span class="w-2 h-2 rounded-full inline-block"
+                                            :class="user.is_active ? 'bg-emerald-400' : 'bg-red-400'"></span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!filteredLocal?.length">
+                                    <td colspan="4" class="px-3 py-8 text-center text-[11px] opacity-30">Sin registros
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>

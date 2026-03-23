@@ -30,10 +30,11 @@ export class NotificationsService {
 
   // El que se usa al cargar la app: devuelve el anuncio activo más reciente
   async getActiveAnnouncement(): Promise<Announcement | null> {
-    return await this.announcementRepo.findOne({
+    const result = await this.announcementRepo.findOne({
       where: { is_active: true },
       order: { created_at: 'DESC' },
     });
+    return result ?? null;
   }
 
   // Historial para los logs del admin

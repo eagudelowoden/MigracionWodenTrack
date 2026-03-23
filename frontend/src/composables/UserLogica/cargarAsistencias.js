@@ -34,107 +34,76 @@ export function useCargarAsistencias() {
   });
   let debounceTimeout = null;
 
-  watch(
-    [
-      filterHoy,
-      startDate,
-      endDate,
-      selectedCompany,
-      selectedArea,
-      selectedSegmento,
-    ],
-    async (newValues, oldValues) => {
-      const [newHoy, newStart, newEnd, newCompany, newArea] = newValues;
-      const [oldHoy, oldStart, oldEnd] = oldValues;
+ // Agrega esta bandera para controlar la carga inicial
+let initialLoadDone = false;
 
-      // 1. Lógica de limpieza de fechas (Hoy vs Manual)
-      if (newHoy && !oldHoy) {
-        startDate.value = "";
-        endDate.value = "";
-      }
+watch(
+  [filterHoy, startDate, endDate, selectedCompany, selectedArea, selectedSegmento],
+  async (newValues, oldValues) => {
+    // 👈 No reaccionar durante la carga inicial
+    if (!initialLoadDone) return;
 
-      if (
-        (newStart !== oldStart || newEnd !== oldEnd) &&
-        (newStart || newEnd) &&
-        filterHoy.value
-      ) {
-        filterHoy.value = false;
-        return; // Este return es clave: el cambio de filterHoy re-disparará el watch
-      }
+    const [newHoy, newStart, newEnd, newCompany] = newValues;
+    const [oldHoy, oldStart, oldEnd] = oldValues;
 
-      // --- EL FILTRO DE SEGURIDAD ---
-      // Si no hay compañía, abortamos. Esto evita la llamada "?hoy=true" inicial.
-      if (!newCompany || newCompany === "") return;
-      
-      // Si no es admin y aún no tenemos el área, esperamos (opcional según tu flujo)
-      // if (!esAdmin && !newArea) return;
+    if (!newCompany || newCompany === "") return;
 
-      // 2. Reset de página
-      currentPage.value = 1;
-
-      // 3. ENCAPSULAMIENTO CON DEBOUNCE
-      // Esto agrupa los cambios de Area y Company en una sola petición
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-
-      debounceTimeout = setTimeout(async () => {
-        // await fetchReporte();
-      }, 150);
-    },  
-  );
-  const fetchReporte = async () => {
-    loading.value = true;
-    try {
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-
-      // 1. Parámetros de tiempo
-      url.searchParams.append("hoy", filterHoy.value.toString());
-      if (startDate.value)
-        url.searchParams.append("startDate", startDate.value);
-      if (endDate.value) url.searchParams.append("endDate", endDate.value);
-
-      // 2. Parámetros de organización
-      if (selectedCompany.value && selectedCompany.value !== "Todas") {
-        url.searchParams.append("company", selectedCompany.value);
-      }
-
-      if (selectedSegmento.value) {
-        url.searchParams.append("segmento_id", selectedSegmento.value);
-      }
-
-      // 3. Lógica de Filtrado Local Estricto
-      if (selectedArea.value) {
-        // Prioridad 1: Tenemos el área exacta de la DB local
-        url.searchParams.append("area_id", selectedArea.value);
-      } else if (
-        selectedDepartment.value &&
-        selectedDepartment.value !== "DEPARTAMENTOS"
-      ) {
-        /**
-         * Prioridad 2: No hay área manual, pero hay departamento.
-         * Mandamos el flag 'solo_con_area' para que el Backend (NestJS)
-         * filtre los empleados del departamento contra la tabla local de usuarios.
-         */
-        // url.searchParams.append("solo_con_area", "true");
-        // url.searchParams.append("departamento", selectedDepartment.value);
-      }
-
-      // 4. Petición
-      const res = await fetch(url.toString());
-
-      if (!res.ok) throw new Error("Error en la respuesta del servidor");
-
-      const data = await res.json();
-
-      // 5. Asignación de datos
-      rawData.value = data;
-    } catch (err) {
-      console.error("Error al obtener el reporte:", err);
-      rawData.value = []; // Limpiamos datos en caso de error
-    } finally {
-      loading.value = false;
+    if (newHoy && !oldHoy) {
+      startDate.value = "";
+      endDate.value = "";
     }
-  };
 
+    if ((newStart !== oldStart || newEnd !== oldEnd) && (newStart || newEnd) && filterHoy.value) {
+      filterHoy.value = false;
+      return;
+    }
+
+    currentPage.value = 1;
+
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(async () => {
+      await fetchReporte(); // 👈 descomentado
+    }, 150);
+  },
+);
+const fetchReporte = async () => {
+  loading.value = true;
+  try {
+    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    url.searchParams.append("hoy", filterHoy.value.toString());
+    if (startDate.value) url.searchParams.append("startDate", startDate.value);
+    if (endDate.value) url.searchParams.append("endDate", endDate.value);
+    if (selectedCompany.value && selectedCompany.value !== "Todas") {
+      url.searchParams.append("company", selectedCompany.value);
+    }
+    if (selectedSegmento.value) {
+      url.searchParams.append("segmento_id", selectedSegmento.value);
+    }
+    if (selectedArea.value) {
+      url.searchParams.append("area_id", selectedArea.value);
+    }
+
+    console.log('URL final:', url.toString()); // 👈 ver URL exacta
+    const res = await fetch(url.toString());
+    console.log('Status:', res.status); // 👈 ver status
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Error response:', errorText); // 👈 ver error del backend
+      throw new Error("Error en la respuesta del servidor");
+    }
+
+    const data = await res.json();
+    console.log('Data length:', data.length); // 👈 cuántos registros llegaron
+    rawData.value = data;
+    initialLoadDone = true;
+  } catch (err) {
+    console.error("Error al obtener el reporte:", err);
+    rawData.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
   const clearFilters = () => {
     search.value = "";
     selectedDepartment.value = "";
@@ -277,6 +246,7 @@ export function useCargarAsistencias() {
   return {
     reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
     search,
+    rawData, 
     selectedDepartment,
     startDate,
     endDate,
@@ -288,5 +258,6 @@ export function useCargarAsistencias() {
     selectedCompany,
     selectedArea,
     selectedSegmento,
+    departments,
   };
 }

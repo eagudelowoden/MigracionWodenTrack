@@ -19,7 +19,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const props = defineProps({ isDark: Boolean });
 const { logout, isDark, toggleTheme } = useAttendance();
-
+const { departamentosUnicos } = useUsuariosSync();
 
 // 2. Extraer los métodos y estados
 const {
@@ -88,6 +88,53 @@ const notification = ref({ show: false, message: '', type: 'success' });
 const showNotification = (msg, type = 'success') => {
   notification.value = { show: true, message: msg, type };
   setTimeout(() => notification.value.show = false, 5000);
+};
+
+// SuperAdmin.vue — agrega estas funciones
+const togglePermisoLocal = async (user, slug) => {
+  const activo = !hasPerm(user, slug);
+  try {
+    const res = await fetch(`${API_URL}/asignar-permiso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idOdoo: user.id_odoo,
+        modulo: slug,
+        activo: activo,
+        adminName: 'Admin'
+      })
+    });
+    if (!res.ok) throw new Error();
+
+    // Refrescar el usuario en la tabla local
+    await fetchDbUsuarios();
+
+    // Actualizar el usuario seleccionado para que el modal refleje el cambio
+    const actualizado = dbUsuarios.value.find(u => u.id_odoo === user.id_odoo);
+    if (actualizado) selectedUserPerms.value = { ...actualizado };
+
+    showNotification(`Permiso ${activo ? 'asignado' : 'removido'}`);
+  } catch (e) {
+    showNotification('Error al actualizar permiso', 'error');
+  }
+};
+
+const updateUserStructure = async (user, field) => {
+  try {
+    const res = await fetch(`${API_URL}/actualizar-estructura`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idOdoo: user.id_odoo,
+        campo: field,
+        valor: user[field]
+      })
+    });
+    if (!res.ok) throw new Error();
+    showNotification('Cambio guardado');
+  } catch (e) {
+    showNotification('Error al guardar', 'error');
+  }
 };
 
 
@@ -218,6 +265,7 @@ onMounted(async () => {
 
 
         <!-- TEMPLATE USUARIOS-->
+
         <div v-if="currentTab === 'users'" class="animate-fade-in p-2">
           <GestionUsuarios :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
@@ -243,7 +291,9 @@ onMounted(async () => {
 
     <!-- TEMPLATE — al final del template, antes del cierre -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
+      :apiUrl="API_URL" :todosLosDepartamentos="departamentosUnicos"
       @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
       @update-structure="updateUserStructure($event.user, $event.field)" />
+
   </div>
 </template>
