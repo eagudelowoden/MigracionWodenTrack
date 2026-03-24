@@ -79,16 +79,16 @@
             <!-- Nombre -->
             <div class="flex flex-col gap-1.5">
               <label class="text-[9px] font-black uppercase tracking-widest ml-1"
-                :class="isDark ? 'text-slate-400' : 'text-[#FF8F00]'">Nombre</label>
-              <div class="flex items-center gap-3 px-4 py-2.5 rounded-lg border text-xs"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-500'">
-                <i class="fas fa-user-circle opacity-50 text-sm"></i>
-                <input type="text" v-model="form.nombre" readonly
-                  class="bg-transparent w-full font-bold outline-none cursor-not-allowed"
-                  :class="isDark ? 'text-white' : 'text-slate-600'" />
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Nombre</label>
+              <div
+                class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all text-xs"
+                :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
+                <i class="fas fa-user-circle text-[#FF8F00]/80 text-sm"></i>
+                <input type="text" v-model="form.nombre" placeholder="Nombre completo..." required
+                  class="bg-transparent w-full font-bold outline-none placeholder:text-slate-500"
+                  :class="isDark ? 'text-white' : 'text-slate-800'" />
               </div>
             </div>
-
             <!-- Cédula -->
             <div class="flex flex-col gap-1.5">
               <label class="text-[9px] font-black uppercase tracking-widest ml-1"
@@ -329,18 +329,18 @@ const fileIcon = computed(() => {
 });
 
 // ─── Lifecycle — igual que tenías ────────────────────────────────────────────
-onMounted(() => {
-  if (props.employee?.name) {
-    form.value.nombre = props.employee.name;
-  } else {
-    try {
-      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-      form.value.nombre = session?.name || 'Usuario Admin';
-    } catch {
-      form.value.nombre = 'Usuario Admin';
-    }
-  }
-});
+// onMounted(() => {
+//   if (props.employee?.name) {
+//     form.value.nombre = props.employee.name;
+//   } else {
+//     try {
+//       const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+//       form.value.nombre = session?.name || 'Usuario Admin';
+//     } catch {
+//       form.value.nombre = 'Usuario Admin';
+//     }
+//   }
+// });
 
 // ─── Manejo de archivo ────────────────────────────────────────────────────────
 const processFile = (file) => {
@@ -392,7 +392,7 @@ const handleSubmit = async () => {
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
-  form.value = { ...form.value, cedula: '', descripcion: '', fechaInicio: '', fechaFin: '', soporte: null };
+  form.value = { nombre: '', cedula: '', descripcion: '', fechaInicio: '', fechaFin: '', soporte: null };
   fileName.value = fileSize.value = previewUrl.value = '';
   viewerOpen.value = false;
   submitStatus.value = '';
