@@ -87,36 +87,57 @@
 
                     <!-- PERMISOS -->
                     <div class="space-y-1.5">
-                        <div v-for="slug in MODULOS" :key="slug"
-                            class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
-                            :class="isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-amber-300/50'">
+                        <template v-for="slug in MODULOS" :key="slug">
 
-                            <div class="flex items-center gap-3">
-                                <div class="w-1 h-7 rounded-full transition-all"
-                                    :class="hasPerm(slug) ? 'bg-amber-500' : isDark ? 'bg-white/10' : 'bg-slate-200'">
-                                </div>
-                                <div>
-                                    <span class="text-[11px] font-semibold block"
-                                        :class="isDark ? 'text-white' : 'text-slate-700'">
-                                        {{ slug.split('.')[1] }}
-                                        <span class="text-[9px] opacity-30 font-normal ml-1">({{ slug.split('.')[0]
-                                            }})</span>
-                                    </span>
-                                    <span class="text-[9px] font-medium opacity-40">Acceso al módulo</span>
-                                </div>
+                            <!-- Separador antes del primer sub-permiso de novedades -->
+                            <div v-if="slug === 'admin.novedades.user'" class="flex items-center gap-2 px-2 pt-1">
+                                <div class="w-4 h-px" :class="isDark ? 'bg-transparent' : 'bg-transparent'"></div>
+                                <span class="text-[8px] font-black uppercase tracking-widest opacity-30"
+                                    :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                                    sub-permisos
+                                </span>
+                                <div class="h-px flex-1" :class="isDark ? 'bg-white/5' : 'bg-slate-200'"></div>
                             </div>
 
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" :checked="hasPerm(slug)"
-                                    @change="emit('toggle-perm', { user: modelValue, slug })" class="sr-only peer">
-                                <div class="w-9 h-5 rounded-full transition-all
-                  bg-slate-300 peer-checked:bg-amber-500
-                  after:content-[''] after:absolute after:top-[4px] after:left-[4px]
-                  after:bg-white after:rounded-full after:h-3 after:w-3
-                  after:transition-all peer-checked:after:translate-x-4" :class="isDark ? 'bg-white/10' : ''">
+                            <!-- Fila permiso -->
+                            <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
+                                :class="[
+                                    isSubNovedad(slug) ? 'ml-5 border-l-2' : '',
+                                    isSubNovedad(slug)
+                                        ? (isDark ? 'border-l-amber-500/30 border-white/5 bg-white/[0.01] hover:bg-white/5' : 'border-l-amber-400/40 border-slate-200 bg-slate-50/50 hover:border-amber-300/50')
+                                        : (isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-amber-300/50')
+                                ]">
+
+                                <div class="flex items-center gap-3">
+                                    <div class="w-1 h-7 rounded-full transition-all"
+                                        :class="hasPerm(slug) ? 'bg-amber-500' : isDark ? 'bg-white/10' : 'bg-slate-200'">
+                                    </div>
+                                    <div>
+                                        <span class="text-[11px] font-semibold block"
+                                            :class="isDark ? 'text-white' : 'text-slate-700'">
+                                            {{ MODULO_LABELS[slug]?.nombre ?? slug }}
+                                            <span class="text-[9px] opacity-30 font-normal ml-1">({{ slug.split('.')[0]
+                                            }})</span>
+                                        </span>
+                                        <span class="text-[9px] font-medium opacity-40">
+                                            {{ MODULO_LABELS[slug]?.desc ?? 'Acceso al módulo' }}
+                                        </span>
+                                    </div>
                                 </div>
-                            </label>
-                        </div>
+
+                                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                    <input type="checkbox" :checked="hasPerm(slug)"
+                                        @change="emit('toggle-perm', { user: modelValue, slug })" class="sr-only peer">
+                                    <div class="w-9 h-5 rounded-full transition-all
+          bg-slate-300 peer-checked:bg-amber-500
+          after:content-[''] after:absolute after:top-[4px] after:left-[4px]
+          after:bg-white after:rounded-full after:h-3 after:w-3
+          after:transition-all peer-checked:after:translate-x-4" :class="isDark ? 'bg-white/10' : ''">
+                                    </div>
+                                </label>
+                            </div>
+
+                        </template>
                     </div>
 
                     <!-- DEPARTAMENTOS VISIBLES -->
@@ -200,6 +221,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 
+
 const MODULOS = [
     'super.superadmin',
     'super.dashboard',
@@ -210,9 +232,29 @@ const MODULOS = [
     'admin.asistencias',
     'admin.mallas',
     'admin.novedades',
+    'admin.novedades.user',
+    'admin.novedades.admin',
+    'admin.novedades.rrhh',
     'admin.filtro_departamento',
 ];
 
+const MODULO_LABELS = {
+    'super.superadmin': { nombre: 'Super Admin', desc: 'Control total del sistema' },
+    'super.dashboard': { nombre: 'Dashboard', desc: 'Vista general del sistema' },
+    'super.gestionarapk': { nombre: 'Gestionar APK', desc: 'Publicación de aplicaciones' },
+    'super.companias': { nombre: 'Compañías', desc: 'Administración de empresas' },
+    'super.personal': { nombre: 'Personal', desc: 'Gestión de colaboradores' },
+    'admin.admin': { nombre: 'Admin General', desc: 'Acceso al panel de administración' },
+    'admin.asistencias': { nombre: 'Asistencias', desc: 'Control de asistencia' },
+    'admin.mallas': { nombre: 'Mallas', desc: 'Programación de turnos' },
+    'admin.novedades': { nombre: 'Novedades', desc: 'Acceso al módulo de novedades' },
+    'admin.novedades.user': { nombre: 'Novedades — Empleado', desc: 'Registrar novedad propia' },
+    'admin.novedades.admin': { nombre: 'Novedades — Admin', desc: 'Gestión completa de novedades' },
+    'admin.novedades.rrhh': { nombre: 'Novedades — RRHH', desc: 'Auditoría y revisión' },
+    'admin.filtro_departamento': { nombre: 'Filtro Departamento', desc: 'Limitar vista por departamento' },
+};
+const isSubNovedad = (slug) =>
+    ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,

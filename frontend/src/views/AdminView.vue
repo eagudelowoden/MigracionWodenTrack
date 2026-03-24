@@ -185,6 +185,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl px-6">
 
             <!-- Admin Card -->
+
             <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.admin']"
               @click="currentModule = 'view_novedad_admin'"
               class="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden"
@@ -267,7 +268,8 @@
             </button>
 
             <!-- User Card -->
-            <button @click="currentModule = 'view_novedad_user'"
+            <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades.user']"
+              @click="currentModule = 'view_novedad_user'"
               class="group relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden"
               :class="isDark
                 ? 'bg-[#252b3b] border-white/10 hover:border-emerald-500 hover:shadow-[0_0_0_1px_rgba(16,185,129,0.5),0_0_30px_rgba(16,185,129,0.2)]'
@@ -325,7 +327,7 @@ import NovedadesAdmin from './novedades/novedadesadminView.vue';
 import NovedadesRRHH from './novedades/novedadesRRHView.vue';
 import NovedadesUsuario from './novedades/novedadesusuarioView.vue';
 import '../assets/css/admin-style.css';
-
+const tienePermiso = (slug) => employee?.value?.permisos?.[slug] ?? false;
 const {
   employee, // <--- Este es tu "session"
   loading,

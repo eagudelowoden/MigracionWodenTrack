@@ -4,8 +4,8 @@ import axios from "axios";
 
 export function useNovedades() {
   const novedades = ref([]);
-  const loading   = ref(false);
-  const error     = ref(null);
+  const loading = ref(false);
+  const error = ref(null);
 
   const API_URL = import.meta.env.VITE_API_URL; // Ejemplo: http://localhost:8082
 
@@ -30,11 +30,11 @@ export function useNovedades() {
       loading.value = true;
 
       const fd = new FormData();
-      fd.append("nombre",      payload.nombre);
-      fd.append("cedula",      payload.cedula);
+      fd.append("nombre", payload.nombre);
+      fd.append("cedula", payload.cedula);
       fd.append("descripcion", payload.descripcion);
       fd.append("fechaInicio", payload.fechaInicio);
-      fd.append("fechaFin",    payload.fechaFin);
+      fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");
       if (payload.soporte) {
         fd.append("soporte", payload.soporte);
