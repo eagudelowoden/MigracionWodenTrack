@@ -1,7 +1,7 @@
 <template>
   <div class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1">
 
-    <!-- Header SEPARADO -->
+    <!-- Header -->
     <div class="flex items-center justify-between gap-2 p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
       :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
@@ -26,7 +26,6 @@
           :class="storageMode === 'local' ? 'text-emerald-500' : 'text-slate-400'">
           <i class="fas fa-folder-open mr-1"></i>Local
         </span>
-
         <button @click="toggleStorage" type="button"
           class="relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none"
           :class="storageMode === 's3' ? 'bg-[#FF8F00]' : (isDark ? 'bg-[#2d3548]' : 'bg-slate-200')">
@@ -34,12 +33,10 @@
             :class="storageMode === 's3' ? 'translate-x-5' : 'translate-x-0'">
           </span>
         </button>
-
         <span class="text-[9px] font-black uppercase tracking-widest"
           :class="storageMode === 's3' ? 'text-[#FF8F00]' : 'text-slate-400'">
           <i class="fab fa-aws mr-1"></i>S3
         </span>
-
         <div class="ml-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border" :class="storageMode === 's3'
           ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
           : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
@@ -51,12 +48,11 @@
     <!-- BODY: formulario + visor lado a lado -->
     <div class="flex-1 flex gap-1 overflow-hidden">
 
-      <!-- Formulario SEPARADO -->
+      <!-- Formulario -->
       <div class="flex flex-col overflow-hidden rounded-2xl border transition-all duration-300" :class="[
         viewerOpen ? 'w-1/2' : 'w-full',
         isDark ? 'bg-[#1e2538] border-[#2d3548] shadow-black/40' : 'bg-white border-slate-200 shadow-slate-100'
       ]">
-
         <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
 
           <!-- Banner modo storage -->
@@ -154,15 +150,12 @@
                     :class="['mr-2', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-upload text-[#FF8F00]']"></i>
                   {{ fileName || 'Ningún archivo seleccionado...' }}
                 </div>
-
-                <!-- Botón Ver — solo aparece cuando hay archivo -->
                 <button v-if="previewUrl" @click.prevent="toggleViewer" type="button"
                   class="px-3 py-2 rounded-md mr-1 text-[10px] font-black uppercase italic transition-all hover:brightness-110 active:scale-95 flex items-center gap-1 border"
                   :class="isDark ? 'bg-[#2d3548] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
                   <i class="fas fa-eye text-[#FF8F00]"></i>
                   {{ viewerOpen ? 'Cerrar' : 'Ver' }}
                 </button>
-
                 <input type="file" @change="onFileChange" id="file-upload" class="hidden"
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
                 <label for="file-upload"
@@ -171,7 +164,7 @@
                 </label>
               </div>
 
-              <!-- Miniatura si es imagen -->
+              <!-- Miniatura imagen -->
               <div v-if="previewUrl && isImage"
                 class="rounded-xl overflow-hidden border max-h-28 flex items-center justify-center"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
@@ -193,7 +186,7 @@
 
           </div>
 
-          <!-- Mensaje estado submit -->
+          <!-- Mensaje estado -->
           <transition name="fade-msg">
             <div v-if="submitStatus" class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[11px] font-bold border"
               :class="submitStatus === 'ok'
@@ -204,10 +197,9 @@
             </div>
           </transition>
 
-          <!-- Footer -->
+          <!-- Footer form -->
           <div class="flex items-center justify-between pt-4 mt-auto border-t"
             :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
-
             <button @click.prevent="resetForm" type="button"
               class="px-5 py-2.5 rounded-lg font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 flex items-center gap-2 border"
               :class="isDark
@@ -215,7 +207,6 @@
                 : 'text-slate-400 border-slate-200 hover:text-slate-700 hover:border-slate-400'">
               <i class="fas fa-rotate-left text-[10px]"></i> Limpiar
             </button>
-
             <button type="submit" :disabled="loading"
               class="group px-8 py-2.5 rounded-lg font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 shadow-md flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
               :class="isDark ? 'bg-[#FF8F00] text-black hover:brightness-110' : 'bg-slate-900 text-white hover:bg-slate-700'">
@@ -223,17 +214,16 @@
               <i v-else class="fas fa-check-circle text-[10px] group-hover:scale-110 transition-transform"></i>
               {{ loading ? 'Guardando...' : 'Guardar Novedad' }}
             </button>
-
           </div>
+
         </form>
       </div>
 
-      <!-- Panel visor de archivo -->
+      <!-- Panel visor -->
       <transition name="slide-panel">
         <div v-if="viewerOpen && previewUrl" class="flex flex-col w-1/2 rounded-2xl border overflow-hidden"
           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
-          <!-- Toolbar visor -->
           <div class="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
             :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
             <div class="flex items-center gap-2">
@@ -257,7 +247,6 @@
             </div>
           </div>
 
-          <!-- Contenido visor -->
           <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
             :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
             <img v-if="isImage" :src="previewUrl" class="max-w-full max-h-full object-contain rounded-lg shadow-xl" />
@@ -289,34 +278,27 @@ const props = defineProps({
   employee: Object,
 });
 
-// ─── Composable ───────────────────────────────────────────────────────────────
 const { crearNovedad, loading } = useNovedades();
 
-// ─── Storage switch (por ahora solo local funciona) ───────────────────────────
 const storageMode = ref(localStorage.getItem('novedad_storage_mode') || 'local');
 const toggleStorage = () => {
   storageMode.value = storageMode.value === 'local' ? 's3' : 'local';
   localStorage.setItem('novedad_storage_mode', storageMode.value);
 };
 
-// ─── Form — misma estructura que tenías ──────────────────────────────────────
 const form = ref({
   nombre: '', cedula: '', descripcion: '',
   fechaInicio: '', fechaFin: '', soporte: null,
 });
 
-// ─── Estado archivo ───────────────────────────────────────────────────────────
 const fileName = ref('');
 const fileSize = ref('');
 const previewUrl = ref('');
 const dragOver = ref(false);
 const viewerOpen = ref(false);
-
-// ─── Estado submit ────────────────────────────────────────────────────────────
-const submitStatus = ref(''); // '' | 'ok' | 'error'
+const submitStatus = ref('');
 const submitMessage = ref('');
 
-// ─── Computed tipo de archivo ─────────────────────────────────────────────────
 const ext = computed(() => fileName.value.split('.').pop().toLowerCase());
 const isImage = computed(() => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext.value));
 const isPdf = computed(() => ext.value === 'pdf');
@@ -328,7 +310,6 @@ const fileIcon = computed(() => {
   return 'fas fa-file text-slate-400';
 });
 
-// ─── Lifecycle — igual que tenías ────────────────────────────────────────────
 onMounted(() => {
   if (props.employee?.name) {
     form.value.nombre = props.employee.name;
@@ -342,7 +323,6 @@ onMounted(() => {
   }
 });
 
-// ─── Manejo de archivo ────────────────────────────────────────────────────────
 const processFile = (file) => {
   if (!file) return;
   form.value.soporte = file;
@@ -354,21 +334,17 @@ const processFile = (file) => {
   previewUrl.value = URL.createObjectURL(file);
 };
 
-// Igual que tu handleFileUpload original, pero renombrado para claridad
 const onFileChange = (e) => processFile(e.target.files[0]);
 const onDrop = (e) => { dragOver.value = false; processFile(e.dataTransfer?.files[0]); };
 const toggleViewer = () => { viewerOpen.value = !viewerOpen.value; };
 
-// ─── Submit — reemplaza el alert por llamada real ─────────────────────────────
 const handleSubmit = async () => {
   if (!form.value.soporte) {
     submitStatus.value = 'error';
     submitMessage.value = 'Por favor cargue un documento de soporte.';
     return;
   }
-
   submitStatus.value = '';
-
   try {
     const res = await crearNovedad({
       nombre: form.value.nombre,
@@ -379,18 +355,15 @@ const handleSubmit = async () => {
       soporte: form.value.soporte,
       storageMode: storageMode.value,
     });
-
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;
     setTimeout(() => { submitStatus.value = ''; }, 5000);
-
   } catch (e) {
     submitStatus.value = 'error';
     submitMessage.value = e?.response?.data?.message || 'Error al guardar la novedad.';
   }
 };
 
-// ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
   form.value = { ...form.value, cedula: '', descripcion: '', fechaInicio: '', fechaFin: '', soporte: null };
   fileName.value = fileSize.value = previewUrl.value = '';
