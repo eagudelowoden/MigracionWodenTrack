@@ -116,6 +116,9 @@
                   class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Descripción</th>
                 <th
+                  class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                  Tificación</th>
+                <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Modo</th>
                 <th
@@ -165,6 +168,12 @@
                   <p class="text-[10px] font-medium line-clamp-2 max-w-[200px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                 </td>
+
+                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <p class="text-[10px] font-medium line-clamp-2 max-w-[200px]"
+                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.tipificacion }}</p>
+                </td>
+
 
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <span class="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter" :class="(item.soporteStorageMode ?? item.soporte_storage_mode) === 's3'

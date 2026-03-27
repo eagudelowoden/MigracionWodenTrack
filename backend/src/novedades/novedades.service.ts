@@ -94,7 +94,7 @@ export class NovedadesService {
       nombre: dto.nombre,
       cedula: dto.cedula,
       descripcion: dto.descripcion,
-      tipificacion: dto.tipificacion, // ← agrega esta línea
+      tipificacion: dto.tipificacion,
       fechaInicio: dto.fechaInicio,
       fechaFin: dto.fechaFin,
       soporteNombreOriginal: file.originalname,
