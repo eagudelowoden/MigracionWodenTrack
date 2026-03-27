@@ -21,6 +21,9 @@ export class Novedad {
   @Column('text')
   descripcion: string;
 
+  @Column({ type: 'text', default: '' })
+  tipificacion: string;
+
   @Column({ name: 'fecha_inicio', type: 'date' })
   fechaInicio: string;
 

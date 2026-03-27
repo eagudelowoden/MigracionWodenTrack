@@ -33,6 +33,7 @@ export function useNovedades() {
       fd.append("nombre", payload.nombre);
       fd.append("cedula", payload.cedula);
       fd.append("descripcion", payload.descripcion);
+      fd.append("tipificacion", payload.tipificacion);
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");

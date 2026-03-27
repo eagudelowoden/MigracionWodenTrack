@@ -131,6 +131,19 @@
               </textarea>
             </div>
 
+            <div class="md:col-span-2 flex flex-col gap-1.5">
+              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipificación</label>
+              <select v-model="form.tipificacion" required
+                class="px-4 py-3 rounded-lg border text-xs font-medium outline-none transition-all" :class="isDark
+                  ? 'bg-[#273045] border-[#2d3548] text-white'
+                  : 'bg-white border-slate-200 text-slate-800 shadow-sm'">
+                <option value="" disabled>Seleccione el tipo de novedad...</option>
+                <option v-for="tip in TIPIFICACIONES" :key="tip" :value="tip">{{ tip }}</option>
+              </select>
+            </div>
+
+
             <!-- Soporte -->
             <div class="md:col-span-2 flex flex-col gap-2">
               <label class="text-[9px] font-black uppercase tracking-widest ml-1"
@@ -301,9 +314,16 @@ const toggleStorage = () => {
 
 // ─── Form — misma estructura que tenías ──────────────────────────────────────
 const form = ref({
-  nombre: '', cedula: '', descripcion: '',
+  nombre: '', cedula: '', descripcion: '', tipificacion: '',
   fechaInicio: '', fechaFin: '', soporte: null,
 });
+
+
+const TIPIFICACIONES = [
+  'Vacaciones', 'No remunerado', 'Días compensatorios', 'Horas extra',
+  'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
+  'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
+];
 
 // ─── Estado archivo ───────────────────────────────────────────────────────────
 const fileName = ref('');
@@ -374,6 +394,7 @@ const handleSubmit = async () => {
       nombre: form.value.nombre,
       cedula: form.value.cedula,
       descripcion: form.value.descripcion,
+      tipificacion: form.value.tipificacion,
       fechaInicio: form.value.fechaInicio,
       fechaFin: form.value.fechaFin,
       soporte: form.value.soporte,
@@ -392,7 +413,7 @@ const handleSubmit = async () => {
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
-  form.value = { nombre: '', cedula: '', descripcion: '', fechaInicio: '', fechaFin: '', soporte: null };
+  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '', soporte: null };
   fileName.value = fileSize.value = previewUrl.value = '';
   viewerOpen.value = false;
   submitStatus.value = '';
