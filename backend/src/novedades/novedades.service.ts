@@ -174,4 +174,18 @@ export class NovedadesService {
     await this.novedadRepo.delete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
+  async aprobar(id: number, aprobado: number, motivo: string) {
+    const novedad = await this.novedadRepo.findOneBy({ id });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+
+    novedad.aprobado = aprobado;
+    novedad.motivoAprobacion = motivo;
+    novedad.fechaAprobacion = new Date();
+
+    await this.novedadRepo.save(novedad);
+    return {
+      success: true,
+      message: aprobado === 1 ? 'Novedad aprobada.' : 'Novedad rechazada.',
+    };
+  }
 }

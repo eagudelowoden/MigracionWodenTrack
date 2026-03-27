@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import express from 'express';
 import { NovedadesService } from './novedades.service';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
+import { UpdateAprobacionDto } from './dto/update-aprobacion.dto';
 
 @Controller('usuarios/novedades')
 export class NovedadesController {
@@ -54,5 +55,10 @@ export class NovedadesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.novedadesService.remove(+id);
+  }
+
+  @Post(':id/aprobar')
+  aprobar(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
+    return this.novedadesService.aprobar(+id, dto.aprobado, dto.motivo);
   }
 }

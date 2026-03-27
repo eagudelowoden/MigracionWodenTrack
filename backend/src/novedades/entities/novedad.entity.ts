@@ -50,4 +50,23 @@ export class Novedad {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @Column({ type: 'int', default: null, nullable: true })
+  aprobado: number | null; // null=pendiente, 1=aprobado, 0=rechazado
+
+  @Column({
+    type: 'text',
+    default: null,
+    nullable: true,
+    name: 'motivo_aprobacion',
+  })
+  motivoAprobacion: string | null;
+
+  @Column({
+    type: 'datetime',
+    default: null,
+    nullable: true,
+    name: 'fecha_aprobacion',
+  })
+  fechaAprobacion: Date | null;
 }

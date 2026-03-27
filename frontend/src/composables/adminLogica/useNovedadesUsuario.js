@@ -33,6 +33,7 @@ export function useNovedades() {
       fd.append("nombre", payload.nombre);
       fd.append("cedula", payload.cedula);
       fd.append("descripcion", payload.descripcion);
+      fd.append("tipificacion", payload.tipificacion ?? "");
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");
@@ -80,6 +81,19 @@ export function useNovedades() {
       throw e;
     }
   };
+  const aprobarNovedad = async (id, aprobado, motivo) => {
+    try {
+      const res = await axios.patch(`${API_URL}/novedades/${id}/aprobar`, {
+        aprobado,
+        motivo,
+      });
+      await fetchNovedades();
+      return res.data;
+    } catch (e) {
+      console.error("Error al aprobar/rechazar novedad:", e);
+      throw e;
+    }
+  };
 
   return {
     novedades,
@@ -90,5 +104,6 @@ export function useNovedades() {
     fetchNovedad,
     getFileUrl,
     eliminarNovedad,
+    aprobarNovedad,
   };
 }

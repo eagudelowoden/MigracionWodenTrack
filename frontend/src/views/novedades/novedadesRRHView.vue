@@ -185,13 +185,37 @@
                   </span>
                 </td>
 
-                <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <button @click="verSoporte(item.id)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm"
-                    :class="isDark ? 'bg-[#FF8F00] text-black' : 'bg-slate-900 text-white'">
-                    <i class="fas fa-eye text-[9px]"></i>
-                    <span>Ver</span>
-                  </button>
+                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <div class="flex items-center gap-1.5">
+
+                    <!-- Ver Soporte -->
+                    <button @click="verSoporte(item.id)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm"
+                      :class="isDark ? 'bg-[#FF8F00] text-black' : 'bg-slate-900 text-white'">
+                      <i class="fas fa-eye text-[9px]"></i> Ver
+                    </button>
+
+                    <!-- Aprobar -->
+                    <button @click="abrirAccion(item, 1)" :disabled="item.aprobado === 1"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      :class="item.aprobado === 1
+                        ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                        : (isDark ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white')">
+                      <i class="fas fa-check text-[9px]"></i>
+                      {{ item.aprobado === 1 ? 'Aprobada' : 'Aprobar' }}
+                    </button>
+
+                    <!-- Rechazar -->
+                    <button @click="abrirAccion(item, 0)" :disabled="item.aprobado === 0"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      :class="item.aprobado === 0
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        : (isDark ? 'bg-red-600 text-white' : 'bg-red-500 text-white')">
+                      <i class="fas fa-xmark text-[9px]"></i>
+                      {{ item.aprobado === 0 ? 'Rechazada' : 'Rechazar' }}
+                    </button>
+
+                  </div>
                 </td>
 
               </tr>
@@ -307,6 +331,55 @@
         </div>
       </transition>
     </teleport>
+    <!-- Modal motivo -->
+    <teleport to="body">
+      <div v-if="accionModal.open"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+          <div class="flex items-center gap-2">
+            <i :class="accionModal.tipo === 1
+              ? 'fas fa-check-circle text-emerald-500'
+              : 'fas fa-times-circle text-red-400'" class="text-lg"></i>
+            <h3 class="text-sm font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
+              {{ accionModal.tipo === 1 ? 'Aprobar' : 'Rechazar' }} novedad
+            </h3>
+          </div>
+
+          <p class="text-[10px] font-bold opacity-60" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+            {{ accionModal.nombre }}
+          </p>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[9px] font-black uppercase tracking-widest"
+              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              Motivo <span class="text-red-400">*</span>
+            </label>
+            <textarea v-model="accionModal.motivo" rows="3"
+              :placeholder="accionModal.tipo === 1 ? 'Motivo de aprobación...' : 'Motivo de rechazo...'"
+              class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
+              :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
+        </textarea>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button @click="accionModal.open = false"
+              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border transition-all"
+              :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+              Cancelar
+            </button>
+            <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
+              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40"
+              :class="accionModal.tipo === 1
+                ? 'bg-emerald-500 text-white'
+                : 'bg-red-500 text-white'">
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
 
   </div>
 </template>
@@ -368,6 +441,22 @@ const calcDias = (inicio, fin) => {
 const resetFilters = () => {
   filters.value = { fecha: '', nombre: '' };
   fetchNovedades();
+};
+const accionModal = ref({
+  open: false, tipo: 1, id: null, nombre: '', motivo: ''
+});
+
+const abrirAccion = (item, tipo) => {
+  accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '' };
+};
+
+const confirmarAccion = async () => {
+  try {
+    await aprobarNovedad(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+    accionModal.value.open = false;
+  } catch {
+    // maneja error si necesitas
+  }
 };
 
 const verSoporte = async (id) => {
