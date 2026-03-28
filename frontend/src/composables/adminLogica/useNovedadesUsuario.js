@@ -83,7 +83,7 @@ export function useNovedades() {
   };
   const aprobarNovedad = async (id, aprobado, motivo) => {
     try {
-      const res = await axios.patch(`${API_URL}/novedades/${id}/aprobar`, {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar`, {
         aprobado,
         motivo,
       });

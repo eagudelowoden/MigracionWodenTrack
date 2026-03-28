@@ -81,6 +81,19 @@ export function useNovedades() {
       throw e;
     }
   };
+  const aprobarNovedad = async (id, aprobado, motivo) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar`, {
+        aprobado,
+        motivo,
+      });
+      await fetchNovedades();
+      return res.data;
+    } catch (e) {
+      console.error("Error al aprobar/rechazar novedad:", e);
+      throw e;
+    }
+  };
 
   return {
     novedades,
@@ -91,5 +104,6 @@ export function useNovedades() {
     fetchNovedad,
     getFileUrl,
     eliminarNovedad,
+    aprobarNovedad,
   };
 }

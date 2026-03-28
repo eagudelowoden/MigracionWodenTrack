@@ -118,6 +118,10 @@
                 <th
                   class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Tificación</th>
+
+                <th
+                  class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                  Motivo</th>
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Modo</th>
@@ -174,6 +178,15 @@
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.tipificacion }}</p>
                 </td>
 
+                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <button v-if="item.motivoAprobacion" @click="verMotivo(item)"
+                    class="inline-flex items-center gap-1 text-[9px] font-black uppercase italic tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                    <i class="fas fa-eye text-[#FF8F00] text-[9px]"></i> Ver
+                  </button>
+                  <span v-else class="text-[9px] opacity-30"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">—</span>
+                </td>
 
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <span class="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter" :class="(item.soporteStorageMode ?? item.soporte_storage_mode) === 's3'
@@ -186,38 +199,31 @@
                 </td>
 
                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center justify-end gap-2">
 
-                    <!-- Ver Soporte -->
-                    <button @click="verSoporte(item.id)"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm"
-                      :class="isDark ? 'bg-[#FF8F00] text-black' : 'bg-slate-900 text-white'">
-                      <i class="fas fa-eye text-[9px]"></i> Ver
-                    </button>
-
-                    <!-- Aprobar -->
-                    <button @click="abrirAccion(item, 1)" :disabled="item.aprobado === 1"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    <!-- Badge estado -->
+                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border"
                       :class="item.aprobado === 1
-                        ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                        : (isDark ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white')">
-                      <i class="fas fa-check text-[9px]"></i>
-                      {{ item.aprobado === 1 ? 'Aprobada' : 'Aprobar' }}
-                    </button>
+                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                        : item.aprobado === 0
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                          : (isDark ? 'bg-[#2d3548] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200')">
+                      <i :class="item.aprobado === 1 ? 'fas fa-check' : item.aprobado === 0 ? 'fas fa-xmark' : 'fas fa-clock'"
+                        class="mr-1"></i>
+                      {{ item.aprobado === 1 ? 'Aprobada' : item.aprobado === 0 ? 'Rechazada' : 'Pendiente' }}
+                    </span>
 
-                    <!-- Rechazar -->
-                    <button @click="abrirAccion(item, 0)" :disabled="item.aprobado === 0"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                      :class="item.aprobado === 0
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        : (isDark ? 'bg-red-600 text-white' : 'bg-red-500 text-white')">
-                      <i class="fas fa-xmark text-[9px]"></i>
-                      {{ item.aprobado === 0 ? 'Rechazada' : 'Rechazar' }}
-                    </button>
+                    <!-- Botón ⋮ -->
+                    <div class="relative">
+                      <button @click.stop="toggleMenu($event, item.id)"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95"
+                        :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
+                        <i class="fas fa-ellipsis-vertical text-[10px]"></i>
+                      </button>
+                    </div>
 
                   </div>
                 </td>
-
               </tr>
             </tbody>
           </table>
@@ -331,17 +337,51 @@
         </div>
       </transition>
     </teleport>
+
+    <!-- Fuera de la tabla, dentro del template principal -->
+    <teleport to="body">
+      <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
+
+      <transition name="fade-msg">
+        <div v-if="menuAbierto !== null" class="fixed z-50 w-40 rounded-xl border shadow-2xl overflow-hidden"
+          :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+          <button @click="verSoporte(menuAbierto); menuAbierto = null"
+            class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
+            :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+            <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
+          </button>
+
+          <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
+
+          <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null" :disabled="itemMenuActual?.aprobado === 1"
+            class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed"
+            :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+            <i class="fas fa-check w-3"></i> Aprobar
+          </button>
+
+          <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null" :disabled="itemMenuActual?.aprobado === 0"
+            class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed"
+            :class="isDark ? 'text-red-400' : 'text-red-500'">
+            <i class="fas fa-xmark w-3"></i> Rechazar
+          </button>
+
+        </div>
+      </transition>
+    </teleport>
     <!-- Modal motivo -->
     <teleport to="body">
       <div v-if="accionModal.open"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        @mousedown.self="accionModal.open = false">
+
         <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
           <div class="flex items-center gap-2">
-            <i :class="accionModal.tipo === 1
-              ? 'fas fa-check-circle text-emerald-500'
-              : 'fas fa-times-circle text-red-400'" class="text-lg"></i>
+            <i :class="accionModal.tipo === 1 ? 'fas fa-check-circle text-emerald-500' : 'fas fa-times-circle text-red-400'"
+              class="text-lg"></i>
             <h3 class="text-sm font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
               {{ accionModal.tipo === 1 ? 'Aprobar' : 'Rechazar' }} novedad
             </h3>
@@ -366,17 +406,38 @@
           <div class="flex gap-2 pt-1">
             <button @click="accionModal.open = false"
               class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border transition-all"
-              :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+              :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-slate-200' : 'border-slate-200 text-slate-500 hover:text-slate-700'">
               Cancelar
             </button>
             <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
-              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40"
-              :class="accionModal.tipo === 1
-                ? 'bg-emerald-500 text-white'
-                : 'bg-red-500 text-white'">
+              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-red-500 text-white hover:bg-red-600'">
               Confirmar
             </button>
           </div>
+
+        </div>
+      </div>
+    </teleport>
+    <!-- Modal motivo ver -->
+    <teleport to="body">
+      <div v-if="motivoModal.open"
+        class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        @mousedown.self="motivoModal.open = false">
+        <div class="w-80 rounded-2xl border p-5 flex flex-col gap-3 shadow-2xl"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black uppercase tracking-widest"
+              :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+              <i class="fas fa-comment-dots text-[#FF8F00] mr-1.5"></i>Motivo
+            </span>
+            <button @click="motivoModal.open = false" class="w-6 h-6 rounded-lg flex items-center justify-center border"
+              :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+              <i class="fas fa-xmark text-[9px]"></i>
+            </button>
+          </div>
+          <p class="text-xs leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ motivoModal.motivo
+          }}</p>
         </div>
       </div>
     </teleport>
@@ -390,18 +451,55 @@ import { useNovedades } from '../../composables/adminLogica/useNovedades';
 
 const props = defineProps({ isDark: Boolean, company: String });
 
-const { novedades, loading, error, fetchNovedades, fetchNovedad } = useNovedades();
+const {
+  novedades,
+  loading,
+  error,
+  fetchNovedades,
+  fetchNovedad,
+  aprobarNovedad,
+  eliminarNovedad,
+  getFileUrl
+} = useNovedades();
 
 const filters = ref({ fecha: '', nombre: '' });
+
+const mensajeVacio = computed(() =>
+  filters.value.nombre || filters.value.fecha
+    ? 'Sin resultados para el filtro aplicado'
+    : 'No hay novedades registradas'
+);
 
 const modalOpen = ref(false);
 const modalLoading = ref(false);
 const modalFileUrl = ref('');
 const modalNombre = ref('');
 const modalMime = ref('');
+const menuAbierto = ref(null);
+const itemMenuActual = ref(null);
+const menuPos = ref({ x: 0, y: 0 });
+
+const toggleMenu = (event, id) => {
+  if (menuAbierto.value === id) {
+    menuAbierto.value = null;
+    return;
+  }
+  const btn = event.currentTarget.getBoundingClientRect();
+  menuPos.value = {
+    x: btn.right - 160,   // alineado a la derecha del botón
+    y: btn.bottom + 6,    // justo debajo
+  };
+  itemMenuActual.value = novedadesFiltradas.value.find(n => n.id === id);
+  menuAbierto.value = id;
+};
 
 const modalIsImage = computed(() => /image\/(jpeg|jpg|png|gif|webp|svg)/.test(modalMime.value));
 const modalIsPdf = computed(() => modalMime.value === 'application/pdf');
+
+const motivoModal = ref({ open: false, motivo: '' });
+const verMotivo = (item) => {
+  motivoModal.value = { open: true, motivo: item.motivoAprobacion };
+};
 
 onMounted(() => fetchNovedades());
 
@@ -451,11 +549,13 @@ const abrirAccion = (item, tipo) => {
 };
 
 const confirmarAccion = async () => {
+  console.log('confirmarAccion llamado', accionModal.value); // ← temporal
+  if (!accionModal.value.motivo.trim()) return;
   try {
     await aprobarNovedad(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
     accionModal.value.open = false;
-  } catch {
-    // maneja error si necesitas
+  } catch (e) {
+    console.error('Error en confirmarAccion:', e); // ← ver el error real
   }
 };
 
@@ -475,6 +575,7 @@ const verSoporte = async (id) => {
     modalLoading.value = false;
   }
 };
+
 </script>
 
 <style scoped>
