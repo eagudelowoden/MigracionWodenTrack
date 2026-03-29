@@ -19,6 +19,7 @@ import { Permiso } from './entities/permiso.entity';
 import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Area } from './entities/area.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -50,6 +51,8 @@ export class UsuariosService {
     private dataSource: DataSource,
     private configService: ConfigService,
 
+    @InjectRepository(Area)
+    private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento) // 👈 agrega
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
   ) {}
@@ -1277,5 +1280,23 @@ export class UsuariosService {
       await this.permisoDeptRepo.save(nuevos);
     }
     return { success: true };
+  }
+
+  // en usuarios.service.ts
+  async getAreaPorDepartamento(nombre: string) {
+    const area = await this.areaRepo.findOne({
+      where: { nombre: nombre.toUpperCase() },
+      relations: ['responsable'],
+    });
+
+    if (!area) return null;
+
+    return {
+      id: area.id,
+      nombre: area.nombre,
+      responsable_id: area.responsable?.id_odoo ?? null,
+      responsable_nombre: area.responsable?.nombre ?? null,
+      responsable_cargo: area.responsable?.cargo ?? null,
+    };
   }
 }

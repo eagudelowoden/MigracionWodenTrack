@@ -85,6 +85,27 @@
               </div>
             </div>
 
+            <!-- Jefe de área — debajo del campo Nombre -->
+            <div v-if="jefe" class="md:col-span-2 flex items-center gap-3 px-4 py-2.5 rounded-lg border"
+              :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
+              <div
+                class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
+                {{ jefe.name?.charAt(0) ?? '?' }}
+              </div>
+              <div class="flex flex-col flex-1">
+                <span class="text-[8px] font-black uppercase tracking-widest opacity-50"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
+                <span class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                  jefe.name }}</span>
+                <span class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job ||
+                  '' }}</span>
+              </div>
+              <span
+                class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20">
+                <i class="fas fa-user-tie mr-1"></i>Responsable
+              </span>
+            </div>
+
             <!-- Cédula -->
             <div class="flex flex-col gap-1.5">
               <label class="text-[9px] font-black uppercase tracking-widest ml-1"
@@ -278,7 +299,8 @@ const props = defineProps({
   employee: Object,
 });
 
-const { crearNovedad, loading } = useNovedades();
+
+const { crearNovedad, loading, jefe, fetchJefeDeArea } = useNovedades();
 
 const storageMode = ref(localStorage.getItem('novedad_storage_mode') || 'local');
 const toggleStorage = () => {
@@ -321,6 +343,14 @@ onMounted(() => {
       form.value.nombre = 'Usuario Admin';
     }
   }
+});
+
+onMounted(async () => {
+  const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+  form.value.nombre = props.employee?.name || session?.name || '';
+
+  const department = props.employee?.department || session?.department || '';
+  if (department) await fetchJefeDeArea(department);
 });
 
 const processFile = (file) => {

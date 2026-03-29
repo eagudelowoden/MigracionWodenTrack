@@ -6,11 +6,12 @@ import { Usuario } from './entities/usuario.entity';
 import { Permiso } from './entities/permiso.entity'; // <--- Está importado, bien.
 import { OdooModule } from '../odoo/odoo.module';
 import { PermisoDepartamento } from './entities/permiso-departamento.entity';
+import { Area } from './entities/area.entity';
 
 @Module({
   imports: [
     // AQUÍ ESTABA EL ERROR: Debes incluir a Permiso junto a Usuario
-    TypeOrmModule.forFeature([Usuario, Permiso, PermisoDepartamento]),
+    TypeOrmModule.forFeature([Usuario, Permiso, PermisoDepartamento, Area]),
     OdooModule,
   ],
   controllers: [UsuariosController],

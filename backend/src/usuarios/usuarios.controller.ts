@@ -216,4 +216,9 @@ export class UsuariosController {
       body.departamentos,
     );
   }
+
+  @Get('area-por-departamento')
+  async getAreaPorDepartamento(@Query('nombre') nombre: string) {
+    return this.usuariosService.getAreaPorDepartamento(nombre);
+  }
 }

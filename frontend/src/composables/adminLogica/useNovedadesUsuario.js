@@ -54,7 +54,39 @@ export function useNovedades() {
       loading.value = false;
     }
   };
+  const jefe = ref(null);
+  const fetchJefeDeArea = async (department) => {
+    try {
+      const areaRes = await axios.get(`${API_URL}/area-por-departamento`, {
+        params: { nombre: department },
+      });
+      const area = areaRes.data;
+      if (!area) return null;
 
+      // Si el service ya devuelve el nombre directo, úsalo
+      if (area.responsable_nombre) {
+        jefe.value = {
+          name: area.responsable_nombre,
+          job: area.responsable_cargo,
+        };
+        return jefe.value;
+      }
+
+      // Si solo viene el id, busca el perfil
+      if (area.responsable_id) {
+        const jefeRes = await axios.get(
+          `${API_URL}/usuarios/perfil-completo/${area.responsable_id}`,
+        );
+        jefe.value = jefeRes.data;
+        return jefeRes.data;
+      }
+
+      return null;
+    } catch (e) {
+      console.error("Error buscando jefe de área:", e);
+      return null;
+    }
+  };
   // ─── GET detalle de una novedad (incluye fileUrl firmada o local) ─────────
   const fetchNovedad = async (id) => {
     try {
@@ -105,5 +137,7 @@ export function useNovedades() {
     getFileUrl,
     eliminarNovedad,
     aprobarNovedad,
+    jefe,
+    fetchJefeDeArea,
   };
 }
