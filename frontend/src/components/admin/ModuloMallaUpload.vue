@@ -44,24 +44,22 @@
             :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
         </div>
 
-        <!-- Botones descarga y subida: solo admin -->
-        <template v-if="esAdmin">
-          <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
-            <button @click="downloadMallaTemplate"
-              class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
-              title="Descargar Plantilla">
-              <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
-            </button>
+        <!-- Botones descarga y subida: todos -->
+        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
+          <button @click="downloadMallaTemplate"
+            class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            title="Descargar Plantilla">
+            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+          </button>
 
-            <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
-            <label for="fileInput"
-              class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
-              :class="{ 'opacity-50 pointer-events-none': isUploading }">
-              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-              <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
-            </label>
-          </div>
-        </template>
+          <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
+          <label for="fileInput"
+            class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
+            :class="{ 'opacity-50 pointer-events-none': isUploading }">
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+            <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
+          </label>
+        </div>
 
       </div>
     </div>

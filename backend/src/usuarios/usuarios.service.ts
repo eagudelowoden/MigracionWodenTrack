@@ -553,8 +553,8 @@ export class UsuariosService {
       const mallaEmp = allMallas.find(
         (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
       );
-      console.log('resource_calendar_id:', con.resource_calendar_id);
-      console.log('allMallas[0]:', allMallas[0]); // ver estructura real
+      // console.log('resource_calendar_id:', con.resource_calendar_id);
+      // console.log('allMallas[0]:', allMallas[0]); // ver estructura real
 
       let horario = 'No programado';
       let jornada = 'N/A';
@@ -595,6 +595,180 @@ export class UsuariosService {
       };
     });
   }
+  // ==========================================
+  // MÉTODOS PRIVADOS
+  // ==========================================
+
+  private async getMallasMap(
+    employeeIds: number[],
+    uid: number,
+  ): Promise<{
+    calendarMap: Record<number, { calId: number; calNombre: string }>;
+    mallasMap: Record<number, any[]>;
+  }> {
+    const calendarMap: Record<number, { calId: number; calNombre: string }> =
+      {};
+    const mallasMap: Record<number, any[]> = {};
+
+    if (employeeIds.length === 0) return { calendarMap, mallasMap };
+
+    const contratos = await this.odoo.executeKw<any[]>(
+      'hr.contract',
+      'search_read',
+      [
+        [
+          ['employee_id', 'in', employeeIds],
+          ['state', 'in', ['open', 'draft']],
+        ],
+      ],
+      { fields: ['employee_id', 'resource_calendar_id'] },
+      uid,
+    );
+
+    contratos.forEach((c) => {
+      if (c.resource_calendar_id) {
+        calendarMap[c.employee_id[0]] = {
+          calId: c.resource_calendar_id[0],
+          calNombre: c.resource_calendar_id[1],
+        };
+      }
+    });
+
+    const calIds = [...new Set(Object.values(calendarMap).map((c) => c.calId))];
+    if (calIds.length === 0) return { calendarMap, mallasMap };
+
+    const todasMallas = await this.odoo.executeKw<any[]>(
+      'resource.calendar.attendance',
+      'search_read',
+      [[['calendar_id', 'in', calIds]]],
+      { fields: ['calendar_id', 'dayofweek', 'hour_from', 'hour_to'] },
+      uid,
+    );
+
+    todasMallas.forEach((m) => {
+      const cid = m.calendar_id[0];
+      if (!mallasMap[cid]) mallasMap[cid] = [];
+      mallasMap[cid].push(m);
+    });
+
+    return { calendarMap, mallasMap };
+  }
+
+  private clasificarPorMalla(
+    empId: number,
+    punchingTime: string,
+    esEntrada: boolean,
+    calendarMap: Record<number, { calId: number; calNombre: string }>,
+    mallasMap: Record<number, any[]>,
+  ): string {
+    const cal = calendarMap[empId];
+    if (!cal) return 'SIN MALLA';
+
+    const mallas = mallasMap[cal.calId];
+    if (!mallas || mallas.length === 0) return 'SIN MALLA';
+
+    const fechaUTC = new Date(punchingTime.replace(' ', 'T') + 'Z');
+    const horaLocal = new Date(
+      fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+    const dayOfWeekOdoo = (
+      horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
+    ).toString();
+    const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
+
+    const mallasDelDia = mallas
+      .filter((m) => m.dayofweek === dayOfWeekOdoo)
+      .sort((a, b) => a.hour_from - b.hour_from);
+
+    if (mallasDelDia.length === 0) return 'DÍA NO LABORABLE';
+
+    const turno = mallasDelDia[0];
+    const tolerancia = 6 / 60;
+
+    if (esEntrada) {
+      return horaDecimal > turno.hour_from + tolerancia
+        ? 'ENTRADA TARDE'
+        : 'A TIEMPO';
+    } else {
+      return horaDecimal < turno.hour_to ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+    }
+  }
+
+  private mapAttendances(
+    attendances: any[],
+    partnerMap: Record<string, string>,
+    toLocal: (d: string) => string | null,
+  ): any[] {
+    return attendances.map((att) => {
+      const localIn = toLocal(att.check_in);
+      const localOut = toLocal(att.check_out);
+      const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+
+      return {
+        id: `att_${att.id}`,
+        empleado: nombre,
+        cc: partnerMap[nombre] || 'N/A',
+        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+        c_salida: att.x_studio_tipo_salida || 'N/A',
+        check_in: localIn,
+        check_out: localOut,
+        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+        tipo: 'ASISTENCIA',
+        estado: att.check_out ? 'Finalizado' : 'En curso',
+      };
+    });
+  }
+
+  private async mapLogs(
+    logs: any[],
+    partnerMap: Record<string, string>,
+    toLocal: (d: string) => string | null,
+    uid: number,
+  ): Promise<any[]> {
+    // Traer mallas solo de empleados en logs
+    const employeeIdsLogs = [
+      ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
+    ];
+    const { calendarMap, mallasMap } = await this.getMallasMap(
+      employeeIdsLogs,
+      uid,
+    );
+
+    return logs.map((log) => {
+      const localTime = toLocal(log.punching_time);
+      const esEntrada = log.status === '0' || log.status === '2';
+      const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+      const empId = log.employee_id?.[0];
+
+      const clasificacion = empId
+        ? this.clasificarPorMalla(
+            empId,
+            log.punching_time,
+            esEntrada,
+            calendarMap,
+            mallasMap,
+          )
+        : 'SIN MALLA';
+
+      return {
+        id: `log_${log.id}`,
+        empleado: nombre,
+        cc: partnerMap[nombre] || 'N/A',
+        department_id: log.x_studio_related_field_j40wn
+          ? log.x_studio_related_field_j40wn[1]
+          : 'SIN DEPTO',
+        check_in: esEntrada ? localTime : null,
+        check_out: !esEntrada ? localTime : null,
+        c_entrada: esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
+        c_salida: !esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
+        fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+        tipo: 'LOG CRUDO',
+        estado: 'Biométrico',
+      };
+    });
+  }
+
   async getReporteNovedades(
     soloHoy?: boolean,
     companyName?: string,
@@ -740,16 +914,32 @@ export class UsuariosService {
       }
 
       // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
+      // const toLocal = (utcDate: string) => {
+      //   if (!utcDate) return null;
+
+      //   // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
+      //   // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
+      //   const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+
+      //   // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
+      //   return new Intl.DateTimeFormat('sv-SE', {
+      //     // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
+      //     timeZone: 'America/Bogota',
+      //     year: 'numeric',
+      //     month: '2-digit',
+      //     day: '2-digit',
+      //     hour: '2-digit',
+      //     minute: '2-digit',
+      //     second: '2-digit',
+      //   })
+      //     .format(fechaUTC)
+      //     .replace('T', ' ');
+      // };
+
       const toLocal = (utcDate: string) => {
         if (!utcDate) return null;
-
-        // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
-        // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
         const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-
-        // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
         return new Intl.DateTimeFormat('sv-SE', {
-          // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
           timeZone: 'America/Bogota',
           year: 'numeric',
           month: '2-digit',
@@ -761,57 +951,62 @@ export class UsuariosService {
           .format(fechaUTC)
           .replace('T', ' ');
       };
-      // --- 5. MAPEO FINAL ---
-      const resAttendances = attendances.map((att) => {
-        // 1. Convertimos las fechas a local una sola vez por cada registro
-        const localIn = toLocal(att.check_in);
-        const localOut = toLocal(att.check_out);
+      const [resAttendances, resLogs] = await Promise.all([
+        Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
+        this.mapLogs(logs, partnerMap, toLocal, uid),
+      ]);
 
-        // 2. Obtenemos el nombre para buscar en el mapa de partners
-        const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+      // // --- 5. MAPEO FINAL ---
+      // const resAttendances = attendances.map((att) => {
+      //   // 1. Convertimos las fechas a local una sola vez por cada registro
+      //   const localIn = toLocal(att.check_in);
+      //   const localOut = toLocal(att.check_out);
 
-        // 3. Retornamos el objeto organizado
-        return {
-          id: `att_${att.id}`,
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
-          department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-          c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-          c_salida: att.x_studio_tipo_salida || 'N/A',
-          check_in: localIn,
-          check_out: localOut,
-          fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-          tipo: 'ASISTENCIA',
-          estado: att.check_out ? 'Finalizado' : 'En curso',
-        };
-      });
+      //   // 2. Obtenemos el nombre para buscar en el mapa de partners
+      //   const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
 
-      const resLogs = logs.map((log) => {
-        const localTime = toLocal(log.punching_time);
-        const esEntrada = log.status === '0' || log.status === '2';
+      //   // 3. Retornamos el objeto organizado
+      //   return {
+      //     id: `att_${att.id}`,
+      //     empleado: nombre,
+      //     cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
+      //     department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+      //     c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+      //     c_salida: att.x_studio_tipo_salida || 'N/A',
+      //     check_in: localIn,
+      //     check_out: localOut,
+      //     fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+      //     tipo: 'ASISTENCIA',
+      //     estado: att.check_out ? 'Finalizado' : 'En curso',
+      //   };
+      // });
 
-        // 1. Extraemos el nombre del empleado del log
-        const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+      // const resLogs = logs.map((log) => {
+      //   const localTime = toLocal(log.punching_time);
+      //   const esEntrada = log.status === '0' || log.status === '2';
 
-        return {
-          id: `log_${log.id}`,
+      //   // 1. Extraemos el nombre del empleado del log
+      //   const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
 
-          // 2. Asignamos el nombre y buscamos el documento en el mapa
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
+      //   return {
+      //     id: `log_${log.id}`,
 
-          department_id: log.x_studio_related_field_j40wn
-            ? log.x_studio_related_field_j40wn[1]
-            : 'SIN DEPTO',
-          check_in: esEntrada ? localTime : null,
-          check_out: !esEntrada ? localTime : null,
-          c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
-          c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
-          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-          tipo: 'LOG CRUDO',
-          estado: 'Biométrico',
-        };
-      });
+      //     // 2. Asignamos el nombre y buscamos el documento en el mapa
+      //     empleado: nombre,
+      //     cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
+
+      //     department_id: log.x_studio_related_field_j40wn
+      //       ? log.x_studio_related_field_j40wn[1]
+      //       : 'SIN DEPTO',
+      //     check_in: esEntrada ? localTime : null,
+      //     check_out: !esEntrada ? localTime : null,
+      //     c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
+      //     c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
+      //     fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+      //     tipo: 'LOG CRUDO',
+      //     estado: 'Biométrico',
+      //   };
+      // });
 
       // --- 6. UNIÓN Y ORDENAMIENTO ---
       return [...resAttendances, ...resLogs].sort((a, b) => {
