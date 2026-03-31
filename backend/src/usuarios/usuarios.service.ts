@@ -726,7 +726,6 @@ export class UsuariosService {
     toLocal: (d: string) => string | null,
     uid: number,
   ): Promise<any[]> {
-    // Traer mallas solo de empleados en logs
     const employeeIdsLogs = [
       ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
     ];
@@ -735,39 +734,179 @@ export class UsuariosService {
       uid,
     );
 
-    return logs.map((log) => {
-      const localTime = toLocal(log.punching_time);
-      const esEntrada = log.status === '0' || log.status === '2';
-      const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+    // --- AGRUPAR POR EMPLEADO + DÍA ---
+    const grupos: Record<
+      string,
+      { empId: number; nombre: string; dept: string; registros: any[] }
+    > = {};
+
+    logs.forEach((log) => {
       const empId = log.employee_id?.[0];
+      const nombre = log.employee_id?.[1] || 'Desconocido';
+      const localTime = toLocal(log.punching_time);
+      const fecha = localTime ? localTime.split(' ')[0] : 'SIN_FECHA';
+      const key = `${empId}_${fecha}`;
 
-      const clasificacion = empId
-        ? this.clasificarPorMalla(
-            empId,
-            log.punching_time,
-            esEntrada,
-            calendarMap,
-            mallasMap,
-          )
-        : 'SIN MALLA';
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: log.x_studio_related_field_j40wn
+            ? log.x_studio_related_field_j40wn[1]
+            : 'SIN DEPTO',
+          registros: [],
+        };
+      }
+      grupos[key].registros.push(log);
+    });
 
-      return {
-        id: `log_${log.id}`,
-        empleado: nombre,
-        cc: partnerMap[nombre] || 'N/A',
-        department_id: log.x_studio_related_field_j40wn
-          ? log.x_studio_related_field_j40wn[1]
-          : 'SIN DEPTO',
-        check_in: esEntrada ? localTime : null,
-        check_out: !esEntrada ? localTime : null,
-        c_entrada: esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
-        c_salida: !esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
-        fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-        tipo: 'LOG CRUDO',
-        estado: 'Biométrico',
-      };
+    // --- MAPEAR UN REGISTRO POR GRUPO (MIN y MAX) ---
+    return Object.entries(grupos).flatMap(([key, grupo]) => {
+      const { empId, nombre, dept, registros } = grupo;
+
+      const ordenados = registros.sort(
+        (a, b) =>
+          new Date(a.punching_time).getTime() -
+          new Date(b.punching_time).getTime(),
+      );
+
+      const primero = ordenados[0];
+      const ultimo = ordenados[ordenados.length - 1];
+
+      // Verificar si el último ya superó hour_to
+      let jornadadFinalizada = false;
+      if (empId && ordenados.length > 1) {
+        const cal = calendarMap[empId];
+        if (cal) {
+          const mallasDelCal = mallasMap[cal.calId] || [];
+          const fechaUTC = new Date(
+            ultimo.punching_time.replace(' ', 'T') + 'Z',
+          );
+          const horaLocal = new Date(
+            fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+          );
+          const dayOfWeekOdoo = (
+            horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
+          ).toString();
+          const horaDecimalUltimo =
+            horaLocal.getHours() + horaLocal.getMinutes() / 60;
+          const mallasDelDia = mallasDelCal
+            .filter((m) => m.dayofweek === dayOfWeekOdoo)
+            .sort((a, b) => a.hour_from - b.hour_from);
+
+          if (mallasDelDia.length > 0) {
+            jornadadFinalizada = horaDecimalUltimo >= mallasDelDia[0].hour_to;
+          }
+        }
+      }
+
+      return ordenados.map((log, index) => {
+        const localTime = toLocal(log.punching_time);
+        const esPrimero = index === 0;
+
+        let cEntrada = 'N/A';
+        let cSalida = 'N/A';
+        let estado = 'En curso';
+        let checkOut: string | null = null;
+
+        if (esPrimero) {
+          // Clasificar entrada con el primero
+          const clasificacionEntrada = empId
+            ? this.clasificarPorMalla(
+                empId,
+                log.punching_time,
+                true,
+                calendarMap,
+                mallasMap,
+              )
+            : 'SIN MALLA';
+          cEntrada = `${clasificacionEntrada} | BIOMÉTRICO`;
+
+          // Si jornada finalizada, poner salida también en el primero
+          if (jornadadFinalizada) {
+            const clasificacionSalida = empId
+              ? this.clasificarPorMalla(
+                  empId,
+                  ultimo.punching_time,
+                  false,
+                  calendarMap,
+                  mallasMap,
+                )
+              : 'SIN MALLA';
+            cSalida = `${clasificacionSalida} | BIOMÉTRICO`;
+            checkOut = toLocal(ultimo.punching_time); // hora real del último
+            estado = 'Finalizado';
+          }
+        } else {
+          // Los del medio solo BIOMÉTRICO
+          cEntrada = 'BIOMÉTRICO';
+        }
+
+        return {
+          id: `log_${empId}_${log.punching_time}`,
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A',
+          department_id: dept,
+          check_in: localTime,
+          check_out: checkOut,
+          c_entrada: cEntrada,
+          c_salida: cSalida,
+          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+          tipo: 'LOG CRUDO',
+          estado,
+        };
+      });
     });
   }
+
+  // private async mapLogs(
+  //   logs: any[],
+  //   partnerMap: Record<string, string>,
+  //   toLocal: (d: string) => string | null,
+  //   uid: number,
+  // ): Promise<any[]> {
+  //   // Traer mallas solo de empleados en logs
+  //   const employeeIdsLogs = [
+  //     ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
+  //   ];
+  //   const { calendarMap, mallasMap } = await this.getMallasMap(
+  //     employeeIdsLogs,
+  //     uid,
+  //   );
+
+  //   return logs.map((log) => {
+  //     const localTime = toLocal(log.punching_time);
+  //     const esEntrada = log.status === '0' || log.status === '2';
+  //     const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+  //     const empId = log.employee_id?.[0];
+
+  //     const clasificacion = empId
+  //       ? this.clasificarPorMalla(
+  //           empId,
+  //           log.punching_time,
+  //           esEntrada,
+  //           calendarMap,
+  //           mallasMap,
+  //         )
+  //       : 'SIN MALLA';
+
+  //     return {
+  //       id: `log_${log.id}`,
+  //       empleado: nombre,
+  //       cc: partnerMap[nombre] || 'N/A',
+  //       department_id: log.x_studio_related_field_j40wn
+  //         ? log.x_studio_related_field_j40wn[1]
+  //         : 'SIN DEPTO',
+  //       check_in: esEntrada ? localTime : null,
+  //       check_out: !esEntrada ? localTime : null,
+  //       c_entrada: esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
+  //       c_salida: !esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
+  //       fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+  //       tipo: 'LOG CRUDO',
+  //       estado: 'Biométrico',
+  //     };
+  //   });
+  // }
 
   async getReporteNovedades(
     soloHoy?: boolean,
