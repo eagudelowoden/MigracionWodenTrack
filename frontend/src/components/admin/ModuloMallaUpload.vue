@@ -20,8 +20,23 @@
           </p>
         </div>
       </div>
-
       <div class="flex items-center gap-2">
+
+        <!-- Filtro departamento: solo admin -->
+        <template v-if="esAdmin">
+          <div class="relative">
+            <select v-model="selectedDepartment"
+              class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
+              :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
+              <option value="">DEPARTAMENTOS</option>
+              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
+            </select>
+            <i
+              class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none"></i>
+          </div>
+        </template>
+
+        <!-- Buscador: todos -->
         <div class="relative">
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
@@ -29,21 +44,25 @@
             :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
         </div>
 
-        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
-          <button @click="downloadMallaTemplate"
-            class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
-            title="Descargar Plantilla">
-            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
-          </button>
+        <!-- Botones descarga y subida: solo admin -->
+        <template v-if="esAdmin">
+          <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
+            <button @click="downloadMallaTemplate"
+              class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+              title="Descargar Plantilla">
+              <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+            </button>
 
-          <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
-          <label for="fileInput"
-            class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
-            :class="{ 'opacity-50 pointer-events-none': isUploading }">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-            <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
-          </label>
-        </div>
+            <input type="file" id="fileInput" class="hidden" @change="handleFileUpload" :disabled="isUploading" />
+            <label for="fileInput"
+              class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
+              :class="{ 'opacity-50 pointer-events-none': isUploading }">
+              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+              <span>{{ isUploading ? 'Cargando' : 'Subir' }}</span>
+            </label>
+          </div>
+        </template>
+
       </div>
     </div>
 
@@ -160,57 +179,59 @@
         </div>
       </div>
     </div>
-    <div v-show="showResultModal" 
-     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-  
-  <div class="bg-white dark:bg-slate-950 max-w-sm w-full rounded-2xl shadow-xl border border-slate-200/60 dark:border-white/5 overflow-hidden transition-all">
-    
-    <div class="flex items-center justify-between px-5 py-4">
-      <h3 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
-        Estado de Carga
-      </h3>
-      <button @click="showResultModal = false" class="text-slate-300 hover:text-slate-600 dark:hover:text-white transition-colors">
-        <i class="fas fa-times text-xs"></i>
-      </button>
-    </div>
+    <div v-show="showResultModal"
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
 
-    <div class="px-5 pb-6">
-      <div v-if="uploadSuccessMessage" 
-           class="mb-4 flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
-        <div class="h-1.5 w-1.5 rounded-full bg-current"></div>
-        <p class="text-sm font-medium">{{ uploadSuccessMessage }}</p>
-      </div>
+      <div
+        class="bg-white dark:bg-slate-950 max-w-sm w-full rounded-2xl shadow-xl border border-slate-200/60 dark:border-white/5 overflow-hidden transition-all">
 
-      <div v-if="uploadErrors?.length > 0" class="space-y-1">
-        <p class="text-[10px] font-semibold text-rose-500/80 mb-2 px-1">INCIDENCIAS DETECTADAS</p>
-        
-        <div class="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-          <div v-for="(err, idx) in uploadErrors" :key="idx"
-               class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-            <span class="text-[9px] font-mono text-slate-400 mt-0.5">#{{ err.fila }}</span>
-            <div class="flex-1">
-              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                <span class="text-slate-400 dark:text-slate-500 font-normal">{{ err.campo }}:</span> {{ err.error }}
-              </p>
+        <div class="flex items-center justify-between px-5 py-4">
+          <h3 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
+            Estado de Carga
+          </h3>
+          <button @click="showResultModal = false"
+            class="text-slate-300 hover:text-slate-600 dark:hover:text-white transition-colors">
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </div>
+
+        <div class="px-5 pb-6">
+          <div v-if="uploadSuccessMessage" class="mb-4 flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+            <div class="h-1.5 w-1.5 rounded-full bg-current"></div>
+            <p class="text-sm font-medium">{{ uploadSuccessMessage }}</p>
+          </div>
+
+          <div v-if="uploadErrors?.length > 0" class="space-y-1">
+            <p class="text-[10px] font-semibold text-rose-500/80 mb-2 px-1">INCIDENCIAS DETECTADAS</p>
+
+            <div class="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              <div v-for="(err, idx) in uploadErrors" :key="idx"
+                class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
+                <span class="text-[9px] font-mono text-slate-400 mt-0.5">#{{ err.fila }}</span>
+                <div class="flex-1">
+                  <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight">
+                    <span class="text-slate-400 dark:text-slate-500 font-normal">{{ err.campo }}:</span> {{ err.error }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
+
+          <button @click="showResultModal = false"
+            class="w-full mt-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all">
+            Continuar
+          </button>
         </div>
       </div>
-
-      <button @click="showResultModal = false"
-              class="w-full mt-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all">
-        Continuar
-      </button>
     </div>
-  </div>
-</div>
   </div>
 </template>
 <script setup>
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, computed } from 'vue';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
 import '../../assets/css/modulo-mallas.css';
-
+const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+const esAdmin = computed(() => session.role === "admin");
 const props = defineProps({
   isDark: Boolean,
   company: String
@@ -225,10 +246,12 @@ const {
   uploadSuccessMessage,
   showResultModal,
   selectedCompany,
+  selectedDepartment,
+  departments,
   fetchMallasDesdeOdoo,
   downloadMallaTemplate,
   handleFileUpload,
-  paginatedMallas, // Datos ya cortados para la tabla
+  paginatedMallas,
   currentPage,
   totalPages,
   totalRecords

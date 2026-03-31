@@ -34,76 +34,88 @@ export function useCargarAsistencias() {
   });
   let debounceTimeout = null;
 
- // Agrega esta bandera para controlar la carga inicial
-let initialLoadDone = false;
+  // Agrega esta bandera para controlar la carga inicial
+  let initialLoadDone = false;
 
-watch(
-  [filterHoy, startDate, endDate, selectedCompany, selectedArea, selectedSegmento],
-  async (newValues, oldValues) => {
-    // 👈 No reaccionar durante la carga inicial
-    if (!initialLoadDone) return;
+  watch(
+    [
+      filterHoy,
+      startDate,
+      endDate,
+      selectedCompany,
+      selectedArea,
+      selectedSegmento,
+    ],
+    async (newValues, oldValues) => {
+      // 👈 No reaccionar durante la carga inicial
+      if (!initialLoadDone) return;
 
-    const [newHoy, newStart, newEnd, newCompany] = newValues;
-    const [oldHoy, oldStart, oldEnd] = oldValues;
+      const [newHoy, newStart, newEnd, newCompany] = newValues;
+      const [oldHoy, oldStart, oldEnd] = oldValues;
 
-    if (!newCompany || newCompany === "") return;
+      if (!newCompany || newCompany === "") return;
 
-    if (newHoy && !oldHoy) {
-      startDate.value = "";
-      endDate.value = "";
+      if (newHoy && !oldHoy) {
+        startDate.value = "";
+        endDate.value = "";
+      }
+
+      if (
+        (newStart !== oldStart || newEnd !== oldEnd) &&
+        (newStart || newEnd) &&
+        filterHoy.value
+      ) {
+        filterHoy.value = false;
+        return;
+      }
+
+      currentPage.value = 1;
+
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(async () => {
+        await fetchReporte(); // 👈 descomentado
+      }, 150);
+    },
+  );
+  const fetchReporte = async () => {
+    loading.value = true;
+    try {
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+      url.searchParams.append("hoy", filterHoy.value.toString());
+      if (startDate.value)
+        url.searchParams.append("startDate", startDate.value);
+      if (endDate.value) url.searchParams.append("endDate", endDate.value);
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        url.searchParams.append("company", selectedCompany.value);
+      }
+      if (selectedSegmento.value) {
+        url.searchParams.append("segmento_id", selectedSegmento.value);
+      }
+      if (selectedArea.value) {
+        url.searchParams.append("area_id", selectedArea.value);
+      }
+
+      console.log("URL final:", url.toString()); // 👈 ver URL exacta
+      const res = await fetch(url.toString());
+      console.log("Status:", res.status); // 👈 ver status
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response:", errorText); // 👈 ver error del backend
+        throw new Error("Error en la respuesta del servidor");
+      }
+
+      const data = await res.json();
+      console.log("Data length:", data.length); // 👈 cuántos registros llegaron
+      rawData.value = data;
+      initialLoadDone = true;
+    } catch (err) {
+      console.error("Error al obtener el reporte:", err);
+      rawData.value = [];
+    } finally {
+      loading.value = false;
     }
-
-    if ((newStart !== oldStart || newEnd !== oldEnd) && (newStart || newEnd) && filterHoy.value) {
-      filterHoy.value = false;
-      return;
-    }
-
-    currentPage.value = 1;
-
-    if (debounceTimeout) clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(async () => {
-      await fetchReporte(); // 👈 descomentado
-    }, 150);
-  },
-);
-const fetchReporte = async () => {
-  loading.value = true;
-  try {
-    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-    url.searchParams.append("hoy", filterHoy.value.toString());
-    if (startDate.value) url.searchParams.append("startDate", startDate.value);
-    if (endDate.value) url.searchParams.append("endDate", endDate.value);
-    if (selectedCompany.value && selectedCompany.value !== "Todas") {
-      url.searchParams.append("company", selectedCompany.value);
-    }
-    if (selectedSegmento.value) {
-      url.searchParams.append("segmento_id", selectedSegmento.value);
-    }
-    if (selectedArea.value) {
-      url.searchParams.append("area_id", selectedArea.value);
-    }
-
-    console.log('URL final:', url.toString()); // 👈 ver URL exacta
-    const res = await fetch(url.toString());
-    console.log('Status:', res.status); // 👈 ver status
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Error response:', errorText); // 👈 ver error del backend
-      throw new Error("Error en la respuesta del servidor");
-    }
-
-    const data = await res.json();
-    console.log('Data length:', data.length); // 👈 cuántos registros llegaron
-    rawData.value = data;
-    initialLoadDone = true;
-  } catch (err) {
-    console.error("Error al obtener el reporte:", err);
-    rawData.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
+  };
   const clearFilters = () => {
     search.value = "";
     selectedDepartment.value = "";
@@ -246,7 +258,7 @@ const fetchReporte = async () => {
   return {
     reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
     search,
-    rawData, 
+    rawData,
     selectedDepartment,
     startDate,
     endDate,
