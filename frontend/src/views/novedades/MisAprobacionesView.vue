@@ -17,7 +17,6 @@
                         :class="isDark ? 'text-slate-400' : 'text-slate-500'">Novedades pendientes de mi personal</p>
                 </div>
             </div>
-
             <button @click="$emit('volver')"
                 class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase italic tracking-widest border transition-all hover:scale-105"
                 :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
@@ -58,10 +57,14 @@
                                 Fin</th>
                             <th
                                 class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Tipificación</th>
-                            <th
-                                class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                                 Descripción</th>
+                            <th
+                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                                Capital Humano</th>
+                            <th
+                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                                Motivo Capital Humano
+                            </th>
                             <th
                                 class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                                 Acciones</th>
@@ -71,6 +74,7 @@
                         <tr v-for="(item, idx) in pendientes" :key="item.id" :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
                         isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50']">
 
+                            <!-- Colaborador -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <div class="flex items-center gap-2">
                                     <div
@@ -85,41 +89,69 @@
                                 </div>
                             </td>
 
+                            <!-- Fechas -->
                             <td class="px-4 py-2.5 text-center border-b"
                                 :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <span class="text-[9px] font-bold"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                                    {{ formatFecha(item.fechaInicio) }}
-                                </span>
+                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
+                                        formatFecha(item.fechaInicio) }}</span>
                             </td>
-
                             <td class="px-4 py-2.5 text-center border-b"
                                 :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <span class="text-[9px] font-bold"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                                    {{ formatFecha(item.fechaFin) }}
-                                </span>
+                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin)
+                                    }}</span>
                             </td>
 
-                            <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span class="text-[9px] font-medium"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                                    {{ item.tipificacion || '—' }}
-                                </span>
-                            </td>
-
+                            <!-- Descripción -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <p class="text-[9px] font-medium line-clamp-1 max-w-[180px]"
                                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                             </td>
 
+
+
+                            <!-- Estado RRHH -->
+                            <td class="px-4 py-2.5 text-center border-b"
+                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                <span v-if="item.aprobadoRrhh === 1"
+                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    <i class="fas fa-check mr-1"></i>Aprobado
+                                </span>
+                                <span v-else-if="item.aprobadoRrhh === 0"
+                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20">
+                                    <i class="fas fa-xmark mr-1"></i>Rechazado
+                                </span>
+                                <span v-else
+                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                    <i class="fas fa-clock mr-1"></i>Pendiente
+                                </span>
+                            </td>
+                            <td class="px-4 py-2.5 text-center border-b"
+                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh)"
+                                    class="cursor-pointer text-[9px] font-bold text-[#FF8F00] hover:underline">
+                                    <i class="fas fa-comment-alt mr-1"></i>Ver
+                                </span>
+                                <span v-else class="text-[9px] opacity-30">—</span>
+                            </td>
+
+                            <!-- Acciones -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <!-- Ver soporte -->
+                                    <button @click="verSoporte(item.id)"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 border"
+                                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                                        <i class="fas fa-eye text-[#FF8F00] text-[9px]"></i> Ver
+                                    </button>
+                                    <!-- Aprobar -->
                                     <button @click="abrirAccion(item, 1)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95"
                                         :class="isDark ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white'">
                                         <i class="fas fa-check text-[9px]"></i> Aprobar
                                     </button>
+                                    <!-- Rechazar -->
                                     <button @click="abrirAccion(item, 0)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95"
                                         :class="isDark ? 'bg-red-600 text-white' : 'bg-red-500 text-white'">
@@ -127,31 +159,92 @@
                                     </button>
                                 </div>
                             </td>
-
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Footer -->
-            <div class="px-4 py-1.5 border-t shrink-0 flex items-center justify-between"
+            <div class="px-4 py-1.5 border-t shrink-0"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
                 <p class="text-[9px] font-black uppercase tracking-widest"
                     :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                    Pendientes: <span :class="isDark ? 'text-[#FF8F00]' : 'text-[#FF8F00]'">{{ pendientes.length
-                        }}</span>
+                    Pendientes: <span class="text-[#FF8F00]">{{ pendientes.length }}</span>
                 </p>
             </div>
         </div>
 
-        <!-- Modal motivo -->
+        <!-- Modal soporte -->
+        <teleport to="body">
+            <div v-if="soporteModal.open"
+                class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                @mousedown.self="soporteModal.open = false">
+                <div class="w-full max-w-2xl h-[70vh] rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    <div class="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
+                        :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                        <span class="text-[11px] font-black uppercase tracking-widest"
+                            :class="isDark ? 'text-white' : 'text-slate-700'">
+                            <i class="fas fa-eye text-[#FF8F00] mr-2"></i>Soporte
+                        </span>
+                        <button @click="soporteModal.open = false"
+                            class="w-7 h-7 rounded-lg flex items-center justify-center border"
+                            :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                            <i class="fas fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
+                        :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
+                        <div v-if="soporteModal.loading" class="flex items-center gap-2 opacity-50">
+                            <i class="fas fa-circle-notch fa-spin text-[#FF8F00]"></i>
+                            <span class="text-[11px] font-black uppercase">Cargando...</span>
+                        </div>
+                        <img v-else-if="soporteModal.isImage" :src="soporteModal.url"
+                            class="max-w-full max-h-full object-contain rounded-lg shadow-xl" />
+                        <iframe v-else-if="soporteModal.isPdf" :src="soporteModal.url"
+                            class="w-full h-full rounded-lg border-0" />
+                        <div v-else class="flex flex-col items-center gap-3 opacity-60">
+                            <i class="fas fa-file text-4xl text-slate-400"></i>
+                            <p class="text-[10px]">Vista previa no disponible</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </teleport>
+
+        <teleport to="body">
+            <div v-if="motivoModal.open"
+                class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                @mousedown.self="motivoModal.open = false">
+                <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-comment-alt text-[#FF8F00]"></i>
+                        <h3 class="text-sm font-black uppercase tracking-widest"
+                            :class="isDark ? 'text-white' : 'text-slate-800'">
+                            Motivo Capital Humano
+                        </h3>
+                    </div>
+                    <p class="text-[11px] font-medium leading-relaxed"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                        {{ motivoModal.texto }}
+                    </p>
+                    <button @click="motivoModal.open = false"
+                        class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
+                        :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </teleport>
+
+        <!-- Modal aprobar/rechazar -->
         <teleport to="body">
             <div v-if="accionModal.open"
                 class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="accionModal.open = false">
                 <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
                     :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-
                     <div class="flex items-center gap-2">
                         <i :class="accionModal.tipo === 1 ? 'fas fa-check-circle text-emerald-500' : 'fas fa-times-circle text-red-400'"
                             class="text-lg"></i>
@@ -160,11 +253,9 @@
                             {{ accionModal.tipo === 1 ? 'Aprobar' : 'Rechazar' }} novedad
                         </h3>
                     </div>
-
                     <p class="text-[10px] font-bold opacity-60" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                         {{ accionModal.nombre }}
                     </p>
-
                     <div class="flex flex-col gap-1.5">
                         <label class="text-[9px] font-black uppercase tracking-widest"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -172,14 +263,13 @@
                         </label>
                         <textarea v-model="accionModal.motivo" rows="3"
                             :placeholder="accionModal.tipo === 1 ? 'Motivo de aprobación...' : 'Motivo de rechazo...'"
-                            class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
+                            class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none placeholder:text-slate-500"
                             :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
-            </textarea>
+                        </textarea>
                     </div>
-
                     <div class="flex gap-2 pt-1">
                         <button type="button" @click="accionModal.open = false"
-                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border transition-all"
+                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border"
                             :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
                             Cancelar
                         </button>
@@ -192,7 +282,6 @@
                 </div>
             </div>
         </teleport>
-
     </div>
 </template>
 
@@ -200,20 +289,21 @@
 import { ref, computed, onMounted } from 'vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
 
-
-
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['volver']);
 
-const { novedades, loading, fetchNovedades, aprobarJefe } = useNovedades();
+const { novedades, loading, fetchNovedades, aprobarJefe, getFileUrl } = useNovedades();
 
-// ID del jefe logueado
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const miIdOdoo = session?.id_odoo;
 
-onMounted(() => fetchNovedades());
+onMounted(async () => {
+    await fetchNovedades();
+    console.log('📋 Total:', novedades.value.length);
+    console.log('🔑 miIdOdoo:', miIdOdoo);
+    console.log('✅ Pendientes:', pendientes.value.length);
+});
 
-// Solo las novedades de MI personal que YO (jefe) no he revisado aún
 const pendientes = computed(() =>
     novedades.value.filter(n =>
         Number(n.responsableIdOdoo) === Number(miIdOdoo) &&
@@ -228,6 +318,35 @@ const formatFecha = (f) => {
     });
 };
 
+// ─── Modal soporte ────────────────────────────────────
+const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false, loading: false });
+
+const verSoporte = async (id) => {
+    soporteModal.value = { open: true, url: '', isImage: false, isPdf: false, loading: true };
+    try {
+        const url = getFileUrl(id);
+        const res = await fetch(url, { method: 'HEAD' });
+        const mime = res.headers.get('content-type') ?? '';
+        soporteModal.value = {
+            open: true,
+            url,
+            isImage: mime.startsWith('image/'),
+            isPdf: mime === 'application/pdf',
+            loading: false,
+        };
+    } catch {
+        soporteModal.value.loading = false;
+        soporteModal.value.url = getFileUrl(id);
+    }
+};
+
+const motivoModal = ref({ open: false, texto: '' });
+
+const verMotivo = (motivo) => {
+    motivoModal.value = { open: true, texto: motivo };
+};
+
+// ─── Modal aprobar/rechazar ───────────────────────────
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
 
 const abrirAccion = (item, tipo) => {
@@ -236,13 +355,8 @@ const abrirAccion = (item, tipo) => {
 
 const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
-    console.log('🔥 Confirmando:', accionModal.value);
     try {
-        await aprobarJefe(
-            accionModal.value.id,
-            accionModal.value.tipo,
-            accionModal.value.motivo
-        );
+        await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
         accionModal.value.open = false;
     } catch (e) {
         console.error('Error:', e);
