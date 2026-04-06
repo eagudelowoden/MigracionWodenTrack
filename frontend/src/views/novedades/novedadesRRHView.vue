@@ -457,7 +457,7 @@ const {
   error,
   fetchNovedades,
   fetchNovedad,
-  aprobarNovedad,
+  aprobarRrhh,   // ← cambia aprobarNovedad por aprobarRrhh
   eliminarNovedad,
   getFileUrl
 } = useNovedades();
@@ -486,8 +486,8 @@ const toggleMenu = (event, id) => {
   }
   const btn = event.currentTarget.getBoundingClientRect();
   menuPos.value = {
-    x: btn.right - 160,   // alineado a la derecha del botón
-    y: btn.bottom + 6,    // justo debajo
+    x: btn.right - 160,
+    y: btn.bottom + 6,
   };
   itemMenuActual.value = novedadesFiltradas.value.find(n => n.id === id);
   menuAbierto.value = id;
@@ -519,7 +519,6 @@ const novedadesFiltradas = computed(() => {
   });
 });
 
-// Resalta el texto buscado en el nombre
 const highlight = (texto) => {
   if (!filters.value.nombre || !texto) return texto ?? '';
   const regex = new RegExp(`(${filters.value.nombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -540,6 +539,7 @@ const resetFilters = () => {
   filters.value = { fecha: '', nombre: '' };
   fetchNovedades();
 };
+
 const accionModal = ref({
   open: false, tipo: 1, id: null, nombre: '', motivo: ''
 });
@@ -549,13 +549,16 @@ const abrirAccion = (item, tipo) => {
 };
 
 const confirmarAccion = async () => {
-  console.log('confirmarAccion llamado', accionModal.value); // ← temporal
   if (!accionModal.value.motivo.trim()) return;
   try {
-    await aprobarNovedad(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+    await aprobarRrhh(  // ← usa aprobarRrhh
+      accionModal.value.id,
+      accionModal.value.tipo,
+      accionModal.value.motivo
+    );
     accionModal.value.open = false;
   } catch (e) {
-    console.error('Error en confirmarAccion:', e); // ← ver el error real
+    console.error('Error en confirmarAccion:', e);
   }
 };
 
@@ -575,7 +578,6 @@ const verSoporte = async (id) => {
     modalLoading.value = false;
   }
 };
-
 </script>
 
 <style scoped>

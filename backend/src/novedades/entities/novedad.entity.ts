@@ -96,4 +96,34 @@ export class Novedad {
     default: null,
   })
   responsableCargo: string | null;
+
+  // ─── Aprobación Jefe ──────────────────────────────────
+  @Column({ name: 'aprobado_jefe', type: 'int', default: null, nullable: true })
+  aprobadoJefe: number | null; // null=pendiente, 1=aprobado, 0=rechazado
+
+  @Column({ name: 'motivo_jefe', type: 'text', default: null, nullable: true })
+  motivoJefe: string | null;
+
+  @Column({
+    name: 'fecha_aprobacion_jefe',
+    type: 'datetime',
+    default: null,
+    nullable: true,
+  })
+  fechaAprobacionJefe: Date | null;
+
+  // ─── Aprobación Capital Humano ────────────────────────
+  @Column({ name: 'aprobado_rrhh', type: 'int', default: null, nullable: true })
+  aprobadoRrhh: number | null;
+
+  @Column({ name: 'motivo_rrhh', type: 'text', default: null, nullable: true })
+  motivoRrhh: string | null;
+
+  @Column({
+    name: 'fecha_aprobacion_rrhh',
+    type: 'datetime',
+    default: null,
+    nullable: true,
+  })
+  fechaAprobacionRrhh: Date | null;
 }

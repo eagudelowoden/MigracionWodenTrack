@@ -24,7 +24,7 @@ export function useNovedades() {
     }
   };
 
-  // ─── POST crear novedad con soporte (multipart/form-data) ─────────────────
+  // ─── POST crear novedad ───────────────────────────────────────────────────
   const crearNovedad = async (payload) => {
     try {
       loading.value = true;
@@ -37,10 +37,7 @@ export function useNovedades() {
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");
-      if (payload.soporte) {
-        fd.append("soporte", payload.soporte);
-      }
-
+      if (payload.soporte) fd.append("soporte", payload.soporte);
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
       fd.append("responsableCargo", payload.responsableCargo ?? "");
@@ -58,16 +55,15 @@ export function useNovedades() {
       loading.value = false;
     }
   };
+
+  // ─── Jefe de área ─────────────────────────────────────────────────────────
   const jefe = ref(null);
   const fetchJefeDeArea = async (department) => {
     if (!department) return null;
     try {
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const res = await axios.get(`${API_URL}/area-responsable`, {
-        params: {
-          department,
-          idOdoo: session.id_odoo, // ← identifica al usuario exacto
-        },
+        params: { department, idOdoo: session.id_odoo },
       });
       const data = res.data;
       if (!data) return null;
@@ -83,7 +79,8 @@ export function useNovedades() {
       return null;
     }
   };
-  // ─── GET detalle de una novedad (incluye fileUrl firmada o local) ─────────
+
+  // ─── GET detalle ──────────────────────────────────────────────────────────
   const fetchNovedad = async (id) => {
     try {
       const res = await axios.get(`${API_URL}/novedades/${id}`);
@@ -94,12 +91,10 @@ export function useNovedades() {
     }
   };
 
-  // ─── GET URL del archivo (para visor) ────────────────────────────────────
-  const getFileUrl = (id) => {
-    return `${API_URL}/novedades/${id}/file`;
-  };
+  // ─── GET URL archivo ──────────────────────────────────────────────────────
+  const getFileUrl = (id) => `${API_URL}/novedades/${id}/file`;
 
-  // ─── DELETE eliminar novedad + archivo ────────────────────────────────────
+  // ─── DELETE ───────────────────────────────────────────────────────────────
   const eliminarNovedad = async (id) => {
     try {
       await axios.delete(`${API_URL}/novedades/${id}`);
@@ -109,16 +104,33 @@ export function useNovedades() {
       throw e;
     }
   };
-  const aprobarNovedad = async (id, aprobado, motivo) => {
+
+  // ─── Aprobación Jefe ──────────────────────────────────────────────────────
+  const aprobarJefe = async (id, aprobado, motivo) => {
     try {
-      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar`, {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
         aprobado,
         motivo,
       });
       await fetchNovedades();
       return res.data;
     } catch (e) {
-      console.error("Error al aprobar/rechazar novedad:", e);
+      console.error("Error al aprobar/rechazar como jefe:", e);
+      throw e;
+    }
+  };
+
+  // ─── Aprobación RRHH ──────────────────────────────────────────────────────
+  const aprobarRrhh = async (id, aprobado, motivo) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-rrhh`, {
+        aprobado,
+        motivo,
+      });
+      await fetchNovedades();
+      return res.data;
+    } catch (e) {
+      console.error("Error al aprobar/rechazar como RRHH:", e);
       throw e;
     }
   };
@@ -132,7 +144,8 @@ export function useNovedades() {
     fetchNovedad,
     getFileUrl,
     eliminarNovedad,
-    aprobarNovedad,
+    aprobarJefe, // ← reemplaza aprobarNovedad
+    aprobarRrhh, // ← nuevo
     jefe,
     fetchJefeDeArea,
   };

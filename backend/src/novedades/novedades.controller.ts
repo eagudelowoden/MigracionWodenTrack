@@ -57,8 +57,13 @@ export class NovedadesController {
     return this.novedadesService.remove(+id);
   }
 
-  @Post(':id/aprobar')
-  aprobar(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
-    return this.novedadesService.aprobar(+id, dto.aprobado, dto.motivo);
+  @Post(':id/aprobar-jefe')
+  aprobarJefe(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
+    return this.novedadesService.aprobarJefe(+id, dto.aprobado, dto.motivo);
+  }
+
+  @Post(':id/aprobar-rrhh')
+  aprobarRrhh(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
+    return this.novedadesService.aprobarRrhh(+id, dto.aprobado, dto.motivo);
   }
 }

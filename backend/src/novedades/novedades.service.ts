@@ -181,18 +181,37 @@ export class NovedadesService {
     await this.novedadRepo.delete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
-  async aprobar(id: number, aprobado: number, motivo: string) {
-    const novedad = await this.novedadRepo.findOneBy({ id });
-    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+  async aprobarJefe(id: number, aprobado: number, motivo: string) {
+    const novedad = await this.novedadRepo.findOne({ where: { id } });
+    if (!novedad) throw new Error('Novedad no encontrada');
 
-    novedad.aprobado = aprobado;
-    novedad.motivoAprobacion = motivo;
-    novedad.fechaAprobacion = new Date();
+    novedad.aprobadoJefe = aprobado;
+    novedad.motivoJefe = motivo;
+    novedad.fechaAprobacionJefe = new Date();
 
-    await this.novedadRepo.save(novedad);
-    return {
-      success: true,
-      message: aprobado === 1 ? 'Novedad aprobada.' : 'Novedad rechazada.',
-    };
+    this.actualizarEstadoGeneral(novedad);
+    return await this.novedadRepo.save(novedad);
+  }
+
+  async aprobarRrhh(id: number, aprobado: number, motivo: string) {
+    const novedad = await this.novedadRepo.findOne({ where: { id } });
+    if (!novedad) throw new Error('Novedad no encontrada');
+
+    novedad.aprobadoRrhh = aprobado;
+    novedad.motivoRrhh = motivo;
+    novedad.fechaAprobacionRrhh = new Date();
+
+    this.actualizarEstadoGeneral(novedad);
+    return await this.novedadRepo.save(novedad);
+  }
+
+  private actualizarEstadoGeneral(novedad: Novedad) {
+    if (novedad.aprobadoJefe === 0 || novedad.aprobadoRrhh === 0) {
+      novedad.aprobado = 0; // rechazado por cualquiera
+    } else if (novedad.aprobadoJefe === 1 && novedad.aprobadoRrhh === 1) {
+      novedad.aprobado = 1; // aprobado por ambos
+    } else {
+      novedad.aprobado = null; // aún pendiente
+    }
   }
 }

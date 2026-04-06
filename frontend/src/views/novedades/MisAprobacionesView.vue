@@ -200,21 +200,32 @@
 import { ref, computed, onMounted } from 'vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
 
+
+
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['volver']);
 
-const { novedades, loading, fetchNovedades, aprobarNovedad } = useNovedades();
+const { novedades, loading, fetchNovedades, aprobarJefe } = useNovedades();
+
+// ID del jefe logueado
+const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+const miIdOdoo = session?.id_odoo;
 
 onMounted(() => fetchNovedades());
 
-// Solo las pendientes (aprobado === null)
+// Solo las novedades de MI personal que YO (jefe) no he revisado aún
 const pendientes = computed(() =>
-    novedades.value.filter(n => n.aprobado === null || n.aprobado === undefined)
+    novedades.value.filter(n =>
+        Number(n.responsableIdOdoo) === Number(miIdOdoo) &&
+        (n.aprobadoJefe === null || n.aprobadoJefe === undefined)
+    )
 );
 
 const formatFecha = (f) => {
     if (!f) return '—';
-    return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', {
+        day: '2-digit', month: 'short', year: 'numeric'
+    });
 };
 
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
@@ -225,8 +236,13 @@ const abrirAccion = (item, tipo) => {
 
 const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
+    console.log('🔥 Confirmando:', accionModal.value);
     try {
-        await aprobarNovedad(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+        await aprobarJefe(
+            accionModal.value.id,
+            accionModal.value.tipo,
+            accionModal.value.motivo
+        );
         accionModal.value.open = false;
     } catch (e) {
         console.error('Error:', e);

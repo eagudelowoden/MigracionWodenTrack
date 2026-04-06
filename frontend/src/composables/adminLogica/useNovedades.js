@@ -98,6 +98,35 @@ export function useNovedades() {
     }
   };
 
+  const aprobarJefe = async (id, aprobado, motivo) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
+        aprobado,
+        motivo,
+      });
+      await fetchNovedades();
+      return res.data;
+    } catch (e) {
+      console.error("Error al aprobar/rechazar como jefe:", e);
+      throw e;
+    }
+  };
+
+  // ─── Aprobación RRHH ──────────────────────────────────────────────────────
+  const aprobarRrhh = async (id, aprobado, motivo) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-rrhh`, {
+        aprobado,
+        motivo,
+      });
+      await fetchNovedades();
+      return res.data;
+    } catch (e) {
+      console.error("Error al aprobar/rechazar como RRHH:", e);
+      throw e;
+    }
+  };
+
   return {
     novedades,
     loading,
@@ -108,5 +137,7 @@ export function useNovedades() {
     getFileUrl,
     eliminarNovedad,
     aprobarNovedad,
+    aprobarJefe,
+    aprobarRrhh,
   };
 }
