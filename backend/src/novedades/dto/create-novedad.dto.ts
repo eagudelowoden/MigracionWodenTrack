@@ -6,5 +6,10 @@ export class CreateNovedadDto {
   tipificacion: string;
   fechaInicio: string;
   fechaFin: string;
-  storageMode?: string; // 'local' | 's3' — informativo, el backend usa process.env
+  storageMode?: string;
+
+  // ─── Responsable / Jefe directo ──────────────────────
+  responsableIdOdoo?: number | null;
+  responsableNombre?: string | null;
+  responsableCargo?: string | null;
 }

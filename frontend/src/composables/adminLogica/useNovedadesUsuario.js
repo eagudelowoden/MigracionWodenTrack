@@ -41,6 +41,10 @@ export function useNovedades() {
         fd.append("soporte", payload.soporte);
       }
 
+      fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
+      fd.append("responsableNombre", payload.responsableNombre ?? "");
+      fd.append("responsableCargo", payload.responsableCargo ?? "");
+
       const res = await axios.post(`${API_URL}/novedades`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -56,32 +60,24 @@ export function useNovedades() {
   };
   const jefe = ref(null);
   const fetchJefeDeArea = async (department) => {
+    if (!department) return null;
     try {
-      const areaRes = await axios.get(`${API_URL}/area-por-departamento`, {
-        params: { nombre: department },
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const res = await axios.get(`${API_URL}/area-responsable`, {
+        params: {
+          department,
+          idOdoo: session.id_odoo, // ← identifica al usuario exacto
+        },
       });
-      const area = areaRes.data;
-      if (!area) return null;
+      const data = res.data;
+      if (!data) return null;
 
-      // Si el service ya devuelve el nombre directo, úsalo
-      if (area.responsable_nombre) {
-        jefe.value = {
-          name: area.responsable_nombre,
-          job: area.responsable_cargo,
-        };
-        return jefe.value;
-      }
-
-      // Si solo viene el id, busca el perfil
-      if (area.responsable_id) {
-        const jefeRes = await axios.get(
-          `${API_URL}/usuarios/perfil-completo/${area.responsable_id}`,
-        );
-        jefe.value = jefeRes.data;
-        return jefeRes.data;
-      }
-
-      return null;
+      jefe.value = {
+        name: data.responsable_nombre,
+        job: data.responsable_cargo,
+        id_odoo: data.responsable_id_odoo,
+      };
+      return jefe.value;
     } catch (e) {
       console.error("Error buscando jefe de área:", e);
       return null;

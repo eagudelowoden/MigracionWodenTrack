@@ -69,4 +69,31 @@ export class Novedad {
     name: 'fecha_aprobacion',
   })
   fechaAprobacion: Date | null;
+
+  // ─── Responsable / Jefe directo ──────────────────────
+  @Column({
+    name: 'responsable_id_odoo',
+    type: 'int',
+    nullable: true,
+    default: null,
+  })
+  responsableIdOdoo: number | null;
+
+  @Column({
+    name: 'responsable_nombre',
+    type: 'nvarchar',
+    length: 180,
+    nullable: true,
+    default: null,
+  })
+  responsableNombre: string | null;
+
+  @Column({
+    name: 'responsable_cargo',
+    type: 'nvarchar',
+    length: 180,
+    nullable: true,
+    default: null,
+  })
+  responsableCargo: string | null;
 }

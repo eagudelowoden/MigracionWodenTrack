@@ -81,7 +81,10 @@ export class UsuariosService {
       'hr.employee',
       'search_read',
       [[['pin', '=', usuario]]],
-      { fields: ['id', 'name', 'job_id', 'department_id'], limit: 1 },
+      {
+        fields: ['id', 'name', 'job_id', 'department_id', 'coach_id'],
+        limit: 1,
+      },
       uid,
     );
 
@@ -499,7 +502,7 @@ export class UsuariosService {
         fields: [
           'employee_id',
           'resource_calendar_id',
-          'job_id', // Cargo del contrato
+          'job_id',
           'department_id', // Departamento del contrato
         ],
         order: 'employee_id asc',
@@ -1567,21 +1570,99 @@ export class UsuariosService {
     return { success: true };
   }
 
-  // en usuarios.service.ts
-  async getAreaPorDepartamento(nombre: string) {
-    const area = await this.areaRepo.findOne({
-      where: { nombre: nombre.toUpperCase() },
-      relations: ['responsable'],
+  async getResponsablePorArea(department: string, idOdoo: number) {
+    // ─── 1. Busca el usuario específico por id_odoo ───────
+    const usuario = await this.usuarioRepo.findOne({
+      where: { id_odoo: idOdoo },
+      relations: [
+        'area',
+        'area.responsable',
+        'segmento',
+        'segmento.responsable',
+      ],
     });
 
-    if (!area) return null;
+    console.log('👤 Usuario:', usuario?.nombre);
 
-    return {
-      id: area.id,
-      nombre: area.nombre,
-      responsable_id: area.responsable?.id_odoo ?? null,
-      responsable_nombre: area.responsable?.nombre ?? null,
-      responsable_cargo: area.responsable?.cargo ?? null,
-    };
+    // ─── 2. Tiene área con responsable ───────────────────
+    if (usuario?.area?.responsable) {
+      console.log('✅ Responsable por área:', usuario.area.responsable.nombre);
+      return {
+        responsable_nombre: usuario.area.responsable.nombre,
+        responsable_cargo: usuario.area.responsable.cargo,
+        responsable_id_odoo: usuario.area.responsable.id_odoo,
+        fuente: 'area',
+      };
+    }
+
+    // ─── 3. Tiene segmento con responsable ───────────────
+    if (usuario?.segmento?.responsable) {
+      console.log(
+        '✅ Responsable por segmento:',
+        usuario.segmento.responsable.nombre,
+      );
+      return {
+        responsable_nombre: usuario.segmento.responsable.nombre,
+        responsable_cargo: usuario.segmento.responsable.cargo,
+        responsable_id_odoo: usuario.segmento.responsable.id_odoo,
+        fuente: 'segmento',
+      };
+    }
+
+    // ─── 4. Fallback: consulta Odoo con this.odoo ────────
+    console.warn('⚠️ Sin área ni segmento, consultando Odoo...');
+    try {
+      const uid = await this.odoo.authenticate();
+
+      const employees = await this.odoo.executeKw<any[]>(
+        'hr.employee',
+        'search_read',
+        [[['id', '=', idOdoo]]],
+        { fields: ['name', 'coach_id', 'job_id'], limit: 1 },
+        uid,
+      );
+
+      const empleado = employees?.[0];
+      const jefeIdOdoo = empleado?.coach_id?.[0];
+      const jefeNombreOdoo = empleado?.coach_id?.[1];
+
+      console.log('🌐 Jefe id_odoo:', jefeIdOdoo, '| nombre:', jefeNombreOdoo);
+      if (!jefeIdOdoo) return null;
+
+      // ─── Intenta por id_odoo primero ─────────────────────
+      let jefeDB = await this.usuarioRepo.findOne({
+        where: { id_odoo: jefeIdOdoo },
+      });
+
+      // ─── Fallback: busca por nombre si no encontró ────────
+      if (!jefeDB && jefeNombreOdoo) {
+        const nombreNormalizado = jefeNombreOdoo
+          .toUpperCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        jefeDB = await this.usuarioRepo
+          .createQueryBuilder('u')
+          .where('u.nombre LIKE :nombre', {
+            nombre: `%${nombreNormalizado.split(' ')[0]}%`,
+          })
+          .getOne();
+
+        console.log(
+          '🔍 Búsqueda por nombre:',
+          jefeDB?.nombre ?? 'No encontrado',
+        );
+      }
+
+      return {
+        responsable_nombre: jefeDB?.nombre ?? jefeNombreOdoo,
+        responsable_cargo: jefeDB?.cargo ?? null,
+        responsable_id_odoo: jefeDB?.id_odoo ?? jefeIdOdoo,
+        fuente: 'odoo',
+      };
+    } catch (e) {
+      console.error('❌ Error consultando Odoo:', e);
+      return null;
+    }
   }
 }

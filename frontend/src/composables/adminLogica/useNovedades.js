@@ -40,6 +40,9 @@ export function useNovedades() {
       if (payload.soporte) {
         fd.append("soporte", payload.soporte);
       }
+      fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
+      fd.append("responsableNombre", payload.responsableNombre ?? "");
+      fd.append("responsableCargo", payload.responsableCargo ?? "");
 
       const res = await axios.post(`${API_URL}/novedades`, fd, {
         headers: { "Content-Type": "multipart/form-data" },

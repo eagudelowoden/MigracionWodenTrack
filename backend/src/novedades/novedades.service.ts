@@ -101,6 +101,13 @@ export class NovedadesService {
       soporteStorageKey: storageKey,
       soporteStorageMode: storageMode,
       soporteMime: file.mimetype,
+
+      // ─── Responsable — convierte string a number ──────────
+      responsableIdOdoo: dto.responsableIdOdoo
+        ? Number(dto.responsableIdOdoo)
+        : null,
+      responsableNombre: dto.responsableNombre || null,
+      responsableCargo: dto.responsableCargo || null,
     });
 
     const saved = await this.novedadRepo.save(novedad);

@@ -332,27 +332,17 @@ const fileIcon = computed(() => {
   return 'fas fa-file text-slate-400';
 });
 
-onMounted(() => {
-  if (props.employee?.name) {
-    form.value.nombre = props.employee.name;
-  } else {
-    try {
-      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-      form.value.nombre = session?.name || 'Usuario Admin';
-    } catch {
-      form.value.nombre = 'Usuario Admin';
-    }
-  }
-});
 
 onMounted(async () => {
   const session = JSON.parse(localStorage.getItem('user_session') || '{}');
   form.value.nombre = props.employee?.name || session?.name || '';
 
-  const department = props.employee?.department || session?.department || '';
+  // department ya existe en la sesión ✅
+  const department = props.employee?.department || session?.department;
+  console.log('🏢 department:', department);
+
   if (department) await fetchJefeDeArea(department);
 });
-
 const processFile = (file) => {
   if (!file) return;
   form.value.soporte = file;
@@ -374,6 +364,9 @@ const handleSubmit = async () => {
     submitMessage.value = 'Por favor cargue un documento de soporte.';
     return;
   }
+
+  console.log('👔 jefe al enviar:', jefe.value); // ← debug
+
   submitStatus.value = '';
   try {
     const res = await crearNovedad({
@@ -384,6 +377,11 @@ const handleSubmit = async () => {
       fechaFin: form.value.fechaFin,
       soporte: form.value.soporte,
       storageMode: storageMode.value,
+
+      // ─── Responsable ──────────────────────────────────
+      responsableIdOdoo: jefe.value?.id_odoo ?? null,
+      responsableNombre: jefe.value?.name ?? null,
+      responsableCargo: jefe.value?.job ?? null,
     });
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;

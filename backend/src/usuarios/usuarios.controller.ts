@@ -217,8 +217,14 @@ export class UsuariosController {
     );
   }
 
-  @Get('area-por-departamento')
-  async getAreaPorDepartamento(@Query('nombre') nombre: string) {
-    return this.usuariosService.getAreaPorDepartamento(nombre);
+  @Get('area-responsable')
+  async getResponsablePorArea(
+    @Query('department') department: string,
+    @Query('idOdoo') idOdoo: string,
+  ) {
+    return this.usuariosService.getResponsablePorArea(
+      department,
+      Number(idOdoo),
+    );
   }
 }
