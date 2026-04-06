@@ -120,7 +120,7 @@
                   Tificación</th>
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                  Motivo Jefe Directo
+                  Motivo Capital Humano
                 </th>
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
@@ -129,6 +129,9 @@
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Modo</th>
+                <th
+                  class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                  Estado Jefe</th>
                 <th
                   class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Soporte</th>
@@ -207,20 +210,34 @@
                   </span>
                 </td>
 
+                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-widest border"
+                    style="font-family: 'Nunito', sans-serif; font-weight: 900;"
+                    :class="item.aprobadoJefe === 1
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : item.aprobadoJefe === 0
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : (isDark ? 'bg-[#2d3548] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200')">
+                    <i :class="item.aprobadoJefe === 1 ? 'fas fa-check' : item.aprobadoJefe === 0 ? 'fas fa-xmark' : 'fas fa-clock'"
+                      class="mr-1"></i>
+                    {{ item.aprobadoJefe === 1 ? 'Aprobado' : item.aprobadoJefe === 0 ? 'Rechazado' : 'Pendiente' }}
+                  </span>
+                </td>
+
                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <div class="flex items-center justify-end gap-2">
 
                     <!-- Badge estado -->
                     <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-widest border"
                       style="font-family: 'Nunito', sans-serif; font-weight: 900;"
-                      :class="item.aprobado === 1
+                      :class="item.aprobadoRrhh === 1
                         ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                        : item.aprobado === 0
+                        : item.aprobadoRrhh === 0
                           ? 'bg-red-500/10 text-red-400 border-red-500/20'
                           : (isDark ? 'bg-[#2d3548] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200')">
-                      <i :class="item.aprobado === 1 ? 'fas fa-check' : item.aprobado === 0 ? 'fas fa-xmark' : 'fas fa-clock'"
+                      <i :class="item.aprobadoRrhh === 1 ? 'fas fa-check' : item.aprobadoRrhh === 0 ? 'fas fa-xmark' : 'fas fa-clock'"
                         class="mr-1"></i>
-                      {{ item.aprobado === 1 ? 'Aprobada' : item.aprobado === 0 ? 'Rechazada' : 'Pendiente' }}
+                      {{ item.aprobadoRrhh === 1 ? 'Aprobada' : item.aprobadoRrhh === 0 ? 'Rechazada' : 'Pendiente' }}
                     </span>
 
                     <!-- Botón ⋮ -->

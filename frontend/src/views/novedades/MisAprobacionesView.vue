@@ -148,26 +148,14 @@
                                 </span>
                                 <span v-else class="text-[11px] opacity-30">—</span>
                             </td>
+
                             <!-- Acciones -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <!-- Ver soporte -->
-                                    <button @click="verSoporte(item.id)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95 border"
-                                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                                        <i class="fas fa-eye text-[#FF8F00] text-[9px]"></i> Ver
-                                    </button>
-                                    <!-- Aprobar -->
-                                    <button @click="abrirAccion(item, 1)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95"
-                                        :class="isDark ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white'">
-                                        <i class="fas fa-check text-[9px]"></i> Aprobar
-                                    </button>
-                                    <!-- Rechazar -->
-                                    <button @click="abrirAccion(item, 0)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all hover:scale-105 active:scale-95"
-                                        :class="isDark ? 'bg-red-600 text-white' : 'bg-red-500 text-white'">
-                                        <i class="fas fa-xmark text-[9px]"></i> Rechazar
+                                <div class="flex items-center justify-end">
+                                    <button @click.stop="toggleMenu($event, item.id)"
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95"
+                                        :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
+                                        <i class="fas fa-ellipsis-vertical text-[10px]"></i>
                                     </button>
                                 </div>
                             </td>
@@ -250,6 +238,41 @@
                     </button>
                 </div>
             </div>
+        </teleport>
+
+        <teleport to="body">
+            <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
+
+            <transition name="fade-msg">
+                <div v-if="menuAbierto !== null" class="fixed z-50 w-44 rounded-xl border shadow-2xl overflow-hidden"
+                    :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+                    <!-- Ver soporte -->
+                    <button @click="verSoporte(menuAbierto); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
+                    </button>
+
+                    <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
+
+                    <!-- Aprobar -->
+                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
+                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                        <i class="fas fa-check w-3"></i> Aprobar
+                    </button>
+
+                    <!-- Rechazar -->
+                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
+                        :class="isDark ? 'text-red-400' : 'text-red-500'">
+                        <i class="fas fa-xmark w-3"></i> Rechazar
+                    </button>
+
+                </div>
+            </transition>
         </teleport>
 
         <teleport to="body">
@@ -343,6 +366,23 @@ const verMotivos = (motivojefe) => {
 
 const motivoModalRRHH = ref({ open: false, texto: '', titulo: '' });
 
+const menuAbierto = ref(null);
+const itemMenuActual = ref(null);
+const menuPos = ref({ x: 0, y: 0 });
+
+const toggleMenu = (event, id) => {
+    if (menuAbierto.value === id) {
+        menuAbierto.value = null;
+        return;
+    }
+    const btn = event.currentTarget.getBoundingClientRect();
+    menuPos.value = {
+        x: btn.right - 176,
+        y: btn.bottom + 6,
+    };
+    itemMenuActual.value = pendientes.value.find(n => n.id === id);
+    menuAbierto.value = id;
+};
 
 onMounted(async () => {
     await fetchNovedades();
