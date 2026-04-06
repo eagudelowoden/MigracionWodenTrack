@@ -859,55 +859,6 @@ export class UsuariosService {
     });
   }
 
-  // private async mapLogs(
-  //   logs: any[],
-  //   partnerMap: Record<string, string>,
-  //   toLocal: (d: string) => string | null,
-  //   uid: number,
-  // ): Promise<any[]> {
-  //   // Traer mallas solo de empleados en logs
-  //   const employeeIdsLogs = [
-  //     ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
-  //   ];
-  //   const { calendarMap, mallasMap } = await this.getMallasMap(
-  //     employeeIdsLogs,
-  //     uid,
-  //   );
-
-  //   return logs.map((log) => {
-  //     const localTime = toLocal(log.punching_time);
-  //     const esEntrada = log.status === '0' || log.status === '2';
-  //     const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
-  //     const empId = log.employee_id?.[0];
-
-  //     const clasificacion = empId
-  //       ? this.clasificarPorMalla(
-  //           empId,
-  //           log.punching_time,
-  //           esEntrada,
-  //           calendarMap,
-  //           mallasMap,
-  //         )
-  //       : 'SIN MALLA';
-
-  //     return {
-  //       id: `log_${log.id}`,
-  //       empleado: nombre,
-  //       cc: partnerMap[nombre] || 'N/A',
-  //       department_id: log.x_studio_related_field_j40wn
-  //         ? log.x_studio_related_field_j40wn[1]
-  //         : 'SIN DEPTO',
-  //       check_in: esEntrada ? localTime : null,
-  //       check_out: !esEntrada ? localTime : null,
-  //       c_entrada: esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
-  //       c_salida: !esEntrada ? `${clasificacion} | BIOMÉTRICO` : 'N/A',
-  //       fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-  //       tipo: 'LOG CRUDO',
-  //       estado: 'Biométrico',
-  //     };
-  //   });
-  // }
-
   async getReporteNovedades(
     soloHoy?: boolean,
     companyName?: string,
@@ -1010,7 +961,7 @@ export class UsuariosService {
               'x_studio_tipo_salida',
             ],
             order: 'check_in desc',
-            limit: 3000,
+            limit: 3000000,
           },
           uid,
         ),
@@ -1027,7 +978,7 @@ export class UsuariosService {
               'device',
             ],
             order: 'punching_time desc',
-            limit: 3000,
+            limit: 3000000,
           },
           uid,
         ),

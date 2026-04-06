@@ -82,6 +82,7 @@ export function useCargarAsistencias() {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+    const deptoUsuario = session.department; // 👈 también faltaba esto
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
       url.searchParams.append("hoy", filterHoy.value.toString());
@@ -98,18 +99,30 @@ export function useCargarAsistencias() {
         url.searchParams.append("area_id", selectedArea.value);
       }
 
-      console.log("URL final:", url.toString()); // 👈 ver URL exacta
+      // 👇 Este bloque faltaba completo
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value) {
+          url.searchParams.append("departamento", selectedDepartment.value);
+        }
+        // Si tieneFiltroDepto y NO seleccionó nada → no agrega departamento → backend trae todo
+      } else {
+        if (deptoUsuario) {
+          url.searchParams.append("departamento", deptoUsuario);
+        }
+      }
+
+      console.log("URL final:", url.toString());
       const res = await fetch(url.toString());
-      console.log("Status:", res.status); // 👈 ver status
+      console.log("Status:", res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Error response:", errorText); // 👈 ver error del backend
+        console.error("Error response:", errorText);
         throw new Error("Error en la respuesta del servidor");
       }
 
       const data = await res.json();
-      console.log("Data length:", data.length); // 👈 cuántos registros llegaron
+      console.log("Data length:", data.length);
       rawData.value = data;
       initialLoadDone = true;
     } catch (err) {
