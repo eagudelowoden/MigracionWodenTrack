@@ -23,7 +23,7 @@
       <div class="flex items-center gap-2">
 
         <!-- Filtro departamento: solo admin -->
-        <template v-if="esAdmin">
+        <template v-if="hasPerm('admin.filtro_departamento')">
           <div class="relative">
             <select v-model="selectedDepartment"
               class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
@@ -229,7 +229,10 @@ import { onMounted, watch, computed } from 'vue';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
 import '../../assets/css/modulo-mallas.css';
 const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-const esAdmin = computed(() => session.role === "admin");
+const hasPerm = (permiso) => {
+  const permisos = session.permisos || session.permissions || {};
+  return permisos[permiso] === true;
+};
 const props = defineProps({
   isDark: Boolean,
   company: String

@@ -37,7 +37,8 @@ export function useMallasGeneral() {
 
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const deptoUsuario = session.department || "";
-      const esAdmin = session.role === "admin";
+      const permisos = session.permisos || session.permissions || {};
+      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
 
       const params = new URLSearchParams();
       params.append("t", Date.now().toString());
@@ -46,9 +47,7 @@ export function useMallasGeneral() {
         params.append("company", selectedCompany.value);
       }
 
-      // Admin: usa el filtro del selector (si seleccionó algo), si no trae todo
-      // Usuario normal: siempre filtra por su departamento de sesión
-      if (esAdmin) {
+      if (tieneFiltroDepto) {
         if (selectedDepartment.value) {
           params.append("departamento", selectedDepartment.value);
         }

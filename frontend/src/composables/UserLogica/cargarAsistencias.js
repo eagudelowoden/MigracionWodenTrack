@@ -79,6 +79,9 @@ export function useCargarAsistencias() {
   );
   const fetchReporte = async () => {
     loading.value = true;
+    const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+    const permisos = session.permisos || session.permissions || {};
+    const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
       url.searchParams.append("hoy", filterHoy.value.toString());

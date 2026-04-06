@@ -46,7 +46,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <template v-if="esAdmin">
+          <template v-if="hasPerm('admin.filtro_departamento')">
             <div class="relative">
               <select v-model="selectedDepartment"
                 class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
@@ -238,7 +238,13 @@ const {
 const { isDark: isDarkTheme } = useAttendance();
 
 const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-const esAdmin = session.role === 'admin';
+// const esAdmin = session.role === 'admin';
+const hasPerm = (permiso) => {
+  const permisos = session.permisos || session.permissions || {};
+  return permisos[permiso] === true;
+};
+
+const esAdmin = computed(() => hasPerm('admin.filtro_departamento'));
 const miDepto = session.department;
 const idLogueado = session.id_odoo;
 const userProfile = ref(null);
@@ -254,7 +260,6 @@ const paginatedData = computed(() => {
   const end = start + itemsPerPage.value;
   return reportData.value.slice(start, end);
 });
-
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
