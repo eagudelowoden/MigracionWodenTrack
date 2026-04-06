@@ -66,6 +66,10 @@
                                 Motivo Capital Humano
                             </th>
                             <th
+                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                                Motivo Jefe Directo
+                            </th>
+                            <th
                                 class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                                 Acciones</th>
                         </tr>
@@ -84,7 +88,7 @@
                                     <div>
                                         <p class="text-[10px] font-black uppercase"
                                             :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
-                                        <p class="text-[9px] opacity-50">CC: {{ item.cedula }}</p>
+                                        <p class="text-[11px] opacity-50">CC: {{ item.cedula }}</p>
                                     </div>
                                 </div>
                             </td>
@@ -92,20 +96,20 @@
                             <!-- Fechas -->
                             <td class="px-4 py-2.5 text-center border-b"
                                 :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span class="text-[9px] font-bold"
+                                <span class="text-[11px] font-bold"
                                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
                                         formatFecha(item.fechaInicio) }}</span>
                             </td>
                             <td class="px-4 py-2.5 text-center border-b"
                                 :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span class="text-[9px] font-bold"
+                                <span class="text-[11px] font-bold"
                                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin)
                                     }}</span>
                             </td>
 
                             <!-- Descripción -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <p class="text-[9px] font-medium line-clamp-1 max-w-[180px]"
+                                <p class="text-[12px] font-medium line-clamp-1 max-w-[180px]"
                                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                             </td>
 
@@ -130,12 +134,20 @@
                             <td class="px-4 py-2.5 text-center border-b"
                                 :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh)"
-                                    class="cursor-pointer text-[9px] font-bold text-[#FF8F00] hover:underline">
+                                    class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
                                     <i class="fas fa-comment-alt mr-1"></i>Ver
                                 </span>
-                                <span v-else class="text-[9px] opacity-30">—</span>
+                                <span v-else class="text-[11px] opacity-30">—</span>
                             </td>
 
+                            <td class="px-4 py-2.5 text-center border-b"
+                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                <span v-if="item.motivoJefe" @click="verMotivos(item.motivoJefe)"
+                                    class="cursor-pointer text-[12px] font-bold text-[#FF8F00] hover:underline">
+                                    <i class="fas fa-comment-alt mr-1"></i>Ver
+                                </span>
+                                <span v-else class="text-[11px] opacity-30">—</span>
+                            </td>
                             <!-- Acciones -->
                             <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                 <div class="flex items-center justify-end gap-1.5">
@@ -213,6 +225,34 @@
         </teleport>
 
         <teleport to="body">
+            <div v-if="motivoModalRRHH.open"
+                class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                @mousedown.self="motivoModalRRHH.open = false">
+                <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-comment-alt text-[#FF8F00]"></i>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black uppercase tracking-widest"
+                                :class="isDark ? 'text-white' : 'text-slate-800'">
+                                Motivo Jefe Directo
+                            </h3>
+                        </div>
+                    </div>
+                    <p class="text-[15px] font-medium leading-relaxed"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                        {{ motivoModalRRHH.texto }}
+                    </p>
+                    <button @click="motivoModalRRHH.open = false"
+                        class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
+                        :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </teleport>
+
+        <teleport to="body">
             <div v-if="motivoModal.open"
                 class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="motivoModal.open = false">
@@ -225,7 +265,7 @@
                             Motivo Capital Humano
                         </h3>
                     </div>
-                    <p class="text-[11px] font-medium leading-relaxed"
+                    <p class="text-[15px] font-medium leading-relaxed"
                         :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                         {{ motivoModal.texto }}
                     </p>
@@ -296,6 +336,13 @@ const { novedades, loading, fetchNovedades, aprobarJefe, getFileUrl } = useNoved
 
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const miIdOdoo = session?.id_odoo;
+
+const verMotivos = (motivojefe) => {
+    motivoModalRRHH.value = { open: true, texto: motivojefe };
+};
+
+const motivoModalRRHH = ref({ open: false, texto: '', titulo: '' });
+
 
 onMounted(async () => {
     await fetchNovedades();

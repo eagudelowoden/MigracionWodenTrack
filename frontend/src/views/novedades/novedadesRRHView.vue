@@ -11,10 +11,10 @@
         </div>
         <div>
           <h2 class="text-sm font-black uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Gestión <span class="text-[#FF8F00]">RRHH</span>
+            Gestión <span class="text-[#FF8F00]">Capital Humano</span>
           </h2>
-          <p class="text-[7px] font-bold opacity-50 uppercase tracking-[0.2em]"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Auditoría de Novedades</p>
+          <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
+            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Revision de Novedades</p>
         </div>
       </div>
 
@@ -118,10 +118,14 @@
                 <th
                   class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Tificación</th>
-
                 <th
-                  class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                  Motivo</th>
+                  class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                  Motivo Jefe Directo
+                </th>
+                <th
+                  class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
+                  Motivo Jefe Directo
+                </th>
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Modo</th>
@@ -144,7 +148,7 @@
                       {{ item.nombre?.charAt(0) ?? '?' }}
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-[10px] font-bold uppercase tracking-tight"
+                      <span class="text-[11px] font-bold uppercase tracking-tight"
                         :class="isDark ? 'text-white' : 'text-slate-900'" v-html="highlight(item.nombre)"></span>
                       <span class="text-[9px] font-medium opacity-50">CC: {{ item.cedula }}</span>
                     </div>
@@ -152,12 +156,12 @@
                 </td>
 
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <span class="text-[9px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                  <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ formatFecha(item.fechaInicio ?? item.fecha_inicio) }}
                   </span>
                 </td>
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <span class="text-[9px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                  <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ formatFecha(item.fechaFin ?? item.fecha_fin) }}
                   </span>
                 </td>
@@ -169,27 +173,32 @@
                 </td>
 
                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <p class="text-[10px] font-medium line-clamp-2 max-w-[200px]"
+                  <p class="text-[11px] font-medium line-clamp-2 max-w-[200px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                 </td>
 
                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <p class="text-[10px] font-medium line-clamp-2 max-w-[200px]"
+                  <p class="text-[11px] font-medium line-clamp-2 max-w-[200px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.tipificacion }}</p>
                 </td>
-
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <button v-if="item.motivoAprobacion" @click="verMotivo(item)"
-                    class="inline-flex items-center gap-1 text-[9px] font-black uppercase italic tracking-widest opacity-60 hover:opacity-100 transition-opacity"
-                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                    <i class="fas fa-eye text-[#FF8F00] text-[9px]"></i> Ver
-                  </button>
-                  <span v-else class="text-[9px] opacity-30"
-                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">—</span>
+                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh, 'Motivo Capital Humano')"
+                    class="cursor-pointer text-[12px] font-bold text-[#FF8F00] hover:underline">
+                    <i class="fas fa-comment-alt mr-1"></i>Ver
+                  </span>
+                  <span v-else class="text-[11px] opacity-30">—</span>
                 </td>
 
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <span class="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter" :class="(item.soporteStorageMode ?? item.soporte_storage_mode) === 's3'
+                  <span v-if="item.motivoJefe" @click="verMotivos(item.motivoJefe)"
+                    class="cursor-pointer text-[12px] font-bold text-[#FF8F00] hover:underline">
+                    <i class="fas fa-comment-alt mr-1"></i>Ver
+                  </span>
+                  <span v-else class="text-[11px] opacity-30">—</span>
+                </td>
+
+                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                  <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter" :class="(item.soporteStorageMode ?? item.soporte_storage_mode) === 's3'
                     ? 'bg-[#FF8F00]/10 text-[#FF8F00]'
                     : 'bg-emerald-500/10 text-emerald-500'">
                     <i
@@ -202,7 +211,8 @@
                   <div class="flex items-center justify-end gap-2">
 
                     <!-- Badge estado -->
-                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border"
+                    <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-widest border"
+                      style="font-family: 'Nunito', sans-serif; font-weight: 900;"
                       :class="item.aprobado === 1
                         ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                         : item.aprobado === 0
@@ -267,7 +277,7 @@
           <p class="text-[10px] opacity-60 line-clamp-2" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
             {{ item.descripcion }}
           </p>
-          <div class="flex items-center justify-between text-[9px] font-bold uppercase opacity-50">
+          <div class="flex items-center justify-between text-[17px] font-bold uppercase opacity-50">
             <span>{{ formatFecha(item.fechaInicio ?? item.fecha_inicio) }} → {{ formatFecha(item.fechaFin ??
               item.fecha_fin) }}</span>
           </div>
@@ -424,20 +434,46 @@
       <div v-if="motivoModal.open"
         class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
         @mousedown.self="motivoModal.open = false">
-        <div class="w-80 rounded-2xl border p-5 flex flex-col gap-3 shadow-2xl"
+        <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase tracking-widest"
-              :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-              <i class="fas fa-comment-dots text-[#FF8F00] mr-1.5"></i>Motivo
-            </span>
-            <button @click="motivoModal.open = false" class="w-6 h-6 rounded-lg flex items-center justify-center border"
-              :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
-              <i class="fas fa-xmark text-[9px]"></i>
-            </button>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-comment-alt text-[#FF8F00]"></i>
+            <h3 class="text-sm font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
+              {{ motivoModal.titulo }}
+            </h3>
           </div>
-          <p class="text-xs leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ motivoModal.motivo
-          }}</p>
+          <p class="text-[15px] font-medium leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+            {{ motivoModal.texto }}
+          </p>
+          <button @click="motivoModal.open = false"
+            class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
+            :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </teleport>
+
+    <teleport to="body">
+      <div v-if="motivoModalJefe.open"
+        class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        @mousedown.self="motivoModalJefe.open = false">
+        <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-comment-alt text-[#FF8F00]"></i>
+            <h3 class="text-sm font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
+              Motivo Jefe Directo
+            </h3>
+          </div>
+          <p class="text-[15px] font-medium leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+            {{ motivoModalJefe.texto }}
+          </p>
+          <button @click="motivoModalJefe.open = false"
+            class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
+            :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+            Cerrar
+          </button>
         </div>
       </div>
     </teleport>
@@ -496,11 +532,17 @@ const toggleMenu = (event, id) => {
 const modalIsImage = computed(() => /image\/(jpeg|jpg|png|gif|webp|svg)/.test(modalMime.value));
 const modalIsPdf = computed(() => modalMime.value === 'application/pdf');
 
-const motivoModal = ref({ open: false, motivo: '' });
-const verMotivo = (item) => {
-  motivoModal.value = { open: true, motivo: item.motivoAprobacion };
+const motivoModalJefe = ref({ open: false, texto: '' });
+
+const verMotivos = (motivojefe) => {
+  motivoModalJefe.value = { open: true, texto: motivojefe };
 };
 
+const motivoModal = ref({ open: false, texto: '', titulo: '' });
+
+const verMotivo = (texto, titulo = 'Motivo') => {
+  motivoModal.value = { open: true, texto, titulo };
+};
 onMounted(() => fetchNovedades());
 
 const novedadesFiltradas = computed(() => {
