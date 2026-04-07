@@ -62,7 +62,7 @@
             <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
             <span v-if="storageMode === 's3'">
               Soporte → <strong>AWS S3</strong>
-              <span class="ml-1 opacity-50 font-medium">(pendiente configurar credenciales)</span>
+
             </span>
             <span v-else>
               Soporte → <strong>carpeta local</strong>

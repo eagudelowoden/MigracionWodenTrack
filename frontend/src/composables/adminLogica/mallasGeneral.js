@@ -123,20 +123,57 @@ export function useMallasGeneral() {
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
 
     try {
       isUploading.value = true;
       uploadErrors.value = [];
       uploadSuccessMessage.value = "";
+
+      // 1. Leer el Excel con SheetJS y limpiar espacios
+      const XLSX = await import("xlsx");
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // Recorrer todas las celdas y hacer trim a los strings
+      Object.keys(sheet).forEach((cellRef) => {
+        if (cellRef.startsWith("!")) return;
+        const cell = sheet[cellRef];
+        if (cell && cell.t === "s" && typeof cell.v === "string") {
+          // Trim de espacios
+          let valor = cell.v.trim();
+
+          // Normalizar espacios dobles internos
+          valor = valor.replace(/\s+/g, " ");
+
+          // Quitar tildes y caracteres especiales → ASCII limpio
+          valor = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+          cell.v = valor;
+          cell.w = valor;
+        }
+      });
+
+      // 2. Re-generar el archivo limpio como Blob
+      const cleanBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const cleanFile = new Blob([cleanBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      // 3. Armar el FormData con el archivo limpio
+      const formData = new FormData();
+      formData.append("file", cleanFile, file.name);
+
       const response = await axios.post(
         `${API_BASE_URL}/contracts-upload/import`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
+
       if (response.data.success) {
         uploadSuccessMessage.value = response.data.message;
         fetchMallasDesdeOdoo();

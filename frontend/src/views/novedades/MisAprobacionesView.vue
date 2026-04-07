@@ -249,7 +249,7 @@
                     :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
                     <!-- Ver soporte -->
-                    <button @click="verSoporte(menuAbierto); menuAbierto = null"
+                    <button @click="verSoporte(itemMenuActual); menuAbierto = null"
                         class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
                         :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                         <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
@@ -408,23 +408,16 @@ const formatFecha = (f) => {
 // ─── Modal soporte ────────────────────────────────────
 const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false, loading: false });
 
-const verSoporte = async (id) => {
-    soporteModal.value = { open: true, url: '', isImage: false, isPdf: false, loading: true };
-    try {
-        const url = getFileUrl(id);
-        const res = await fetch(url, { method: 'HEAD' });
-        const mime = res.headers.get('content-type') ?? '';
-        soporteModal.value = {
-            open: true,
-            url,
-            isImage: mime.startsWith('image/'),
-            isPdf: mime === 'application/pdf',
-            loading: false,
-        };
-    } catch {
-        soporteModal.value.loading = false;
-        soporteModal.value.url = getFileUrl(id);
-    }
+const verSoporte = (novedad) => {
+    const url = getFileUrl(novedad.id);
+    const mime = novedad.soporteMime ?? '';
+    soporteModal.value = {
+        open: true,
+        url,
+        isImage: mime.startsWith('image/'),
+        isPdf: mime === 'application/pdf',
+        loading: false,
+    };
 };
 
 const motivoModal = ref({ open: false, texto: '' });

@@ -78,7 +78,6 @@
               <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
               <span v-if="storageMode === 's3'">
                 Soporte → <strong>AWS S3</strong>
-                <span class="ml-1 opacity-50 font-medium">(pendiente configurar credenciales)</span>
               </span>
               <span v-else>
                 Soporte → <strong>carpeta local</strong>
@@ -363,20 +362,6 @@ const fileIcon = computed(() => {
   return 'fas fa-file text-slate-400';
 });
 
-// ─── Lifecycle — igual que tenías ────────────────────────────────────────────
-// onMounted(() => {
-//   if (props.employee?.name) {
-//     form.value.nombre = props.employee.name;
-//   } else {
-//     try {
-//       const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-//       form.value.nombre = session?.name || 'Usuario Admin';
-//     } catch {
-//       form.value.nombre = 'Usuario Admin';
-//     }
-//   }
-// });
-
 // ─── Manejo de archivo ────────────────────────────────────────────────────────
 const processFile = (file) => {
   if (!file) return;
@@ -403,7 +388,6 @@ const handleSubmit = async () => {
   }
 
   submitStatus.value = '';
-
   try {
     const res = await crearNovedad({
       nombre: form.value.nombre,

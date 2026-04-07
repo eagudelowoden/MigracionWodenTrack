@@ -47,11 +47,11 @@ export class NovedadesService {
   }
 
   // ─── Guardar archivo ───────────────────────────────────────────────────────
-  private async saveFile(file: Express.Multer.File) {
+  private async saveFile(file: Express.Multer.File, modo: string) {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
-    if (this.storageMode === 's3') {
+    if (modo === 's3') {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
@@ -87,8 +87,8 @@ export class NovedadesService {
   // ─── CREATE ────────────────────────────────────────────────────────────────
   async create(dto: CreateNovedadDto, file: Express.Multer.File) {
     if (!file) throw new Error('Se requiere un documento de soporte.');
-
-    const { storageKey, storageMode } = await this.saveFile(file);
+    const modoEfectivo = dto.storageMode || this.storageMode;
+    const { storageKey, storageMode } = await this.saveFile(file, modoEfectivo);
 
     const novedad = this.novedadRepo.create({
       nombre: dto.nombre,
