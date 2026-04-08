@@ -5,7 +5,7 @@
     <MisAprobacionesView v-if="vistaActiva === 'aprobaciones'" :isDark="isDark" @volver="vistaActiva = 'registro'" />
     <div v-else class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1">
 
-
+      <!-- ADMIN -->
       <!-- Header SEPARADO -->
       <div class="flex items-center justify-between gap-2 p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
         :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
@@ -99,6 +99,27 @@
                     class="bg-transparent w-full font-bold outline-none placeholder:text-slate-500"
                     :class="isDark ? 'text-white' : 'text-slate-800'" />
                 </div>
+              </div>
+
+              <!-- Jefe de área detectado -->
+              <div v-if="jefe" class="md:col-span-2 flex items-center gap-3 px-4 py-2.5 rounded-lg border"
+                :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
+                <div
+                  class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
+                  {{ jefe.name?.charAt(0) ?? '?' }}
+                </div>
+                <div class="flex flex-col flex-1">
+                  <span class="text-[8px] font-black uppercase tracking-widest opacity-50"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
+                  <span class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    jefe.name }}</span>
+                  <span class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job
+                    || '' }}</span>
+                </div>
+                <span
+                  class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20">
+                  <i class="fas fa-user-tie mr-1"></i>Responsable
+                </span>
               </div>
               <!-- Cédula -->
               <div class="flex flex-col gap-1.5">
@@ -307,7 +328,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useNovedades } from '../../composables/adminLogica/useNovedades';
 import MisAprobacionesView from './MisAprobacionesView.vue';
 
 const props = defineProps({
@@ -317,7 +337,19 @@ const props = defineProps({
 });
 
 // ─── Composable ───────────────────────────────────────────────────────────────
+import { useNovedades } from '../../composables/adminLogica/useNovedades';
+import { useNovedades as useNovedadesUsuario } from '../../composables/adminLogica/useNovedadesUsuario';
+
 const { crearNovedad, loading } = useNovedades();
+const { jefe, fetchJefeDeArea } = useNovedadesUsuario();
+
+// AÑADIR esto (después de los refs)
+onMounted(async () => {
+  const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+  const department = props.employee?.department || session?.department;
+  console.log('🏢 department (admin):', department);
+  if (department) await fetchJefeDeArea(department);
+});
 
 // ─── Storage switch (por ahora solo local funciona) ───────────────────────────
 const storageMode = ref(localStorage.getItem('novedad_storage_mode') || 'local');
@@ -398,8 +430,12 @@ const handleSubmit = async () => {
       fechaFin: form.value.fechaFin,
       soporte: form.value.soporte,
       storageMode: storageMode.value,
-    });
 
+      // ─── AÑADIR ESTO ───────────────────────────
+      responsableIdOdoo: jefe.value?.id_odoo ?? null,
+      responsableNombre: jefe.value?.name ?? null,
+      responsableCargo: jefe.value?.job ?? null,
+    });
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;
     setTimeout(() => { submitStatus.value = ''; }, 5000);

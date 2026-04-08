@@ -126,6 +126,19 @@ export function useNovedades() {
       throw e;
     }
   };
+  const jefe = ref(null);
+
+  const fetchJefeDeArea = async (department) => {
+    try {
+      const res = await axios.get(`${API_URL}/empleados/jefe-area`, {
+        params: { department },
+      });
+      jefe.value = res.data ?? null;
+    } catch (e) {
+      console.warn("No se encontró jefe de área:", e);
+      jefe.value = null;
+    }
+  };
 
   return {
     novedades,
@@ -139,5 +152,7 @@ export function useNovedades() {
     aprobarNovedad,
     aprobarJefe,
     aprobarRrhh,
+    jefe,
+    fetchJefeDeArea,
   };
 }
