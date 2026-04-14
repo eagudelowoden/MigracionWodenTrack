@@ -13,7 +13,7 @@ export function adminOdoo() {
   const report = ref([]);
   const searchQuery = ref("");
   const isExporting = ref(false);
-  const selectedArea = ref(null);   
+  const selectedArea = ref(null);
   const selectedSegmento = ref(null);
 
   // --- NUEVAS VARIABLES PARA COMPAÑÍAS ---
@@ -31,17 +31,11 @@ export function adminOdoo() {
       allCompanies.value = data;
 
       if (data.length > 0) {
-        // Buscamos la compañía que contenga "COLOMBIA" en su nombre
         const colombia = data.find((c) =>
           c.name.includes("WODEN COLOMBIA SAS"),
         );
 
-        if (colombia) {
-          selectedCompany.value = colombia.name;
-        } else {
-          // Si por alguna razón no la encuentra, usa la primera como respaldo
-          selectedCompany.value = data[0].name;
-        }
+        selectedCompany.value = colombia ? colombia.name : data[0].name;
       }
     } catch (err) {
       console.error("Error cargando compañías:", err);
