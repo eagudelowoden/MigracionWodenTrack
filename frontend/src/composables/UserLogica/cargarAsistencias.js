@@ -210,14 +210,15 @@ export function useCargarAsistencias() {
       // 1. Mapeamos los datos enviando el TEXTO ya formateado
       const dataFiltrada = filteredReport.value.map((item) => ({
         Colaborador: item.empleado,
-        Cédula: item.doc_number || "N/A",
+        Cedula: item.doc_number || "N/A", // el backend igual consulta Odoo como fallback
         Departamento: item.department_id,
-        Fecha: item.fecha, // "2026-03-09"
-        Entrada: formatHoraParaExcel(item.check_in), // "10:09:51 AM"
-        Salida: formatHoraParaExcel(item.check_out), // "06:05:20 PM"
+        Fecha: item.fecha,
+        Entrada: formatHoraParaExcel(item.check_in),
+        Salida: formatHoraParaExcel(item.check_out),
         Estatus_Entrada: item.c_entrada || "N/A",
         Estatus_Salida: item.c_salida || "N/A",
         Estado: item.estado,
+        // Cargo y Malla se eliminan — el backend los resuelve desde hr.employee
       }));
 
       // 2. Petición al servidor NestJS
