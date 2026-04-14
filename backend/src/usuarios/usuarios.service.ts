@@ -82,7 +82,14 @@ export class UsuariosService {
       'search_read',
       [[['pin', '=', usuario]]],
       {
-        fields: ['id', 'name', 'job_id', 'department_id', 'coach_id'],
+        fields: [
+          'id',
+          'name',
+          'job_id',
+          'department_id',
+          'coach_id',
+          'company_id',
+        ], // 👈
         limit: 1,
       },
       uid,
@@ -212,7 +219,6 @@ export class UsuariosService {
         dayCompleted = true;
       }
     }
-
     return {
       status: 'success',
       id_odoo: emp.id,
@@ -222,9 +228,9 @@ export class UsuariosService {
       role: rolAsignado,
       is_inside: isInside,
       department: departamentoRaw,
+      company: emp.company_id ? emp.company_id[1] : null, // 👈 AGREGAR ESTO
       isSuperAdmin: esSuperAdmin,
-      day_completed: dayCompleted, // Usamos la variable local que calculamos arriba
-
+      day_completed: dayCompleted,
       permisos: mapaPermisos,
     };
   }

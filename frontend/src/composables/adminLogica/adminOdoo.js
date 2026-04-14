@@ -24,18 +24,24 @@ export function adminOdoo() {
   let intervalId = null;
 
   // Cargar lista de compañías desde el nuevo endpoint
+  // adminOdoo.js
   const fetchCompanies = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
-      allCompanies.value = data;
+      allCompanies.value = data.filter((c) => c.is_active);
 
-      if (data.length > 0) {
-        const colombia = data.find((c) =>
-          c.name.includes("WODEN COLOMBIA SAS"),
+      // Usar directamente la compañía del empleado logueado
+      const companyDelEmpleado = att.employee.value?.company;
+
+      if (companyDelEmpleado) {
+        const match = allCompanies.value.find(
+          (c) => c.name === companyDelEmpleado,
         );
-
-        selectedCompany.value = colombia ? colombia.name : data[0].name;
+        selectedCompany.value =
+          match?.name ?? allCompanies.value[0]?.name ?? "";
+      } else {
+        selectedCompany.value = allCompanies.value[0]?.name ?? "";
       }
     } catch (err) {
       console.error("Error cargando compañías:", err);
