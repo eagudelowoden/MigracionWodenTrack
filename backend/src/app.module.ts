@@ -12,6 +12,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizacionModule } from './organizacion/organizacion.module';
+import { NovedadesModule } from './novedades/novedades.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { OrganizacionModule } from './organizacion/organizacion.module';
     ApkModule,
     CompaniesModule, // (Ya no está duplicado)
     NotificationsModule,
-    OrganizacionModule, // <--- Agregado el módulo de notificaciones
+    OrganizacionModule,
+    NovedadesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

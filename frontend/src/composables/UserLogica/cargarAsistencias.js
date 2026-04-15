@@ -34,6 +34,9 @@ export function useCargarAsistencias() {
   });
   let debounceTimeout = null;
 
+  // Agrega esta bandera para controlar la carga inicial
+  let initialLoadDone = false;
+
   watch(
     [
       filterHoy,
@@ -44,10 +47,14 @@ export function useCargarAsistencias() {
       selectedSegmento,
     ],
     async (newValues, oldValues) => {
-      const [newHoy, newStart, newEnd, newCompany, newArea] = newValues;
+      // 👈 No reaccionar durante la carga inicial
+      if (!initialLoadDone) return;
+
+      const [newHoy, newStart, newEnd, newCompany] = newValues;
       const [oldHoy, oldStart, oldEnd] = oldValues;
 
-      // 1. Lógica de limpieza de fechas (Hoy vs Manual)
+      if (!newCompany || newCompany === "") return;
+
       if (newHoy && !oldHoy) {
         startDate.value = "";
         endDate.value = "";
@@ -59,82 +66,72 @@ export function useCargarAsistencias() {
         filterHoy.value
       ) {
         filterHoy.value = false;
-        return; // Este return es clave: el cambio de filterHoy re-disparará el watch
+        return;
       }
 
-      // --- EL FILTRO DE SEGURIDAD ---
-      // Si no hay compañía, abortamos. Esto evita la llamada "?hoy=true" inicial.
-      if (!newCompany || newCompany === "") return;
-
-      // Si no es admin y aún no tenemos el área, esperamos (opcional según tu flujo)
-      // if (!esAdmin && !newArea) return;
-
-      // 2. Reset de página
       currentPage.value = 1;
 
-      // 3. ENCAPSULAMIENTO CON DEBOUNCE
-      // Esto agrupa los cambios de Area y Company en una sola petición
       if (debounceTimeout) clearTimeout(debounceTimeout);
-
       debounceTimeout = setTimeout(async () => {
-        // await fetchReporte();
+        await fetchReporte(); // 👈 descomentado
       }, 150);
     },
   );
   const fetchReporte = async () => {
     loading.value = true;
+    const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+    const permisos = session.permisos || session.permissions || {};
+    const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+    const deptoUsuario = session.department; // 👈 también faltaba esto
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-
-      // 1. Parámetros de tiempo
       url.searchParams.append("hoy", filterHoy.value.toString());
       if (startDate.value)
         url.searchParams.append("startDate", startDate.value);
       if (endDate.value) url.searchParams.append("endDate", endDate.value);
-
-      // 2. Parámetros de organización
       if (selectedCompany.value && selectedCompany.value !== "Todas") {
         url.searchParams.append("company", selectedCompany.value);
       }
-
       if (selectedSegmento.value) {
         url.searchParams.append("segmento_id", selectedSegmento.value);
       }
-
-      // 3. Lógica de Filtrado Local Estricto
       if (selectedArea.value) {
-        // Prioridad 1: Tenemos el área exacta de la DB local
         url.searchParams.append("area_id", selectedArea.value);
-      } else if (
-        selectedDepartment.value &&
-        selectedDepartment.value !== "DEPARTAMENTOS"
-      ) {
-        /**
-         * Prioridad 2: No hay área manual, pero hay departamento.
-         * Mandamos el flag 'solo_con_area' para que el Backend (NestJS)
-         * filtre los empleados del departamento contra la tabla local de usuarios.
-         */
-        // url.searchParams.append("solo_con_area", "true");
-        // url.searchParams.append("departamento", selectedDepartment.value);
       }
 
-      // 4. Petición
-      const res = await fetch(url.toString());
+      // 👇 Este bloque faltaba completo
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value) {
+          url.searchParams.append("departamento", selectedDepartment.value);
+        }
+        // Si tieneFiltroDepto y NO seleccionó nada → no agrega departamento → backend trae todo
+      } else {
+        if (deptoUsuario) {
+          url.searchParams.append("departamento", deptoUsuario);
+        }
+      }
 
-      if (!res.ok) throw new Error("Error en la respuesta del servidor");
+      console.log("URL final:", url.toString());
+      const res = await fetch(url.toString());
+      console.log("Status:", res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response:", errorText);
+        throw new Error("Error en la respuesta del servidor");
+      }
 
       const data = await res.json();
-
-      // 5. Asignación de datos
+      console.log("Data length:", data.length);
       rawData.value = data;
+      initialLoadDone = true;
     } catch (err) {
       console.error("Error al obtener el reporte:", err);
-      rawData.value = []; // Limpiamos datos en caso de error
+      rawData.value = [];
     } finally {
       loading.value = false;
     }
   };
-
   const clearFilters = () => {
     search.value = "";
     selectedDepartment.value = "";
@@ -213,14 +210,15 @@ export function useCargarAsistencias() {
       // 1. Mapeamos los datos enviando el TEXTO ya formateado
       const dataFiltrada = filteredReport.value.map((item) => ({
         Colaborador: item.empleado,
-        Cédula: item.doc_number || "N/A",
+        Cedula: item.doc_number || "N/A", // el backend igual consulta Odoo como fallback
         Departamento: item.department_id,
-        Fecha: item.fecha, // "2026-03-09"
-        Entrada: formatHoraParaExcel(item.check_in), // "10:09:51 AM"
-        Salida: formatHoraParaExcel(item.check_out), // "06:05:20 PM"
+        Fecha: item.fecha,
+        Entrada: formatHoraParaExcel(item.check_in),
+        Salida: formatHoraParaExcel(item.check_out),
         Estatus_Entrada: item.c_entrada || "N/A",
         Estatus_Salida: item.c_salida || "N/A",
         Estado: item.estado,
+        // Cargo y Malla se eliminan — el backend los resuelve desde hr.employee
       }));
 
       // 2. Petición al servidor NestJS
@@ -277,6 +275,7 @@ export function useCargarAsistencias() {
   return {
     reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
     search,
+    rawData,
     selectedDepartment,
     startDate,
     endDate,
@@ -288,5 +287,6 @@ export function useCargarAsistencias() {
     selectedCompany,
     selectedArea,
     selectedSegmento,
+    departments,
   };
 }

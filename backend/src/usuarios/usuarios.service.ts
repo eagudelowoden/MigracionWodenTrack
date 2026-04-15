@@ -16,8 +16,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators';
 import { Repository } from 'typeorm/repository/Repository.js';
 import { Permiso } from './entities/permiso.entity';
+import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Area } from './entities/area.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -48,6 +50,11 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
+
+    @InjectRepository(Area)
+    private readonly areaRepo: Repository<Area>,
+    @InjectRepository(PermisoDepartamento) // 👈 agrega
+    private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
   ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -74,7 +81,17 @@ export class UsuariosService {
       'hr.employee',
       'search_read',
       [[['pin', '=', usuario]]],
-      { fields: ['id', 'name', 'job_id', 'department_id'], limit: 1 },
+      {
+        fields: [
+          'id',
+          'name',
+          'job_id',
+          'department_id',
+          'coach_id',
+          'company_id',
+        ], // 👈
+        limit: 1,
+      },
       uid,
     );
 
@@ -202,7 +219,6 @@ export class UsuariosService {
         dayCompleted = true;
       }
     }
-
     return {
       status: 'success',
       id_odoo: emp.id,
@@ -212,9 +228,9 @@ export class UsuariosService {
       role: rolAsignado,
       is_inside: isInside,
       department: departamentoRaw,
+      company: emp.company_id ? emp.company_id[1] : null, // 👈 AGREGAR ESTO
       isSuperAdmin: esSuperAdmin,
-      day_completed: dayCompleted, // Usamos la variable local que calculamos arriba
-
+      day_completed: dayCompleted,
       permisos: mapaPermisos,
     };
   }
@@ -492,7 +508,7 @@ export class UsuariosService {
         fields: [
           'employee_id',
           'resource_calendar_id',
-          'job_id', // Cargo del contrato
+          'job_id',
           'department_id', // Departamento del contrato
         ],
         order: 'employee_id asc',
@@ -546,6 +562,8 @@ export class UsuariosService {
       const mallaEmp = allMallas.find(
         (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
       );
+      // console.log('resource_calendar_id:', con.resource_calendar_id);
+      // console.log('allMallas[0]:', allMallas[0]); // ver estructura real
 
       let horario = 'No programado';
       let jornada = 'N/A';
@@ -586,6 +604,270 @@ export class UsuariosService {
       };
     });
   }
+  // ==========================================
+  // MÉTODOS PRIVADOS
+  // ==========================================
+
+  private async getMallasMap(
+    employeeIds: number[],
+    uid: number,
+  ): Promise<{
+    calendarMap: Record<number, { calId: number; calNombre: string }>;
+    mallasMap: Record<number, any[]>;
+  }> {
+    const calendarMap: Record<number, { calId: number; calNombre: string }> =
+      {};
+    const mallasMap: Record<number, any[]> = {};
+
+    if (employeeIds.length === 0) return { calendarMap, mallasMap };
+
+    const contratos = await this.odoo.executeKw<any[]>(
+      'hr.contract',
+      'search_read',
+      [
+        [
+          ['employee_id', 'in', employeeIds],
+          ['state', 'in', ['open', 'draft']],
+        ],
+      ],
+      { fields: ['employee_id', 'resource_calendar_id'] },
+      uid,
+    );
+
+    contratos.forEach((c) => {
+      if (c.resource_calendar_id) {
+        calendarMap[c.employee_id[0]] = {
+          calId: c.resource_calendar_id[0],
+          calNombre: c.resource_calendar_id[1],
+        };
+      }
+    });
+
+    const calIds = [...new Set(Object.values(calendarMap).map((c) => c.calId))];
+    if (calIds.length === 0) return { calendarMap, mallasMap };
+
+    const todasMallas = await this.odoo.executeKw<any[]>(
+      'resource.calendar.attendance',
+      'search_read',
+      [[['calendar_id', 'in', calIds]]],
+      { fields: ['calendar_id', 'dayofweek', 'hour_from', 'hour_to'] },
+      uid,
+    );
+
+    todasMallas.forEach((m) => {
+      const cid = m.calendar_id[0];
+      if (!mallasMap[cid]) mallasMap[cid] = [];
+      mallasMap[cid].push(m);
+    });
+
+    return { calendarMap, mallasMap };
+  }
+
+  private clasificarPorMalla(
+    empId: number,
+    punchingTime: string,
+    esEntrada: boolean,
+    calendarMap: Record<number, { calId: number; calNombre: string }>,
+    mallasMap: Record<number, any[]>,
+  ): string {
+    const cal = calendarMap[empId];
+    if (!cal) return 'SIN MALLA';
+
+    const mallas = mallasMap[cal.calId];
+    if (!mallas || mallas.length === 0) return 'SIN MALLA';
+
+    const fechaUTC = new Date(punchingTime.replace(' ', 'T') + 'Z');
+    const horaLocal = new Date(
+      fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+    const dayOfWeekOdoo = (
+      horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
+    ).toString();
+    const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
+
+    const mallasDelDia = mallas
+      .filter((m) => m.dayofweek === dayOfWeekOdoo)
+      .sort((a, b) => a.hour_from - b.hour_from);
+
+    if (mallasDelDia.length === 0) return 'DÍA NO LABORABLE';
+
+    const turno = mallasDelDia[0];
+    const tolerancia = 6 / 60;
+
+    if (esEntrada) {
+      return horaDecimal > turno.hour_from + tolerancia
+        ? 'ENTRADA TARDE'
+        : 'A TIEMPO';
+    } else {
+      return horaDecimal < turno.hour_to ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+    }
+  }
+
+  private mapAttendances(
+    attendances: any[],
+    partnerMap: Record<string, string>,
+    toLocal: (d: string) => string | null,
+  ): any[] {
+    return attendances.map((att) => {
+      const localIn = toLocal(att.check_in);
+      const localOut = toLocal(att.check_out);
+      const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+
+      return {
+        id: `att_${att.id}`,
+        empleado: nombre,
+        cc: partnerMap[nombre] || 'N/A',
+        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+        c_salida: att.x_studio_tipo_salida || 'N/A',
+        check_in: localIn,
+        check_out: localOut,
+        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+        tipo: 'ASISTENCIA',
+        estado: att.check_out ? 'Finalizado' : 'En curso',
+      };
+    });
+  }
+
+  private async mapLogs(
+    logs: any[],
+    partnerMap: Record<string, string>,
+    toLocal: (d: string) => string | null,
+    uid: number,
+  ): Promise<any[]> {
+    const employeeIdsLogs = [
+      ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
+    ];
+    const { calendarMap, mallasMap } = await this.getMallasMap(
+      employeeIdsLogs,
+      uid,
+    );
+
+    // --- AGRUPAR POR EMPLEADO + DÍA ---
+    const grupos: Record<
+      string,
+      { empId: number; nombre: string; dept: string; registros: any[] }
+    > = {};
+
+    logs.forEach((log) => {
+      const empId = log.employee_id?.[0];
+      const nombre = log.employee_id?.[1] || 'Desconocido';
+      const localTime = toLocal(log.punching_time);
+      const fecha = localTime ? localTime.split(' ')[0] : 'SIN_FECHA';
+      const key = `${empId}_${fecha}`;
+
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: log.x_studio_related_field_j40wn
+            ? log.x_studio_related_field_j40wn[1]
+            : 'SIN DEPTO',
+          registros: [],
+        };
+      }
+      grupos[key].registros.push(log);
+    });
+
+    // --- MAPEAR UN REGISTRO POR GRUPO (MIN y MAX) ---
+    return Object.entries(grupos).flatMap(([key, grupo]) => {
+      const { empId, nombre, dept, registros } = grupo;
+
+      const ordenados = registros.sort(
+        (a, b) =>
+          new Date(a.punching_time).getTime() -
+          new Date(b.punching_time).getTime(),
+      );
+
+      const primero = ordenados[0];
+      const ultimo = ordenados[ordenados.length - 1];
+
+      // Verificar si el último ya superó hour_to
+      let jornadadFinalizada = false;
+      if (empId && ordenados.length > 1) {
+        const cal = calendarMap[empId];
+        if (cal) {
+          const mallasDelCal = mallasMap[cal.calId] || [];
+          const fechaUTC = new Date(
+            ultimo.punching_time.replace(' ', 'T') + 'Z',
+          );
+          const horaLocal = new Date(
+            fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+          );
+          const dayOfWeekOdoo = (
+            horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
+          ).toString();
+          const horaDecimalUltimo =
+            horaLocal.getHours() + horaLocal.getMinutes() / 60;
+          const mallasDelDia = mallasDelCal
+            .filter((m) => m.dayofweek === dayOfWeekOdoo)
+            .sort((a, b) => a.hour_from - b.hour_from);
+
+          if (mallasDelDia.length > 0) {
+            jornadadFinalizada = horaDecimalUltimo >= mallasDelDia[0].hour_to;
+          }
+        }
+      }
+
+      return ordenados.map((log, index) => {
+        const localTime = toLocal(log.punching_time);
+        const esPrimero = index === 0;
+
+        let cEntrada = 'N/A';
+        let cSalida = 'N/A';
+        let estado = 'En curso';
+        let checkOut: string | null = null;
+
+        if (esPrimero) {
+          // Clasificar entrada con el primero
+          const clasificacionEntrada = empId
+            ? this.clasificarPorMalla(
+                empId,
+                log.punching_time,
+                true,
+                calendarMap,
+                mallasMap,
+              )
+            : 'SIN MALLA';
+          cEntrada = `${clasificacionEntrada} | BIOMÉTRICO`;
+
+          // Si jornada finalizada, poner salida también en el primero
+          if (jornadadFinalizada) {
+            const clasificacionSalida = empId
+              ? this.clasificarPorMalla(
+                  empId,
+                  ultimo.punching_time,
+                  false,
+                  calendarMap,
+                  mallasMap,
+                )
+              : 'SIN MALLA';
+            cSalida = `${clasificacionSalida} | BIOMÉTRICO`;
+            checkOut = toLocal(ultimo.punching_time); // hora real del último
+            estado = 'Finalizado';
+          }
+        } else {
+          // Los del medio solo BIOMÉTRICO
+          cEntrada = 'BIOMÉTRICO';
+        }
+
+        return {
+          id: `log_${empId}_${log.punching_time}`,
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A',
+          department_id: dept,
+          check_in: localTime,
+          check_out: checkOut,
+          c_entrada: cEntrada,
+          c_salida: cSalida,
+          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+          tipo: 'LOG CRUDO',
+          estado,
+        };
+      });
+    });
+  }
+
   async getReporteNovedades(
     soloHoy?: boolean,
     companyName?: string,
@@ -688,7 +970,7 @@ export class UsuariosService {
               'x_studio_tipo_salida',
             ],
             order: 'check_in desc',
-            limit: 15000,
+            limit: 30000000,
           },
           uid,
         ),
@@ -705,7 +987,7 @@ export class UsuariosService {
               'device',
             ],
             order: 'punching_time desc',
-            limit: 15000,
+            limit: 30000000,
           },
           uid,
         ),
@@ -731,16 +1013,32 @@ export class UsuariosService {
       }
 
       // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
+      // const toLocal = (utcDate: string) => {
+      //   if (!utcDate) return null;
+
+      //   // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
+      //   // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
+      //   const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+
+      //   // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
+      //   return new Intl.DateTimeFormat('sv-SE', {
+      //     // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
+      //     timeZone: 'America/Bogota',
+      //     year: 'numeric',
+      //     month: '2-digit',
+      //     day: '2-digit',
+      //     hour: '2-digit',
+      //     minute: '2-digit',
+      //     second: '2-digit',
+      //   })
+      //     .format(fechaUTC)
+      //     .replace('T', ' ');
+      // };
+
       const toLocal = (utcDate: string) => {
         if (!utcDate) return null;
-
-        // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
-        // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
         const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-
-        // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
         return new Intl.DateTimeFormat('sv-SE', {
-          // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
           timeZone: 'America/Bogota',
           year: 'numeric',
           month: '2-digit',
@@ -752,60 +1050,62 @@ export class UsuariosService {
           .format(fechaUTC)
           .replace('T', ' ');
       };
-      // --- 5. MAPEO FINAL ---
-      const resAttendances = attendances.map((att) => {
-        // 1. Convertimos las fechas a local una sola vez por cada registro
-        const localIn = toLocal(att.check_in);
-        const localOut = toLocal(att.check_out);
+      const [resAttendances, resLogs] = await Promise.all([
+        Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
+        this.mapLogs(logs, partnerMap, toLocal, uid),
+      ]);
 
-        // 2. Obtenemos el nombre para buscar en el mapa de partners
-        const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+      // // --- 5. MAPEO FINAL ---
+      // const resAttendances = attendances.map((att) => {
+      //   // 1. Convertimos las fechas a local una sola vez por cada registro
+      //   const localIn = toLocal(att.check_in);
+      //   const localOut = toLocal(att.check_out);
 
-        // 3. Retornamos el objeto organizado
-        return {
-          id: `att_${att.id}`,
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
-          department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-          c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-          c_salida: att.x_studio_tipo_salida || 'N/A',
-          check_in: localIn,
-          check_out: localOut,
-          fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-          tipo: 'ASISTENCIA',
-          estado: att.check_out ? 'Finalizado' : 'En curso',
-        };
-      });
+      //   // 2. Obtenemos el nombre para buscar en el mapa de partners
+      //   const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
 
-      const resLogs = logs.map((log) => {
-        const localTime = toLocal(log.punching_time);
-        const esEntrada = log.status === '0' || log.status === '2';
+      //   // 3. Retornamos el objeto organizado
+      //   return {
+      //     id: `att_${att.id}`,
+      //     empleado: nombre,
+      //     cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
+      //     department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+      //     c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
+      //     c_salida: att.x_studio_tipo_salida || 'N/A',
+      //     check_in: localIn,
+      //     check_out: localOut,
+      //     fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+      //     tipo: 'ASISTENCIA',
+      //     estado: att.check_out ? 'Finalizado' : 'En curso',
+      //   };
+      // });
 
-        // 1. Extraemos el nombre del empleado del log
-        const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
+      // const resLogs = logs.map((log) => {
+      //   const localTime = toLocal(log.punching_time);
+      //   const esEntrada = log.status === '0' || log.status === '2';
 
-        return {
-          id: `log_${log.id}`,
+      //   // 1. Extraemos el nombre del empleado del log
+      //   const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
 
-          // 2. Asignamos el nombre y buscamos el documento en el mapa
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
+      //   return {
+      //     id: `log_${log.id}`,
 
-          department_id: log.x_studio_related_field_j40wn
-            ? log.x_studio_related_field_j40wn[1]
-            : 'SIN DEPTO',
-          check_in: esEntrada ? localTime : null,
-          check_out: !esEntrada ? localTime : null,
-          c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
-          c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
-          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-          tipo: 'LOG CRUDO',
-          estado: 'Biométrico',
-          dispositivo: log.device || 'N/A',
-          company_name: log.company_id ? log.company_id[1] : 'N/A',
-          status_raw: log.status || 'N/A',
-        };
-      });
+      //     // 2. Asignamos el nombre y buscamos el documento en el mapa
+      //     empleado: nombre,
+      //     cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
+
+      //     department_id: log.x_studio_related_field_j40wn
+      //       ? log.x_studio_related_field_j40wn[1]
+      //       : 'SIN DEPTO',
+      //     check_in: esEntrada ? localTime : null,
+      //     check_out: !esEntrada ? localTime : null,
+      //     c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
+      //     c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
+      //     fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+      //     tipo: 'LOG CRUDO',
+      //     estado: 'Biométrico',
+      //   };
+      // });
 
       // --- 6. UNIÓN Y ORDENAMIENTO ---
       return [...resAttendances, ...resLogs].sort((a, b) => {
@@ -926,6 +1226,77 @@ export class UsuariosService {
   getProgress() {
     return this.syncProgress;
   }
+  // usuarios.service.ts
+  async previewSync(paisSeleccionado: string, deptoSeleccionado?: string) {
+    const uid = await this.odoo.authenticate();
+    const domain: any[] = [['company_id.name', '=', paisSeleccionado]];
+
+    if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+      domain.push(['department_id.name', '=', deptoSeleccionado]);
+    }
+
+    const odooEmployees = await this.odoo.executeKw<any[]>(
+      'hr.employee',
+      'search_read',
+      [domain],
+      {
+        fields: [
+          'id',
+          'name',
+          'identification_id',
+          'job_title',
+          'department_id',
+        ],
+      },
+      uid,
+    );
+
+    // IDs de Odoo
+    const odooIds = new Set(odooEmployees.map((e) => e.id));
+
+    // Registros actuales en DB para ese país/depto
+    const dbQuery = this.usuarioRepo
+      .createQueryBuilder('u')
+      .where('u.pais = :pais', { pais: paisSeleccionado });
+
+    if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+      dbQuery.andWhere('u.departamento = :depto', {
+        departamento: deptoSeleccionado,
+      });
+    }
+
+    const dbUsers = await dbQuery.getMany();
+    const dbIds = new Set(dbUsers.map((u) => u.id_odoo));
+
+    // Clasificar
+    const toCreate = odooEmployees.filter((e) => !dbIds.has(e.id));
+    const toUpdate = odooEmployees.filter((e) => dbIds.has(e.id));
+    const toDelete = dbUsers.filter((u) => !odooIds.has(u.id_odoo));
+
+    return {
+      summary: {
+        nuevos: toCreate.length,
+        actualizados: toUpdate.length,
+        aEliminar: toDelete.length,
+      },
+      toCreate: toCreate.map((e) => ({
+        id_odoo: e.id,
+        nombre: e.name,
+        identificacion: e.identification_id,
+      })),
+      toUpdate: toUpdate.map((e) => ({
+        id_odoo: e.id,
+        nombre: e.name,
+        identificacion: e.identification_id,
+      })),
+      toDelete: toDelete.map((u) => ({
+        id: u.id,
+        id_odoo: u.id_odoo,
+        nombre: u.nombre,
+        identificacion: u.identificacion,
+      })),
+    };
+  }
 
   // Método para cancelar
   cancelSync() {
@@ -968,12 +1339,31 @@ export class UsuariosService {
         uid,
       );
 
-      this.syncProgress.total = odooEmployees.length;
+      // ── CALCULAR ELIMINADOS ANTES DEL LOOP ──────────────────────────────
+      const odooIds = new Set(odooEmployees.map((e) => e.id));
+
+      const dbQuery = this.usuarioRepo
+        .createQueryBuilder('u')
+        .where('u.pais = :pais', { pais: paisSeleccionado });
+
+      if (deptoSeleccionado && deptoSeleccionado !== 'TODOS') {
+        dbQuery.andWhere('u.departamento = :depto', {
+          depto: deptoSeleccionado,
+        });
+      }
+
+      const dbUsers = await dbQuery.getMany();
+      const toDelete = dbUsers.filter((u) => !odooIds.has(u.id_odoo));
+      // ────────────────────────────────────────────────────────────────────
+
+      // Total = upserts + eliminaciones
+      this.syncProgress.total = odooEmployees.length + toDelete.length;
       let nuevos = 0;
       let actualizados = 0;
+      let eliminados = 0;
 
+      // ── FASE 1: UPSERT ───────────────────────────────────────────────────
       for (const [index, emp] of odooEmployees.entries()) {
-        // VERIFICACIÓN DE CANCELACIÓN
         if (this.syncProgress.isCancelled) {
           return {
             status: 'info',
@@ -984,6 +1374,7 @@ export class UsuariosService {
         const existing = await this.usuarioRepo.findOne({
           where: { id_odoo: emp.id },
         });
+
         const data = {
           id_odoo: emp.id,
           nombre: emp.name,
@@ -1003,14 +1394,28 @@ export class UsuariosService {
           actualizados++;
         }
 
-        // ACTUALIZAR PROGRESO
         this.syncProgress.current = index + 1;
       }
 
+      // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
+      for (const user of toDelete) {
+        if (this.syncProgress.isCancelled) {
+          return {
+            status: 'info',
+            message: `Sincronización cancelada. ${eliminados} eliminados hasta el momento.`,
+          };
+        }
+
+        await this.usuarioRepo.delete(user.id);
+        eliminados++;
+        this.syncProgress.current = odooEmployees.length + eliminados;
+      }
+      // ────────────────────────────────────────────────────────────────────
+
       this.syncProgress.status = 'completed';
       return {
-        status: nuevos > 0 || actualizados > 0 ? 'success' : 'info',
-        message: `Sincronizados (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados.`,
+        status: 'success',
+        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
       };
     } catch (error) {
       this.syncProgress.status = 'error';
@@ -1137,7 +1542,7 @@ export class UsuariosService {
 
     const usuario = await this.usuarioRepo.findOne({
       where: [{ id_odoo: idOdoo }, { id: idOdoo }],
-      relations: ['area', 'segmento'],
+      relations: ['area', 'segmento', 'permisos'],
     });
 
     if (!usuario) {
@@ -1147,5 +1552,123 @@ export class UsuariosService {
     }
 
     return usuario;
+  }
+
+  async getDeptosPermitidos(idOdoo: number): Promise<string[]> {
+    const permisos = await this.permisoDeptRepo.find({
+      where: { id_odoo: idOdoo },
+    });
+    return permisos.map((p) => p.departamento);
+  }
+
+  async setDeptosPermitidos(
+    idOdoo: number,
+    departamentos: string[],
+  ): Promise<{ success: boolean }> {
+    // Borra los anteriores y guarda los nuevos
+    await this.permisoDeptRepo.delete({ id_odoo: idOdoo });
+    if (departamentos.length) {
+      const nuevos = departamentos.map((d) =>
+        this.permisoDeptRepo.create({ id_odoo: idOdoo, departamento: d }),
+      );
+      await this.permisoDeptRepo.save(nuevos);
+    }
+    return { success: true };
+  }
+
+  async getResponsablePorArea(department: string, idOdoo: number) {
+    // ─── 1. Busca el usuario específico por id_odoo ───────
+    const usuario = await this.usuarioRepo.findOne({
+      where: { id_odoo: idOdoo },
+      relations: [
+        'area',
+        'area.responsable',
+        'segmento',
+        'segmento.responsable',
+      ],
+    });
+
+    console.log('👤 Usuario:', usuario?.nombre);
+
+    // ─── 2. Tiene área con responsable ───────────────────
+    if (usuario?.area?.responsable) {
+      console.log('✅ Responsable por área:', usuario.area.responsable.nombre);
+      return {
+        responsable_nombre: usuario.area.responsable.nombre,
+        responsable_cargo: usuario.area.responsable.cargo,
+        responsable_id_odoo: usuario.area.responsable.id_odoo,
+        fuente: 'area',
+      };
+    }
+
+    // ─── 3. Tiene segmento con responsable ───────────────
+    if (usuario?.segmento?.responsable) {
+      console.log(
+        '✅ Responsable por segmento:',
+        usuario.segmento.responsable.nombre,
+      );
+      return {
+        responsable_nombre: usuario.segmento.responsable.nombre,
+        responsable_cargo: usuario.segmento.responsable.cargo,
+        responsable_id_odoo: usuario.segmento.responsable.id_odoo,
+        fuente: 'segmento',
+      };
+    }
+
+    // ─── 4. Fallback: consulta Odoo con this.odoo ────────
+    console.warn('⚠️ Sin área ni segmento, consultando Odoo...');
+    try {
+      const uid = await this.odoo.authenticate();
+
+      const employees = await this.odoo.executeKw<any[]>(
+        'hr.employee',
+        'search_read',
+        [[['id', '=', idOdoo]]],
+        { fields: ['name', 'coach_id', 'job_id'], limit: 1 },
+        uid,
+      );
+
+      const empleado = employees?.[0];
+      const jefeIdOdoo = empleado?.coach_id?.[0];
+      const jefeNombreOdoo = empleado?.coach_id?.[1];
+
+      console.log('🌐 Jefe id_odoo:', jefeIdOdoo, '| nombre:', jefeNombreOdoo);
+      if (!jefeIdOdoo) return null;
+
+      // ─── Intenta por id_odoo primero ─────────────────────
+      let jefeDB = await this.usuarioRepo.findOne({
+        where: { id_odoo: jefeIdOdoo },
+      });
+
+      // ─── Fallback: busca por nombre si no encontró ────────
+      if (!jefeDB && jefeNombreOdoo) {
+        const nombreNormalizado = jefeNombreOdoo
+          .toUpperCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        jefeDB = await this.usuarioRepo
+          .createQueryBuilder('u')
+          .where('u.nombre LIKE :nombre', {
+            nombre: `%${nombreNormalizado.split(' ')[0]}%`,
+          })
+          .getOne();
+
+        console.log(
+          '🔍 Búsqueda por nombre:',
+          jefeDB?.nombre ?? 'No encontrado',
+        );
+      }
+
+      return {
+        responsable_nombre: jefeDB?.nombre ?? jefeNombreOdoo,
+        responsable_cargo: jefeDB?.cargo ?? null,
+        responsable_id_odoo: jefeDB?.id_odoo ?? jefeIdOdoo,
+        fuente: 'odoo',
+      };
+    } catch (e) {
+      console.error('❌ Error consultando Odoo:', e);
+      return null;
+    }
   }
 }

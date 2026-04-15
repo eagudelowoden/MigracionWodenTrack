@@ -11,6 +11,7 @@ export function useMallasGeneral() {
   const uploadSuccessMessage = ref("");
   const showResultModal = ref(false);
   const selectedCompany = ref("");
+  const selectedDepartment = ref("");
 
   // --- NUEVO: Variables de Paginación (Sin borrar nada de lo anterior) ---
   const currentPage = ref(1);
@@ -18,16 +19,27 @@ export function useMallasGeneral() {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+  const departments = computed(() => {
+    if (!mallasData.value || mallasData.value.length === 0) return [];
+    const allDeps = mallasData.value
+      .map((item) => item.departamento) // 👈 cambia department_id por departamento
+      .filter(Boolean);
+    return [...new Set(allDeps)].sort();
+  });
+  watch(selectedDepartment, () => {
+    currentPage.value = 1;
+    fetchMallasDesdeOdoo();
+  });
+
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
 
-      // 1. Obtener el departamento de la sesión
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const deptoUsuario = session.department || "";
-      const esAdmin = session.role === "admin";
+      const permisos = session.permisos || session.permissions || {};
+      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
 
-      // 2. Usar URLSearchParams para construir la URL de forma limpia
       const params = new URLSearchParams();
       params.append("t", Date.now().toString());
 
@@ -35,16 +47,18 @@ export function useMallasGeneral() {
         params.append("company", selectedCompany.value);
       }
 
-      // --- 3. LÓGICA DE DEPARTAMENTO ---
-      // Si el usuario tiene un departamento asignado, lo enviamos.
-      // Si tienes un selector de departamentos en esta vista, podrías usar: selectedDepartment.value || deptoUsuario
-      if (deptoUsuario && deptoUsuario !== "") {
-        params.append("departamento", deptoUsuario);
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value) {
+          params.append("departamento", selectedDepartment.value);
+        }
+      } else {
+        if (deptoUsuario) {
+          params.append("departamento", deptoUsuario);
+        }
       }
 
       const url = `${API_BASE_URL}/mallas?${params.toString()}`;
-
-      console.log("Consultando mallas en:", url); // Debug para verificar la tilde de "TECNOLOGÍAS"
+      console.log("Consultando mallas en:", url);
 
       const response = await axios.get(url);
       mallasData.value = response.data;
@@ -55,35 +69,36 @@ export function useMallasGeneral() {
       isLoading.value = false;
     }
   };
-
   const downloadMallaTemplate = async () => {
     try {
       isLoadingDownload.value = true;
 
-      // 1. Obtener el departamento de la sesión (como hicimos en los otros pasos)
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const deptoUsuario = session.department || "";
+      const esAdmin = session.role === "admin";
 
-      // 2. Realizar la petición con Axios
+      // Admin: usa el filtro del selector si seleccionó algo, si no descarga todo
+      // Usuario normal: siempre su departamento de sesión
+      const deptoAplicar = esAdmin
+        ? selectedDepartment.value || ""
+        : deptoUsuario;
+
       const response = await axios.get(
         `${API_BASE_URL}/reports/mallas/template`,
         {
           params: {
             company: selectedCompany.value,
-            departamento: deptoUsuario, // <--- ENVIAMOS EL DEPARTAMENTO AQUÍ
+            departamento: deptoAplicar,
           },
-          responseType: "blob", // Importante para archivos binarios
+          responseType: "blob",
         },
       );
 
-      // 3. Crear el enlace de descarga
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
 
-      // 4. Nombre de archivo dinámico
-      // Limpiamos el nombre del departamento para el nombre del archivo (quitar espacios)
-      const deptoClean = deptoUsuario.replace(/\s+/g, "_") || "general";
+      const deptoClean = deptoAplicar.replace(/\s+/g, "_") || "general";
       const fecha = new Date().toISOString().slice(0, 10);
 
       link.setAttribute(
@@ -94,7 +109,7 @@ export function useMallasGeneral() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url); // Limpiamos la memoria
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error al descargar plantilla:", error);
       alert(
@@ -108,20 +123,57 @@ export function useMallasGeneral() {
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
 
     try {
       isUploading.value = true;
       uploadErrors.value = [];
       uploadSuccessMessage.value = "";
+
+      // 1. Leer el Excel con SheetJS y limpiar espacios
+      const XLSX = await import("xlsx");
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // Recorrer todas las celdas y hacer trim a los strings
+      Object.keys(sheet).forEach((cellRef) => {
+        if (cellRef.startsWith("!")) return;
+        const cell = sheet[cellRef];
+        if (cell && cell.t === "s" && typeof cell.v === "string") {
+          // Trim de espacios
+          let valor = cell.v.trim();
+
+          // Normalizar espacios dobles internos
+          valor = valor.replace(/\s+/g, " ");
+
+          // Quitar tildes y caracteres especiales → ASCII limpio
+          valor = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+          cell.v = valor;
+          cell.w = valor;
+        }
+      });
+
+      // 2. Re-generar el archivo limpio como Blob
+      const cleanBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const cleanFile = new Blob([cleanBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      // 3. Armar el FormData con el archivo limpio
+      const formData = new FormData();
+      formData.append("file", cleanFile, file.name);
+
       const response = await axios.post(
         `${API_BASE_URL}/contracts-upload/import`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
+
       if (response.data.success) {
         uploadSuccessMessage.value = response.data.message;
         fetchMallasDesdeOdoo();
@@ -191,5 +243,7 @@ export function useMallasGeneral() {
     currentPage,
     totalPages,
     totalRecords: computed(() => filteredMallas.value.length),
+    selectedDepartment,
+    departments,
   };
 }

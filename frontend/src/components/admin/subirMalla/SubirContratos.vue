@@ -4,27 +4,22 @@
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Carga Masiva de Contratos</h2>
       <p class="text-gray-600 mb-6">Sube tu archivo .xlsx siguiendo el formato técnico de Odoo.</p>
 
-      <div 
-        @dragover.prevent="isDragging = true" 
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="handleDrop"
-        :class="['border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors', 
-                 isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400']"
-      >
+      <div @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop"
+        :class="['border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors',
+          isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400']">
         <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        
+
         <p class="mb-2 text-sm text-gray-700">
           <span class="font-semibold">Haz clic para subir</span> o arrastra y suelta
         </p>
         <p class="text-xs text-gray-500">Solo archivos Excel (.xlsx)</p>
-        
+
         <input type="file" ref="fileInput" class="hidden" accept=".xlsx" @change="handleFileSelect" />
-        <button 
-          @click="$refs.fileInput.click()"
-          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-        >
+        <button @click="$refs.fileInput.click()"
+          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
           Seleccionar Archivo
         </button>
       </div>

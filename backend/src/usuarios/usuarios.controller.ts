@@ -141,6 +141,15 @@ export class UsuariosController {
     this.usuariosService.cancelSync();
     return { message: 'Señal de cancelación enviada' };
   }
+  // usuarios.controller.ts
+  @Post('sincronizar/preview')
+  async syncPreview(
+    @Query('pais') pais: string,
+    @Query('depto') depto: string,
+  ) {
+    if (!pais) throw new BadRequestException('Debe seleccionar un país');
+    return await this.usuariosService.previewSync(pais, depto);
+  }
 
   @Post('asignar-permiso')
   async asignarPermiso(
@@ -186,6 +195,35 @@ export class UsuariosController {
   @Get('perfil-completo/:idOdoo')
   async getPerfilCompleto(@Param('idOdoo') idOdoo: string) {
     return await this.usuariosService.obtenerPerfilConEstructura(
+      Number(idOdoo),
+    );
+  }
+
+  // Busca estas dos líneas en tu controller y agrégalas si no existen
+
+  @Get('departamentos-permitidos/:idOdoo')
+  async getDeptosPermitidos(@Param('idOdoo') idOdoo: number) {
+    return this.usuariosService.getDeptosPermitidos(Number(idOdoo));
+  }
+
+  @Post('departamentos-permitidos/:idOdoo')
+  async setDeptosPermitidos(
+    @Param('idOdoo') idOdoo: number,
+    @Body() body: { departamentos: string[] },
+  ) {
+    return this.usuariosService.setDeptosPermitidos(
+      Number(idOdoo),
+      body.departamentos,
+    );
+  }
+
+  @Get('area-responsable')
+  async getResponsablePorArea(
+    @Query('department') department: string,
+    @Query('idOdoo') idOdoo: string,
+  ) {
+    return this.usuariosService.getResponsablePorArea(
+      department,
       Number(idOdoo),
     );
   }

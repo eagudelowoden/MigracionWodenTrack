@@ -13,6 +13,8 @@ export function adminOdoo() {
   const report = ref([]);
   const searchQuery = ref("");
   const isExporting = ref(false);
+  const selectedArea = ref(null);
+  const selectedSegmento = ref(null);
 
   // --- NUEVAS VARIABLES PARA COMPAÑÍAS ---
   const allCompanies = ref([]);
@@ -22,24 +24,24 @@ export function adminOdoo() {
   let intervalId = null;
 
   // Cargar lista de compañías desde el nuevo endpoint
+  // adminOdoo.js
   const fetchCompanies = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
-      allCompanies.value = data;
+      allCompanies.value = data.filter((c) => c.is_active);
 
-      if (data.length > 0) {
-        // Buscamos la compañía que contenga "COLOMBIA" en su nombre
-        const colombia = data.find((c) =>
-          c.name.includes("WODEN COLOMBIA SAS"),
+      // Usar directamente la compañía del empleado logueado
+      const companyDelEmpleado = att.employee.value?.company;
+
+      if (companyDelEmpleado) {
+        const match = allCompanies.value.find(
+          (c) => c.name === companyDelEmpleado,
         );
-
-        if (colombia) {
-          selectedCompany.value = colombia.name;
-        } else {
-          // Si por alguna razón no la encuentra, usa la primera como respaldo
-          selectedCompany.value = data[0].name;
-        }
+        selectedCompany.value =
+          match?.name ?? allCompanies.value[0]?.name ?? "";
+      } else {
+        selectedCompany.value = allCompanies.value[0]?.name ?? "";
       }
     } catch (err) {
       console.error("Error cargando compañías:", err);
@@ -189,5 +191,7 @@ export function adminOdoo() {
     handleAttendance,
     downloadExcelReport,
     filteredReport,
+    selectedArea,
+    selectedSegmento,
   };
 }

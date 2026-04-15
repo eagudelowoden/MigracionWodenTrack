@@ -1,4 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
 
@@ -6,95 +10,160 @@ import { OdooService } from '../odoo/odoo.service';
 export class SubirContratosService {
   private readonly logger = new Logger(SubirContratosService.name);
 
-  constructor(private readonly odoo: OdooService) { }
+  constructor(private readonly odoo: OdooService) {}
+
+  private normalizeText(text: string): string {
+    if (!text) return '';
+    return text
+      .trim()
+      .replace(/\s+/g, ' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase();
+  }
+
+  private async resolveEmployeeId(name: string): Promise<number | null> {
+    const uid = await this.odoo.authenticate();
+
+    // Intento 1: búsqueda exacta con el nombre normalizado
+    let ids = await this.odoo.executeKw<number[]>(
+      'hr.employee',
+      'search',
+      [[['name', '=', name]]],
+      { limit: 1 },
+      uid,
+    );
+
+    // Intento 2: ilike (ignora mayúsculas/minúsculas)
+    if (!ids.length) {
+      ids = await this.odoo.executeKw<number[]>(
+        'hr.employee',
+        'search',
+        [[['name', 'ilike', name]]],
+        { limit: 1 },
+        uid,
+      );
+    }
+
+    return ids.length ? ids[0] : null;
+  }
+  private async resolveCalendarId(name: string): Promise<number | null> {
+    const uid = await this.odoo.authenticate();
+
+    // Intento 1: exacto
+    let ids = await this.odoo.executeKw<number[]>(
+      'resource.calendar',
+      'search',
+      [[['name', '=', name]]],
+      { limit: 1 },
+      uid,
+    );
+
+    // Intento 2: ilike
+    if (!ids.length) {
+      ids = await this.odoo.executeKw<number[]>(
+        'resource.calendar',
+        'search',
+        [[['name', 'ilike', name]]],
+        { limit: 1 },
+        uid,
+      );
+    }
+
+    return ids.length ? ids[0] : null;
+  }
 
   async processExcel(fileBuffer: any) {
     try {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(fileBuffer);
 
-      // Intentamos obtener la primera hoja
       const worksheet = workbook.getWorksheet(1);
-
-      // SOLUCIÓN AL ERROR ts(18048): Validación de existencia
       if (!worksheet) {
-        throw new Error('No se encontró la hoja de trabajo en el archivo Excel.');
+        throw new Error(
+          'No se encontró la hoja de trabajo en el archivo Excel.',
+        );
       }
 
-      // Definición de campos técnicos para asegurar la actualización
       const technicalFields = [
-        'id',                   // Col 1: ID Externo (Obligatorio para actualizar)
-        'company_id',           // Col 2
-        'employee_id',          // Col 3
-        'state',                // Col 4
-        'date_end',             // Col 5
-        'date_start',           // Col 6
-        'resource_calendar_id', // Col 7: Campo de la Malla/Horario
-        'job_id'                // Col 8
+        'id',
+        'company_id',
+        'employee_id/.id',
+        'state',
+        'date_end',
+        'date_start',
+        'resource_calendar_id/.id', // ← igual que employee_id
+        'job_id',
       ];
 
-      const rowsForOdoo: any[][] = [];
-
-      // Ahora TypeScript sabe que 'worksheet' no es undefined aquí
+      // 1. Recolectar filas válidas primero (sync)
+      const rawRows: ExcelJS.Row[] = [];
       worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return; // Saltar encabezado
+        if (rowNumber === 1) return;
+        if (row.getCell(1).text?.trim()) {
+          rawRows.push(row);
+        }
+      });
+
+      // 2. Resolver employee_id de forma async para cada fila
+      const rowsForOdoo: any[][] = [];
+      for (const row of rawRows) {
+        const employeeNameRaw = this.normalizeText(row.getCell(3).text || '');
+        const employeeId = await this.resolveEmployeeId(employeeNameRaw);
+        const calendarNameRaw = this.normalizeText(row.getCell(7).text || '');
+
+        const calendarId = await this.resolveCalendarId(calendarNameRaw);
+
+        if (!employeeId) {
+          this.logger.warn(
+            `Empleado no encontrado en Odoo: "${employeeNameRaw}"`,
+          );
+        }
 
         const rowData = [
-          row.getCell(1).text?.trim() || '', // ID Externo (__export__)
+          row.getCell(1).text?.trim() || '',
           row.getCell(2).text?.trim() || '',
-          row.getCell(3).text?.trim() || '',
+          employeeId ? employeeId.toString() : '',
           this.mapState(row.getCell(4).text || ''),
           this.formatDate(row.getCell(5).value),
           this.formatDate(row.getCell(6).value),
-          row.getCell(7).text?.trim() || '', // El nombre de la Malla
+          calendarId ? calendarId.toString() : '', // ← ID numérico de la malla
           row.getCell(8).text?.trim() || '',
         ];
-
-        // Solo procesar si tiene el ID Externo para garantizar la actualización
-        if (rowData[0]) {
-          rowsForOdoo.push(rowData);
-        }
-      });
+        rowsForOdoo.push(rowData);
+      }
 
       return await this.uploadToOdoo(technicalFields, rowsForOdoo);
     } catch (error: any) {
       this.logger.error(`Error: ${error.message}`);
-      throw new InternalServerErrorException(`Fallo en procesamiento: ${error.message}`);
+      throw new InternalServerErrorException(
+        `Fallo en procesamiento: ${error.message}`,
+      );
     }
   }
 
   private mapState(label: string): string {
-    // 1. Limpieza básica y manejo de nulos
     if (!label) return 'draft';
     const cleanLabel = label.trim();
 
-    // 2. Diccionario de traducción (Nombres del Excel -> Claves de Odoo)
     const states: Record<string, string> = {
-      'Nuevo': 'draft',
+      Nuevo: 'draft',
       'En proceso': 'open',
       'En Proceso': 'open',
-      'Vencido': 'close',
-      'Cancelado': 'cancel',
+      Vencido: 'close',
+      Cancelado: 'cancel',
       'Cancelado(a)': 'cancel',
     };
 
-    // 3. Lógica de retorno inteligente
-    // Primero: ¿Está en nuestro diccionario?
-    if (states[cleanLabel]) {
-      return states[cleanLabel];
-    }
+    if (states[cleanLabel]) return states[cleanLabel];
 
-    // Segundo: ¿El valor ya es una clave técnica válida? (ej. "open", "draft")
-    // Esto evita que si el Excel ya está corregido, lo rompa.
     const technicalValues = ['draft', 'open', 'close', 'cancel'];
     if (technicalValues.includes(cleanLabel.toLowerCase())) {
       return cleanLabel.toLowerCase();
     }
 
-    // Por último: Si no coincide con nada, por defecto Odoo lo toma como draft
     return 'draft';
   }
-
 
   private formatDate(value: any): string {
     if (!value) return '';
@@ -106,7 +175,6 @@ export class SubirContratosService {
     try {
       const uid = await this.odoo.authenticate();
 
-      // Uso de contexto para forzar la actualización del registro existente
       const result = await this.odoo.executeKw<any>(
         'hr.contract',
         'load',
@@ -114,18 +182,18 @@ export class SubirContratosService {
         {
           context: {
             import_file: true,
-            import_compat: true, // Crucial para buscar mallas por nombre
+            import_compat: true,
             tracking_disable: true,
-          }
+          },
         },
-        uid
+        uid,
       );
 
       return {
         success: !result.messages?.some((m: any) => m.type === 'error'),
         message: result.ids ? 'Sincronización completada' : 'Error en Odoo',
         total_procesados: result.ids ? result.ids.length : 0,
-        errors: result.messages || []
+        errors: result.messages || [],
       };
     } catch (error: any) {
       throw new InternalServerErrorException(`Error Odoo: ${error.message}`);
