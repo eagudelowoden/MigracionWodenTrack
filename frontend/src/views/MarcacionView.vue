@@ -12,7 +12,7 @@
           </svg>
         </div>
         <div>
-          <p class="text-[10px] font-black uppercase text-[#ff8f00] tracking-widest opacity-80">Terminal Activa</p>
+          <p class="text-[10px] font-black uppercase text-[#ff8f00] tracking-widest opacity-80">Registra marcación</p>
           <h2 class="text-base font-black uppercase tracking-tight">{{ employee.name }}</h2>
         </div>
       </div>
@@ -81,7 +81,7 @@
       </div>
 
       <!-- Botón Registrar Novedad -->
-      <button @click="router.push('/novedad')"
+      <!-- <button @click="router.push('/novedad')"
         class="w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all duration-300 active:scale-95 group"
         :class="isDark
           ? 'border-white/8 bg-white/3 hover:border-[#ff8f00]/40 hover:bg-[#ff8f00]/5'
@@ -105,7 +105,7 @@
         </div>
         <i
           class="fas fa-chevron-right text-[8px] opacity-20 group-hover:opacity-60 group-hover:text-[#ff8f00] transition-all group-hover:translate-x-0.5"></i>
-      </button>
+      </button> -->
       <!-- Cerrar sesión -->
       <div class="flex flex-col items-center gap-2 pt-2">
         <button @click="logout"
