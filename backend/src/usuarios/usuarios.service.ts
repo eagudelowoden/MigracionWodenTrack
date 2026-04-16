@@ -20,6 +20,8 @@ import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Area } from './entities/area.entity';
+import { MailModule } from '../logsEmail/mail.module';
+import { MailService } from '../logsEmail/mail.service';
 
 @Injectable()
 export class UsuariosService {
@@ -50,10 +52,11 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
+    private readonly mailService: MailService,
 
     @InjectRepository(Area)
     private readonly areaRepo: Repository<Area>,
-    @InjectRepository(PermisoDepartamento) // 👈 agrega
+    @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
   ) {}
 
@@ -880,8 +883,14 @@ export class UsuariosService {
     segmentoId?: number,
   ) {
     console.time('⏱ TOTAL reporte');
+    const inicioTotal = Date.now();
     const uid = await this.odoo.authenticate();
     const { hoyFechaCorta } = getFechaColombia();
+
+    const rangoTexto = soloHoy
+      ? 'Hoy'
+      : `${startDate || '?'} → ${endDate || '?'}`;
+    const deptoTexto = departamentoName || 'Todos los departamentos';
 
     // 1. Filtro por estructura local (área/segmento)
     const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
@@ -913,13 +922,41 @@ export class UsuariosService {
 
     // 4. Consultar Odoo
     console.time('⏱ query-odoo');
-    const [attendances, logs] = await this.consultarOdoo(
-      domainAtt,
-      domainLog,
-      uid,
-    );
+    let attendances: any[];
+    let logs: any[];
+
+    try {
+      [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid);
+    } catch (error) {
+      // Enviar correo si la consulta falla (ej: demasiados registros)
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'error',
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje: error.message,
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+      throw error;
+    }
+
     console.timeEnd('⏱ query-odoo');
+    const total = attendances.length + logs.length;
     console.log(`📊 Attendances: ${attendances.length} | Logs: ${logs.length}`);
+
+    // Alerta si la consulta trajo muchos registros
+    if (total > 15000) {
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'grande',
+          registros: total,
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje:
+            'La consulta fue exitosa pero es muy pesada. Considera agregar más filtros.',
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+    }
 
     // 5. Obtener cédulas
     console.time('⏱ partners');
@@ -947,8 +984,24 @@ export class UsuariosService {
       return timeB - timeA;
     });
 
+    const tiempoTotal = (Date.now() - inicioTotal) / 1000;
     console.timeEnd('⏱ TOTAL reporte');
     console.log(`✅ Total registros devueltos: ${resultado.length}`);
+
+    // Correo si tardó más de 20 segundos
+    if (tiempoTotal > 20) {
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'grande',
+          registros: resultado.length,
+          tiempo: tiempoTotal,
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje: `La consulta tardó ${tiempoTotal.toFixed(1)}s. Rendimiento degradado.`,
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+    }
+
     return resultado;
   }
 

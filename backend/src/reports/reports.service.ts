@@ -291,18 +291,13 @@ export class ReportsService {
       const cedula = e.identification_id || e.barcode;
       if (cedula) {
         cedulaMap.set(e.name, cedula);
-        console.log(`✅ Cédula directa: "${e.name}" → ${cedula}`);
       } else {
         // Sin identification_id ni barcode → buscar en res.partner
         const partnerId: number | undefined = e.address_home_id?.[0];
         if (partnerId) {
           partnerIds.push(partnerId);
           partnerPorNombre.set(e.name, partnerId);
-          console.log(
-            `🔍 Sin cédula directa, buscando partner para: "${e.name}" (partnerId: ${partnerId})`,
-          );
         } else {
-          console.warn(`⚠️ Sin cédula ni partner para: "${e.name}"`);
         }
       }
     });
