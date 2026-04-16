@@ -989,7 +989,7 @@ export class UsuariosService {
     console.log(`✅ Total registros devueltos: ${resultado.length}`);
 
     // Correo si tardó más de 20 segundos
-    if (tiempoTotal > 20) {
+    if (tiempoTotal > 60) {
       this.mailService
         .enviarAlertaConsulta({
           tipo: 'grande',

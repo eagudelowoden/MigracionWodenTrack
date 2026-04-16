@@ -7,12 +7,16 @@ export class MailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST, // smtp.gmail.com
+      host: process.env.MAIL_HOST,
       port: Number(process.env.MAIL_PORT) || 587,
       secure: false,
       auth: {
-        user: process.env.MAIL_USER, // tu correo
-        pass: process.env.MAIL_PASS, // contraseña de app
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+      tls: {
+        ciphers: 'SSLv3', // 👈 necesario para Office 365
+        rejectUnauthorized: false, // 👈 evita errores de certificado
       },
     });
   }
@@ -25,6 +29,10 @@ export class MailService {
     rango?: string;
     mensaje?: string;
   }) {
+    if (process.env.MAIL_ALERTS_ENABLED !== 'true') {
+      console.log('📧 Alertas de correo desactivadas — omitiendo envío');
+      return;
+    }
     const { tipo, registros, tiempo, departamento, rango, mensaje } = datos;
 
     const colores = {
