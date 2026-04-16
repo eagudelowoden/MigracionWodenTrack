@@ -45,49 +45,6 @@ export function useCargarAsistencias() {
 
   // Agrega esta bandera para controlar la carga inicial
   let initialLoadDone = false;
-
-  // watch(
-  //   [
-  //     filterHoy,
-  //     startDate,
-  //     endDate,
-  //     selectedCompany,
-  //     selectedArea,
-  //     selectedSegmento,
-  //   ],
-  //   async (newValues, oldValues) => {
-  //     if (!initialLoadDone) return;
-
-  //     const [newHoy, newStart, newEnd, newCompany] = newValues;
-  //     const [oldHoy, oldStart, oldEnd] = oldValues;
-
-  //     if (!newCompany || newCompany === "") return;
-
-  //     if (newHoy && !oldHoy) {
-  //       startDate.value = "";
-  //       endDate.value = "";
-  //     }
-
-  //     if (
-  //       (newStart !== oldStart || newEnd !== oldEnd) &&
-  //       (newStart || newEnd) &&
-  //       filterHoy.value
-  //     ) {
-  //       filterHoy.value = false;
-  //       return;
-  //     }
-
-  //     // 👇 Si solo cambió una de las dos fechas, esperar a que completen ambas
-  //     if (newStart && !newEnd) return;
-  //     if (!newStart && newEnd) return;
-
-  //     // 👇 Si cambió startDate pero endDate no ha cambiado aún, esperar
-  //     if (newStart !== oldStart && newEnd === oldEnd && !newHoy) return;
-
-  //     currentPage.value = 1;
-  //     fetchReporte();
-  //   },
-  // );
   const fetchReporte = debounce(async () => {
     // Cancelar request anterior si aún está pendiente
     if (abortController.value) {
