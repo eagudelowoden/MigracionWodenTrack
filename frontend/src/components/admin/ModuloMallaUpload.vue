@@ -253,8 +253,8 @@ const {
   showResultModal,
   selectedCompany,
   selectedDepartment,
-  selectedArea,       // 👈
-  selectedSegmento,   // 👈
+  selectedArea,
+  selectedSegmento,
   departments,
   fetchMallasDesdeOdoo,
   downloadMallaTemplate,
