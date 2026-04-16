@@ -22,6 +22,8 @@ import * as path from 'path';
 import { Area } from './entities/area.entity';
 import { MailModule } from '../logsEmail/mail.module';
 import { MailService } from '../logsEmail/mail.service';
+import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
+import { MallasLocalService } from '../mallas/mallas-local.service';
 
 @Injectable()
 export class UsuariosService {
@@ -1787,5 +1789,39 @@ export class UsuariosService {
       console.error('❌ Error consultando Odoo:', e);
       return null;
     }
+  }
+
+  // Nuevo método que busca primero en DB local, luego Odoo como fallback
+  private async getMallasMapConFallback(
+    employeeIds: number[],
+    uid: number,
+    mallasLocalService: MallasLocalService,
+    fecha: string,
+  ): Promise<{
+    calendarMap: Record<number, { calId: number; calNombre: string }>;
+    mallasMap: Record<number, any[]>;
+    mallasLocales: Record<number, MallaHoraria>; // 👈 nuevo
+  }> {
+    const mallasLocales: Record<number, MallaHoraria> = {};
+
+    // 1. Intentar DB local primero
+    for (const empId of employeeIds) {
+      const mallaLocal = await mallasLocalService.getMallaVigenteDeEmpleado(
+        empId,
+        fecha,
+      );
+      if (mallaLocal) {
+        mallasLocales[empId] = mallaLocal;
+      }
+    }
+
+    // 2. Para los que no tienen malla local, ir a Odoo
+    const sinMallaLocal = employeeIds.filter((id) => !mallasLocales[id]);
+    const { calendarMap, mallasMap } = await this.getMallasMap(
+      sinMallaLocal,
+      uid,
+    );
+
+    return { calendarMap, mallasMap, mallasLocales };
   }
 }
