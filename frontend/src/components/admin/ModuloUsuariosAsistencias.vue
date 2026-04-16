@@ -230,8 +230,8 @@ const {
   filterHoy,
   downloadReport,
   clearFilters,
-  selectedArea,      // <--- Extraer aquí
-  selectedSegmento,  // <--- Extraer aquí
+  selectedArea,
+  selectedSegmento,
   selectedCompany
 } = useCargarAsistencias();
 

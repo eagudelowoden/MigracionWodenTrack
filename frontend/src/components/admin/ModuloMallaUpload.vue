@@ -46,6 +46,10 @@
 
         <!-- Botones descarga y subida: todos -->
         <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
+          <button @click="fetchMallasDesdeOdoo" class="p-1.5 text-slate-500 hover:text-amber-500 transition-all"
+            title="Refrescar">
+            <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoading }"></i>
+          </button>
           <button @click="downloadMallaTemplate"
             class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
             title="Descargar Plantilla">
@@ -225,14 +229,15 @@
   </div>
 </template>
 <script setup>
-import { onMounted, watch, computed } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
-import '../../assets/css/modulo-mallas.css';
+
 const session = JSON.parse(localStorage.getItem("user_session") || "{}");
 const hasPerm = (permiso) => {
   const permisos = session.permisos || session.permissions || {};
   return permisos[permiso] === true;
 };
+
 const props = defineProps({
   isDark: Boolean,
   company: String
@@ -248,6 +253,8 @@ const {
   showResultModal,
   selectedCompany,
   selectedDepartment,
+  selectedArea,       // 👈
+  selectedSegmento,   // 👈
   departments,
   fetchMallasDesdeOdoo,
   downloadMallaTemplate,
@@ -258,15 +265,38 @@ const {
   totalRecords
 } = useMallasGeneral();
 
-// Sincronizar con la compañía seleccionada en el Header
-watch(() => props.company, (newVal) => {
-  selectedCompany.value = newVal;
+const idLogueado = session.id_odoo;
+
+onMounted(async () => {
+  const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
+
+  // 1. Sincronizar compañía
+  if (props.company) selectedCompany.value = props.company;
+
+  // 2. Cargar perfil para área/segmento — igual que asistencias
+  if (!session.isSuperAdmin) {
+    try {
+      const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
+      if (resp.ok) {
+        const perfil = await resp.json();
+        if (perfil.area?.id) {
+          selectedArea.value = perfil.area.id;
+        }
+      }
+    } catch (e) {
+      console.error("Error cargando perfil:", e);
+    }
+  }
+
+  // 3. Una sola llamada
   fetchMallasDesdeOdoo();
 });
 
-onMounted(() => {
-  if (props.company) selectedCompany.value = props.company;
-  fetchMallasDesdeOdoo();
+// Solo sincronizar compañía sin disparar fetch
+watch(() => props.company, (newCompany) => {
+  if (newCompany && newCompany !== selectedCompany.value) {
+    selectedCompany.value = newCompany;
+  }
 });
 </script>
 <style></style>

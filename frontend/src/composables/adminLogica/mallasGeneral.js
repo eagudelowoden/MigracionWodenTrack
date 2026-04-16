@@ -4,7 +4,7 @@ import axios from "axios";
 export function useMallasGeneral() {
   const mallasData = ref([]);
   const searchQuery = ref("");
-  const isLoading = ref(true);
+  const isLoading = ref(false);
   const isLoadingDownload = ref(false);
   const isUploading = ref(false);
   const uploadErrors = ref([]);
@@ -12,26 +12,38 @@ export function useMallasGeneral() {
   const showResultModal = ref(false);
   const selectedCompany = ref("");
   const selectedDepartment = ref("");
-
-  // --- NUEVO: Variables de Paginación (Sin borrar nada de lo anterior) ---
+  const selectedArea = ref(null);
+  const selectedSegmento = ref(null);
   const currentPage = ref(1);
   const itemsPerPage = ref(15);
+  const abortController = ref(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+  const debounce = (fn, delay) => {
+    let timer = null;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  };
+
   const departments = computed(() => {
     if (!mallasData.value || mallasData.value.length === 0) return [];
-    const allDeps = mallasData.value
-      .map((item) => item.departamento) // 👈 cambia department_id por departamento
-      .filter(Boolean);
-    return [...new Set(allDeps)].sort();
+    return [
+      ...new Set(
+        mallasData.value.map((item) => item.departamento).filter(Boolean),
+      ),
+    ].sort();
   });
   watch(selectedDepartment, () => {
     currentPage.value = 1;
     fetchMallasDesdeOdoo();
   });
+  const fetchMallasDesdeOdoo = debounce(async () => {
+    if (abortController.value) abortController.value.abort();
+    abortController.value = new AbortController();
 
-  const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
 
@@ -41,16 +53,21 @@ export function useMallasGeneral() {
       const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
 
       const params = new URLSearchParams();
-      params.append("t", Date.now().toString());
 
       if (selectedCompany.value && selectedCompany.value !== "Todas") {
         params.append("company", selectedCompany.value);
       }
 
-      if (tieneFiltroDepto) {
+      // 👇 Igual que asistencias — área tiene prioridad
+      if (selectedArea.value) {
+        params.append("area_id", selectedArea.value);
+      } else if (selectedSegmento.value) {
+        params.append("segmento_id", selectedSegmento.value);
+      } else if (tieneFiltroDepto) {
         if (selectedDepartment.value) {
           params.append("departamento", selectedDepartment.value);
         }
+        // admin sin filtro → trae todo
       } else {
         if (deptoUsuario) {
           params.append("departamento", deptoUsuario);
@@ -60,15 +77,59 @@ export function useMallasGeneral() {
       const url = `${API_BASE_URL}/mallas?${params.toString()}`;
       console.log("Consultando mallas en:", url);
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        signal: abortController.value.signal,
+      });
       mallasData.value = response.data;
       currentPage.value = 1;
     } catch (error) {
+      if (axios.isCancel(error) || error.name === "AbortError") return;
       console.error("Error cargando mallas:", error);
     } finally {
-      isLoading.value = false;
+      if (!abortController.value?.signal.aborted) {
+        isLoading.value = false;
+      }
     }
-  };
+  }, 300);
+
+  // const fetchMallasDesdeOdoo = async () => {
+  //   try {
+  //     isLoading.value = true;
+
+  //     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+  //     const deptoUsuario = session.department || "";
+  //     const permisos = session.permisos || session.permissions || {};
+  //     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+
+  //     const params = new URLSearchParams();
+  //     params.append("t", Date.now().toString());
+
+  //     if (selectedCompany.value && selectedCompany.value !== "Todas") {
+  //       params.append("company", selectedCompany.value);
+  //     }
+
+  //     if (tieneFiltroDepto) {
+  //       if (selectedDepartment.value) {
+  //         params.append("departamento", selectedDepartment.value);
+  //       }
+  //     } else {
+  //       if (deptoUsuario) {
+  //         params.append("departamento", deptoUsuario);
+  //       }
+  //     }
+
+  //     const url = `${API_BASE_URL}/mallas?${params.toString()}`;
+  //     console.log("Consultando mallas en:", url);
+
+  //     const response = await axios.get(url);
+  //     mallasData.value = response.data;
+  //     currentPage.value = 1;
+  //   } catch (error) {
+  //     console.error("Error cargando mallas:", error);
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // };
   const downloadMallaTemplate = async () => {
     try {
       isLoadingDownload.value = true;
@@ -208,7 +269,6 @@ export function useMallasGeneral() {
     return mallasData.value.filter(
       (p) =>
         p.nombre?.toLowerCase().includes(query) ||
-        p.cc?.toString().includes(query) ||
         p.malla?.toLowerCase().includes(query),
     );
   });
@@ -236,6 +296,10 @@ export function useMallasGeneral() {
     uploadSuccessMessage,
     showResultModal,
     selectedCompany,
+    selectedDepartment,
+    selectedArea, // 👈 exportar
+    selectedSegmento, // 👈 exportar
+    departments,
     fetchMallasDesdeOdoo,
     downloadMallaTemplate,
     handleFileUpload,
@@ -243,7 +307,5 @@ export function useMallasGeneral() {
     currentPage,
     totalPages,
     totalRecords: computed(() => filteredMallas.value.length),
-    selectedDepartment,
-    departments,
   };
 }

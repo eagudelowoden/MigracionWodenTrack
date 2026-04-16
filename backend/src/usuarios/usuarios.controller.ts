@@ -30,10 +30,16 @@ export class UsuariosController {
   @Get('mallas')
   async getMallas(
     @Query('company') company?: string,
-    @Query('departamento') departamento?: string, // <--- CAPTURAR EL DEPARTAMENTO
+    @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string, // 👈
+    @Query('segmento_id') segmento_id?: string, // 👈
   ) {
-    // Pasamos ambos parámetros al servicio en el orden correcto
-    return await this.usuariosService.getAllMallas(company, departamento);
+    return await this.usuariosService.getAllMallas(
+      company,
+      departamento,
+      area_id ? Number(area_id) : undefined,
+      segmento_id ? Number(segmento_id) : undefined,
+    );
   }
 
   @Get('reporte-novedades')

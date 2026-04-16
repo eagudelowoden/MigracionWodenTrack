@@ -474,13 +474,28 @@ export class UsuariosService {
       };
     }
   }
-  // Agrega esto dentro de la clase UsuariosService
-  async getAllMallas(companyName?: string, departamentoName?: string) {
+  async getAllMallas(
+    companyName?: string,
+    departamentoName?: string,
+    areaId?: number,
+    segmentoId?: number,
+  ) {
     const uid = await this.odoo.authenticate();
     const now = new Date();
     const dayOfWeekOdoo = (
       now.getDay() === 0 ? 6 : now.getDay() - 1
     ).toString();
+
+    // Filtro por estructura local (área/segmento) — igual que getReporteNovedades
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    )
+      return [];
 
     const domain: any[] = [
       ['state', 'in', ['open', 'draft']],
@@ -501,8 +516,11 @@ export class UsuariosService {
         departamentoName,
       ]);
     }
+    // 👇 Filtro por IDs de área/segmento
+    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      domain.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    }
 
-    // 2. EJECUTAR LA BÚSQUEDA
     const contracts = await this.odoo.executeKw<any[]>(
       'hr.contract',
       'search_read',
@@ -512,7 +530,7 @@ export class UsuariosService {
           'employee_id',
           'resource_calendar_id',
           'job_id',
-          'department_id', // Departamento del contrato
+          'department_id',
         ],
         order: 'employee_id asc',
       },
@@ -521,26 +539,22 @@ export class UsuariosService {
 
     if (!contracts || contracts.length === 0) return [];
 
-    // --- NUEVA LÓGICA: Obtener detalles de los Empleados ---
-    // Extraemos los IDs de los empleados de los contratos
     const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
 
     const employeesDetail = await this.odoo.executeKw<any[]>(
       'hr.employee',
       'search_read',
       [[['id', 'in', employeeIds]]],
-      {
-        fields: ['id', 'job_title', 'department_id'],
-      },
+      { fields: ['id', 'job_title', 'department_id'] },
       uid,
     );
 
-    // 3. OBTENER LAS MALLAS (Se mantiene igual)
     const calendarIds = [
       ...new Set(
         contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
       ),
     ];
+
     let allMallas: any[] = [];
     if (calendarIds.length > 0) {
       allMallas = await this.odoo.executeKw<any[]>(
@@ -557,16 +571,11 @@ export class UsuariosService {
       );
     }
 
-    // 4. MAPEO FINAL MEJORADO
     return contracts.map((con) => {
-      // Buscamos el detalle del empleado para rescatar cargo/depto si el contrato no los tiene
       const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
-
       const mallaEmp = allMallas.find(
         (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
       );
-      // console.log('resource_calendar_id:', con.resource_calendar_id);
-      // console.log('allMallas[0]:', allMallas[0]); // ver estructura real
 
       let horario = 'No programado';
       let jornada = 'N/A';
@@ -583,30 +592,158 @@ export class UsuariosService {
 
       return {
         nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
-
-        // PRIORIDAD: 1. Depto Contrato -> 2. Depto Empleado -> 3. "No asignado"
         departamento: Array.isArray(con.department_id)
           ? con.department_id[1]
           : empInfo && Array.isArray(empInfo.department_id)
             ? empInfo.department_id[1]
             : 'No asignado',
-
         malla: con.resource_calendar_id
           ? con.resource_calendar_id[1]
           : 'Sin Malla',
-
-        // PRIORIDAD: 1. Cargo Contrato -> 2. Job Title de Empleado -> 3. "No asignado"
         cargo: Array.isArray(con.job_id)
           ? con.job_id[1]
           : empInfo && empInfo.job_title
             ? empInfo.job_title
             : 'No asignado',
-
-        jornada: jornada,
-        horario: horario,
+        jornada,
+        horario,
       };
     });
   }
+
+  // Agrega esto dentro de la clase UsuariosService
+  // async getAllMallas(companyName?: string, departamentoName?: string) {
+  //   const uid = await this.odoo.authenticate();
+  //   const now = new Date();
+  //   const dayOfWeekOdoo = (
+  //     now.getDay() === 0 ? 6 : now.getDay() - 1
+  //   ).toString();
+
+  //   const domain: any[] = [
+  //     ['state', 'in', ['open', 'draft']],
+  //     ['employee_id.active', '=', true],
+  //   ];
+
+  //   if (companyName && companyName.trim() !== '') {
+  //     domain.push(['employee_id.company_id.name', '=', companyName]);
+  //   }
+  //   if (
+  //     departamentoName &&
+  //     departamentoName.trim() !== '' &&
+  //     departamentoName !== 'Todas'
+  //   ) {
+  //     domain.push([
+  //       'employee_id.department_id.name',
+  //       'ilike',
+  //       departamentoName,
+  //     ]);
+  //   }
+
+  //   // 2. EJECUTAR LA BÚSQUEDA
+  //   const contracts = await this.odoo.executeKw<any[]>(
+  //     'hr.contract',
+  //     'search_read',
+  //     [domain],
+  //     {
+  //       fields: [
+  //         'employee_id',
+  //         'resource_calendar_id',
+  //         'job_id',
+  //         'department_id', // Departamento del contrato
+  //       ],
+  //       order: 'employee_id asc',
+  //     },
+  //     uid,
+  //   );
+
+  //   if (!contracts || contracts.length === 0) return [];
+
+  //   // --- NUEVA LÓGICA: Obtener detalles de los Empleados ---
+  //   // Extraemos los IDs de los empleados de los contratos
+  //   const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
+
+  //   const employeesDetail = await this.odoo.executeKw<any[]>(
+  //     'hr.employee',
+  //     'search_read',
+  //     [[['id', 'in', employeeIds]]],
+  //     {
+  //       fields: ['id', 'job_title', 'department_id'],
+  //     },
+  //     uid,
+  //   );
+
+  //   // 3. OBTENER LAS MALLAS (Se mantiene igual)
+  //   const calendarIds = [
+  //     ...new Set(
+  //       contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
+  //     ),
+  //   ];
+  //   let allMallas: any[] = [];
+  //   if (calendarIds.length > 0) {
+  //     allMallas = await this.odoo.executeKw<any[]>(
+  //       'resource.calendar.attendance',
+  //       'search_read',
+  //       [
+  //         [
+  //           ['calendar_id', 'in', calendarIds],
+  //           ['dayofweek', '=', dayOfWeekOdoo],
+  //         ],
+  //       ],
+  //       { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
+  //       uid,
+  //     );
+  //   }
+
+  //   // 4. MAPEO FINAL MEJORADO
+  //   return contracts.map((con) => {
+  //     // Buscamos el detalle del empleado para rescatar cargo/depto si el contrato no los tiene
+  //     const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
+
+  //     const mallaEmp = allMallas.find(
+  //       (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
+  //     );
+  //     // console.log('resource_calendar_id:', con.resource_calendar_id);
+  //     // console.log('allMallas[0]:', allMallas[0]); // ver estructura real
+
+  //     let horario = 'No programado';
+  //     let jornada = 'N/A';
+  //     if (mallaEmp) {
+  //       horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
+  //       const period = mallaEmp.day_period;
+  //       jornada =
+  //         period === 'morning'
+  //           ? 'Diurna'
+  //           : period === 'afternoon'
+  //             ? 'Tarde'
+  //             : 'Nocturna';
+  //     }
+
+  //     return {
+  //       nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
+
+  //       // PRIORIDAD: 1. Depto Contrato -> 2. Depto Empleado -> 3. "No asignado"
+  //       departamento: Array.isArray(con.department_id)
+  //         ? con.department_id[1]
+  //         : empInfo && Array.isArray(empInfo.department_id)
+  //           ? empInfo.department_id[1]
+  //           : 'No asignado',
+
+  //       malla: con.resource_calendar_id
+  //         ? con.resource_calendar_id[1]
+  //         : 'Sin Malla',
+
+  //       // PRIORIDAD: 1. Cargo Contrato -> 2. Job Title de Empleado -> 3. "No asignado"
+  //       cargo: Array.isArray(con.job_id)
+  //         ? con.job_id[1]
+  //         : empInfo && empInfo.job_title
+  //           ? empInfo.job_title
+  //           : 'No asignado',
+
+  //       jornada: jornada,
+  //       horario: horario,
+  //     };
+  //   });
+  // }
   // ==========================================
   // MÉTODOS PRIVADOS
   // ==========================================
