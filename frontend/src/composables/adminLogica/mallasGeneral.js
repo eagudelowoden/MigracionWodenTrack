@@ -230,7 +230,7 @@ export function useMallasGeneral() {
       formData.append("file", cleanFile, file.name);
 
       const response = await axios.post(
-        `${API_BASE_URL}/contracts-upload/import`,
+        `${API_BASE_URL}/mallas-upload/import`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } },
       );
