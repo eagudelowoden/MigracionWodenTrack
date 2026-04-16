@@ -1093,24 +1093,79 @@ export class UsuariosService {
     logs: any[],
     uid: number,
   ): Promise<Record<string, string>> {
-    const nombresUnicos = [
+    // 1. Obtener IDs únicos de empleados
+    const employeeIds = [
       ...new Set([
-        ...attendances.map((a) => a.employee_id?.[1]),
-        ...logs.map((l) => l.employee_id?.[1]),
+        ...attendances.map((a) => a.employee_id?.[0]),
+        ...logs.map((l) => l.employee_id?.[0]),
       ]),
-    ].filter(Boolean);
+    ].filter(Boolean) as number[];
 
-    if (nombresUnicos.length === 0) return {};
+    if (employeeIds.length === 0) return {};
 
-    const partners = await this.odoo.executeKw<any[]>(
-      'res.partner',
+    // 2. Buscar empleados por ID — más confiable que por nombre
+    const empleados = await this.odoo.executeKw<any[]>(
+      'hr.employee',
       'search_read',
-      [[['name', 'in', nombresUnicos]]],
-      { fields: ['name', 'doc_number'] },
+      [[['id', 'in', employeeIds]]],
+      {
+        fields: [
+          'id',
+          'name',
+          'identification_id',
+          'barcode',
+          'address_home_id',
+        ],
+      },
       uid,
     );
 
-    return Object.fromEntries(partners.map((p) => [p.name, p.doc_number]));
+    const partnerMap: Record<string, string> = {};
+    const sinCedula: any[] = [];
+
+    // 3. Primero intentar con identification_id o barcode directo
+    empleados.forEach((e) => {
+      const cedula = e.identification_id || e.barcode;
+      if (cedula && cedula.trim() !== '') {
+        partnerMap[e.name] = cedula;
+      } else {
+        sinCedula.push(e);
+      }
+    });
+
+    // 4. Para los que no tienen, buscar en res.partner por address_home_id
+    const partnerIds = sinCedula
+      .map((e) => e.address_home_id?.[0])
+      .filter(Boolean) as number[];
+
+    if (partnerIds.length > 0) {
+      const partners = await this.odoo.executeKw<any[]>(
+        'res.partner',
+        'search_read',
+        [[['id', 'in', [...new Set(partnerIds)]]]],
+        { fields: ['id', 'doc_number'] },
+        uid,
+      );
+
+      const docPorPartnerId = new Map(
+        partners.map((p) => [p.id, p.doc_number]),
+      );
+
+      sinCedula.forEach((e) => {
+        const partnerId = e.address_home_id?.[0];
+        if (partnerId) {
+          const doc = docPorPartnerId.get(partnerId);
+          if (doc && doc.trim() !== '' && doc !== 'false') {
+            partnerMap[e.name] = doc;
+          }
+        }
+      });
+    }
+
+    console.log(
+      `✅ Cédulas resueltas: ${Object.keys(partnerMap).length} / ${empleados.length}`,
+    );
+    return partnerMap;
   }
 
   private crearConvertidorLocal(): (utcDate: string) => string | null {

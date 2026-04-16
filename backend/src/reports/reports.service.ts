@@ -225,23 +225,31 @@ export class ReportsService {
   private async obtenerDatosOdooParaAsistencias(
     uid: number,
     nombresEmpleados: string[],
+    employeeIds?: number[],
   ): Promise<{
     cedulaMap: Map<string, string>;
     cargoMap: Map<string, string>;
     mallaMap: Map<string, string>;
-    nombreMallaMap: Map<string, string>; // 👈 nuevo
+    nombreMallaMap: Map<string, string>;
   }> {
     const cedulaMap = new Map<string, string>();
     const cargoMap = new Map<string, string>();
     const mallaMap = new Map<string, string>();
-    const nombreMallaMap = new Map<string, string>(); // 👈 nuevo
+    const nombreMallaMap = new Map<string, string>();
+
+    // Buscar por ID si están disponibles, por nombre como fallback
+    const domain =
+      employeeIds && employeeIds.length > 0
+        ? [['id', 'in', employeeIds]]
+        : [['name', 'in', nombresEmpleados]];
 
     const empleados = await this.odoo.executeKw<any[]>(
       'hr.employee',
       'search_read',
-      [[['name', 'in', nombresEmpleados]]],
+      [domain],
       {
         fields: [
+          'id',
           'name',
           'identification_id',
           'barcode',
@@ -252,6 +260,14 @@ export class ReportsService {
       },
       uid,
     );
+
+    // Log para detectar quién no se encuentra
+    const noEncontrados = nombresEmpleados.filter(
+      (n) => !empleados.find((e) => e.name === n),
+    );
+    if (noEncontrados.length > 0) {
+      console.warn('❌ Empleados no encontrados en Odoo:', noEncontrados);
+    }
 
     if (!empleados?.length)
       return { cedulaMap, cargoMap, mallaMap, nombreMallaMap };
@@ -265,25 +281,33 @@ export class ReportsService {
       if (e.job_id?.[1]) cargoMap.set(e.name, e.job_id[1]);
 
       const calId: number | undefined = e.resource_calendar_id?.[0];
-      const calNombre: string | undefined = e.resource_calendar_id?.[1]; // 👈
+      const calNombre: string | undefined = e.resource_calendar_id?.[1];
       if (calId) {
         calendarIds.push(calId);
         calendarPorNombre.set(e.name, calId);
       }
-      if (calNombre) nombreMallaMap.set(e.name, calNombre); // 👈
+      if (calNombre) nombreMallaMap.set(e.name, calNombre);
 
       const cedula = e.identification_id || e.barcode;
       if (cedula) {
         cedulaMap.set(e.name, cedula);
+        console.log(`✅ Cédula directa: "${e.name}" → ${cedula}`);
       } else {
+        // Sin identification_id ni barcode → buscar en res.partner
         const partnerId: number | undefined = e.address_home_id?.[0];
         if (partnerId) {
           partnerIds.push(partnerId);
           partnerPorNombre.set(e.name, partnerId);
+          console.log(
+            `🔍 Sin cédula directa, buscando partner para: "${e.name}" (partnerId: ${partnerId})`,
+          );
+        } else {
+          console.warn(`⚠️ Sin cédula ni partner para: "${e.name}"`);
         }
       }
     });
 
+    // Buscar doc_number en res.partner para quienes no tenían identification_id
     if (partnerIds.length > 0) {
       const partners = await this.odoo.executeKw<any[]>(
         'res.partner',
@@ -295,12 +319,22 @@ export class ReportsService {
       const docPorPartnerId = new Map<number, string>(
         partners?.map((p) => [p.id, p.doc_number]) ?? [],
       );
+
       partnerPorNombre.forEach((partnerId, nombre) => {
         const doc = docPorPartnerId.get(partnerId);
-        if (doc) cedulaMap.set(nombre, doc);
+        console.log(
+          `🔎 Partner ${partnerId} para "${nombre}" → doc_number: "${doc}" (tipo: ${typeof doc})`,
+        );
+        if (doc && doc.trim() !== '' && doc !== 'false') {
+          cedulaMap.set(nombre, doc);
+          console.log(`✅ Cédula por partner: "${nombre}" → ${doc}`);
+        } else {
+          console.warn(`⚠️ doc_number vacío o false para: "${nombre}"`);
+        }
       });
     }
 
+    // Buscar líneas de malla horaria
     if (calendarIds.length > 0) {
       const lineas = await this.odoo.executeKw<any[]>(
         'resource.calendar.attendance',
@@ -309,19 +343,24 @@ export class ReportsService {
         { fields: ['calendar_id', 'dayofweek', 'hour_from', 'hour_to'] },
         uid,
       );
+
       const mallasPorCalendar = new Map<number, any[]>();
       lineas?.forEach((l) => {
         const cid: number = l.calendar_id[0];
         if (!mallasPorCalendar.has(cid)) mallasPorCalendar.set(cid, []);
         mallasPorCalendar.get(cid)!.push(l);
       });
+
       calendarPorNombre.forEach((calId, nombre) => {
         const lineasCal = mallasPorCalendar.get(calId);
         if (lineasCal) mallaMap.set(nombre, this.formatearMalla(lineasCal));
       });
     }
 
-    return { cedulaMap, cargoMap, mallaMap, nombreMallaMap }; // 👈
+    console.log(
+      `📊 Cédulas resueltas: ${cedulaMap.size} / ${empleados.length}`,
+    );
+    return { cedulaMap, cargoMap, mallaMap, nombreMallaMap };
   }
 
   private aplicarEstiloCabecera(worksheet: ExcelJS.Worksheet): void {
@@ -354,13 +393,24 @@ export class ReportsService {
         ...new Set(data.map((item) => item.empleado || item.Colaborador)),
       ].filter(Boolean) as string[];
 
+      const employeeIds = [
+        ...new Set(
+          data
+            .map((item) => item.employee_id)
+            .filter((id) => id && typeof id === 'number'),
+        ),
+      ] as number[];
+
       if (nombresEmpleados.length > 0) {
         const uid = await this.odoo.authenticate();
         ({ cedulaMap, cargoMap, mallaMap, nombreMallaMap } =
-          await this.obtenerDatosOdooParaAsistencias(uid, nombresEmpleados));
+          await this.obtenerDatosOdooParaAsistencias(
+            uid,
+            nombresEmpleados,
+            employeeIds.length > 0 ? employeeIds : undefined, // 👈
+          ));
       }
     } catch (odooErr) {
-      // No rompemos el reporte si Odoo falla — sale con N/A
       console.error('Error consultando Odoo (asistencias):', odooErr.message);
     }
 
