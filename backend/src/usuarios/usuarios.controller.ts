@@ -40,7 +40,7 @@ export class UsuariosController {
   async getReporte(
     @Query('hoy') hoy?: string,
     @Query('company') company?: string,
-    // @Query('departamento') departamento?: string,
+    @Query('departamento') departamento?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
     @Query('startDate') startDate?: string,
@@ -53,8 +53,7 @@ export class UsuariosController {
       company,
       startDate,
       endDate,
-      // departamento,
-      // Cambiamos 'null' por 'undefined' para que TS no se queje
+      departamento, // pasar aquí
       area_id ? Number(area_id) : undefined,
       segmento_id ? Number(segmento_id) : undefined,
     );

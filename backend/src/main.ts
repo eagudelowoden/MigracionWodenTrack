@@ -1,17 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { json, urlencoded } from 'express'; // Importamos las funciones de express
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // --- SOLUCIÓN AL ERROR 413 ---
-  // Aumentamos el límite para JSON y datos codificados en URL
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ limit: '50mb', extended: true }));
 
-  // --- CONFIGURACIÓN DE CORS ---
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -20,10 +17,14 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
+  // 👇 Aumentar timeout del servidor HTTP
+  const server = app.getHttpServer();
+  server.setTimeout(300000); // 5 minutos
+  server.keepAliveTimeout = 300000; // 5 minutos
+  server.headersTimeout = 301000; // debe ser mayor que keepAliveTimeout
+
   const PORT = process.env.PORT || 8082;
-  
   await app.listen(PORT, '0.0.0.0');
-  
   console.log(`🚀 Servidor NestJS corriendo en: http://localhost:${PORT}`);
 }
 bootstrap();

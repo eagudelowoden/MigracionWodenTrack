@@ -867,68 +867,146 @@ export class UsuariosService {
       });
     });
   }
-
+  // ==========================================
+  // MÉTODO PRINCIPAL - Solo orquesta
+  // ==========================================
   async getReporteNovedades(
     soloHoy?: boolean,
     companyName?: string,
     startDate?: string,
     endDate?: string,
-    // departamentoName?: string,
+    departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
   ) {
+    console.time('⏱ TOTAL reporte');
     const uid = await this.odoo.authenticate();
     const { hoyFechaCorta } = getFechaColombia();
 
-    // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
-    let employeeIdsPorEstructura: number[] | null = null;
-    if (areaId || segmentoId) {
-      const where: any = {};
-      if (areaId) where.area_id = areaId;
-      if (segmentoId) where.segmento_id = segmentoId;
+    // 1. Filtro por estructura local (área/segmento)
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    )
+      return [];
 
-      const usuariosLocales = await this.usuarioRepo.find({
-        where,
-        select: ['id_odoo'],
-      });
+    // 2. Calcular fechas UTC
+    const { inicioUTC, finUTC } = this.calcularRangoUTC(
+      soloHoy,
+      hoyFechaCorta,
+      startDate,
+      endDate,
+    );
 
-      employeeIdsPorEstructura = usuariosLocales
-        .map((u) => u.id_odoo)
-        .filter((id) => id != null);
+    // 3. Construir dominios
+    const { domainAtt, domainLog } = this.construirDominios(
+      inicioUTC,
+      finUTC,
+      companyName,
+      departamentoName,
+      employeeIdsPorEstructura,
+    );
 
-      if (employeeIdsPorEstructura.length === 0) return [];
-    }
+    // 4. Consultar Odoo
+    console.time('⏱ query-odoo');
+    const [attendances, logs] = await this.consultarOdoo(
+      domainAtt,
+      domainLog,
+      uid,
+    );
+    console.timeEnd('⏱ query-odoo');
+    console.log(`📊 Attendances: ${attendances.length} | Logs: ${logs.length}`);
 
-    // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
+    // 5. Obtener cédulas
+    console.time('⏱ partners');
+    const partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
+    console.timeEnd('⏱ partners');
+
+    // 6. Mapear resultados
+    const toLocal = this.crearConvertidorLocal();
+
+    console.time('⏱ mapLogs');
+    const [resAttendances, resLogs] = await Promise.all([
+      Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
+      this.mapLogs(logs, partnerMap, toLocal, uid),
+    ]);
+    console.timeEnd('⏱ mapLogs');
+
+    // 7. Unir y ordenar
+    const resultado = [...resAttendances, ...resLogs].sort((a, b) => {
+      const timeA = new Date(
+        (a.check_in || a.check_out || '0').replace(' ', 'T'),
+      ).getTime();
+      const timeB = new Date(
+        (b.check_in || b.check_out || '0').replace(' ', 'T'),
+      ).getTime();
+      return timeB - timeA;
+    });
+
+    console.timeEnd('⏱ TOTAL reporte');
+    console.log(`✅ Total registros devueltos: ${resultado.length}`);
+    return resultado;
+  }
+
+  // ==========================================
+  // MÉTODOS AUXILIARES DEL REPORTE
+  // ==========================================
+
+  private async resolverIdsPorEstructura(
+    areaId?: number,
+    segmentoId?: number,
+  ): Promise<number[] | null> {
+    if (!areaId && !segmentoId) return null;
+
+    const where: any = {};
+    if (areaId) where.area_id = areaId;
+    if (segmentoId) where.segmento_id = segmentoId;
+
+    const usuarios = await this.usuarioRepo.find({
+      where,
+      select: ['id_odoo'],
+    });
+    return usuarios.map((u) => u.id_odoo).filter((id) => id != null);
+  }
+
+  private calcularRangoUTC(
+    soloHoy: boolean | undefined,
+    hoyFechaCorta: string,
+    startDate?: string,
+    endDate?: string,
+  ): { inicioUTC: string | null; finUTC: string | null } {
     const startDay = soloHoy ? hoyFechaCorta : startDate;
     const endDay = soloHoy ? hoyFechaCorta : endDate;
-
-    // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia,
-    // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
     let finUTC: string | null = null;
     if (endDay) {
-      const partes = endDay.split('-');
-      const fechaFin = new Date(
-        Number(partes[0]),
-        Number(partes[1]) - 1,
-        Number(partes[2]),
-      );
-      // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
+      const [anio, mes, dia] = endDay.split('-').map(Number);
+      const fechaFin = new Date(anio, mes - 1, dia);
       fechaFin.setDate(fechaFin.getDate() + 1);
 
-      const anio = fechaFin.getFullYear();
-      const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
-      const dia = String(fechaFin.getDate()).padStart(2, '0');
-
-      // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
-      finUTC = `${anio}-${mes}-${dia} 04:59:59`;
+      const a = fechaFin.getFullYear();
+      const m = String(fechaFin.getMonth() + 1).padStart(2, '0');
+      const d = String(fechaFin.getDate()).padStart(2, '0');
+      finUTC = `${a}-${m}-${d} 04:59:59`;
     }
 
-    // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
-    let domainAtt: any[] = [];
-    let domainLog: any[] = [];
+    return { inicioUTC, finUTC };
+  }
+
+  private construirDominios(
+    inicioUTC: string | null,
+    finUTC: string | null,
+    companyName?: string,
+    departamentoName?: string,
+    employeeIds?: number[] | null,
+  ): { domainAtt: any[]; domainLog: any[] } {
+    const domainAtt: any[] = [];
+    const domainLog: any[] = [];
 
     if (inicioUTC) {
       domainAtt.push(['check_in', '>=', inicioUTC]);
@@ -938,190 +1016,314 @@ export class UsuariosService {
       domainAtt.push(['check_in', '<=', finUTC]);
       domainLog.push(['punching_time', '<=', finUTC]);
     }
-
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
       domainLog.push(['company_id.name', '=', companyName]);
     }
-
-    // if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
-    //   domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
-    //   domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
-    // }
-
-    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-      domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
-      domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    if (
+      departamentoName &&
+      departamentoName !== 'DEPARTAMENTOS' &&
+      departamentoName !== ''
+    ) {
+      domainAtt.push([
+        'employee_id.department_id.name',
+        'ilike',
+        departamentoName,
+      ]);
+      domainLog.push([
+        'x_studio_related_field_j40wn.name',
+        'ilike',
+        departamentoName,
+      ]);
+    }
+    if (employeeIds && employeeIds.length > 0) {
+      domainAtt.push(['employee_id', 'in', employeeIds]);
+      domainLog.push(['employee_id', 'in', employeeIds]);
     }
 
-    try {
-      const [attendances, logs] = await Promise.all([
-        this.odoo.executeKw<any[]>(
-          'hr.attendance',
-          'search_read',
-          [domainAtt],
-          {
-            fields: [
-              'employee_id',
-              'check_in',
-              'check_out',
-              'department_id',
-              'x_studio_tipo_entrada',
-              'x_studio_tipo_salida',
-            ],
-            order: 'check_in desc',
-            limit: 30000000,
-          },
-          uid,
-        ),
-        this.odoo.executeKw<any[]>(
-          'attendance.log',
-          'search_read',
-          [domainLog],
-          {
-            fields: [
-              'employee_id',
-              'punching_time',
-              'status',
-              'x_studio_related_field_j40wn',
-              'device',
-            ],
-            order: 'punching_time desc',
-            limit: 30000000,
-          },
-          uid,
-        ),
-      ]);
-      const nombresAsistencias = attendances.map((a) => a.employee_id?.[1]);
-      const nombresLogs = logs.map((l) => l.employee_id?.[1]);
-      const nombresUnicos = [
-        ...new Set([...nombresAsistencias, ...nombresLogs]),
-      ].filter(Boolean);
-
-      let partnerMap: Record<string, string> = {};
-      if (nombresUnicos.length > 0) {
-        const partners = await this.odoo.executeKw<any[]>(
-          'res.partner',
-          'search_read',
-          [[['name', 'in', nombresUnicos]]],
-          { fields: ['name', 'doc_number'] },
-          uid,
-        );
-        partnerMap = Object.fromEntries(
-          partners.map((p) => [p.name, p.doc_number]),
-        );
-      }
-
-      // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
-      // const toLocal = (utcDate: string) => {
-      //   if (!utcDate) return null;
-
-      //   // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
-      //   // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
-      //   const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-
-      //   // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
-      //   return new Intl.DateTimeFormat('sv-SE', {
-      //     // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
-      //     timeZone: 'America/Bogota',
-      //     year: 'numeric',
-      //     month: '2-digit',
-      //     day: '2-digit',
-      //     hour: '2-digit',
-      //     minute: '2-digit',
-      //     second: '2-digit',
-      //   })
-      //     .format(fechaUTC)
-      //     .replace('T', ' ');
-      // };
-
-      const toLocal = (utcDate: string) => {
-        if (!utcDate) return null;
-        const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-        return new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'America/Bogota',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-          .format(fechaUTC)
-          .replace('T', ' ');
-      };
-      const [resAttendances, resLogs] = await Promise.all([
-        Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
-        this.mapLogs(logs, partnerMap, toLocal, uid),
-      ]);
-
-      // // --- 5. MAPEO FINAL ---
-      // const resAttendances = attendances.map((att) => {
-      //   // 1. Convertimos las fechas a local una sola vez por cada registro
-      //   const localIn = toLocal(att.check_in);
-      //   const localOut = toLocal(att.check_out);
-
-      //   // 2. Obtenemos el nombre para buscar en el mapa de partners
-      //   const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
-
-      //   // 3. Retornamos el objeto organizado
-      //   return {
-      //     id: `att_${att.id}`,
-      //     empleado: nombre,
-      //     cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
-      //     department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-      //     c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-      //     c_salida: att.x_studio_tipo_salida || 'N/A',
-      //     check_in: localIn,
-      //     check_out: localOut,
-      //     fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-      //     tipo: 'ASISTENCIA',
-      //     estado: att.check_out ? 'Finalizado' : 'En curso',
-      //   };
-      // });
-
-      // const resLogs = logs.map((log) => {
-      //   const localTime = toLocal(log.punching_time);
-      //   const esEntrada = log.status === '0' || log.status === '2';
-
-      //   // 1. Extraemos el nombre del empleado del log
-      //   const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
-
-      //   return {
-      //     id: `log_${log.id}`,
-
-      //     // 2. Asignamos el nombre y buscamos el documento en el mapa
-      //     empleado: nombre,
-      //     cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
-
-      //     department_id: log.x_studio_related_field_j40wn
-      //       ? log.x_studio_related_field_j40wn[1]
-      //       : 'SIN DEPTO',
-      //     check_in: esEntrada ? localTime : null,
-      //     check_out: !esEntrada ? localTime : null,
-      //     c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
-      //     c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
-      //     fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-      //     tipo: 'LOG CRUDO',
-      //     estado: 'Biométrico',
-      //   };
-      // });
-
-      // --- 6. UNIÓN Y ORDENAMIENTO ---
-      return [...resAttendances, ...resLogs].sort((a, b) => {
-        const timeA = new Date(
-          (a.check_in || a.check_out || '0').replace(' ', 'T'),
-        ).getTime();
-        const timeB = new Date(
-          (b.check_in || b.check_out || '0').replace(' ', 'T'),
-        ).getTime();
-        return timeB - timeA;
-      });
-    } catch (error) {
-      console.error('Error en reporte:', error);
-      throw error;
-    }
+    return { domainAtt, domainLog };
   }
+
+  private async consultarOdoo(
+    domainAtt: any[],
+    domainLog: any[],
+    uid: number,
+  ): Promise<[any[], any[]]> {
+    return Promise.all([
+      this.odoo.executeKw<any[]>(
+        'hr.attendance',
+        'search_read',
+        [domainAtt],
+        {
+          fields: [
+            'employee_id',
+            'check_in',
+            'check_out',
+            'department_id',
+            'x_studio_tipo_entrada',
+            'x_studio_tipo_salida',
+          ],
+          order: 'check_in desc',
+          limit: 30000000,
+        },
+        uid,
+      ),
+      this.odoo.executeKw<any[]>(
+        'attendance.log',
+        'search_read',
+        [domainLog],
+        {
+          fields: [
+            'employee_id',
+            'punching_time',
+            'status',
+            'x_studio_related_field_j40wn',
+            'device',
+          ],
+          order: 'punching_time desc',
+          limit: 30000000,
+        },
+        uid,
+      ),
+    ]);
+  }
+
+  private async obtenerPartnerMap(
+    attendances: any[],
+    logs: any[],
+    uid: number,
+  ): Promise<Record<string, string>> {
+    const nombresUnicos = [
+      ...new Set([
+        ...attendances.map((a) => a.employee_id?.[1]),
+        ...logs.map((l) => l.employee_id?.[1]),
+      ]),
+    ].filter(Boolean);
+
+    if (nombresUnicos.length === 0) return {};
+
+    const partners = await this.odoo.executeKw<any[]>(
+      'res.partner',
+      'search_read',
+      [[['name', 'in', nombresUnicos]]],
+      { fields: ['name', 'doc_number'] },
+      uid,
+    );
+
+    return Object.fromEntries(partners.map((p) => [p.name, p.doc_number]));
+  }
+
+  private crearConvertidorLocal(): (utcDate: string) => string | null {
+    return (utcDate: string) => {
+      if (!utcDate) return null;
+      const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+        .format(fechaUTC)
+        .replace('T', ' ');
+    };
+  }
+
+  // async getReporteNovedades(
+  //   soloHoy?: boolean,
+  //   companyName?: string,
+  //   startDate?: string,
+  //   endDate?: string,
+  //   departamentoName?: string,
+  //   areaId?: number,
+  //   segmentoId?: number,
+  // ) {
+
+  //   const uid = await this.odoo.authenticate();
+  //   const { hoyFechaCorta } = getFechaColombia();
+
+  //   // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
+  //   let employeeIdsPorEstructura: number[] | null = null;
+  //   if (areaId || segmentoId) {
+  //     const where: any = {};
+  //     if (areaId) where.area_id = areaId;
+  //     if (segmentoId) where.segmento_id = segmentoId;
+
+  //     const usuariosLocales = await this.usuarioRepo.find({
+  //       where,
+  //       select: ['id_odoo'],
+  //     });
+
+  //     employeeIdsPorEstructura = usuariosLocales
+  //       .map((u) => u.id_odoo)
+  //       .filter((id) => id != null);
+
+  //     if (employeeIdsPorEstructura.length === 0) return [];
+  //   }
+
+  //   // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
+  //   const startDay = soloHoy ? hoyFechaCorta : startDate;
+  //   const endDay = soloHoy ? hoyFechaCorta : endDate;
+
+  //   // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia,
+  //   // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
+  //   const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
+
+  //   let finUTC: string | null = null;
+  //   if (endDay) {
+  //     const partes = endDay.split('-');
+  //     const fechaFin = new Date(
+  //       Number(partes[0]),
+  //       Number(partes[1]) - 1,
+  //       Number(partes[2]),
+  //     );
+  //     // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
+  //     fechaFin.setDate(fechaFin.getDate() + 1);
+
+  //     const anio = fechaFin.getFullYear();
+  //     const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
+  //     const dia = String(fechaFin.getDate()).padStart(2, '0');
+
+  //     // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
+  //     finUTC = `${anio}-${mes}-${dia} 04:59:59`;
+  //   }
+
+  //   // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
+  //   let domainAtt: any[] = [];
+  //   let domainLog: any[] = [];
+
+  //   if (inicioUTC) {
+  //     domainAtt.push(['check_in', '>=', inicioUTC]);
+  //     domainLog.push(['punching_time', '>=', inicioUTC]);
+  //   }
+  //   if (finUTC) {
+  //     domainAtt.push(['check_in', '<=', finUTC]);
+  //     domainLog.push(['punching_time', '<=', finUTC]);
+  //   }
+
+  //   if (companyName && companyName !== 'Todas' && companyName !== '') {
+  //     domainAtt.push(['employee_id.company_id.name', '=', companyName]);
+  //     domainLog.push(['company_id.name', '=', companyName]);
+  //   }
+
+  //   if (
+  //     departamentoName &&
+  //     departamentoName !== 'DEPARTAMENTOS' &&
+  //     departamentoName !== ''
+  //   ) {
+  //     domainAtt.push([
+  //       'employee_id.department_id.name',
+  //       'ilike',
+  //       departamentoName,
+  //     ]);
+  //     domainLog.push([
+  //       'x_studio_related_field_j40wn.name',
+  //       'ilike',
+  //       departamentoName,
+  //     ]);
+  //   }
+
+  //   if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+  //     domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
+  //     domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
+  //   }
+
+  //   try {
+  //     const [attendances, logs] = await Promise.all([
+  //       this.odoo.executeKw<any[]>(
+  //         'hr.attendance',
+  //         'search_read',
+  //         [domainAtt],
+  //         {
+  //           fields: [
+  //             'employee_id',
+  //             'check_in',
+  //             'check_out',
+  //             'department_id',
+  //             'x_studio_tipo_entrada',
+  //             'x_studio_tipo_salida',
+  //           ],
+  //           order: 'check_in desc',
+  //           limit: 30000000,
+  //         },
+  //         uid,
+  //       ),
+  //       this.odoo.executeKw<any[]>(
+  //         'attendance.log',
+  //         'search_read',
+  //         [domainLog],
+  //         {
+  //           fields: [
+  //             'employee_id',
+  //             'punching_time',
+  //             'status',
+  //             'x_studio_related_field_j40wn',
+  //             'device',
+  //           ],
+  //           order: 'punching_time desc',
+  //           limit: 30000000,
+  //         },
+  //         uid,
+  //       ),
+  //     ]);
+  //     const nombresAsistencias = attendances.map((a) => a.employee_id?.[1]);
+  //     const nombresLogs = logs.map((l) => l.employee_id?.[1]);
+  //     const nombresUnicos = [
+  //       ...new Set([...nombresAsistencias, ...nombresLogs]),
+  //     ].filter(Boolean);
+
+  //     let partnerMap: Record<string, string> = {};
+  //     if (nombresUnicos.length > 0) {
+  //       const partners = await this.odoo.executeKw<any[]>(
+  //         'res.partner',
+  //         'search_read',
+  //         [[['name', 'in', nombresUnicos]]],
+  //         { fields: ['name', 'doc_number'] },
+  //         uid,
+  //       );
+  //       partnerMap = Object.fromEntries(
+  //         partners.map((p) => [p.name, p.doc_number]),
+  //       );
+  //     }
+
+  //     const toLocal = (utcDate: string) => {
+  //       if (!utcDate) return null;
+  //       const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+  //       return new Intl.DateTimeFormat('sv-SE', {
+  //         timeZone: 'America/Bogota',
+  //         year: 'numeric',
+  //         month: '2-digit',
+  //         day: '2-digit',
+  //         hour: '2-digit',
+  //         minute: '2-digit',
+  //         second: '2-digit',
+  //       })
+  //         .format(fechaUTC)
+  //         .replace('T', ' ');
+  //     };
+  //     const [resAttendances, resLogs] = await Promise.all([
+  //       Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
+  //       this.mapLogs(logs, partnerMap, toLocal, uid),
+  //     ]);
+
+  //     // --- 6. UNIÓN Y ORDENAMIENTO ---
+  //     return [...resAttendances, ...resLogs].sort((a, b) => {
+  //       const timeA = new Date(
+  //         (a.check_in || a.check_out || '0').replace(' ', 'T'),
+  //       ).getTime();
+  //       const timeB = new Date(
+  //         (b.check_in || b.check_out || '0').replace(' ', 'T'),
+  //       ).getTime();
+  //       return timeB - timeA;
+  //     });
+  //   } catch (error) {
+  //     console.error('Error en reporte:', error);
+  //     throw error;
+  //   }
+
+  // }
   async getAttendanceStatus(employee_id: number) {
     try {
       const { hoyFechaCorta } = getFechaColombia();

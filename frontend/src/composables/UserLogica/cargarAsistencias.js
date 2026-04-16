@@ -1,4 +1,5 @@
 import { ref, computed, watch } from "vue";
+// import { debounce } from "lodash-es";
 
 export function useCargarAsistencias() {
   const reportData = ref([]);
@@ -15,6 +16,7 @@ export function useCargarAsistencias() {
   const selectedSegmento = ref(null);
   // Variable para el switch de "Hoy"
   const filterHoy = ref(true);
+  const abortController = ref(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -32,57 +34,73 @@ export function useCargarAsistencias() {
       Math.ceil(filteredReport.value.length / itemsPerPage.value),
     );
   });
+  const debounce = (fn, delay) => {
+    let timer = null;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  };
   let debounceTimeout = null;
 
   // Agrega esta bandera para controlar la carga inicial
   let initialLoadDone = false;
 
-  watch(
-    [
-      filterHoy,
-      startDate,
-      endDate,
-      selectedCompany,
-      selectedArea,
-      selectedSegmento,
-    ],
-    async (newValues, oldValues) => {
-      // 👈 No reaccionar durante la carga inicial
-      if (!initialLoadDone) return;
+  // watch(
+  //   [
+  //     filterHoy,
+  //     startDate,
+  //     endDate,
+  //     selectedCompany,
+  //     selectedArea,
+  //     selectedSegmento,
+  //   ],
+  //   async (newValues, oldValues) => {
+  //     if (!initialLoadDone) return;
 
-      const [newHoy, newStart, newEnd, newCompany] = newValues;
-      const [oldHoy, oldStart, oldEnd] = oldValues;
+  //     const [newHoy, newStart, newEnd, newCompany] = newValues;
+  //     const [oldHoy, oldStart, oldEnd] = oldValues;
 
-      if (!newCompany || newCompany === "") return;
+  //     if (!newCompany || newCompany === "") return;
 
-      if (newHoy && !oldHoy) {
-        startDate.value = "";
-        endDate.value = "";
-      }
+  //     if (newHoy && !oldHoy) {
+  //       startDate.value = "";
+  //       endDate.value = "";
+  //     }
 
-      if (
-        (newStart !== oldStart || newEnd !== oldEnd) &&
-        (newStart || newEnd) &&
-        filterHoy.value
-      ) {
-        filterHoy.value = false;
-        return;
-      }
+  //     if (
+  //       (newStart !== oldStart || newEnd !== oldEnd) &&
+  //       (newStart || newEnd) &&
+  //       filterHoy.value
+  //     ) {
+  //       filterHoy.value = false;
+  //       return;
+  //     }
 
-      currentPage.value = 1;
+  //     // 👇 Si solo cambió una de las dos fechas, esperar a que completen ambas
+  //     if (newStart && !newEnd) return;
+  //     if (!newStart && newEnd) return;
 
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(async () => {
-        await fetchReporte(); // 👈 descomentado
-      }, 150);
-    },
-  );
-  const fetchReporte = async () => {
+  //     // 👇 Si cambió startDate pero endDate no ha cambiado aún, esperar
+  //     if (newStart !== oldStart && newEnd === oldEnd && !newHoy) return;
+
+  //     currentPage.value = 1;
+  //     fetchReporte();
+  //   },
+  // );
+  const fetchReporte = debounce(async () => {
+    // Cancelar request anterior si aún está pendiente
+    if (abortController.value) {
+      abortController.value.abort();
+    }
+    abortController.value = new AbortController();
+
     loading.value = true;
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
-    const deptoUsuario = session.department; // 👈 también faltaba esto
+    const deptoUsuario = session.department;
+
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
       url.searchParams.append("hoy", filterHoy.value.toString());
@@ -99,12 +117,10 @@ export function useCargarAsistencias() {
         url.searchParams.append("area_id", selectedArea.value);
       }
 
-      // 👇 Este bloque faltaba completo
       if (tieneFiltroDepto) {
         if (selectedDepartment.value) {
           url.searchParams.append("departamento", selectedDepartment.value);
         }
-        // Si tieneFiltroDepto y NO seleccionó nada → no agrega departamento → backend trae todo
       } else {
         if (deptoUsuario) {
           url.searchParams.append("departamento", deptoUsuario);
@@ -112,7 +128,9 @@ export function useCargarAsistencias() {
       }
 
       console.log("URL final:", url.toString());
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        signal: abortController.value.signal, // 👈 permite cancelación
+      });
       console.log("Status:", res.status);
 
       if (!res.ok) {
@@ -126,12 +144,20 @@ export function useCargarAsistencias() {
       rawData.value = data;
       initialLoadDone = true;
     } catch (err) {
+      if (err.name === "AbortError") {
+        console.log("Request cancelado — se lanzó uno más reciente");
+        return; // no limpiar datos ni mostrar error
+      }
       console.error("Error al obtener el reporte:", err);
       rawData.value = [];
     } finally {
-      loading.value = false;
+      // Solo apagar loading si este request no fue abortado
+      if (!abortController.value?.signal.aborted) {
+        loading.value = false;
+      }
     }
-  };
+  }, 600);
+
   const clearFilters = () => {
     search.value = "";
     selectedDepartment.value = "";

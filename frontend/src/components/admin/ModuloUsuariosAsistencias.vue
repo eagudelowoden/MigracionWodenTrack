@@ -263,41 +263,38 @@ const paginatedData = computed(() => {
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
-  // 1. Sincronizar compañía de las props primero
+  // 1. Sincronizar compañía SIN disparar el watch todavía
   if (props.company) {
     selectedCompany.value = props.company;
   }
 
-  // 2. Cargar perfil si NO es superAdmin (para coordinadores/líderes)
-  // Nota: Usa el rol o una bandera que indique que necesita filtro de área
+  // 2. Cargar perfil
   if (!session.isSuperAdmin) {
     try {
       const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
       if (resp.ok) {
         const perfil = await resp.json();
         userProfile.value = perfil;
-
-        // ASIGNACIÓN CLAVE: Esto dispara el watch en el composable
         if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;
         }
-        // if (perfil.segmento?.id) {
-        //   selectedSegmento.value = perfil.segmento.id;
-        // }
-
-        // // Si el usuario tiene un departamento asignado en Odoo/Local
-        // if (perfil.departamento) {
-        //   selectedDepartment.value = perfil.departamento;
-        // }
       }
     } catch (e) {
       console.error("Error cargando perfil:", e);
     }
   }
 
-  // 3. Ejecutar carga inicial
+  // 3. UNA SOLA llamada al final
   fetchReporte();
 });
+
+// 👇 Quitar immediate: true — ya se asignó en onMounted
+watch(() => props.company, (newCompany) => {
+  if (newCompany && newCompany !== selectedCompany.value) { // 👈 solo si cambió
+    selectedCompany.value = newCompany;
+    // NO llamar fetchReporte aquí — el watch del composable lo hace
+  }
+}); // sin immediate
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));
 
