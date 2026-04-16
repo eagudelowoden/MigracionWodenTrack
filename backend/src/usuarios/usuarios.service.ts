@@ -24,6 +24,8 @@ import { MailModule } from '../logsEmail/mail.module';
 import { MailService } from '../logsEmail/mail.service';
 import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
 import { MallasLocalService } from '../mallas/mallas-local.service';
+import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
+import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -55,6 +57,9 @@ export class UsuariosService {
     private dataSource: DataSource,
     private configService: ConfigService,
     private readonly mailService: MailService,
+
+    @InjectRepository(MallaAsignacion)
+    private readonly asignacionRepo: Repository<MallaAsignacion>,
 
     @InjectRepository(Area)
     private readonly areaRepo: Repository<Area>,
@@ -476,6 +481,7 @@ export class UsuariosService {
       };
     }
   }
+
   async getAllMallas(
     companyName?: string,
     departamentoName?: string,
@@ -483,12 +489,8 @@ export class UsuariosService {
     segmentoId?: number,
   ) {
     const uid = await this.odoo.authenticate();
-    const now = new Date();
-    const dayOfWeekOdoo = (
-      now.getDay() === 0 ? 6 : now.getDay() - 1
-    ).toString();
 
-    // Filtro por estructura local (área/segmento) — igual que getReporteNovedades
+    // 1. Filtro por estructura local
     const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
       areaId,
       segmentoId,
@@ -499,6 +501,7 @@ export class UsuariosService {
     )
       return [];
 
+    // 2. Traer contratos de Odoo (solo para nombre, cargo, depto)
     const domain: any[] = [
       ['state', 'in', ['open', 'draft']],
       ['employee_id.active', '=', true],
@@ -518,7 +521,6 @@ export class UsuariosService {
         departamentoName,
       ]);
     }
-    // 👇 Filtro por IDs de área/segmento
     if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
       domain.push(['employee_id', 'in', employeeIdsPorEstructura]);
     }
@@ -551,45 +553,66 @@ export class UsuariosService {
       uid,
     );
 
-    const calendarIds = [
-      ...new Set(
-        contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
-      ),
-    ];
+    // 3. Buscar usuarios en DB local para obtener id_odoo → malla local
+    const usuariosLocales = await this.usuarioRepo.find({
+      where: employeeIdsPorEstructura
+        ? employeeIdsPorEstructura.map((id) => ({ id_odoo: id }))
+        : undefined,
+      select: ['id_odoo', 'identificacion'],
+    });
+    const idOdooSet = new Set(usuariosLocales.map((u) => u.id_odoo));
 
-    let allMallas: any[] = [];
-    if (calendarIds.length > 0) {
-      allMallas = await this.odoo.executeKw<any[]>(
-        'resource.calendar.attendance',
-        'search_read',
-        [
-          [
-            ['calendar_id', 'in', calendarIds],
-            ['dayofweek', '=', dayOfWeekOdoo],
-          ],
-        ],
-        { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
-        uid,
-      );
+    // 4. Obtener mallas locales vigentes para estos empleados
+    const hoy = new Date().toISOString().slice(0, 10);
+    const asignaciones = await this.asignacionRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.malla', 'malla')
+      .leftJoinAndSelect('malla.detalles', 'detalles')
+      .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
+      .andWhere('a.fecha_inicio <= :hoy', { hoy })
+      .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
+      .orderBy('a.fecha_inicio', 'DESC')
+      .getMany();
+
+    // Mapa: id_odoo → asignacion vigente
+    const mallaLocalPorEmpleado = new Map<number, any>();
+    for (const asig of asignaciones) {
+      if (!mallaLocalPorEmpleado.has(asig.usuario_id_odoo)) {
+        mallaLocalPorEmpleado.set(asig.usuario_id_odoo, asig);
+      }
     }
 
+    // 5. Mapear resultado — DB local tiene prioridad sobre Odoo
+    const now = new Date();
+    const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
+
     return contracts.map((con) => {
-      const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
-      const mallaEmp = allMallas.find(
-        (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
-      );
+      const empId = con.employee_id[0];
+      const empInfo = employeesDetail.find((e) => e.id === empId);
+      const asigLocal = mallaLocalPorEmpleado.get(empId);
 
       let horario = 'No programado';
       let jornada = 'N/A';
-      if (mallaEmp) {
-        horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
-        const period = mallaEmp.day_period;
-        jornada =
-          period === 'morning'
-            ? 'Diurna'
-            : period === 'afternoon'
-              ? 'Tarde'
-              : 'Nocturna';
+      let nombreMalla = con.resource_calendar_id
+        ? con.resource_calendar_id[1]
+        : 'Sin Malla';
+
+      if (asigLocal?.malla?.detalles) {
+        // 👇 Usar malla de DB local
+        nombreMalla = asigLocal.malla.nombre;
+        const detalleHoy = asigLocal.malla.detalles
+          .filter((d: any) => d.dia_semana === dayOfWeekOdoo)
+          .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio)[0];
+
+        if (detalleHoy) {
+          horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
+          jornada =
+            detalleHoy.periodo === 'morning'
+              ? 'Diurna'
+              : detalleHoy.periodo === 'afternoon'
+                ? 'Tarde'
+                : 'Nocturna';
+        }
       }
 
       return {
@@ -599,19 +622,152 @@ export class UsuariosService {
           : empInfo && Array.isArray(empInfo.department_id)
             ? empInfo.department_id[1]
             : 'No asignado',
-        malla: con.resource_calendar_id
-          ? con.resource_calendar_id[1]
-          : 'Sin Malla',
+        malla: nombreMalla,
         cargo: Array.isArray(con.job_id)
           ? con.job_id[1]
-          : empInfo && empInfo.job_title
-            ? empInfo.job_title
-            : 'No asignado',
+          : empInfo?.job_title || 'No asignado',
         jornada,
         horario,
+        fuente_malla: asigLocal ? 'DB_LOCAL' : 'ODOO', // 👈 útil para debug
       };
     });
   }
+  // async getAllMallas(
+  //   companyName?: string,
+  //   departamentoName?: string,
+  //   areaId?: number,
+  //   segmentoId?: number,
+  // ) {
+  //   const uid = await this.odoo.authenticate();
+  //   const now = new Date();
+  //   const dayOfWeekOdoo = (
+  //     now.getDay() === 0 ? 6 : now.getDay() - 1
+  //   ).toString();
+
+  //   // Filtro por estructura local (área/segmento) — igual que getReporteNovedades
+  //   const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+  //     areaId,
+  //     segmentoId,
+  //   );
+  //   if (
+  //     employeeIdsPorEstructura !== null &&
+  //     employeeIdsPorEstructura.length === 0
+  //   )
+  //     return [];
+
+  //   const domain: any[] = [
+  //     ['state', 'in', ['open', 'draft']],
+  //     ['employee_id.active', '=', true],
+  //   ];
+
+  //   if (companyName && companyName.trim() !== '') {
+  //     domain.push(['employee_id.company_id.name', '=', companyName]);
+  //   }
+  //   if (
+  //     departamentoName &&
+  //     departamentoName.trim() !== '' &&
+  //     departamentoName !== 'Todas'
+  //   ) {
+  //     domain.push([
+  //       'employee_id.department_id.name',
+  //       'ilike',
+  //       departamentoName,
+  //     ]);
+  //   }
+  //   // 👇 Filtro por IDs de área/segmento
+  //   if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+  //     domain.push(['employee_id', 'in', employeeIdsPorEstructura]);
+  //   }
+
+  //   const contracts = await this.odoo.executeKw<any[]>(
+  //     'hr.contract',
+  //     'search_read',
+  //     [domain],
+  //     {
+  //       fields: [
+  //         'employee_id',
+  //         'resource_calendar_id',
+  //         'job_id',
+  //         'department_id',
+  //       ],
+  //       order: 'employee_id asc',
+  //     },
+  //     uid,
+  //   );
+
+  //   if (!contracts || contracts.length === 0) return [];
+
+  //   const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
+
+  //   const employeesDetail = await this.odoo.executeKw<any[]>(
+  //     'hr.employee',
+  //     'search_read',
+  //     [[['id', 'in', employeeIds]]],
+  //     { fields: ['id', 'job_title', 'department_id'] },
+  //     uid,
+  //   );
+
+  //   const calendarIds = [
+  //     ...new Set(
+  //       contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
+  //     ),
+  //   ];
+
+  //   let allMallas: any[] = [];
+  //   if (calendarIds.length > 0) {
+  //     allMallas = await this.odoo.executeKw<any[]>(
+  //       'resource.calendar.attendance',
+  //       'search_read',
+  //       [
+  //         [
+  //           ['calendar_id', 'in', calendarIds],
+  //           ['dayofweek', '=', dayOfWeekOdoo],
+  //         ],
+  //       ],
+  //       { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
+  //       uid,
+  //     );
+  //   }
+
+  //   return contracts.map((con) => {
+  //     const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
+  //     const mallaEmp = allMallas.find(
+  //       (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
+  //     );
+
+  //     let horario = 'No programado';
+  //     let jornada = 'N/A';
+  //     if (mallaEmp) {
+  //       horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
+  //       const period = mallaEmp.day_period;
+  //       jornada =
+  //         period === 'morning'
+  //           ? 'Diurna'
+  //           : period === 'afternoon'
+  //             ? 'Tarde'
+  //             : 'Nocturna';
+  //     }
+
+  //     return {
+  //       nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
+  //       departamento: Array.isArray(con.department_id)
+  //         ? con.department_id[1]
+  //         : empInfo && Array.isArray(empInfo.department_id)
+  //           ? empInfo.department_id[1]
+  //           : 'No asignado',
+  //       malla: con.resource_calendar_id
+  //         ? con.resource_calendar_id[1]
+  //         : 'Sin Malla',
+  //       cargo: Array.isArray(con.job_id)
+  //         ? con.job_id[1]
+  //         : empInfo && empInfo.job_title
+  //           ? empInfo.job_title
+  //           : 'No asignado',
+  //       jornada,
+  //       horario,
+  //     };
+  //   });
+  // }
 
   private async getMallasMap(
     employeeIds: number[],
