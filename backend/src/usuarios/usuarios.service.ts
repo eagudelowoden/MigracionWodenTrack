@@ -737,6 +737,7 @@ export class UsuariosService {
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
     uid: number,
+    agruparLogs: boolean = true,
   ): Promise<any[]> {
     const employeeIdsLogs = [
       ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
@@ -881,6 +882,7 @@ export class UsuariosService {
     departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
+    agruparLogs: boolean = true, // 👈 NUEVO
   ) {
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
@@ -969,7 +971,7 @@ export class UsuariosService {
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
       Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
-      this.mapLogs(logs, partnerMap, toLocal, uid),
+      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs), // 👈 pasa el parámetro
     ]);
     console.timeEnd('⏱ mapLogs');
 
