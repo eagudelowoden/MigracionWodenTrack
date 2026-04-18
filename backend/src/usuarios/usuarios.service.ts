@@ -1656,7 +1656,7 @@ export class UsuariosService {
     const todos = await this.usuarioRepo.find({ take: 5 });
     console.log('--- DEBUG DB ---');
     console.log('ID Odoo que busco:', idOdoo);
-    console.log('Contenido actual de la tabla (5 primeros):', todos);
+
     // ------------------------------------
 
     const usuario = await this.usuarioRepo.findOne({
