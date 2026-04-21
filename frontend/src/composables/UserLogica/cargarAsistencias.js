@@ -46,7 +46,6 @@ export function useCargarAsistencias() {
   // Agrega esta bandera para controlar la carga inicial
   let initialLoadDone = false;
   const fetchReporte = debounce(async () => {
-    // Cancelar request anterior si aún está pendiente
     if (abortController.value) {
       abortController.value.abort();
     }
@@ -56,7 +55,6 @@ export function useCargarAsistencias() {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
-    const deptoUsuario = session.department;
 
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
@@ -67,28 +65,33 @@ export function useCargarAsistencias() {
       if (selectedCompany.value && selectedCompany.value !== "Todas") {
         url.searchParams.append("company", selectedCompany.value);
       }
-      if (selectedSegmento.value) {
-        url.searchParams.append("segmento_id", selectedSegmento.value);
-      }
-      if (selectedArea.value) {
-        url.searchParams.append("area_id", selectedArea.value);
-      }
 
       if (tieneFiltroDepto) {
+        // Admin: puede filtrar por lo que quiera
         if (selectedDepartment.value) {
           url.searchParams.append("departamento", selectedDepartment.value);
         }
+        if (selectedSegmento.value) {
+          url.searchParams.append("segmento_id", selectedSegmento.value);
+        }
+        if (selectedArea.value) {
+          url.searchParams.append("area_id", selectedArea.value);
+        }
       } else {
-        if (deptoUsuario) {
-          url.searchParams.append("departamento", deptoUsuario);
+        // Usuario normal: filtrar por su area_id y/o segmento_id del perfil
+        // NO enviamos departamento — los permisos se aplican por estructura
+        if (selectedArea.value) {
+          url.searchParams.append("area_id", selectedArea.value);
+        }
+        if (selectedSegmento.value) {
+          url.searchParams.append("segmento_id", selectedSegmento.value);
         }
       }
 
       console.log("URL final:", url.toString());
       const res = await fetch(url.toString(), {
-        signal: abortController.value.signal, // 👈 permite cancelación
+        signal: abortController.value.signal,
       });
-      console.log("Status:", res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -97,18 +100,16 @@ export function useCargarAsistencias() {
       }
 
       const data = await res.json();
-      console.log("Data length:", data.length);
       rawData.value = data;
       initialLoadDone = true;
     } catch (err) {
       if (err.name === "AbortError") {
         console.log("Request cancelado — se lanzó uno más reciente");
-        return; // no limpiar datos ni mostrar error
+        return;
       }
       console.error("Error al obtener el reporte:", err);
       rawData.value = [];
     } finally {
-      // Solo apagar loading si este request no fue abortado
       if (!abortController.value?.signal.aborted) {
         loading.value = false;
       }

@@ -52,7 +52,7 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId: string,
     @Query('segmento_id') segmentoId: string,
-    @Query('agrupar') agrupar: string = 'true', // 👈 NUEVO
+    @Query('agrupar') agrupar: string = 'true',
   ) {
     return this.usuariosService.getReporteNovedades(
       hoy === 'true',
