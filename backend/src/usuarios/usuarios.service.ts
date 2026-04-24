@@ -810,28 +810,161 @@ export class UsuariosService {
     }
   }
 
+  private async getMallasMapLocal(
+    employeeIds: number[],
+  ): Promise<Map<number, any[]>> {
+    if (!employeeIds.length) return new Map();
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    const asignaciones = await this.asignacionRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.malla', 'malla')
+      .leftJoinAndSelect('malla.detalles', 'detalles')
+      .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
+      .andWhere('a.fecha_inicio <= :hoy', { hoy })
+      .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
+      .orderBy('a.fecha_inicio', 'DESC')
+      .getMany();
+
+    const mallaMap = new Map<number, any[]>();
+    for (const asig of asignaciones) {
+      if (!mallaMap.has(asig.usuario_id_odoo) && asig.malla?.detalles?.length) {
+        mallaMap.set(asig.usuario_id_odoo, asig.malla.detalles);
+      }
+    }
+    return mallaMap;
+  }
+
+  private clasificarPorMallaLocal(
+    empId: number,
+    punchingTime: string,
+    esEntrada: boolean,
+    mallasLocalMap: Map<number, any[]>,
+  ): string {
+    const detalles = mallasLocalMap.get(empId);
+    if (!detalles?.length) return 'No programado';
+
+    const fechaUTC = new Date(punchingTime.replace(' ', 'T') + 'Z');
+    const horaLocal = new Date(
+      fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+    const diaSemana = horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1;
+    const diaSemanaAnterior = diaSemana === 0 ? 6 : diaSemana - 1;
+    const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
+    const tolerancia = 6 / 60;
+
+    // Buscar turno del día actual
+    const detallesDia = detalles
+      .filter((d: any) => d.dia_semana === diaSemana)
+      .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio);
+
+    if (detallesDia.length) {
+      const turno = detallesDia[0];
+      const esNocturno = turno.hora_fin < turno.hora_inicio; // cruza medianoche
+
+      if (esEntrada) {
+        return horaDecimal > turno.hora_inicio + tolerancia
+          ? 'ENTRADA TARDE'
+          : 'A TIEMPO';
+      } else {
+        if (esNocturno) {
+          // Salida en madrugada: hora pequeña (ej: 04:30) vs hora_fin (ej: 05:00)
+          return horaDecimal < turno.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+        }
+        return horaDecimal < turno.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+      }
+    }
+
+    // No hay turno hoy — verificar si el día anterior tenía un turno nocturno
+    // que cruza medianoche y cuya hora_fin cubre la hora actual
+    const turnosNocturnos = detalles.filter(
+      (d: any) =>
+        d.dia_semana === diaSemanaAnterior && d.hora_fin < d.hora_inicio,
+    );
+
+    if (turnosNocturnos.length) {
+      const turnoNoche = turnosNocturnos.sort(
+        (a: any, b: any) => a.hora_inicio - b.hora_inicio,
+      )[0];
+
+      // La hora actual está dentro de la ventana nocturna del día anterior
+      if (horaDecimal <= turnoNoche.hora_fin) {
+        if (!esEntrada) {
+          return horaDecimal < turnoNoche.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+        }
+        // Entrada en madrugada dentro del turno anterior → A TIEMPO
+        return 'A TIEMPO';
+      }
+    }
+
+    return 'No programado';
+  }
+
   private mapAttendances(
     attendances: any[],
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
+    mallasLocalMap: Map<number, any[]>,
   ): any[] {
-    return attendances.map((att) => {
+    // Agrupar por empleado + día (un solo registro por persona por día)
+    const grupos: Record<
+      string,
+      { empId: number; nombre: string; dept: string; registros: any[] }
+    > = {};
+
+    for (const att of attendances) {
+      const empId = att.employee_id?.[0];
+      const nombre = att.employee_id?.[1] || 'Desconocido';
       const localIn = toLocal(att.check_in);
-      const localOut = toLocal(att.check_out);
-      const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+      const fecha = localIn ? localIn.split(' ')[0] : 'SIN_FECHA';
+      const key = `${empId}_${fecha}`;
+
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+          registros: [],
+        };
+      }
+      grupos[key].registros.push(att);
+    }
+
+    return Object.values(grupos).map(({ empId, nombre, dept, registros }) => {
+      // Ordenar por check_in para tomar el primero y el último
+      const ordenados = registros.sort(
+        (a, b) =>
+          new Date(a.check_in).getTime() - new Date(b.check_in).getTime(),
+      );
+
+      const primero = ordenados[0];
+      const ultimo = ordenados[ordenados.length - 1];
+
+      const localIn = toLocal(primero.check_in);
+      const localOut = ultimo.check_out ? toLocal(ultimo.check_out) : null;
+      const fecha = localIn ? localIn.split(' ')[0] : 'N/A';
+
+      // Clasificar entrada y salida contra malla local
+      const cEntrada = empId && primero.check_in
+        ? this.clasificarPorMallaLocal(empId, primero.check_in, true, mallasLocalMap)
+        : 'No programado';
+
+      const cSalida = empId && ultimo.check_out
+        ? this.clasificarPorMallaLocal(empId, ultimo.check_out, false, mallasLocalMap)
+        : 'N/A';
 
       return {
-        id: `att_${att.id}`,
+        id: `att_${primero.id}`,
         empleado: nombre,
         cc: partnerMap[nombre] || 'N/A',
-        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-        c_salida: att.x_studio_tipo_salida || 'N/A',
+        department_id: dept,
+        c_entrada: cEntrada,
+        c_salida: cSalida,
         check_in: localIn,
         check_out: localOut,
-        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+        fecha,
         tipo: 'ASISTENCIA',
-        estado: att.check_out ? 'Finalizado' : 'En curso',
+        estado: localOut ? 'Finalizado' : 'En curso',
       };
     });
   }
@@ -842,14 +975,8 @@ export class UsuariosService {
     toLocal: (d: string) => string | null,
     uid: number,
     agruparLogs: boolean = true,
+    mallasLocalMap: Map<number, any[]> = new Map(),
   ): Promise<any[]> {
-    const employeeIdsLogs = [
-      ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
-    ];
-    const { calendarMap, mallasMap } = await this.getMallasMap(
-      employeeIdsLogs,
-      uid,
-    );
 
     // --- AGRUPAR POR EMPLEADO + DÍA ---
     const grupos: Record<
@@ -890,29 +1017,26 @@ export class UsuariosService {
       const primero = ordenados[0];
       const ultimo = ordenados[ordenados.length - 1];
 
-      // Verificar si el último ya superó hour_to
+      // Verificar si el último ya superó hora_fin de la malla local
       let jornadadFinalizada = false;
       if (empId && ordenados.length > 1) {
-        const cal = calendarMap[empId];
-        if (cal) {
-          const mallasDelCal = mallasMap[cal.calId] || [];
+        const detalles = mallasLocalMap.get(empId);
+        if (detalles?.length) {
           const fechaUTC = new Date(
             ultimo.punching_time.replace(' ', 'T') + 'Z',
           );
           const horaLocal = new Date(
             fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
           );
-          const dayOfWeekOdoo = (
-            horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
-          ).toString();
+          const diaSemana = horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1;
           const horaDecimalUltimo =
             horaLocal.getHours() + horaLocal.getMinutes() / 60;
-          const mallasDelDia = mallasDelCal
-            .filter((m) => m.dayofweek === dayOfWeekOdoo)
-            .sort((a, b) => a.hour_from - b.hour_from);
+          const detallesDia = detalles
+            .filter((d: any) => d.dia_semana === diaSemana)
+            .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio);
 
-          if (mallasDelDia.length > 0) {
-            jornadadFinalizada = horaDecimalUltimo >= mallasDelDia[0].hour_to;
+          if (detallesDia.length > 0) {
+            jornadadFinalizada = horaDecimalUltimo >= detallesDia[0].hora_fin;
           }
         }
       }
@@ -927,36 +1051,24 @@ export class UsuariosService {
         let checkOut: string | null = null;
 
         if (esPrimero) {
-          // Clasificar entrada con el primero
-          const clasificacionEntrada = empId
-            ? this.clasificarPorMalla(
-                empId,
-                log.punching_time,
-                true,
-                calendarMap,
-                mallasMap,
-              )
-            : 'SIN MALLA';
-          cEntrada = `${clasificacionEntrada} | BIOMÉTRICO`;
+          // Clasificar entrada con malla local
+          cEntrada = empId
+            ? this.clasificarPorMallaLocal(empId, log.punching_time, true, mallasLocalMap)
+            : 'No programado';
 
-          // Si jornada finalizada, poner salida también en el primero
+          // Si jornada finalizada, clasificar salida también
           if (jornadadFinalizada) {
-            const clasificacionSalida = empId
-              ? this.clasificarPorMalla(
-                  empId,
-                  ultimo.punching_time,
-                  false,
-                  calendarMap,
-                  mallasMap,
-                )
-              : 'SIN MALLA';
-            cSalida = `${clasificacionSalida} | BIOMÉTRICO`;
-            checkOut = toLocal(ultimo.punching_time); // hora real del último
+            cSalida = empId
+              ? this.clasificarPorMallaLocal(empId, ultimo.punching_time, false, mallasLocalMap)
+              : 'No programado';
+            checkOut = toLocal(ultimo.punching_time);
             estado = 'Finalizado';
           }
         } else {
-          // Los del medio solo BIOMÉTRICO
-          cEntrada = 'BIOMÉTRICO';
+          // Registros intermedios: clasificar como entrada contra malla local
+          cEntrada = empId
+            ? this.clasificarPorMallaLocal(empId, log.punching_time, true, mallasLocalMap)
+            : 'No programado';
         }
 
         return {
@@ -1072,10 +1184,19 @@ export class UsuariosService {
     // 6. Mapear resultados
     const toLocal = this.crearConvertidorLocal();
 
+    // Construir malla local para TODOS los empleados (attendance + logs)
+    const todosLosEmpIds = [
+      ...new Set([
+        ...attendances.map((a) => a.employee_id?.[0]).filter(Boolean),
+        ...logs.map((l) => l.employee_id?.[0]).filter(Boolean),
+      ]),
+    ];
+    const mallasLocalMap = await this.getMallasMapLocal(todosLosEmpIds);
+
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
-      Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
-      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs), // 👈 pasa el parámetro
+      Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal, mallasLocalMap)),
+      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs, mallasLocalMap),
     ]);
     console.timeEnd('⏱ mapLogs');
 
@@ -1895,37 +2016,4 @@ export class UsuariosService {
     }
   }
 
-  // Nuevo método que busca primero en DB local, luego Odoo como fallback
-  private async getMallasMapConFallback(
-    employeeIds: number[],
-    uid: number,
-    mallasLocalService: MallasLocalService,
-    fecha: string,
-  ): Promise<{
-    calendarMap: Record<number, { calId: number; calNombre: string }>;
-    mallasMap: Record<number, any[]>;
-    mallasLocales: Record<number, MallaHoraria>; // 👈 nuevo
-  }> {
-    const mallasLocales: Record<number, MallaHoraria> = {};
-
-    // 1. Intentar DB local primero
-    for (const empId of employeeIds) {
-      const mallaLocal = await mallasLocalService.getMallaVigenteDeEmpleado(
-        empId,
-        fecha,
-      );
-      if (mallaLocal) {
-        mallasLocales[empId] = mallaLocal;
-      }
-    }
-
-    // 2. Para los que no tienen malla local, ir a Odoo
-    const sinMallaLocal = employeeIds.filter((id) => !mallasLocales[id]);
-    const { calendarMap, mallasMap } = await this.getMallasMap(
-      sinMallaLocal,
-      uid,
-    );
-
-    return { calendarMap, mallasMap, mallasLocales };
-  }
 }

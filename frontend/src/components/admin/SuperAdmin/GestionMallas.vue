@@ -197,6 +197,84 @@
             </table>
           </div>
 
+          <!-- REDUCCIÓN DE HORAS -->
+          <div class="rounded-xl border transition-all overflow-hidden"
+            :class="reduccion.activa
+              ? isDark ? 'border-orange-500/40 bg-orange-500/5' : 'border-orange-300 bg-orange-50'
+              : isDark ? 'border-white/10' : 'border-slate-200'">
+            <div class="px-3 py-2.5 flex items-center gap-3 cursor-pointer select-none"
+              @click="reduccion.activa = !reduccion.activa">
+              <input type="checkbox" v-model="reduccion.activa"
+                class="w-3.5 h-3.5 accent-orange-500 cursor-pointer" @click.stop />
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-wide"
+                  :class="reduccion.activa
+                    ? 'text-orange-500'
+                    : isDark ? 'text-white/60' : 'text-slate-500'">
+                  Reducción de horas
+                </p>
+                <p class="text-[9px] opacity-50"
+                  :class="isDark ? 'text-white' : 'text-slate-400'">
+                  Aplica reducción en un día específico de la malla
+                </p>
+              </div>
+            </div>
+
+            <Transition name="slide-down">
+              <div v-if="reduccion.activa"
+                class="px-4 pb-4 pt-1 flex flex-wrap items-end gap-4 border-t"
+                :class="isDark ? 'border-orange-500/20' : 'border-orange-200'">
+
+                <!-- Horas a reducir -->
+                <div>
+                  <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Horas a reducir</label>
+                  <div class="flex items-center gap-1">
+                    <button @click="reduccion.horas = Math.max(0.5, reduccion.horas - 0.5)"
+                      class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all font-bold"
+                      :class="isDark ? 'border-white/10 text-white hover:bg-white/10' : 'border-slate-200 text-slate-600 hover:bg-slate-100'">−</button>
+                    <span class="w-12 text-center text-[13px] font-black"
+                      :class="'text-orange-500'">{{ reduccion.horas }}h</span>
+                    <button @click="reduccion.horas = Math.min(8, reduccion.horas + 0.5)"
+                      class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all font-bold"
+                      :class="isDark ? 'border-white/10 text-white hover:bg-white/10' : 'border-slate-200 text-slate-600 hover:bg-slate-100'">+</button>
+                  </div>
+                </div>
+
+                <!-- Día a reducir -->
+                <div>
+                  <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Día afectado</label>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button v-for="d in form.detalles.filter(d => d.activo)" :key="d.dia_semana"
+                      @click="reduccion.dia = d.dia_semana"
+                      class="h-7 px-3 rounded-lg border text-[9px] font-bold uppercase transition-all"
+                      :class="reduccion.dia === d.dia_semana
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : isDark
+                          ? 'border-white/10 text-white/50 hover:bg-white/10'
+                          : 'border-slate-200 text-slate-500 hover:bg-slate-100'">
+                      {{ DIAS_SHORT[d.dia_semana] }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Preview del resultado -->
+                <div v-if="reduccion.dia !== null" class="flex-1 min-w-[160px]">
+                  <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Resultado</label>
+                  <div class="px-3 py-1.5 rounded-lg border text-[10px] font-semibold"
+                    :class="isDark ? 'border-orange-500/30 bg-orange-500/10 text-orange-400' : 'border-orange-200 bg-orange-50 text-orange-600'">
+                    {{ DIAS[reduccion.dia] }}:
+                    {{ formatHora(form.detalles[reduccion.dia].hora_inicio) }} →
+                    {{ formatHoraFin(form.detalles[reduccion.dia].hora_inicio, form.detalles[reduccion.dia].hora_fin, reduccion.horas) }}
+                    <span class="opacity-60">(−{{ reduccion.horas }}h)</span>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+
           <!-- Botón guardar -->
           <div class="flex justify-end">
             <button @click="crearMalla" :disabled="guardando || !form.nombre.trim()"
@@ -326,7 +404,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['success', 'error']);
@@ -337,17 +415,34 @@ const API_URL = import.meta.env.VITE_API_URL;
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DIAS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-const HORAS = Array.from({ length: 34 }, (_, i) => {
-  const valor = 5 + i * 0.5;
+// 00:00 a 23:30 — incluye turnos nocturnos y madrugada
+const HORAS = Array.from({ length: 48 }, (_, i) => {
+  const valor = i * 0.5;
   const h = Math.floor(valor).toString().padStart(2, '0');
   const m = valor % 1 === 0.5 ? '30' : '00';
   return { value: valor, label: `${h}:${m}` };
 });
 
 const formatHora = (decimal) => {
-  const h = Math.floor(decimal).toString().padStart(2, '0');
-  const m = Math.round((decimal % 1) * 60).toString().padStart(2, '0');
+  const norm = ((decimal % 24) + 24) % 24; // normalizar si pasa 24h
+  const h = Math.floor(norm).toString().padStart(2, '0');
+  const m = Math.round((norm % 1) * 60).toString().padStart(2, '0');
   return `${h}:${m}`;
+};
+
+// Preview reducción respetando turnos nocturnos
+const formatHoraFin = (inicio, fin, reduccion) => {
+  const esNocturno = fin < inicio; // turno cruza medianoche
+  const nuevaFin = esNocturno
+    ? Math.max(0, fin - reduccion)           // reducir desde el lado de la madrugada
+    : Math.max(inicio + 1, fin - reduccion); // reducir hora fin normal
+  return formatHora(nuevaFin);
+};
+
+const detectarPeriodo = (horaInicio) => {
+  if (horaInicio >= 5 && horaInicio < 12) return 'morning';
+  if (horaInicio >= 12 && horaInicio < 20) return 'afternoon';
+  return 'night'; // 20:00+ o madrugada
 };
 
 const formularioInicial = () => ({
@@ -362,6 +457,8 @@ const formularioInicial = () => ({
   })),
 });
 
+const reduccionInicial = () => ({ activa: false, horas: 2, dia: null });
+
 // ── Estado ──────────────────────────────────────────────────
 const mallas = ref([]);
 const cargando = ref(false);
@@ -374,6 +471,7 @@ const eliminando = ref(false);
 const archivoExcel = ref(null);
 const cargandoExcel = ref(false);
 const resultadoUpload = ref(null);
+const reduccion = ref(reduccionInicial());
 
 // ── API ─────────────────────────────────────────────────────
 const cargarMallas = async () => {
@@ -393,10 +491,21 @@ const crearMalla = async () => {
   if (!form.value.nombre.trim()) return;
   guardando.value = true;
   try {
+    // Aplicar reducción de horas si está activa
+    const detallesFinales = form.value.detalles
+      .filter((d) => d.activo)
+      .map((d) => {
+        if (reduccion.value.activa && reduccion.value.dia === d.dia_semana && reduccion.value.horas > 0) {
+          const nuevaHoraFin = Math.max(d.hora_inicio + 1, d.hora_fin - reduccion.value.horas);
+          return { ...d, hora_fin: nuevaHoraFin };
+        }
+        return { ...d };
+      });
+
     const payload = {
       nombre: form.value.nombre,
       compania: form.value.compania,
-      detalles: form.value.detalles.filter((d) => d.activo),
+      detalles: detallesFinales,
     };
     const res = await fetch(`${API_URL}/mallas-admin`, {
       method: 'POST',
@@ -407,6 +516,7 @@ const crearMalla = async () => {
     emit('success', 'Malla creada correctamente');
     panelForm.value = false;
     form.value = formularioInicial();
+    reduccion.value = reduccionInicial();
     await cargarMallas();
   } catch (e) {
     emit('error', e.message || 'Error al crear malla');
@@ -477,6 +587,18 @@ const subirExcel = async () => {
 const descargarPlantilla = () => {
   window.open(`${API_URL}/mallas-admin/plantilla`, '_blank');
 };
+
+// Auto-detectar periodo al cambiar hora_inicio
+watch(
+  () => form.value.detalles.map((d) => d.hora_inicio),
+  (nuevas, anteriores) => {
+    nuevas.forEach((hora, i) => {
+      if (hora !== anteriores?.[i]) {
+        form.value.detalles[i].periodo = detectarPeriodo(hora);
+      }
+    });
+  },
+);
 
 onMounted(cargarMallas);
 </script>
