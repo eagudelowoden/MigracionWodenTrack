@@ -62,18 +62,24 @@ export class MallasUploadService {
           continue;
         }
 
-        // 2. Buscar malla por nombre
-        const malla = await this.mallaRepo.findOne({
-          where: { nombre: nombreMalla },
+        // 2. Buscar malla por nombre — preferir la que tiene detalles
+        const mallas = await this.mallaRepo.find({
+          where: { nombre: nombreMalla, activa: true },
+          relations: ['detalles'],
+          order: { id: 'DESC' },
         });
 
-        if (!malla) {
+        if (!mallas.length) {
           errores.push({
             fila: rowNumber,
             error: `Malla "${nombreMalla}" no existe en la DB`,
           });
           continue;
         }
+
+        // Tomar la que tiene detalles; si ninguna tiene, tomar la más reciente
+        const malla =
+          mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
 
         // 3. Cerrar asignación vigente anterior
         await this.asignacionRepo

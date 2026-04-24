@@ -488,93 +488,53 @@ export class UsuariosService {
     areaId?: number,
     segmentoId?: number,
   ) {
-    const uid = await this.odoo.authenticate();
+    const hoy = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
 
-    // 1. Filtro por estructura local
-    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
-      areaId,
-      segmentoId,
-    );
-    if (
-      employeeIdsPorEstructura !== null &&
-      employeeIdsPorEstructura.length === 0
-    )
-      return [];
+    // 1. Traer usuarios activos de DB local con filtros
+    const usuarioQuery = this.usuarioRepo
+      .createQueryBuilder('u')
+      .where('u.is_active = :active', { active: true });
 
-    // 2. Traer contratos de Odoo (solo para nombre, cargo, depto)
-    const domain: any[] = [
-      ['state', 'in', ['open', 'draft']],
-      ['employee_id.active', '=', true],
-    ];
-
-    if (companyName && companyName.trim() !== '') {
-      domain.push(['employee_id.company_id.name', '=', companyName]);
-    }
     if (
       departamentoName &&
       departamentoName.trim() !== '' &&
       departamentoName !== 'Todas'
     ) {
-      domain.push([
-        'employee_id.department_id.name',
-        'ilike',
-        departamentoName,
-      ]);
+      usuarioQuery.andWhere('u.departamento LIKE :depto', {
+        depto: `%${departamentoName}%`,
+      });
     }
-    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-      domain.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    if (areaId) {
+      usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
+    }
+    if (segmentoId) {
+      usuarioQuery.andWhere('u.segmento_id = :segmentoId', { segmentoId });
     }
 
-    const contracts = await this.odoo.executeKw<any[]>(
-      'hr.contract',
-      'search_read',
-      [domain],
-      {
-        fields: [
-          'employee_id',
-          'resource_calendar_id',
-          'job_id',
-          'department_id',
-        ],
-        order: 'employee_id asc',
-      },
-      uid,
-    );
+    const usuarios = await usuarioQuery
+      .select(['u.id_odoo', 'u.nombre', 'u.cargo', 'u.departamento'])
+      .orderBy('u.nombre', 'ASC')
+      .getMany();
 
-    if (!contracts || contracts.length === 0) return [];
+    if (!usuarios.length) return [];
 
-    const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
+    const idOdoos = usuarios.map((u) => u.id_odoo).filter(Boolean);
+    if (!idOdoos.length) return [];
 
-    const employeesDetail = await this.odoo.executeKw<any[]>(
-      'hr.employee',
-      'search_read',
-      [[['id', 'in', employeeIds]]],
-      { fields: ['id', 'job_title', 'department_id'] },
-      uid,
-    );
-
-    // 3. Buscar usuarios en DB local para obtener id_odoo → malla local
-    const usuariosLocales = await this.usuarioRepo.find({
-      where: employeeIdsPorEstructura
-        ? employeeIdsPorEstructura.map((id) => ({ id_odoo: id }))
-        : undefined,
-      select: ['id_odoo', 'identificacion'],
-    });
-    const idOdooSet = new Set(usuariosLocales.map((u) => u.id_odoo));
-
-    // 4. Obtener mallas locales vigentes para estos empleados
-    const hoy = new Date().toISOString().slice(0, 10);
+    // 2. Obtener asignaciones vigentes con malla y detalles
     const asignaciones = await this.asignacionRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
-      .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
+      .where('a.usuario_id_odoo IN (:...ids)', { ids: idOdoos })
       .andWhere('a.fecha_inicio <= :hoy', { hoy })
       .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
       .orderBy('a.fecha_inicio', 'DESC')
       .getMany();
 
-    // Mapa: id_odoo → asignacion vigente
+    // 3. Mapa id_odoo → asignacion vigente
     const mallaLocalPorEmpleado = new Map<number, any>();
     for (const asig of asignaciones) {
       if (!mallaLocalPorEmpleado.has(asig.usuario_id_odoo)) {
@@ -582,53 +542,39 @@ export class UsuariosService {
       }
     }
 
-    // 5. Mapear resultado — DB local tiene prioridad sobre Odoo
-    const now = new Date();
-    const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
-
-    return contracts.map((con) => {
-      const empId = con.employee_id[0];
-      const empInfo = employeesDetail.find((e) => e.id === empId);
-      const asigLocal = mallaLocalPorEmpleado.get(empId);
-
+    // 4. Construir resultado
+    return usuarios.map((u) => {
+      const asigLocal = mallaLocalPorEmpleado.get(u.id_odoo);
       let horario = 'No programado';
       let jornada = 'N/A';
-      let nombreMalla = con.resource_calendar_id
-        ? con.resource_calendar_id[1]
-        : 'Sin Malla';
+      let nombreMalla = 'Sin Malla';
 
-      if (asigLocal?.malla?.detalles) {
-        // 👇 Usar malla de DB local
+      if (asigLocal?.malla) {
         nombreMalla = asigLocal.malla.nombre;
-        const detalleHoy = asigLocal.malla.detalles
-          .filter((d: any) => d.dia_semana === dayOfWeekOdoo)
-          .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio)[0];
+        if (asigLocal.malla.detalles?.length) {
+          const detalleHoy = asigLocal.malla.detalles
+            .filter((d: any) => d.dia_semana === dayOfWeekOdoo)
+            .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio)[0];
 
-        if (detalleHoy) {
-          horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
-          jornada =
-            detalleHoy.periodo === 'morning'
-              ? 'Diurna'
-              : detalleHoy.periodo === 'afternoon'
-                ? 'Tarde'
-                : 'Nocturna';
+          if (detalleHoy) {
+            horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
+            jornada =
+              detalleHoy.periodo === 'morning'
+                ? 'Diurna'
+                : detalleHoy.periodo === 'afternoon'
+                  ? 'Tarde'
+                  : 'Nocturna';
+          }
         }
       }
 
       return {
-        nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
-        departamento: Array.isArray(con.department_id)
-          ? con.department_id[1]
-          : empInfo && Array.isArray(empInfo.department_id)
-            ? empInfo.department_id[1]
-            : 'No asignado',
+        nombre: u.nombre,
+        departamento: u.departamento || 'No asignado',
         malla: nombreMalla,
-        cargo: Array.isArray(con.job_id)
-          ? con.job_id[1]
-          : empInfo?.job_title || 'No asignado',
+        cargo: u.cargo || 'No asignado',
         jornada,
         horario,
-        fuente_malla: asigLocal ? 'DB_LOCAL' : 'ODOO', // 👈 útil para debug
       };
     });
   }
