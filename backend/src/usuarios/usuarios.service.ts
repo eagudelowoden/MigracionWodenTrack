@@ -529,9 +529,7 @@ export class UsuariosService {
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: idOdoos })
-      .andWhere('a.fecha_inicio <= :hoy', { hoy })
-      .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
-      .orderBy('a.fecha_inicio', 'DESC')
+      .andWhere('a.actual = true')
       .getMany();
 
     // 3. Mapa id_odoo → asignacion vigente
@@ -821,9 +819,7 @@ export class UsuariosService {
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
-      .andWhere('a.fecha_inicio <= :hoy', { hoy })
-      .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
-      .orderBy('a.fecha_inicio', 'DESC')
+      .andWhere('a.actual = true')
       .getMany();
 
     const mallaMap = new Map<number, any[]>();
@@ -1703,7 +1699,6 @@ export class UsuariosService {
       // Total = upserts + eliminaciones
       this.syncProgress.total = odooEmployees.length + toDelete.length;
       let nuevos = 0;
-      let actualizados = 0;
       let eliminados = 0;
 
       // ── FASE 1: UPSERT ───────────────────────────────────────────────────
@@ -1719,24 +1714,22 @@ export class UsuariosService {
           where: { id_odoo: emp.id },
         });
 
-        const data = {
+        if (existing) {
+          // Ya existe en la DB → no tocar nada
+          this.syncProgress.current = index + 1;
+          continue;
+        }
+
+        // Solo insertar si es completamente nuevo
+        await this.usuarioRepo.save({
           id_odoo: emp.id,
           nombre: emp.name,
           identificacion: emp.identification_id || 'N/A',
           cargo: emp.job_title || 'Sin Cargo',
-          departamento: emp.department_id
-            ? emp.department_id[1]
-            : 'Sin Departamento',
+          departamento: emp.department_id ? emp.department_id[1] : 'Sin Departamento',
           pais: paisSeleccionado,
-        };
-
-        if (!existing) {
-          await this.usuarioRepo.save({ ...data, id: emp.id });
-          nuevos++;
-        } else {
-          await this.usuarioRepo.update(existing.id, data);
-          actualizados++;
-        }
+        });
+        nuevos++;
 
         this.syncProgress.current = index + 1;
       }
@@ -1759,7 +1752,7 @@ export class UsuariosService {
       this.syncProgress.status = 'completed';
       return {
         status: 'success',
-        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
+        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos insertados, ${eliminados} eliminados.`,
       };
     } catch (error) {
       this.syncProgress.status = 'error';

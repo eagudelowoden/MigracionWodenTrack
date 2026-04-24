@@ -81,21 +81,22 @@ export class MallasUploadService {
         const malla =
           mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
 
-        // 3. Cerrar asignación vigente anterior
+        // 3. Marcar todas las asignaciones anteriores del usuario como no actuales
         await this.asignacionRepo
           .createQueryBuilder()
           .update()
-          .set({ fecha_fin: fechaInicio })
-          .where('usuario_id_odoo = :id AND fecha_fin IS NULL', {
+          .set({ actual: false })
+          .where('usuario_id_odoo = :id AND actual = true', {
             id: usuario.id_odoo,
           })
           .execute();
 
-        // 4. Crear nueva asignación
+        // 4. Crear nueva asignación marcada como actual
         const nueva = this.asignacionRepo.create({
           usuario_id_odoo: usuario.id_odoo,
           malla_id: malla.id,
           fecha_inicio: fechaInicio,
+          actual: true,
         });
         await this.asignacionRepo.save(nueva);
         procesados.push(usuario.id_odoo);

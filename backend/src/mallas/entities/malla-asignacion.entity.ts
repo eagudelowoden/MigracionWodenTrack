@@ -32,7 +32,10 @@ export class MallaAsignacion {
   fecha_inicio: string; // desde cuándo aplica esta malla
 
   @Column({ type: 'date', nullable: true })
-  fecha_fin: string; // null = vigente actualmente
+  fecha_fin: string;
+
+  @Column({ default: false })
+  actual: boolean; // true = asignación activa actualmente
 
   @Column({ nullable: true })
   asignado_por: string;
