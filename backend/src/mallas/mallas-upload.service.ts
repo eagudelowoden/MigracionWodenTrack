@@ -97,7 +97,7 @@ export class MallasUploadService {
           malla_id: malla.id,
           fecha_inicio: fechaInicio,
           actual: true,
-          asignado_por: asignado_por || null,
+          asignado_por: asignado_por || undefined,
         });
         await this.asignacionRepo.save(nueva);
         procesados.push(usuario.id_odoo);

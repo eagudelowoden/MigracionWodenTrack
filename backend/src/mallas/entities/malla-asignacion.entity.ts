@@ -33,13 +33,13 @@ export class MallaAsignacion {
   fecha_inicio: string; // desde cuándo aplica esta malla
 
   @Column({ type: 'date', nullable: true })
-  fecha_fin: string;
+  fecha_fin: string | null;
 
   @Column({ default: false })
   actual: boolean; // true = asignación activa actualmente
 
   @Column({ nullable: true })
-  asignado_por: string;
+  asignado_por: string | null;
 
   @CreateDateColumn()
   created_at: Date;
