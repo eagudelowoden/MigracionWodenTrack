@@ -35,10 +35,10 @@ export class MallaAsignacion {
   @Column({ type: 'date', nullable: true })
   fecha_fin: string | null;
 
-  @Column({ default: false })
-  actual: boolean; // true = asignación activa actualmente
+  @Column({ type: 'bit', default: false })
+  actual: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
   asignado_por: string | null;
 
   @CreateDateColumn()
