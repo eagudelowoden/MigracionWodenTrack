@@ -288,13 +288,13 @@ onMounted(async () => {
   fetchReporte();
 });
 
-// 👇 Quitar immediate: true — ya se asignó en onMounted
+
 watch(() => props.company, (newCompany) => {
-  if (newCompany && newCompany !== selectedCompany.value) { // 👈 solo si cambió
+  if (newCompany && newCompany !== selectedCompany.value) {
     selectedCompany.value = newCompany;
-    // NO llamar fetchReporte aquí — el watch del composable lo hace
+
   }
-}); // sin immediate
+});
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));
 

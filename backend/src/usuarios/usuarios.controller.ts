@@ -42,29 +42,29 @@ export class UsuariosController {
     );
   }
 
+  // En el controlador
   @Get('reporte-novedades')
-  async getReporte(
-    @Query('hoy') hoy?: string,
-    @Query('company') company?: string,
-    @Query('departamento') departamento?: string,
-    @Query('area_id') area_id?: string,
-    @Query('segmento_id') segmento_id?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+  async getReporteNovedades(
+    @Query('hoy') hoy: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('area_id') areaId: string,
+    @Query('segmento_id') segmentoId: string,
+    @Query('agrupar') agrupar: string = 'true',
   ) {
-    const soloHoy = hoy === 'true';
-
-    return await this.usuariosService.getReporteNovedades(
-      soloHoy,
+    return this.usuariosService.getReporteNovedades(
+      hoy === 'true',
       company,
       startDate,
       endDate,
-      departamento, // pasar aquí
-      area_id ? Number(area_id) : undefined,
-      segmento_id ? Number(segmento_id) : undefined,
+      departamento,
+      areaId ? +areaId : undefined,
+      segmentoId ? +segmentoId : undefined,
+      agrupar !== 'false', // 👈 pasa true por defecto, false solo para Excel
     );
   }
-
   /**
    * NUEVO: Consulta el estado actual del empleado antes de mostrar los botones.
    * Esto evitará que aparezca el botón "ENTRADA" si ya tiene una sesión abierta.

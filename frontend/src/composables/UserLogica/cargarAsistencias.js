@@ -25,13 +25,13 @@ export function useCargarAsistencias() {
   const paginatedData = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage.value;
     const end = start + itemsPerPage.value;
-    return filteredReport.value.slice(start, end);
+    return reporteParaPantalla.value.slice(start, end); // 👈 cambia aquí
   });
 
   const totalPages = computed(() => {
     return Math.max(
       1,
-      Math.ceil(filteredReport.value.length / itemsPerPage.value),
+      Math.ceil(reporteParaPantalla.value.length / itemsPerPage.value), // 👈 y aquí
     );
   });
   const debounce = (fn, delay) => {
@@ -46,7 +46,6 @@ export function useCargarAsistencias() {
   // Agrega esta bandera para controlar la carga inicial
   let initialLoadDone = false;
   const fetchReporte = debounce(async () => {
-    // Cancelar request anterior si aún está pendiente
     if (abortController.value) {
       abortController.value.abort();
     }
@@ -56,7 +55,6 @@ export function useCargarAsistencias() {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
-    const deptoUsuario = session.department;
 
     try {
       const url = new URL(`${API_BASE_URL}/reporte-novedades`);
@@ -67,28 +65,33 @@ export function useCargarAsistencias() {
       if (selectedCompany.value && selectedCompany.value !== "Todas") {
         url.searchParams.append("company", selectedCompany.value);
       }
-      if (selectedSegmento.value) {
-        url.searchParams.append("segmento_id", selectedSegmento.value);
-      }
-      if (selectedArea.value) {
-        url.searchParams.append("area_id", selectedArea.value);
-      }
 
       if (tieneFiltroDepto) {
+        // Admin: puede filtrar por lo que quiera
         if (selectedDepartment.value) {
           url.searchParams.append("departamento", selectedDepartment.value);
         }
+        if (selectedSegmento.value) {
+          url.searchParams.append("segmento_id", selectedSegmento.value);
+        }
+        if (selectedArea.value) {
+          url.searchParams.append("area_id", selectedArea.value);
+        }
       } else {
-        if (deptoUsuario) {
-          url.searchParams.append("departamento", deptoUsuario);
+        // Usuario normal: filtrar por su area_id y/o segmento_id del perfil
+        // NO enviamos departamento — los permisos se aplican por estructura
+        if (selectedArea.value) {
+          url.searchParams.append("area_id", selectedArea.value);
+        }
+        if (selectedSegmento.value) {
+          url.searchParams.append("segmento_id", selectedSegmento.value);
         }
       }
 
       console.log("URL final:", url.toString());
       const res = await fetch(url.toString(), {
-        signal: abortController.value.signal, // 👈 permite cancelación
+        signal: abortController.value.signal,
       });
-      console.log("Status:", res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -97,18 +100,16 @@ export function useCargarAsistencias() {
       }
 
       const data = await res.json();
-      console.log("Data length:", data.length);
       rawData.value = data;
       initialLoadDone = true;
     } catch (err) {
       if (err.name === "AbortError") {
         console.log("Request cancelado — se lanzó uno más reciente");
-        return; // no limpiar datos ni mostrar error
+        return;
       }
       console.error("Error al obtener el reporte:", err);
       rawData.value = [];
     } finally {
-      // Solo apagar loading si este request no fue abortado
       if (!abortController.value?.signal.aborted) {
         loading.value = false;
       }
@@ -166,23 +167,12 @@ export function useCargarAsistencias() {
 
     loading.value = true;
 
-    /**
-     * Extrae la hora en formato 24h (00:00:00 - 23:59:59)
-     * Ideal para reportes técnicos o militares.
-     */
     const formatHoraParaExcel = (value) => {
       if (!value || value === "N/A" || value === "null") return "N/A";
-
       try {
-        // El valor de la API viene como "2026-03-09 18:09:51"
         const partes = value.split(" ");
         if (partes.length < 2) return value;
-
-        const horaCompleta = partes[1]; // "18:09:51"
-        const [hh, mm, ss] = horaCompleta.split(":");
-
-        // Simplemente retornamos los componentes tal cual
-        // Esto asegura que 6 PM sea "18:09:51"
+        const [hh, mm, ss] = partes[1].split(":");
         return `${hh}:${mm}:${ss}`;
       } catch (e) {
         return value;
@@ -190,10 +180,40 @@ export function useCargarAsistencias() {
     };
 
     try {
-      // 1. Mapeamos los datos enviando el TEXTO ya formateado
-      const dataFiltrada = filteredReport.value.map((item) => ({
+      // 1. Fetch separado para Excel — pide todos los registros sin agrupar
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const permisos = session.permisos || session.permissions || {};
+      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+      const deptoUsuario = session.department;
+
+      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+      url.searchParams.append("hoy", filterHoy.value.toString());
+      if (startDate.value)
+        url.searchParams.append("startDate", startDate.value);
+      if (endDate.value) url.searchParams.append("endDate", endDate.value);
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        url.searchParams.append("company", selectedCompany.value);
+      }
+      if (selectedSegmento.value)
+        url.searchParams.append("segmento_id", selectedSegmento.value);
+      if (selectedArea.value)
+        url.searchParams.append("area_id", selectedArea.value);
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value)
+          url.searchParams.append("departamento", selectedDepartment.value);
+      } else {
+        if (deptoUsuario) url.searchParams.append("departamento", deptoUsuario);
+      }
+      // 👇 parámetro clave para que el backend no agrupe
+      url.searchParams.append("agrupar", "false");
+
+      const resRaw = await fetch(url.toString());
+      const todosLosDatos = await resRaw.json();
+
+      // 2. Mapear todos los registros para Excel
+      const dataFiltrada = todosLosDatos.map((item) => ({
         Colaborador: item.empleado,
-        Cedula: item.doc_number || "N/A", // el backend igual consulta Odoo como fallback
+        Cedula: item.cc || "N/A",
         Departamento: item.department_id,
         Fecha: item.fecha,
         Entrada: formatHoraParaExcel(item.check_in),
@@ -201,10 +221,9 @@ export function useCargarAsistencias() {
         Estatus_Entrada: item.c_entrada || "N/A",
         Estatus_Salida: item.c_salida || "N/A",
         Estado: item.estado,
-        // Cargo y Malla se eliminan — el backend los resuelve desde hr.employee
       }));
 
-      // 2. Petición al servidor NestJS
+      // 3. Enviar al backend para generar Excel
       const response = await fetch(
         `${API_BASE_URL}/reports/asistencias/export`,
         {
@@ -219,34 +238,28 @@ export function useCargarAsistencias() {
         throw new Error(errorData.message || "Error al generar el archivo");
       }
 
-      // 3. Procesar la descarga
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const urlBlob = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
+      link.href = urlBlob;
 
-      // 4. Nombre del archivo
       const ahora = new Date();
       const fechaCorta = ahora.toISOString().slice(0, 10);
       const horaCorta = ahora
         .toLocaleTimeString("es-CO", { hour12: false })
         .replace(/:/g, "-");
-
-      const range =
-        typeof startDate !== "undefined" && startDate.value
-          ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
-          : "";
+      const range = startDate.value
+        ? `_del_${startDate.value}_al_${endDate.value || "hoy"}`
+        : "";
 
       link.setAttribute(
         "download",
         `Reporte_Asistencias${range}_${fechaCorta}_${horaCorta}.xlsx`,
       );
-
-      // 5. Disparar descarga
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(urlBlob);
     } catch (error) {
       console.error("Error en descarga:", error);
       alert(`Error al descargar el reporte: ${error.message}`);
@@ -254,9 +267,19 @@ export function useCargarAsistencias() {
       loading.value = false;
     }
   };
+  const reporteParaPantalla = computed(() => {
+    const vistos = new Set();
+    return filteredReport.value.filter((item) => {
+      if (item.tipo !== "LOG CRUDO") return true;
+      const key = `${item.empleado}_${item.fecha}`;
+      if (vistos.has(key)) return false;
+      vistos.add(key);
+      return true;
+    });
+  });
 
   return {
-    reportData: computed(() => filteredReport.value), // Mantenemos tu lógica de filtrado frontal
+    reportData: computed(() => reporteParaPantalla.value),
     search,
     rawData,
     selectedDepartment,

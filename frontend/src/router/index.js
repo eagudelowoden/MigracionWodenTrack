@@ -70,7 +70,7 @@ router.beforeEach((to, from, next) => {
     return next("/marcacion");
   }
 
-  // D. PROTECCIÓN DE RUTAS POR PERMISO (LA MAGIA)
+  // D. PROTECCIÓN DE RUTAS POR PERMISO
 
   // 1. Acceso a Selector de Perfil o SuperAdmin
   // Entra si es SuperAdmin O si tiene el permiso explícito de usuarios

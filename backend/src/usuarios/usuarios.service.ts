@@ -895,6 +895,7 @@ export class UsuariosService {
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
     uid: number,
+    agruparLogs: boolean = true,
   ): Promise<any[]> {
     const employeeIdsLogs = [
       ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
@@ -1039,6 +1040,7 @@ export class UsuariosService {
     departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
+    agruparLogs: boolean = true, // 👈 NUEVO
   ) {
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
@@ -1127,7 +1129,7 @@ export class UsuariosService {
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
       Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
-      this.mapLogs(logs, partnerMap, toLocal, uid),
+      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs), // 👈 pasa el parámetro
     ]);
     console.timeEnd('⏱ mapLogs');
 
@@ -1812,7 +1814,7 @@ export class UsuariosService {
     const todos = await this.usuarioRepo.find({ take: 5 });
     console.log('--- DEBUG DB ---');
     console.log('ID Odoo que busco:', idOdoo);
-    console.log('Contenido actual de la tabla (5 primeros):', todos);
+
     // ------------------------------------
 
     const usuario = await this.usuarioRepo.findOne({
