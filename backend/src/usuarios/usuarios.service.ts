@@ -529,7 +529,7 @@ export class UsuariosService {
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: idOdoos })
-      .andWhere('a.actual = true')
+      .andWhere('a.actual = 1')
       .getMany();
 
     // 3. Mapa id_odoo → asignacion vigente
@@ -819,7 +819,7 @@ export class UsuariosService {
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
-      .andWhere('a.actual = true')
+      .andWhere('a.actual = 1')
       .getMany();
 
     const mallaMap = new Map<number, any[]>();

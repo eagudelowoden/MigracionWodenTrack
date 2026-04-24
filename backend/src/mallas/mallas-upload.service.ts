@@ -17,7 +17,7 @@ export class MallasUploadService {
     private readonly usuarioRepo: Repository<Usuario>,
   ) {}
 
-  async procesarExcel(fileBuffer: any) {
+  async procesarExcel(fileBuffer: any, asignado_por?: string) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer);
     const worksheet = workbook.getWorksheet(1);
@@ -81,12 +81,12 @@ export class MallasUploadService {
         const malla =
           mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
 
-        // 3. Marcar todas las asignaciones anteriores del usuario como no actuales
+        // 3. Cerrar asignaciones anteriores: actual = false + fecha_fin = fechaInicio
         await this.asignacionRepo
           .createQueryBuilder()
           .update()
-          .set({ actual: false })
-          .where('usuario_id_odoo = :id AND actual = true', {
+          .set({ actual: false, fecha_fin: fechaInicio })
+          .where('usuario_id_odoo = :id AND actual = 1', {
             id: usuario.id_odoo,
           })
           .execute();
@@ -97,6 +97,7 @@ export class MallasUploadService {
           malla_id: malla.id,
           fecha_inicio: fechaInicio,
           actual: true,
+          asignado_por: asignado_por || null,
         });
         await this.asignacionRepo.save(nueva);
         procesados.push(usuario.id_odoo);

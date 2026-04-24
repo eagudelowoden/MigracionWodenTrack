@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Unique } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { Usuario } from './usuario.entity';
 
 @Entity('usuarios_permisos')
@@ -18,6 +18,9 @@ export class Permiso {
 
   @Column({ nullable: true })
   asignado_por: string;
+
+  @UpdateDateColumn()
+  fecha_modificacion: Date;
 
   // Muchos permisos pertenecen a UN usuario
   @ManyToOne(() => Usuario, (usuario) => usuario.permisos, { onDelete: 'CASCADE' })

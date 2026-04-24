@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { MallaHoraria } from './malla-horaria.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
@@ -42,4 +43,7 @@ export class MallaAsignacion {
 
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

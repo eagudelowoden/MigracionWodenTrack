@@ -225,9 +225,11 @@ export function useMallasGeneral() {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      // 3. Armar el FormData con el archivo limpio
+      // 3. Armar el FormData con el archivo limpio + quien lo sube
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const formData = new FormData();
       formData.append("file", cleanFile, file.name);
+      formData.append("asignado_por", session.name || "Desconocido");
 
       const response = await axios.post(
         `${API_BASE_URL}/mallas-upload/import`,

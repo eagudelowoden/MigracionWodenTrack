@@ -95,6 +95,7 @@ const showNotification = (msg, type = 'success') => {
 const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
   try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     const res = await fetch(`${API_URL}/asignar-permiso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -102,7 +103,7 @@ const togglePermisoLocal = async (user, slug) => {
         idOdoo: user.id_odoo,
         modulo: slug,
         activo: activo,
-        adminName: 'Admin'
+        adminName: session.name || 'Desconocido'
       })
     });
     if (!res.ok) throw new Error();
