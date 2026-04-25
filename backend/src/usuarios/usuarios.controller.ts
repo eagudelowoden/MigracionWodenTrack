@@ -176,16 +176,15 @@ export class UsuariosController {
         adminName,
       );
     } else {
-      // Método para eliminar el permiso si se desmarca el switch
-      return await this.usuariosService.removerModuloPermiso(idOdoo, modulo);
+      return await this.usuariosService.removerModuloPermiso(idOdoo, modulo, adminName);
     }
   }
 
-  @Post('actualizar-estructura') // <--- Cambiado de Patch a Post
+  @Post('actualizar-estructura')
   async actualizarEstructura(
-    @Body() body: { idOdoo: number; campo: string; valor: any },
+    @Body() body: { idOdoo: number; campo: string; valor: any; adminName?: string },
   ) {
-    const { idOdoo, campo, valor } = body;
+    const { idOdoo, campo, valor, adminName } = body;
 
     if (!['area_id', 'segmento_id'].includes(campo)) {
       throw new BadRequestException('Campo no permitido');
@@ -195,6 +194,7 @@ export class UsuariosController {
       idOdoo,
       campo,
       valor,
+      adminName,
     );
   }
   @Get('perfil-completo/:idOdoo')
@@ -214,11 +214,12 @@ export class UsuariosController {
   @Post('departamentos-permitidos/:idOdoo')
   async setDeptosPermitidos(
     @Param('idOdoo') idOdoo: number,
-    @Body() body: { departamentos: string[] },
+    @Body() body: { departamentos: string[]; adminName?: string },
   ) {
     return this.usuariosService.setDeptosPermitidos(
       Number(idOdoo),
       body.departamentos,
+      body.adminName,
     );
   }
 

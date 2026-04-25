@@ -289,13 +289,25 @@ const toggleDept = (dept) => {
     else deptosSeleccionados.value.splice(idx, 1);
 };
 
+const getAdminName = () => {
+    try {
+        const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+        return session.name || 'Desconocido';
+    } catch {
+        return 'Desconocido';
+    }
+};
+
 const guardarDeptos = async () => {
     isSavingDeptos.value = true;
     try {
         await fetch(`${props.apiUrl}/departamentos-permitidos/${props.modelValue.id_odoo}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ departamentos: deptosSeleccionados.value }),
+            body: JSON.stringify({
+                departamentos: deptosSeleccionados.value,
+                adminName: getAdminName(),
+            }),
         });
     } finally {
         isSavingDeptos.value = false;

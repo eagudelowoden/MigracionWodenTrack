@@ -131,7 +131,8 @@ const updateUserStructure = async (user, field) => {
       body: JSON.stringify({
         idOdoo: user.id_odoo,
         campo: field,
-        valor: user[field]
+        valor: user[field],
+        adminName: employee.value?.name || 'Desconocido',
       })
     });
     if (!res.ok) throw new Error();

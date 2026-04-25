@@ -1,10 +1,11 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  OneToMany, 
-  ManyToOne, // Importante para definir al jefe
-  JoinColumn  // Importante para la columna física en SQL Server
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
 } from 'typeorm';
 import { Usuario } from './usuario.entity';
 
@@ -14,7 +15,13 @@ export class Segmento {
   id: number;
 
   @Column({ unique: true })
-  nombre: string; // Ejemplo: 'LOGISTICA', 'TECNOLOGIA'
+  nombre: string;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  creado_por: string | null;
+
+  @CreateDateColumn()
+  creado_en: Date; // Ejemplo: 'LOGISTICA', 'TECNOLOGIA'
 
   // 1. Relación para asignar al RESPONSABLE del segmento
   @ManyToOne(() => Usuario, { nullable: true })

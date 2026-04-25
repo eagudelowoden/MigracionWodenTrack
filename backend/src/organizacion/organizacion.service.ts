@@ -23,11 +23,11 @@ export class OrganizacionService {
     });
   }
 
-  async createArea(data: { nombre: string; responsableId: number }) {
-    // Creamos la instancia y guardamos
+  async createArea(data: { nombre: string; responsableId: number; creadoPor?: string }) {
     const nuevaArea = this.areaRepo.create({
       nombre: data.nombre,
-      responsable: { id: data.responsableId } as any // Relacionamos por ID
+      responsable: { id: data.responsableId } as any,
+      creado_por: data.creadoPor ?? null,
     });
     return await this.areaRepo.save(nuevaArea);
   }
@@ -40,10 +40,11 @@ export class OrganizacionService {
     });
   }
 
-  async createSegmento(data: { nombre: string; responsableId: number }) {
+  async createSegmento(data: { nombre: string; responsableId: number; creadoPor?: string }) {
     const nuevoSegmento = this.segmentoRepo.create({
       nombre: data.nombre,
-      responsable: { id: data.responsableId } as any
+      responsable: { id: data.responsableId } as any,
+      creado_por: data.creadoPor ?? null,
     });
     return await this.segmentoRepo.save(nuevoSegmento);
   }

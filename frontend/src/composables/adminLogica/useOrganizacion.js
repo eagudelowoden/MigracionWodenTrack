@@ -23,10 +23,21 @@ export function useOrganizacion() {
     }
   };
 
+  const getAdminName = () => {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      return session.name || 'Desconocido';
+    } catch {
+      return 'Desconocido';
+    }
+  };
+
   const crearArea = async (payload) => {
     try {
-      // AJUSTE: Ruta completa con /organizacion/
-      await axios.post(`${API_URL}/organizacion/areas`, payload);
+      await axios.post(`${API_URL}/organizacion/areas`, {
+        ...payload,
+        creadoPor: getAdminName(),
+      });
       await fetchDatos();
     } catch (e) {
       console.error("Error al crear área:", e);
@@ -36,8 +47,10 @@ export function useOrganizacion() {
 
   const crearSegmento = async (payload) => {
     try {
-      // AJUSTE: Ruta completa con /organizacion/
-      await axios.post(`${API_URL}/organizacion/segmentos`, payload);
+      await axios.post(`${API_URL}/organizacion/segmentos`, {
+        ...payload,
+        creadoPor: getAdminName(),
+      });
       await fetchDatos();
     } catch (e) {
       console.error("Error al crear segmento:", e);

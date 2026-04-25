@@ -14,7 +14,7 @@ export class OrganizacionController {
 
   @Post('areas')
   async createArea(
-    @Body() createAreaDto: { nombre: string; responsableId: number },
+    @Body() createAreaDto: { nombre: string; responsableId: number; creadoPor?: string },
   ) {
     return await this.organizacionService.createArea(createAreaDto);
   }
@@ -28,7 +28,7 @@ export class OrganizacionController {
 
   @Post('segmentos')
   async createSegmento(
-    @Body() createSegmentoDto: { nombre: string; responsableId: number },
+    @Body() createSegmentoDto: { nombre: string; responsableId: number; creadoPor?: string },
   ) {
     return await this.organizacionService.createSegmento(createSegmentoDto);
   }

@@ -1805,7 +1805,8 @@ export class UsuariosService {
     return await this.usuarioRepo.find(queryOptions);
   }
 
-  async removerModuloPermiso(idOdoo: number, modulo: string) {
+  async removerModuloPermiso(idOdoo: number, modulo: string, adminName?: string) {
+    console.log(`[PERMISO REMOVIDO] módulo "${modulo}" de usuario ${idOdoo} por: ${adminName ?? 'Desconocido'}`);
     return await this.permisoRepo.delete({
       usuario_id_odoo: idOdoo,
       modulos: modulo,
@@ -1841,7 +1842,7 @@ export class UsuariosService {
     };
   }
 
-  async actualizarEstructuraLocal(idOdoo: number, campo: string, valor: any) {
+  async actualizarEstructuraLocal(idOdoo: number, campo: string, valor: any, adminName?: string) {
     try {
       const usuario = await this.usuarioRepo.findOne({
         where: { id_odoo: idOdoo },
@@ -1853,14 +1854,16 @@ export class UsuariosService {
         );
       }
 
-      // Al haber agregado las columnas en la entidad, esto ahora funcionará:
       usuario[campo] = valor === null ? null : valor;
 
       await this.usuarioRepo.save(usuario);
 
+      console.log(`[ESTRUCTURA] ${campo} de usuario ${idOdoo} actualizado por: ${adminName ?? 'Desconocido'}`);
+
       return {
         status: 'success',
         message: `Asignación de ${campo} exitosa`,
+        modificado_por: adminName ?? null,
       };
     } catch (error) {
       console.error('Error al actualizar estructura:', error);
@@ -1901,15 +1904,20 @@ export class UsuariosService {
   async setDeptosPermitidos(
     idOdoo: number,
     departamentos: string[],
+    adminName?: string,
   ): Promise<{ success: boolean }> {
-    // Borra los anteriores y guarda los nuevos
     await this.permisoDeptRepo.delete({ id_odoo: idOdoo });
     if (departamentos.length) {
       const nuevos = departamentos.map((d) =>
-        this.permisoDeptRepo.create({ id_odoo: idOdoo, departamento: d }),
+        this.permisoDeptRepo.create({
+          id_odoo: idOdoo,
+          departamento: d,
+          asignado_por: adminName ?? null,
+        }),
       );
       await this.permisoDeptRepo.save(nuevos);
     }
+    console.log(`[DEPTOS] departamentos de usuario ${idOdoo} actualizados por: ${adminName ?? 'Desconocido'}`);
     return { success: true };
   }
 
