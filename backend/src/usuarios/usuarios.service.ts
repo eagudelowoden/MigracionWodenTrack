@@ -65,7 +65,7 @@ export class UsuariosService {
     private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
-  ) {}
+  ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -576,142 +576,6 @@ export class UsuariosService {
       };
     });
   }
-  // async getAllMallas(
-  //   companyName?: string,
-  //   departamentoName?: string,
-  //   areaId?: number,
-  //   segmentoId?: number,
-  // ) {
-  //   const uid = await this.odoo.authenticate();
-  //   const now = new Date();
-  //   const dayOfWeekOdoo = (
-  //     now.getDay() === 0 ? 6 : now.getDay() - 1
-  //   ).toString();
-
-  //   // Filtro por estructura local (área/segmento) — igual que getReporteNovedades
-  //   const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
-  //     areaId,
-  //     segmentoId,
-  //   );
-  //   if (
-  //     employeeIdsPorEstructura !== null &&
-  //     employeeIdsPorEstructura.length === 0
-  //   )
-  //     return [];
-
-  //   const domain: any[] = [
-  //     ['state', 'in', ['open', 'draft']],
-  //     ['employee_id.active', '=', true],
-  //   ];
-
-  //   if (companyName && companyName.trim() !== '') {
-  //     domain.push(['employee_id.company_id.name', '=', companyName]);
-  //   }
-  //   if (
-  //     departamentoName &&
-  //     departamentoName.trim() !== '' &&
-  //     departamentoName !== 'Todas'
-  //   ) {
-  //     domain.push([
-  //       'employee_id.department_id.name',
-  //       'ilike',
-  //       departamentoName,
-  //     ]);
-  //   }
-  //   // 👇 Filtro por IDs de área/segmento
-  //   if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-  //     domain.push(['employee_id', 'in', employeeIdsPorEstructura]);
-  //   }
-
-  //   const contracts = await this.odoo.executeKw<any[]>(
-  //     'hr.contract',
-  //     'search_read',
-  //     [domain],
-  //     {
-  //       fields: [
-  //         'employee_id',
-  //         'resource_calendar_id',
-  //         'job_id',
-  //         'department_id',
-  //       ],
-  //       order: 'employee_id asc',
-  //     },
-  //     uid,
-  //   );
-
-  //   if (!contracts || contracts.length === 0) return [];
-
-  //   const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
-
-  //   const employeesDetail = await this.odoo.executeKw<any[]>(
-  //     'hr.employee',
-  //     'search_read',
-  //     [[['id', 'in', employeeIds]]],
-  //     { fields: ['id', 'job_title', 'department_id'] },
-  //     uid,
-  //   );
-
-  //   const calendarIds = [
-  //     ...new Set(
-  //       contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
-  //     ),
-  //   ];
-
-  //   let allMallas: any[] = [];
-  //   if (calendarIds.length > 0) {
-  //     allMallas = await this.odoo.executeKw<any[]>(
-  //       'resource.calendar.attendance',
-  //       'search_read',
-  //       [
-  //         [
-  //           ['calendar_id', 'in', calendarIds],
-  //           ['dayofweek', '=', dayOfWeekOdoo],
-  //         ],
-  //       ],
-  //       { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
-  //       uid,
-  //     );
-  //   }
-
-  //   return contracts.map((con) => {
-  //     const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
-  //     const mallaEmp = allMallas.find(
-  //       (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
-  //     );
-
-  //     let horario = 'No programado';
-  //     let jornada = 'N/A';
-  //     if (mallaEmp) {
-  //       horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
-  //       const period = mallaEmp.day_period;
-  //       jornada =
-  //         period === 'morning'
-  //           ? 'Diurna'
-  //           : period === 'afternoon'
-  //             ? 'Tarde'
-  //             : 'Nocturna';
-  //     }
-
-  //     return {
-  //       nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
-  //       departamento: Array.isArray(con.department_id)
-  //         ? con.department_id[1]
-  //         : empInfo && Array.isArray(empInfo.department_id)
-  //           ? empInfo.department_id[1]
-  //           : 'No asignado',
-  //       malla: con.resource_calendar_id
-  //         ? con.resource_calendar_id[1]
-  //         : 'Sin Malla',
-  //       cargo: Array.isArray(con.job_id)
-  //         ? con.job_id[1]
-  //         : empInfo && empInfo.job_title
-  //           ? empInfo.job_title
-  //           : 'No asignado',
-  //       jornada,
-  //       horario,
-  //     };
-  //   });
-  // }
 
   private async getMallasMap(
     employeeIds: number[],
@@ -836,6 +700,7 @@ export class UsuariosService {
     punchingTime: string,
     esEntrada: boolean,
     mallasLocalMap: Map<number, any[]>,
+    diaSemanaOverride?: number, // usar el día de la entrada para validar la salida
   ): string {
     const detalles = mallasLocalMap.get(empId);
     if (!detalles?.length) return 'No programado';
@@ -844,51 +709,48 @@ export class UsuariosService {
     const horaLocal = new Date(
       fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
     );
-    const diaSemana = horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1;
+    const diaSemana = diaSemanaOverride !== undefined
+      ? diaSemanaOverride
+      : (horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1);
     const diaSemanaAnterior = diaSemana === 0 ? 6 : diaSemana - 1;
     const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
     const tolerancia = 6 / 60;
 
     // Buscar turno del día actual
     const detallesDia = detalles
-      .filter((d: any) => d.dia_semana === diaSemana)
-      .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio);
+      .filter((d: any) => Number(d.dia_semana) === diaSemana)
+      .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
 
     if (detallesDia.length) {
       const turno = detallesDia[0];
-      const esNocturno = turno.hora_fin < turno.hora_inicio; // cruza medianoche
+      const horaInicio = Number(turno.hora_inicio);
+      const horaFin = Number(turno.hora_fin);
+      const esNocturno = horaFin < horaInicio;
 
       if (esEntrada) {
-        return horaDecimal > turno.hora_inicio + tolerancia
-          ? 'ENTRADA TARDE'
-          : 'A TIEMPO';
+        return horaDecimal > horaInicio + tolerancia ? 'ENTRADA TARDE' : 'A TIEMPO';
       } else {
-        if (esNocturno) {
-          // Salida en madrugada: hora pequeña (ej: 04:30) vs hora_fin (ej: 05:00)
-          return horaDecimal < turno.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
-        }
-        return horaDecimal < turno.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+        return horaDecimal < horaFin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
       }
     }
 
-    // No hay turno hoy — verificar si el día anterior tenía un turno nocturno
-    // que cruza medianoche y cuya hora_fin cubre la hora actual
+    // No hay turno hoy — verificar turno nocturno del día anterior
     const turnosNocturnos = detalles.filter(
       (d: any) =>
-        d.dia_semana === diaSemanaAnterior && d.hora_fin < d.hora_inicio,
+        Number(d.dia_semana) === diaSemanaAnterior &&
+        Number(d.hora_fin) < Number(d.hora_inicio),
     );
 
     if (turnosNocturnos.length) {
       const turnoNoche = turnosNocturnos.sort(
-        (a: any, b: any) => a.hora_inicio - b.hora_inicio,
+        (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
       )[0];
+      const horaFinNoche = Number(turnoNoche.hora_fin);
 
-      // La hora actual está dentro de la ventana nocturna del día anterior
-      if (horaDecimal <= turnoNoche.hora_fin) {
+      if (horaDecimal <= horaFinNoche) {
         if (!esEntrada) {
-          return horaDecimal < turnoNoche.hora_fin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+          return horaDecimal < horaFinNoche ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
         }
-        // Entrada en madrugada dentro del turno anterior → A TIEMPO
         return 'A TIEMPO';
       }
     }
@@ -927,26 +789,55 @@ export class UsuariosService {
     }
 
     return Object.values(grupos).map(({ empId, nombre, dept, registros }) => {
-      // Ordenar por check_in para tomar el primero y el último
+      // Ordenar por check_in para tomar el primero (entrada real del día)
       const ordenados = registros.sort(
         (a, b) =>
           new Date(a.check_in).getTime() - new Date(b.check_in).getTime(),
       );
 
       const primero = ordenados[0];
-      const ultimo = ordenados[ordenados.length - 1];
+
+      // La salida es el check_out MÁS TARDÍO, ignorando cierres automáticos de Odoo
+      // (registros donde check_out - check_in < 60 s → worked_hours ≈ 0)
+      const conSalida = registros.filter((r) => {
+        if (!r.check_out) return false;
+        const diffMs = new Date(r.check_out).getTime() - new Date(r.check_in).getTime();
+        return diffMs >= 60_000; // descartar cierres automáticos (< 1 minuto)
+      });
+      const ultimoConSalida = conSalida.length
+        ? conSalida.reduce((best, cur) =>
+            new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
+          )
+        : null;
 
       const localIn = toLocal(primero.check_in);
-      const localOut = ultimo.check_out ? toLocal(ultimo.check_out) : null;
+      const localOut = ultimoConSalida ? toLocal(ultimoConSalida.check_out) : null;
       const fecha = localIn ? localIn.split(' ')[0] : 'N/A';
 
-      // Clasificar entrada y salida contra malla local
-      const cEntrada = empId && primero.check_in
-        ? this.clasificarPorMallaLocal(empId, primero.check_in, true, mallasLocalMap)
-        : 'No programado';
+      // Calcular diaSemana desde la ENTRADA (Colombia) para usar en ambas validaciones
+      const fechaEntradaUTC = new Date(primero.check_in.replace(' ', 'T') + 'Z');
+      const horaEntradaLocal = new Date(
+        fechaEntradaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+      );
+      const diaSemanaEntrada = horaEntradaLocal.getDay() === 0 ? 6 : horaEntradaLocal.getDay() - 1;
 
-      const cSalida = empId && ultimo.check_out
-        ? this.clasificarPorMallaLocal(empId, ultimo.check_out, false, mallasLocalMap)
+      // Prioridad: usar el estado que ya calculó Odoo en tiempo real (x_studio_tipo_entrada/salida)
+      // Si no está disponible, clasificar contra la malla local
+      const odooEntrada = primero.x_studio_tipo_entrada;
+      const odooSalida  = ultimoConSalida?.x_studio_tipo_salida;
+
+      const cEntrada = (odooEntrada && odooEntrada !== false)
+        ? odooEntrada
+        : empId && primero.check_in
+          ? this.clasificarPorMallaLocal(empId, primero.check_in, true, mallasLocalMap, diaSemanaEntrada)
+          : 'No programado';
+
+      const cSalida = ultimoConSalida
+        ? (odooSalida && odooSalida !== false)
+          ? odooSalida
+          : empId
+            ? this.clasificarPorMallaLocal(empId, ultimoConSalida.check_out, false, mallasLocalMap, diaSemanaEntrada)
+            : 'N/A'
         : 'N/A';
 
       return {
@@ -960,6 +851,7 @@ export class UsuariosService {
         check_out: localOut,
         fecha,
         tipo: 'ASISTENCIA',
+        fuente: 'APLICATIVO',
         estado: localOut ? 'Finalizado' : 'En curso',
       };
     });
@@ -1000,87 +892,55 @@ export class UsuariosService {
       grupos[key].registros.push(log);
     });
 
-    // --- MAPEAR UN REGISTRO POR GRUPO (MIN y MAX) ---
-    return Object.entries(grupos).flatMap(([key, grupo]) => {
-      const { empId, nombre, dept, registros } = grupo;
-
+    // --- UNA FILA POR EMPLEADO POR DÍA: MIN = entrada, MAX = salida ---
+    return Object.values(grupos).map(({ empId, nombre, dept, registros }) => {
       const ordenados = registros.sort(
         (a, b) =>
           new Date(a.punching_time).getTime() -
           new Date(b.punching_time).getTime(),
       );
 
-      const primero = ordenados[0];
-      const ultimo = ordenados[ordenados.length - 1];
+      const primero = ordenados[0];                              // MIN → ENTRADA
+      const ultimo  = ordenados[ordenados.length - 1];           // MAX → SALIDA
+      // Hay salida real solo si el último punch es al menos 60 s después del primero
+      const diffPunchesMs = new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime();
+      const haySalida = ordenados.length > 1 && diffPunchesMs >= 60_000;
 
-      // Verificar si el último ya superó hora_fin de la malla local
-      let jornadadFinalizada = false;
-      if (empId && ordenados.length > 1) {
-        const detalles = mallasLocalMap.get(empId);
-        if (detalles?.length) {
-          const fechaUTC = new Date(
-            ultimo.punching_time.replace(' ', 'T') + 'Z',
-          );
-          const horaLocal = new Date(
-            fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
-          );
-          const diaSemana = horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1;
-          const horaDecimalUltimo =
-            horaLocal.getHours() + horaLocal.getMinutes() / 60;
-          const detallesDia = detalles
-            .filter((d: any) => d.dia_semana === diaSemana)
-            .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio);
+      // diaSemana derivado de la ENTRADA (Colombia) — fijo para validar ambos extremos
+      const fechaPrimeroUTC = new Date(primero.punching_time.replace(' ', 'T') + 'Z');
+      const horaLocalPrimero = new Date(
+        fechaPrimeroUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+      );
+      const diaSemanaEntrada = horaLocalPrimero.getDay() === 0 ? 6 : horaLocalPrimero.getDay() - 1;
 
-          if (detallesDia.length > 0) {
-            jornadadFinalizada = horaDecimalUltimo >= detallesDia[0].hora_fin;
-          }
-        }
-      }
+      const localIn  = toLocal(primero.punching_time);
+      const localOut = haySalida ? toLocal(ultimo.punching_time) : null;
+      const fecha    = localIn ? localIn.split(' ')[0] : 'N/A';
 
-      return ordenados.map((log, index) => {
-        const localTime = toLocal(log.punching_time);
-        const esPrimero = index === 0;
+      const cEntrada = empId
+        ? this.clasificarPorMallaLocal(empId, primero.punching_time, true, mallasLocalMap, diaSemanaEntrada)
+        : 'No programado';
 
-        let cEntrada = 'N/A';
-        let cSalida = 'N/A';
-        let estado = 'En curso';
-        let checkOut: string | null = null;
+      const cSalida = haySalida && empId
+        ? this.clasificarPorMallaLocal(empId, ultimo.punching_time, false, mallasLocalMap, diaSemanaEntrada)
+        : 'N/A';
 
-        if (esPrimero) {
-          // Clasificar entrada con malla local
-          cEntrada = empId
-            ? this.clasificarPorMallaLocal(empId, log.punching_time, true, mallasLocalMap)
-            : 'No programado';
+      const estado = haySalida ? 'Finalizado' : 'En curso';
 
-          // Si jornada finalizada, clasificar salida también
-          if (jornadadFinalizada) {
-            cSalida = empId
-              ? this.clasificarPorMallaLocal(empId, ultimo.punching_time, false, mallasLocalMap)
-              : 'No programado';
-            checkOut = toLocal(ultimo.punching_time);
-            estado = 'Finalizado';
-          }
-        } else {
-          // Registros intermedios: clasificar como entrada contra malla local
-          cEntrada = empId
-            ? this.clasificarPorMallaLocal(empId, log.punching_time, true, mallasLocalMap)
-            : 'No programado';
-        }
-
-        return {
-          id: `log_${empId}_${log.punching_time}`,
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A',
-          department_id: dept,
-          check_in: localTime,
-          check_out: checkOut,
-          c_entrada: cEntrada,
-          c_salida: cSalida,
-          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-          tipo: 'LOG CRUDO',
-          estado,
-        };
-      });
+      return {
+        id: `log_${empId}_${fecha}`,
+        empleado: nombre,
+        cc: partnerMap[nombre] || 'N/A',
+        department_id: dept,
+        check_in: localIn,
+        check_out: localOut,
+        c_entrada: cEntrada,
+        c_salida: cSalida,
+        fecha,
+        tipo: 'LOG CRUDO',
+        fuente: 'BIOMÉTRICO',
+        estado,
+      };
     });
   }
   // ==========================================
