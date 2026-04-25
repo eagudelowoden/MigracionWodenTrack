@@ -35,6 +35,8 @@ export class UsuariosService {
     isCancelled: false,
     status: 'idle',
   };
+  // Prevents duplicate markings from concurrent requests for the same employee
+  private markingInProgress = new Set<number>();
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -274,6 +276,16 @@ export class UsuariosService {
   }
 
   async attendance(employee_id: number) {
+    // Race condition guard: reject concurrent markings for the same employee
+    if (this.markingInProgress.has(employee_id)) {
+      return {
+        status: 'error',
+        type: 'in_progress',
+        message: 'Marcación en proceso, intente en un momento',
+      };
+    }
+    this.markingInProgress.add(employee_id);
+
     try {
       // 1. OBTENER FECHAS REALES
       // ahoraStr = Local Colombia | fechaHoraISO = UTC para Odoo
@@ -309,21 +321,22 @@ export class UsuariosService {
       if (!activeSession) {
         // Usamos el inicio del día local para filtrar
         // Odoo comparará este string con sus registros en UTC
+        // Colombia is UTC-5: Colombia midnight (00:00) = UTC 05:00
+        // Using '05:00:00' avoids matching yesterday-evening UTC entries
         const registroHoy = await this.odoo.executeKw<any[]>(
           'hr.attendance',
           'search_read',
           [
             [
               ['employee_id', '=', employee_id],
-              // Buscamos desde las 00:00:00 de hoy en Colombia
-              ['check_in', '>=', `${hoyFechaCorta} 00:00:00`],
+              ['check_in', '>=', `${hoyFechaCorta} 05:00:00`],
               ['check_out', '!=', false],
             ],
           ],
           {
             fields: ['id', 'check_in', 'check_out'],
             limit: 1,
-            order: 'check_in desc', // Traer el más reciente
+            order: 'check_in desc',
           },
           uid,
         );
@@ -352,10 +365,11 @@ export class UsuariosService {
           .split(',')[0];
 
         if (checkInLocal !== hoyFechaCorta) {
-          // Si el registro es de otro día, cerramos a las 04:59:59 UTC
-          // (Que son las 23:59:59 de ese día en Colombia)
-          const diaEntrada = lastAtt[0].check_in.split(' ')[0];
-          const cierreCompensado = `${diaEntrada} 23:59:59`; // Se guarda como texto UTC
+          // Colombia 23:59:59 of checkInLocal day = UTC next-day 04:59:59
+          const nextDay = new Date(new Date(checkInLocal).getTime() + 86_400_000)
+            .toISOString()
+            .split('T')[0];
+          const cierreCompensado = `${nextDay} 04:59:59`;
 
           await this.odoo.executeKw(
             'hr.attendance',
@@ -479,6 +493,8 @@ export class UsuariosService {
         message: 'Error interno',
         type: 'server_error',
       };
+    } finally {
+      this.markingInProgress.delete(employee_id);
     }
   }
 
