@@ -79,6 +79,35 @@
 
       </nav>
 
+      <!-- Dev Nav: solo DESARROLLADOR -->
+      <div v-if="employee?.isSuperAdmin" class="px-2 pb-1 space-y-1 border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+        <p v-if="isSidebarOpen" class="px-1 pt-2 text-[8px] font-black uppercase opacity-40 tracking-widest">Dev Nav</p>
+        <button @click="router.push('/super-admin')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-shield-halved text-[#FF8F00] text-xs"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Super Admin</span>
+        </button>
+        <button @click="router.push('/admin')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-user-shield text-[#FF8F00] text-xs"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Admin</span>
+        </button>
+        <button @click="router.push('/marcacion')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-fingerprint text-[#FF8F00] text-xs"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Marcación</span>
+        </button>
+      </div>
+
       <div class="p-2 space-y-1 mt-auto border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
 
         <button @click="toggleTheme"
@@ -320,6 +349,7 @@
   </div>
 </template>
 <script setup>
+import { useRouter } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
 import AttendanceModule from '../components/admin/ModuloUsuariosAsistencias.vue';
 import MeshModule from '../components/admin/ModuloMallaUpload.vue';
@@ -344,4 +374,5 @@ const {
   selectedCompany,
   downloadExcelReport
 } = adminOdoo();
+const router = useRouter();
 </script>

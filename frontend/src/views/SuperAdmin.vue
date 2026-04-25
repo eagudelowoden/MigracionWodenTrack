@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
@@ -19,7 +20,8 @@ import '../assets/css/SuperAdmin.css';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const props = defineProps({ isDark: Boolean });
-const { logout, isDark, toggleTheme } = useAttendance();
+const router = useRouter();
+const { logout, isDark, toggleTheme, employee } = useAttendance();
 const { departamentosUnicos } = useUsuariosSync();
 
 // 2. Extraer los métodos y estados
@@ -215,6 +217,32 @@ onMounted(async () => {
             <span v-if="isSidebarOpen" class="truncate">{{ item[1] }}</span>
           </button>
         </nav>
+
+        <!-- Navegación rápida: solo visible para DESARROLLADOR -->
+        <div v-if="employee?.isSuperAdmin" class="pt-3 pb-1 space-y-1 border-t border-white/5">
+          <p v-if="isSidebarOpen" class="px-2 text-[8px] font-black uppercase opacity-40 tracking-widest mb-1">Dev Nav</p>
+          <button @click="router.push('/super-admin')"
+            :title="'Super Admin'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-shield-halved text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Super Admin</span>
+          </button>
+          <button @click="router.push('/admin')"
+            :title="'Admin'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-user-shield text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Admin</span>
+          </button>
+          <button @click="router.push('/marcacion')"
+            :title="'Marcación'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-fingerprint text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Marcación</span>
+          </button>
+        </div>
 
         <div class="mt-auto pt-4 space-y-1 border-t border-white/5">
           <button @click="toggleTheme"

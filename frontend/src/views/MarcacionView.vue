@@ -106,6 +106,25 @@
         <i
           class="fas fa-chevron-right text-[8px] opacity-20 group-hover:opacity-60 group-hover:text-[#ff8f00] transition-all group-hover:translate-x-0.5"></i>
       </button> -->
+      <!-- Dev Nav: solo DESARROLLADOR -->
+      <div v-if="employee?.isSuperAdmin" class="flex items-center justify-center gap-3 pt-2">
+        <button @click="router.push('/super-admin')" title="Super Admin"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:border-[#FF8F00]/60 hover:text-[#FF8F00]"
+          :class="isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-400'">
+          <i class="fas fa-shield-halved text-[#FF8F00]"></i> Super
+        </button>
+        <button @click="router.push('/admin')" title="Admin"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:border-[#FF8F00]/60 hover:text-[#FF8F00]"
+          :class="isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-400'">
+          <i class="fas fa-user-shield text-[#FF8F00]"></i> Admin
+        </button>
+        <button @click="router.push('/marcacion')" title="Marcación"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:border-[#FF8F00]/60 hover:text-[#FF8F00]"
+          :class="isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-400'">
+          <i class="fas fa-fingerprint text-[#FF8F00]"></i> Mark
+        </button>
+      </div>
+
       <!-- Cerrar sesión -->
       <div class="flex flex-col items-center gap-2 pt-2">
         <button @click="logout"
