@@ -36,15 +36,24 @@
 
           <div class="input-wrapper">
             <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="PIN DE SEGURIDAD"
-              class="woden-input-base font-mono-custom" @keyup.enter="handleLogin">
+              class="woden-input-base font-mono-custom pr-10" @keyup.enter="handleLogin">
             <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <button @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2"
-              :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+            <button @click="showPassword = !showPassword" type="button"
+              class="absolute right-3 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-100 opacity-40"
+              :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
             </button>
           </div>
+
+          <Transition name="fade">
+            <p v-if="message.text && message.type === 'error'"
+              class="text-[9px] font-bold uppercase tracking-widest text-rose-400 text-center pt-1">
+              <i class="fas fa-circle-exclamation mr-1"></i>{{ message.text }}
+            </p>
+          </Transition>
         </div>
       </div>
 
@@ -79,3 +88,8 @@ import '../assets/css/woden-style.css';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme } = useAttendance();
 </script>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
