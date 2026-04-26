@@ -277,7 +277,7 @@ onMounted(async () => {
         </div>
       </header>
 
-      <div class="flex-1 p-4 lg:p-4 overflow-y-auto">
+      <div class="flex-1 p-4 lg:p-4 overflow-y-auto flex flex-col">
 
         <!-- TEMPLATE DASHBOARD -->
         <div v-if="currentTab === 'stats'" class="animate-fade-in p-2">
@@ -321,7 +321,7 @@ onMounted(async () => {
         </div>
 
         <!-- TEMPLATE MALLAS -->
-        <div v-if="currentTab === 'mallas'" class="animate-fade-in p-2">
+        <div v-if="currentTab === 'mallas'" class="animate-fade-in p-2 flex-1 min-h-0 flex flex-col">
           <GestionMallas :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>

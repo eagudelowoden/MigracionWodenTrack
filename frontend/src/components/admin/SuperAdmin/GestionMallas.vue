@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-3 animate-fade-in">
+  <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- HEADER -->
     <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
@@ -288,9 +288,9 @@
     </Transition>
 
     <!-- TABLA DE MALLAS EXISTENTES -->
-    <div class="rounded-xl border overflow-hidden transition-all"
+    <div class="flex-1 min-h-0 rounded-xl border overflow-hidden transition-all flex flex-col"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
-      <div class="px-3 py-2 border-b flex items-center justify-between"
+      <div class="shrink-0 px-3 py-2 border-b flex items-center justify-between"
         :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
         <span class="text-[9px] font-semibold uppercase tracking-wider opacity-50"
           :class="isDark ? 'text-white' : 'text-slate-600'">Mallas registradas</span>
@@ -301,11 +301,11 @@
         </button>
       </div>
 
-      <div v-if="cargando" class="py-12 flex justify-center">
+      <div v-if="cargando" class="flex-1 flex items-center justify-center">
         <i class="fas fa-circle-notch fa-spin text-amber-500 text-lg"></i>
       </div>
 
-      <div v-else-if="!mallas.length" class="py-12 text-center">
+      <div v-else-if="!mallas.length" class="flex-1 flex flex-col items-center justify-center">
         <i class="fas fa-calendar-alt text-3xl opacity-10 mb-2 block"
           :class="isDark ? 'text-white' : 'text-slate-400'"></i>
         <p class="text-[11px] opacity-30" :class="isDark ? 'text-white' : 'text-slate-500'">
@@ -313,7 +313,7 @@
         </p>
       </div>
 
-      <div v-else class="divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
+      <div v-else class="flex-1 overflow-y-auto divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
         <div v-for="malla in mallas" :key="malla.id"
           class="px-4 py-3 transition-all"
           :class="isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'">
