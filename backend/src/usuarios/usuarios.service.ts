@@ -688,43 +688,86 @@ export class UsuariosService {
     }
   }
 
+  /**
+   * Trae TODO el historial de asignaciones de malla para los empleados dados.
+   * Retorna Map<idOdoo, MallaAsignacion[]> ordenado por fecha_inicio DESC
+   * para que resolverDetallesParaFecha encuentre la vigente primero.
+   */
   private async getMallasMapLocal(
     employeeIds: number[],
   ): Promise<Map<number, any[]>> {
     if (!employeeIds.length) return new Map();
-    const hoy = new Date().toISOString().slice(0, 10);
 
     const asignaciones = await this.asignacionRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.malla', 'malla')
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
-      .andWhere('a.actual = 1')
+      .orderBy('a.fecha_inicio', 'DESC')
       .getMany();
 
     const mallaMap = new Map<number, any[]>();
     for (const asig of asignaciones) {
-      if (!mallaMap.has(asig.usuario_id_odoo) && asig.malla?.detalles?.length) {
-        mallaMap.set(asig.usuario_id_odoo, asig.malla.detalles);
-      }
+      const lista = mallaMap.get(asig.usuario_id_odoo) ?? [];
+      lista.push(asig);
+      mallaMap.set(asig.usuario_id_odoo, lista);
     }
     return mallaMap;
+  }
+
+  /**
+   * Dado el historial de asignaciones de un empleado y una fecha YYYY-MM-DD (Colombia),
+   * devuelve los detalles (días/horas) de la malla que estaba vigente ese día.
+   * Lógica: fecha_inicio <= fecha AND (fecha_fin IS NULL OR fecha_fin >= fecha)
+   * Fallback: la asignación más reciente anterior a la fecha (para cubrir gaps).
+   */
+  private resolverDetallesParaFecha(asignaciones: any[], fechaLocal: string): any[] {
+    if (!asignaciones?.length) return [];
+
+    // Buscar la asignación cuyo rango cubre la fecha
+    const vigente = asignaciones.find((a) => {
+      const inicio = String(a.fecha_inicio).slice(0, 10);
+      const fin = a.fecha_fin ? String(a.fecha_fin).slice(0, 10) : null;
+      return inicio <= fechaLocal && (fin === null || fin >= fechaLocal);
+    });
+
+    if (vigente?.malla?.detalles?.length) return vigente.malla.detalles;
+
+    // Fallback: asignación más reciente anterior a la fecha (lista ya viene DESC)
+    const anterior = asignaciones.find(
+      (a) => String(a.fecha_inicio).slice(0, 10) <= fechaLocal,
+    );
+    return anterior?.malla?.detalles ?? [];
   }
 
   private clasificarPorMallaLocal(
     empId: number,
     punchingTime: string,
     esEntrada: boolean,
-    mallasLocalMap: Map<number, any[]>,
-    diaSemanaOverride?: number, // usar el día de la entrada para validar la salida
+    mallasLocalMap: Map<number, any[]>, // Map<idOdoo, MallaAsignacion[]>
+    diaSemanaOverride?: number,         // día de la ENTRADA — fijo para validar salida también
   ): string {
-    const detalles = mallasLocalMap.get(empId);
-    if (!detalles?.length) return 'No programado';
+    const asignaciones = mallasLocalMap.get(empId);
+    if (!asignaciones?.length) return 'No programado';
 
+    // Convertir punch a hora Colombia
     const fechaUTC = new Date(punchingTime.replace(' ', 'T') + 'Z');
     const horaLocal = new Date(
       fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
     );
+
+    // Fecha Colombia del punch (YYYY-MM-DD) para buscar malla vigente ese día
+    const fechaLocalStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(fechaUTC);
+
+    // Resolver detalles según el historial de asignaciones para esa fecha
+    const detalles = this.resolverDetallesParaFecha(asignaciones, fechaLocalStr);
+    if (!detalles?.length) return 'No programado';
+
     const diaSemana = diaSemanaOverride !== undefined
       ? diaSemanaOverride
       : (horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1);
@@ -732,7 +775,7 @@ export class UsuariosService {
     const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
     const tolerancia = 6 / 60;
 
-    // Buscar turno del día actual
+    // Buscar turno del día
     const detallesDia = detalles
       .filter((d: any) => Number(d.dia_semana) === diaSemana)
       .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
@@ -741,7 +784,6 @@ export class UsuariosService {
       const turno = detallesDia[0];
       const horaInicio = Number(turno.hora_inicio);
       const horaFin = Number(turno.hora_fin);
-      const esNocturno = horaFin < horaInicio;
 
       if (esEntrada) {
         return horaDecimal > horaInicio + tolerancia ? 'ENTRADA TARDE' : 'A TIEMPO';
@@ -750,7 +792,7 @@ export class UsuariosService {
       }
     }
 
-    // No hay turno hoy — verificar turno nocturno del día anterior
+    // No hay turno hoy — verificar si es salida de turno nocturno del día anterior
     const turnosNocturnos = detalles.filter(
       (d: any) =>
         Number(d.dia_semana) === diaSemanaAnterior &&
