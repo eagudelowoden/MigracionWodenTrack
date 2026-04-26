@@ -61,6 +61,21 @@ export class MallasCrudService {
   }
 
   async procesarExcelCreacion(buffer: Buffer) {
+    const DIA_MAP: Record<string, number> = {
+      lunes: 0, martes: 1, miercoles: 2, miércoles: 2,
+      jueves: 3, viernes: 4, sabado: 5, sábado: 5, domingo: 6,
+      '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+    };
+
+    const parseHora = (val: string): number => {
+      if (!val) return NaN;
+      if (val.includes(':')) {
+        const [h, m] = val.split(':').map(Number);
+        return h + (m || 0) / 60;
+      }
+      return parseFloat(val.replace(',', '.'));
+    };
+
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
     const ws = workbook.getWorksheet(1);
@@ -73,12 +88,13 @@ export class MallasCrudService {
       if (rowNumber === 1) return;
       const nombre = row.getCell(1).text?.trim();
       const compania = row.getCell(2).text?.trim();
-      const diaSemana = Number(row.getCell(3).text?.trim());
-      const horaInicio = parseFloat(row.getCell(4).text?.trim().replace(',', '.'));
-      const horaFin = parseFloat(row.getCell(5).text?.trim().replace(',', '.'));
+      const diaRaw = row.getCell(3).text?.trim().toLowerCase();
+      const diaSemana = diaRaw !== undefined && diaRaw !== '' ? DIA_MAP[diaRaw] : undefined;
+      const horaInicio = parseHora(row.getCell(4).text?.trim());
+      const horaFin = parseHora(row.getCell(5).text?.trim());
       const periodo = row.getCell(6).text?.trim() || 'morning';
 
-      if (!nombre || isNaN(diaSemana) || isNaN(horaInicio) || isNaN(horaFin)) return;
+      if (!nombre || diaSemana === undefined || isNaN(horaInicio) || isNaN(horaFin)) return;
 
       if (!mallasMap.has(nombre)) {
         mallasMap.set(nombre, { compania: compania || '', detalles: [] });
@@ -120,18 +136,18 @@ export class MallasCrudService {
     ws.columns = [
       { header: 'nombre', key: 'nombre', width: 40 },
       { header: 'compania', key: 'compania', width: 30 },
-      { header: 'dia_semana (0=Lun…6=Dom)', key: 'dia_semana', width: 24 },
-      { header: 'hora_inicio', key: 'hora_inicio', width: 14 },
-      { header: 'hora_fin', key: 'hora_fin', width: 14 },
+      { header: 'dia (Lunes/Martes/Miércoles/Jueves/Viernes/Sábado/Domingo)', key: 'dia', width: 48 },
+      { header: 'hora_inicio (HH:MM)', key: 'hora_inicio', width: 20 },
+      { header: 'hora_fin (HH:MM)', key: 'hora_fin', width: 18 },
       { header: 'periodo (morning/afternoon/night)', key: 'periodo', width: 30 },
     ];
 
     const ejemplos = [
-      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 0, 7, 17, 'morning'],
-      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 1, 7, 17, 'morning'],
-      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 2, 7, 17, 'afternoon'],
-      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 3, 7, 17, 'afternoon'],
-      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 4, 7, 16, 'morning'],
+      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 'Lunes',     '07:00', '17:00', 'morning'],
+      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 'Martes',    '07:00', '17:00', 'morning'],
+      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 'Miércoles', '07:00', '17:00', 'afternoon'],
+      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 'Jueves',    '07:00', '17:00', 'afternoon'],
+      ['(ADM) ADMIN-001 Colombia L-V 7-17', '(CO) WODEN COLOMBIA SAS', 'Viernes',   '07:00', '16:00', 'morning'],
     ];
 
     ejemplos.forEach((row) => ws.addRow(row));
