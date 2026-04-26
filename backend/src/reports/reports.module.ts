@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
-import { OdooModule } from '../odoo/odoo.module'; // Importante
+import { OdooModule } from '../odoo/odoo.module';
 
 @Module({
-  imports: [OdooModule], // Inyectamos el módulo de Odoo aquí
+  imports: [TypeOrmModule.forFeature([]), OdooModule],
   controllers: [ReportsController],
   providers: [ReportsService],
 })

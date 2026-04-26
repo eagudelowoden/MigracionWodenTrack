@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
+import { DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly odoo: OdooService) {}
+  constructor(
+    private readonly odoo: OdooService,
+    @InjectDataSource() private readonly dataSource: DataSource,
+  ) {}
 
   // src/reports/reports.service.ts
 
@@ -221,88 +226,53 @@ export class ReportsService {
       .join(' | ');
   }
 
-  /** Devuelve { cedulaMap, cargoMap, mallaMap } consultando Odoo en 2 llamadas */
-  private async obtenerDatosOdooParaAsistencias(
+  /** Devuelve { cedulaMap, cargoMap } consultando Odoo — malla ya no viene de aquí */
+  private async obtenerCedulaYCargoDeOdoo(
     uid: number,
     nombresEmpleados: string[],
-    employeeIds?: number[],
   ): Promise<{
     cedulaMap: Map<string, string>;
     cargoMap: Map<string, string>;
-    mallaMap: Map<string, string>;
-    nombreMallaMap: Map<string, string>;
   }> {
     const cedulaMap = new Map<string, string>();
     const cargoMap = new Map<string, string>();
-    const mallaMap = new Map<string, string>();
-    const nombreMallaMap = new Map<string, string>();
-
-    // Buscar por ID si están disponibles, por nombre como fallback
-    const domain =
-      employeeIds && employeeIds.length > 0
-        ? [['id', 'in', employeeIds]]
-        : [['name', 'in', nombresEmpleados]];
 
     const empleados = await this.odoo.executeKw<any[]>(
       'hr.employee',
       'search_read',
-      [domain],
+      [[['name', 'in', nombresEmpleados]]],
       {
         fields: [
-          'id',
           'name',
           'identification_id',
           'barcode',
           'address_home_id',
           'job_id',
-          'resource_calendar_id',
         ],
       },
       uid,
     );
 
-    // Log para detectar quién no se encuentra
-    const noEncontrados = nombresEmpleados.filter(
-      (n) => !empleados.find((e) => e.name === n),
-    );
-    if (noEncontrados.length > 0) {
-      console.warn('❌ Empleados no encontrados en Odoo:', noEncontrados);
-    }
+    if (!empleados?.length) return { cedulaMap, cargoMap };
 
-    if (!empleados?.length)
-      return { cedulaMap, cargoMap, mallaMap, nombreMallaMap };
-
-    const calendarIds = new Array<number>();
-    const calendarPorNombre = new Map<string, number>();
     const partnerIds = new Array<number>();
     const partnerPorNombre = new Map<string, number>();
 
     empleados.forEach((e) => {
       if (e.job_id?.[1]) cargoMap.set(e.name, e.job_id[1]);
 
-      const calId: number | undefined = e.resource_calendar_id?.[0];
-      const calNombre: string | undefined = e.resource_calendar_id?.[1];
-      if (calId) {
-        calendarIds.push(calId);
-        calendarPorNombre.set(e.name, calId);
-      }
-      if (calNombre) nombreMallaMap.set(e.name, calNombre);
-
       const cedula = e.identification_id || e.barcode;
       if (cedula) {
         cedulaMap.set(e.name, cedula);
       } else {
-        // Sin identification_id ni barcode → buscar en res.partner
         const partnerId: number | undefined = e.address_home_id?.[0];
         if (partnerId) {
           partnerIds.push(partnerId);
           partnerPorNombre.set(e.name, partnerId);
-        } else {
         }
       }
     });
 
-    // Buscar doc_number en res.partner para quienes no tenían identification_id
     if (partnerIds.length > 0) {
       const partners = await this.odoo.executeKw<any[]>(
         'res.partner',
@@ -314,48 +284,150 @@ export class ReportsService {
       const docPorPartnerId = new Map<number, string>(
         partners?.map((p) => [p.id, p.doc_number]) ?? [],
       );
-
       partnerPorNombre.forEach((partnerId, nombre) => {
         const doc = docPorPartnerId.get(partnerId);
-        console.log(
-          `🔎 Partner ${partnerId} para "${nombre}" → doc_number: "${doc}" (tipo: ${typeof doc})`,
-        );
-        if (doc && doc.trim() !== '' && doc !== 'false') {
-          cedulaMap.set(nombre, doc);
-          console.log(`✅ Cédula por partner: "${nombre}" → ${doc}`);
-        } else {
-          console.warn(`⚠️ doc_number vacío o false para: "${nombre}"`);
-        }
+        if (doc) cedulaMap.set(nombre, doc);
       });
     }
 
-    // Buscar líneas de malla horaria
-    if (calendarIds.length > 0) {
-      const lineas = await this.odoo.executeKw<any[]>(
-        'resource.calendar.attendance',
-        'search_read',
-        [[['calendar_id', 'in', [...new Set(calendarIds)]]]],
-        { fields: ['calendar_id', 'dayofweek', 'hour_from', 'hour_to'] },
-        uid,
+    return { cedulaMap, cargoMap };
+  }
+
+  /**
+   * Consulta la BD local: para cada (empleado, fecha) del reporte devuelve
+   * la malla horaria vigente en esa fecha según mallas_asignaciones.
+   * Clave del Map: "NombreEmpleado::YYYY-MM-DD"
+   */
+  private async obtenerMallasLocalesParaReporte(
+    items: any[],
+  ): Promise<Map<string, { nombreMalla: string; detallesMalla: string }>> {
+    const resultMap = new Map<
+      string,
+      { nombreMalla: string; detallesMalla: string }
+    >();
+    if (!items.length) return resultMap;
+
+    const nombresUnicos = [
+      ...new Set(
+        items
+          .map((i) => (i.empleado || i.Colaborador) as string)
+          .filter(Boolean),
+      ),
+    ];
+    if (!nombresUnicos.length) return resultMap;
+
+    // 1. nombre → id_odoo desde usuarios_registrados
+    const escapedNames = nombresUnicos
+      .map((n) => `'${n.replace(/'/g, "''")}'`)
+      .join(', ');
+    const usuarios: Array<{ nombre: string; id_odoo: number }> =
+      await this.dataSource.query(
+        `SELECT nombre, id_odoo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
       );
 
-      const mallasPorCalendar = new Map<number, any[]>();
-      lineas?.forEach((l) => {
-        const cid: number = l.calendar_id[0];
-        if (!mallasPorCalendar.has(cid)) mallasPorCalendar.set(cid, []);
-        mallasPorCalendar.get(cid)!.push(l);
-      });
+    if (!usuarios.length) return resultMap;
 
-      calendarPorNombre.forEach((calId, nombre) => {
-        const lineasCal = mallasPorCalendar.get(calId);
-        if (lineasCal) mallaMap.set(nombre, this.formatearMalla(lineasCal));
-      });
+    const idOdooMap = new Map<string, number>(
+      usuarios.map((u) => [u.nombre, u.id_odoo]),
+    );
+    const idOdoos = [...new Set(usuarios.map((u) => u.id_odoo))];
+
+    // 2. Traer asignaciones + detalles de malla para esos empleados
+    const rows: any[] = await this.dataSource.query(`
+      SELECT
+        a.usuario_id_odoo,
+        CONVERT(varchar(10), a.fecha_inicio, 23) AS fecha_inicio,
+        CONVERT(varchar(10), a.fecha_fin,    23) AS fecha_fin,
+        h.nombre                                  AS nombre_malla,
+        d.dia_semana,
+        d.hora_inicio,
+        d.hora_fin
+      FROM mallas_asignaciones a
+      INNER JOIN mallas_horarias h ON h.id = a.malla_id
+      LEFT  JOIN mallas_detalles d ON d.malla_id = a.malla_id
+      WHERE a.usuario_id_odoo IN (${idOdoos.join(',')})
+      ORDER BY a.usuario_id_odoo, a.fecha_inicio DESC
+    `);
+
+    // 3. Agrupar filas por empleado → por asignación
+    const porEmpleado = new Map<number, Map<string, any>>();
+    for (const row of rows) {
+      const eid: number = row.usuario_id_odoo;
+      if (!porEmpleado.has(eid)) porEmpleado.set(eid, new Map());
+      const asigMap = porEmpleado.get(eid)!;
+      const k = `${row.fecha_inicio}|${row.fecha_fin}|${row.nombre_malla}`;
+      if (!asigMap.has(k)) {
+        asigMap.set(k, {
+          fecha_inicio: row.fecha_inicio,
+          fecha_fin: row.fecha_fin ?? null,
+          nombre_malla: row.nombre_malla,
+          detalles: [],
+        });
+      }
+      if (row.dia_semana !== null && row.dia_semana !== undefined) {
+        asigMap.get(k)!.detalles.push({
+          dia_semana: Number(row.dia_semana),
+          hora_inicio: Number(row.hora_inicio),
+          hora_fin: Number(row.hora_fin),
+        });
+      }
     }
 
-    console.log(
-      `📊 Cédulas resueltas: ${cedulaMap.size} / ${empleados.length}`,
-    );
-    return { cedulaMap, cargoMap, mallaMap, nombreMallaMap };
+    // 4. Para cada item resolver la malla vigente en su fecha
+    for (const item of items) {
+      const nombre: string = item.empleado || item.Colaborador;
+      const fecha: string = String(item.fecha || item.Fecha || '').slice(0, 10);
+      if (!nombre || !fecha) continue;
+
+      const clave = `${nombre}::${fecha}`;
+      if (resultMap.has(clave)) continue;
+
+      const idOdoo = idOdooMap.get(nombre);
+      if (!idOdoo) continue;
+
+      const asigMap = porEmpleado.get(idOdoo);
+      if (!asigMap?.size) continue;
+
+      // Lista ordenada DESC por fecha_inicio (ya viene así de la query)
+      const asigList = [...asigMap.values()];
+
+      // Buscar asignación cuyo rango cubre la fecha
+      const vigente =
+        asigList.find((a) => {
+          const inicio = String(a.fecha_inicio).slice(0, 10);
+          const fin = a.fecha_fin ? String(a.fecha_fin).slice(0, 10) : null;
+          return inicio <= fecha && (fin === null || fin >= fecha);
+        }) ??
+        // Fallback: la más reciente anterior a la fecha
+        asigList.find((a) => String(a.fecha_inicio).slice(0, 10) <= fecha);
+
+      if (vigente) {
+        resultMap.set(clave, {
+          nombreMalla: vigente.nombre_malla,
+          detallesMalla: this.formatearMallaLocal(vigente.detalles),
+        });
+      }
+    }
+
+    return resultMap;
+  }
+
+  private formatearMallaLocal(
+    detalles: Array<{
+      dia_semana: number;
+      hora_inicio: number;
+      hora_fin: number;
+    }>,
+  ): string {
+    if (!detalles?.length) return 'SIN DETALLE';
+    const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    return [...detalles]
+      .sort((a, b) => a.dia_semana - b.dia_semana)
+      .map(
+        (d) =>
+          `${DIAS[d.dia_semana] ?? `D${d.dia_semana}`} ${this.decimalAHora(d.hora_inicio)}-${this.decimalAHora(d.hora_fin)}`,
+      )
+      .join(' | ');
   }
 
   private aplicarEstiloCabecera(worksheet: ExcelJS.Worksheet): void {
@@ -377,36 +449,35 @@ export class ReportsService {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reporte de Asistencias');
 
-    // Datos de Odoo
     let cedulaMap = new Map<string, string>();
     let cargoMap = new Map<string, string>();
-    let mallaMap = new Map<string, string>();
-    let nombreMallaMap = new Map<string, string>();
+    let mallasLocales = new Map<
+      string,
+      { nombreMalla: string; detallesMalla: string }
+    >();
 
-    try {
-      const nombresEmpleados = [
-        ...new Set(data.map((item) => item.empleado || item.Colaborador)),
-      ].filter(Boolean) as string[];
+    const nombresEmpleados = [
+      ...new Set(data.map((item) => item.empleado || item.Colaborador)),
+    ].filter(Boolean) as string[];
 
-      const employeeIds = [
-        ...new Set(
-          data
-            .map((item) => item.employee_id)
-            .filter((id) => id && typeof id === 'number'),
-        ),
-      ] as number[];
-
-      if (nombresEmpleados.length > 0) {
+    // Cedula y cargo desde Odoo
+    if (nombresEmpleados.length > 0) {
+      try {
         const uid = await this.odoo.authenticate();
-        ({ cedulaMap, cargoMap, mallaMap, nombreMallaMap } =
-          await this.obtenerDatosOdooParaAsistencias(
-            uid,
-            nombresEmpleados,
-            employeeIds.length > 0 ? employeeIds : undefined, // 👈
-          ));
+        ({ cedulaMap, cargoMap } = await this.obtenerCedulaYCargoDeOdoo(
+          uid,
+          nombresEmpleados,
+        ));
+      } catch (odooErr) {
+        console.error('Error consultando Odoo (cedula/cargo):', odooErr.message);
       }
-    } catch (odooErr) {
-      console.error('Error consultando Odoo (asistencias):', odooErr.message);
+    }
+
+    // Malla horaria desde la BD local según la fecha del registro
+    try {
+      mallasLocales = await this.obtenerMallasLocalesParaReporte(data);
+    } catch (localErr) {
+      console.error('Error consultando mallas locales:', localErr.message);
     }
 
     // Columnas
@@ -429,18 +500,22 @@ export class ReportsService {
     // Filas
     data.forEach((item) => {
       const nombre = item.empleado || item.Colaborador;
+      const fecha = String(item.fecha || item.Fecha || '').slice(0, 10);
+      const claveMalla = `${nombre}::${fecha}`;
+      const mallaLocal = mallasLocales.get(claveMalla);
+
       worksheet.addRow({
         colaborador: nombre || 'N/A',
         cedula: item.doc_number || cedulaMap.get(nombre) || 'N/A',
         cargo: cargoMap.get(nombre) || 'N/A',
         depto: item.department_id || item.Departamento || 'N/A',
-        fecha: item.fecha || item.Fecha || 'N/A',
+        fecha: fecha || 'N/A',
         entrada: item.Entrada || item.check_in || 'N/A',
         salida: item.Salida || item.check_out || 'N/A',
         estatus_entrada: item.Estatus_Entrada || item.c_entrada || 'N/A',
         estatus_salida: item.Estatus_Salida || item.c_salida || 'N/A',
-        nombre_malla: nombreMallaMap.get(nombre) || 'N/A',
-        malla: mallaMap.get(nombre) || 'N/A',
+        nombre_malla: mallaLocal?.nombreMalla || 'N/A',
+        malla: mallaLocal?.detallesMalla || 'N/A',
       });
     });
 
