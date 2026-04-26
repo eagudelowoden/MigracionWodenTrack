@@ -40,6 +40,14 @@
 
         <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
 
+          <!-- Refrescar tabla -->
+          <button @click="fetchMallasDesdeOdoo"
+            class="p-2 rounded-lg transition-all"
+            :class="isDark ? 'text-slate-400 hover:text-amber-400' : 'text-slate-500 hover:text-amber-500'"
+            title="Refrescar">
+            <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoading }"></i>
+          </button>
+
           <!-- Descargar plantilla -->
           <button @click="downloadMallaTemplate"
             class="p-2 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
