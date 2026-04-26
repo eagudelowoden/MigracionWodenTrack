@@ -24,41 +24,66 @@ export class MallasUploadService {
 
     if (!worksheet) throw new Error('No se encontró hoja de trabajo.');
 
+    // Leer cabeceras para encontrar columnas por nombre (insensible a mayúsculas y acentos)
+    const normalizar = (s: string) =>
+      String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+    const colIdx: Record<string, number> = {};
+    worksheet.getRow(1).eachCell((cell, col) => {
+      colIdx[normalizar(cell.text)] = col;
+    });
+
+    // Resolución de columnas clave
+    const iEmpleado  = colIdx['empleado'];
+    const iMalla     = colIdx['horario de trabajo'] ?? colIdx['malla'] ?? colIdx['horario'];
+    const iFecha     = colIdx['fecha de inicio']    ?? colIdx['fecha inicio'];
+    const iActual    = colIdx['actual'];             // opcional — si existe, solo procesar filas con valor 1
+    const iCedula    = colIdx['cedula']              ?? colIdx['identificacion'];
+
     const procesados: number[] = [];
     const errores: { fila: number; error: string }[] = [];
 
     const rows: any[] = [];
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // saltar cabecera
+      if (rowNumber === 1) return;
       rows.push({ row, rowNumber });
     });
 
     for (const { row, rowNumber } of rows) {
       try {
-        const cedula = row.getCell(1).text?.trim();
-        const nombreMalla = row.getCell(2).text?.trim();
-        const fechaInicio =
-          row.getCell(3).text?.trim() || new Date().toISOString().slice(0, 10);
+        // Si existe columna "actual", saltar filas que no sean 1
+        if (iActual) {
+          const valActual = row.getCell(iActual).value;
+          if (String(valActual).trim() !== '1') continue;
+        }
 
-        if (!cedula || !nombreMalla) {
-          errores.push({
-            fila: rowNumber,
-            error: 'Cédula o nombre de malla vacío',
-          });
+        const nombreEmpleado = iEmpleado ? row.getCell(iEmpleado).text?.trim() : '';
+        const cedula         = iCedula   ? row.getCell(iCedula).text?.trim()   : '';
+        const nombreMalla    = iMalla    ? row.getCell(iMalla).text?.trim()    : '';
+        const fechaInicio    = (iFecha   ? row.getCell(iFecha).text?.trim()    : '') ||
+                               new Date().toISOString().slice(0, 10);
+
+        if (!nombreMalla) {
+          errores.push({ fila: rowNumber, error: 'Nombre de malla/horario vacío' });
+          continue;
+        }
+        if (!nombreEmpleado && !cedula) {
+          errores.push({ fila: rowNumber, error: 'Fila sin empleado ni cédula' });
           continue;
         }
 
-        // 1. Buscar empleado por cédula en DB local
-        const usuario = await this.usuarioRepo.findOne({
-          where: { identificacion: cedula },
-          select: ['id_odoo', 'nombre'],
-        });
+        // 1. Buscar empleado: primero por cédula, luego por nombre
+        let usuario = cedula
+          ? await this.usuarioRepo.findOne({ where: { identificacion: cedula }, select: ['id_odoo', 'nombre'] })
+          : null;
+
+        if (!usuario && nombreEmpleado) {
+          usuario = await this.usuarioRepo.findOne({ where: { nombre: nombreEmpleado }, select: ['id_odoo', 'nombre'] });
+        }
 
         if (!usuario) {
-          errores.push({
-            fila: rowNumber,
-            error: `Empleado con cédula ${cedula} no encontrado`,
-          });
+          const ref = cedula || nombreEmpleado;
+          errores.push({ fila: rowNumber, error: `Empleado "${ref}" no encontrado en la base de datos` });
           continue;
         }
 
@@ -70,25 +95,18 @@ export class MallasUploadService {
         });
 
         if (!mallas.length) {
-          errores.push({
-            fila: rowNumber,
-            error: `Malla "${nombreMalla}" no existe en la DB`,
-          });
+          errores.push({ fila: rowNumber, error: `Malla "${nombreMalla}" no existe en la base de datos` });
           continue;
         }
 
-        // Tomar la que tiene detalles; si ninguna tiene, tomar la más reciente
-        const malla =
-          mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
+        const malla = mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
 
-        // 3. Cerrar asignaciones anteriores: actual = false + fecha_fin = fechaInicio
+        // 3. Cerrar asignaciones anteriores
         await this.asignacionRepo
           .createQueryBuilder()
           .update()
           .set({ actual: false, fecha_fin: fechaInicio })
-          .where('usuario_id_odoo = :id AND actual = 1', {
-            id: usuario.id_odoo,
-          })
+          .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
           .execute();
 
         // 4. Crear nueva asignación marcada como actual
