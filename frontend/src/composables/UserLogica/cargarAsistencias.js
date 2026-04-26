@@ -77,6 +77,7 @@ export function useCargarAsistencias() {
         if (selectedArea.value) {
           url.searchParams.append("area_id", selectedArea.value);
         }
+        //pruebas
       } else {
         // Usuario normal: filtrar por su area_id y/o segmento_id del perfil
         // NO enviamos departamento — los permisos se aplican por estructura
