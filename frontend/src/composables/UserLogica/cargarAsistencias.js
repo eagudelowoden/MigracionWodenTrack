@@ -161,7 +161,9 @@ export function useCargarAsistencias() {
     });
   });
   const downloadReport = async () => {
-    if (filteredReport.value.length === 0) {
+    // Usa exactamente los datos que se ven en pantalla (todos los filtros aplicados)
+    const datos = filteredReport.value;
+    if (datos.length === 0) {
       alert("No hay datos para exportar");
       return;
     }
@@ -181,38 +183,7 @@ export function useCargarAsistencias() {
     };
 
     try {
-      // 1. Fetch separado para Excel — pide todos los registros sin agrupar
-      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const permisos = session.permisos || session.permissions || {};
-      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
-      const deptoUsuario = session.department;
-
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      url.searchParams.append("hoy", filterHoy.value.toString());
-      if (startDate.value)
-        url.searchParams.append("startDate", startDate.value);
-      if (endDate.value) url.searchParams.append("endDate", endDate.value);
-      if (selectedCompany.value && selectedCompany.value !== "Todas") {
-        url.searchParams.append("company", selectedCompany.value);
-      }
-      if (selectedSegmento.value)
-        url.searchParams.append("segmento_id", selectedSegmento.value);
-      if (selectedArea.value)
-        url.searchParams.append("area_id", selectedArea.value);
-      if (tieneFiltroDepto) {
-        if (selectedDepartment.value)
-          url.searchParams.append("departamento", selectedDepartment.value);
-      } else {
-        if (deptoUsuario) url.searchParams.append("departamento", deptoUsuario);
-      }
-      // 👇 parámetro clave para que el backend no agrupe
-      url.searchParams.append("agrupar", "false");
-
-      const resRaw = await fetch(url.toString());
-      const todosLosDatos = await resRaw.json();
-
-      // 2. Mapear todos los registros para Excel
-      const dataFiltrada = todosLosDatos.map((item) => ({
+      const dataFiltrada = datos.map((item) => ({
         Colaborador: item.empleado,
         Cedula: item.cc || "N/A",
         Departamento: item.department_id,
@@ -224,7 +195,6 @@ export function useCargarAsistencias() {
         Estado: item.estado,
       }));
 
-      // 3. Enviar al backend para generar Excel
       const response = await fetch(
         `${API_BASE_URL}/reports/asistencias/export`,
         {
