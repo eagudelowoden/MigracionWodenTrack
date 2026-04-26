@@ -8,6 +8,9 @@ import { Area } from '../usuarios/entities/area.entity'; // <--- IMPORTANTE
 import { Announcement } from 'src/notifications/entities/notificacion.entity';
 import { PermisoDepartamento } from '../usuarios/entities/permiso-departamento.entity';
 import { Novedad } from '../novedades/entities/novedad.entity';
+import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
+import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
+import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -27,6 +30,9 @@ export const getDatabaseConfig = (
     Announcement,
     PermisoDepartamento,
     Novedad,
+    MallaHoraria,
+    MallaDetalle,
+    MallaAsignacion,
   ],
   autoLoadEntities: true, // 👈 agrega esta
   synchronize: true,
