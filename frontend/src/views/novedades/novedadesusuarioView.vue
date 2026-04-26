@@ -20,28 +20,13 @@
         </div>
       </div>
 
-      <!-- Switch S3 / Local -->
-      <div class="flex items-center gap-2 mr-1">
-        <span class="text-[9px] font-black uppercase tracking-widest"
-          :class="storageMode === 'local' ? 'text-emerald-500' : 'text-slate-400'">
-          <i class="fas fa-folder-open mr-1"></i>Local
-        </span>
-        <button @click="toggleStorage" type="button"
-          class="relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none"
-          :class="storageMode === 's3' ? 'bg-[#FF8F00]' : (isDark ? 'bg-[#2d3548]' : 'bg-slate-200')">
-          <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
-            :class="storageMode === 's3' ? 'translate-x-5' : 'translate-x-0'">
-          </span>
-        </button>
-        <span class="text-[9px] font-black uppercase tracking-widest"
-          :class="storageMode === 's3' ? 'text-[#FF8F00]' : 'text-slate-400'">
-          <i class="fab fa-aws mr-1"></i>S3
-        </span>
-        <div class="ml-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border" :class="storageMode === 's3'
+      <!-- Indicador de almacenamiento (solo lectura, configurado en Super Admin) -->
+      <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest mr-1"
+        :class="storageMode === 's3'
           ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
           : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
-          {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
-        </div>
+        <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
+        {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
       </div>
     </div>
 
@@ -302,11 +287,8 @@ const props = defineProps({
 
 const { crearNovedad, loading, jefe, fetchJefeDeArea } = useNovedades();
 
-const storageMode = ref(localStorage.getItem('novedad_storage_mode') || 'local');
-const toggleStorage = () => {
-  storageMode.value = storageMode.value === 'local' ? 's3' : 'local';
-  localStorage.setItem('novedad_storage_mode', storageMode.value);
-};
+// Storage mode: se lee desde la config del sistema (Super Admin)
+const storageMode = ref('local');
 
 const form = ref({
   nombre: '', cedula: '', descripcion: '',
@@ -342,6 +324,14 @@ onMounted(async () => {
   console.log('🏢 department:', department);
 
   if (department) await fetchJefeDeArea(department);
+
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/sistema-config`);
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.storage_mode) storageMode.value = cfg.storage_mode;
+    }
+  } catch {}
 });
 const processFile = (file) => {
   if (!file) return;
