@@ -11,6 +11,7 @@ import { Novedad } from '../novedades/entities/novedad.entity';
 import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
 import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
+import { SistemaConfig } from '../sistema-config/entities/sistema-config.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -30,9 +31,10 @@ export const getDatabaseConfig = (
     Announcement,
     PermisoDepartamento,
     Novedad,
-    MallaHoraria, // 👈
-    MallaDetalle, // 👈
-    MallaAsignacion, // 👈
+    MallaHoraria,
+    MallaDetalle,
+    MallaAsignacion,
+    SistemaConfig,
   ],
   autoLoadEntities: true,
   synchronize: true,

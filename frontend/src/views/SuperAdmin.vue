@@ -12,6 +12,7 @@ import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue'
 import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
+import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -208,7 +209,8 @@ onMounted(async () => {
             users: ['fas fa-users-cog', 'Personal'],
             notifications: ['fas fa-bullhorn', 'Avisos'],
             estructura: ['fas fa-sitemap', 'Organización'],
-            mallas: ['fas fa-calendar-alt', 'Mallas']
+            mallas: ['fas fa-calendar-alt', 'Mallas'],
+            config: ['fas fa-sliders', 'Configuraciones']
           }" :key="key" @click="currentTab = key" :class="[
             'w-full flex items-center rounded-lg transition-all duration-200 p-2.5 text-[10px] font-bold uppercase',
             currentTab === key ? 'bg-[#FF8F00] text-black shadow-md' : 'hover:bg-slate-500/10',
@@ -321,6 +323,12 @@ onMounted(async () => {
         <!-- TEMPLATE MALLAS -->
         <div v-if="currentTab === 'mallas'" class="animate-fade-in p-2">
           <GestionMallas :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
+        </div>
+
+        <!-- TEMPLATE CONFIGURACIONES -->
+        <div v-if="currentTab === 'config'" class="animate-fade-in p-2">
+          <GestionConfiguraciones :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
       </div>

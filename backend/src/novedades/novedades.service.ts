@@ -16,10 +16,10 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Novedad } from './entities/novedad.entity';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
+import { SistemaConfigService } from '../sistema-config/sistema-config.service';
 
 @Injectable()
 export class NovedadesService {
-  private readonly storageMode: string;
   private readonly localDir: string;
   private readonly s3: S3Client;
   private readonly bucket: string;
@@ -28,8 +28,8 @@ export class NovedadesService {
     @InjectRepository(Novedad)
     private readonly novedadRepo: Repository<Novedad>,
     private readonly config: ConfigService,
+    private readonly sistemaConfig: SistemaConfigService,
   ) {
-    this.storageMode = this.config.get<string>('STORAGE_MODE', 'local');
     this.localDir = path.join(process.cwd(), 'uploads', 'novedades');
     this.bucket = this.config.get<string>('AWS_S3_BUCKET', '');
 
@@ -41,7 +41,7 @@ export class NovedadesService {
       },
     });
 
-    if (this.storageMode === 'local' && !fs.existsSync(this.localDir)) {
+    if (!fs.existsSync(this.localDir)) {
       fs.mkdirSync(this.localDir, { recursive: true });
     }
   }
@@ -87,7 +87,8 @@ export class NovedadesService {
   // ─── CREATE ────────────────────────────────────────────────────────────────
   async create(dto: CreateNovedadDto, file: Express.Multer.File) {
     if (!file) throw new Error('Se requiere un documento de soporte.');
-    const modoEfectivo = dto.storageMode || this.storageMode;
+    const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
+    const modoEfectivo = dto.storageMode || storageFromDb;
     const { storageKey, storageMode } = await this.saveFile(file, modoEfectivo);
 
     const novedad = this.novedadRepo.create({

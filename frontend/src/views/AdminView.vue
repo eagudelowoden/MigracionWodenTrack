@@ -195,10 +195,62 @@
 
       <div class="flex-1 p-4 overflow-y-auto font-round-custom bg-slate-50/50 dark:bg-[#f5f5f5]/40 custom-scroll">
 
-        <AttendanceModule v-if="currentModule === 'asistencias'" :isDark="isDark" :company="selectedCompany" />
-        <MeshModule v-if="currentModule === 'mallas'" :isDark="isDark" :company="selectedCompany" />
+        <!-- Asistencias -->
+        <template v-if="currentModule === 'asistencias'">
+          <div v-if="!moduloActivo('asistencias')" class="h-full flex items-center justify-center animate-fade-in">
+            <div class="text-center max-w-sm">
+              <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+                <i class="fas fa-wrench text-2xl text-[#FF8F00]"></i>
+              </div>
+              <h3 class="text-sm font-black uppercase tracking-tight mb-2" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Módulo en mantenimiento
+              </h3>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ modulosConfig.module_asistencias_message }}
+              </p>
+            </div>
+          </div>
+          <AttendanceModule v-else :isDark="isDark" :company="selectedCompany" />
+        </template>
 
-        <div v-if="currentModule === 'novedadusuario'"
+        <!-- Mallas -->
+        <template v-if="currentModule === 'mallas'">
+          <div v-if="!moduloActivo('mallas')" class="h-full flex items-center justify-center animate-fade-in">
+            <div class="text-center max-w-sm">
+              <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+                <i class="fas fa-wrench text-2xl text-[#FF8F00]"></i>
+              </div>
+              <h3 class="text-sm font-black uppercase tracking-tight mb-2" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Módulo en mantenimiento
+              </h3>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ modulosConfig.module_mallas_message }}
+              </p>
+            </div>
+          </div>
+          <MeshModule v-else :isDark="isDark" :company="selectedCompany" />
+        </template>
+
+        <!-- Novedades mantenimiento -->
+        <div v-if="['novedadusuario','view_novedad_admin','view_novedad_rrhh','view_novedad_user'].includes(currentModule) && !moduloActivo('novedades')"
+          class="h-full flex items-center justify-center animate-fade-in">
+          <div class="text-center max-w-sm">
+            <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+              :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+              <i class="fas fa-wrench text-2xl text-[#FF8F00]"></i>
+            </div>
+            <h3 class="text-sm font-black uppercase tracking-tight mb-2" :class="isDark ? 'text-white' : 'text-slate-800'">
+              Módulo en mantenimiento
+            </h3>
+            <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ modulosConfig.module_novedades_message }}
+            </p>
+          </div>
+        </div>
+
+        <div v-if="currentModule === 'novedadusuario' && moduloActivo('novedades')"
           class="h-full flex flex-col items-center justify-center animate-fade-in py-6">
 
           <!-- Header -->
@@ -349,6 +401,7 @@
   </div>
 </template>
 <script setup>
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
 import AttendanceModule from '../components/admin/ModuloUsuariosAsistencias.vue';
@@ -357,9 +410,10 @@ import NovedadesAdmin from './novedades/novedadesadminView.vue';
 import NovedadesRRHH from './novedades/novedadesRRHView.vue';
 import NovedadesUsuario from './novedades/novedadesusuarioView.vue';
 import '../assets/css/admin-style.css';
+
 const tienePermiso = (slug) => employee?.value?.permisos?.[slug] ?? false;
 const {
-  employee, // <--- Este es tu "session"
+  employee,
   loading,
   currentTime,
   filteredReport,
@@ -375,4 +429,23 @@ const {
   downloadExcelReport
 } = adminOdoo();
 const router = useRouter();
+
+const API_URL = import.meta.env.VITE_API_URL;
+const modulosConfig = reactive({
+  module_asistencias_active: 'true',
+  module_asistencias_message: 'Módulo en mantenimiento. Vuelve pronto.',
+  module_mallas_active: 'true',
+  module_mallas_message: 'Módulo en mantenimiento. Vuelve pronto.',
+  module_novedades_active: 'true',
+  module_novedades_message: 'Módulo en mantenimiento. Vuelve pronto.',
+});
+
+const moduloActivo = (key) => modulosConfig[`module_${key}_active`] === 'true';
+
+onMounted(async () => {
+  try {
+    const res = await fetch(`${API_URL}/sistema-config`);
+    if (res.ok) Object.assign(modulosConfig, await res.json());
+  } catch {}
+});
 </script>

@@ -13,6 +13,7 @@ import { getDatabaseConfig } from './config/database.config'; // Tu archivo de c
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizacionModule } from './organizacion/organizacion.module';
 import { NovedadesModule } from './novedades/novedades.module';
+import { SistemaConfigModule } from './sistema-config/sistema-config.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NovedadesModule } from './novedades/novedades.module';
     NotificationsModule,
     OrganizacionModule,
     NovedadesModule,
+    SistemaConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
