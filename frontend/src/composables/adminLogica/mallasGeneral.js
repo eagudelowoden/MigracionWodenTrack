@@ -13,7 +13,14 @@ export function useMallasGeneral() {
   const selectedCompany = ref("");
   const selectedDepartment = ref("");
 
-  // --- NUEVO: Variables de Paginación (Sin borrar nada de lo anterior) ---
+  // Modales
+  const showChoiceModal = ref(false);   // "¿Vista previa o subir directo?"
+  const showPreviewModal = ref(false);  // Tabla de datos del Excel
+  const previewRows = ref([]);
+  const previewHeaders = ref([]);
+  const pendingCleanBlob = ref(null);
+  const pendingFileName = ref("");
+
   const currentPage = ref(1);
   const itemsPerPage = ref(15);
 
@@ -21,11 +28,10 @@ export function useMallasGeneral() {
 
   const departments = computed(() => {
     if (!mallasData.value || mallasData.value.length === 0) return [];
-    const allDeps = mallasData.value
-      .map((item) => item.departamento) // 👈 cambia department_id por departamento
-      .filter(Boolean);
+    const allDeps = mallasData.value.map((item) => item.departamento).filter(Boolean);
     return [...new Set(allDeps)].sort();
   });
+
   watch(selectedDepartment, () => {
     currentPage.value = 1;
     fetchMallasDesdeOdoo();
@@ -48,19 +54,12 @@ export function useMallasGeneral() {
       }
 
       if (tieneFiltroDepto) {
-        if (selectedDepartment.value) {
-          params.append("departamento", selectedDepartment.value);
-        }
+        if (selectedDepartment.value) params.append("departamento", selectedDepartment.value);
       } else {
-        if (deptoUsuario) {
-          params.append("departamento", deptoUsuario);
-        }
+        if (deptoUsuario) params.append("departamento", deptoUsuario);
       }
 
-      const url = `${API_BASE_URL}/mallas?${params.toString()}`;
-      console.log("Consultando mallas en:", url);
-
-      const response = await axios.get(url);
+      const response = await axios.get(`${API_BASE_URL}/mallas?${params.toString()}`);
       mallasData.value = response.data;
       currentPage.value = 1;
     } catch (error) {
@@ -69,6 +68,7 @@ export function useMallasGeneral() {
       isLoading.value = false;
     }
   };
+
   const downloadMallaTemplate = async () => {
     try {
       isLoadingDownload.value = true;
@@ -76,132 +76,213 @@ export function useMallasGeneral() {
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
       const deptoUsuario = session.department || "";
       const esAdmin = session.role === "admin";
+      const deptoAplicar = esAdmin ? selectedDepartment.value || "" : deptoUsuario;
 
-      // Admin: usa el filtro del selector si seleccionó algo, si no descarga todo
-      // Usuario normal: siempre su departamento de sesión
-      const deptoAplicar = esAdmin
-        ? selectedDepartment.value || ""
-        : deptoUsuario;
-
-      const response = await axios.get(
-        `${API_BASE_URL}/reports/mallas/template`,
-        {
-          params: {
-            company: selectedCompany.value,
-            departamento: deptoAplicar,
-          },
-          responseType: "blob",
-        },
-      );
+      const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
+        params: { company: selectedCompany.value, departamento: deptoAplicar },
+        responseType: "blob",
+      });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-
       const deptoClean = deptoAplicar.replace(/\s+/g, "_") || "general";
       const fecha = new Date().toISOString().slice(0, 10);
-
-      link.setAttribute(
-        "download",
-        `plantilla_${selectedCompany.value}_${deptoClean}_${fecha}.xlsx`,
-      );
-
+      link.setAttribute("download", `plantilla_${selectedCompany.value}_${deptoClean}_${fecha}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error al descargar plantilla:", error);
-      alert(
-        "Error al descargar la plantilla. Verifica que existan empleados en tu departamento.",
-      );
+      alert("Error al descargar la plantilla. Verifica que existan empleados en tu departamento.");
     } finally {
       isLoadingDownload.value = false;
     }
   };
 
-  const handleFileUpload = async (event) => {
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  const _readAndCleanExcel = async (file) => {
+    const XLSX = await import("xlsx");
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    Object.keys(sheet).forEach((cellRef) => {
+      if (cellRef.startsWith("!")) return;
+      const cell = sheet[cellRef];
+      if (cell && cell.t === "s" && typeof cell.v === "string") {
+        const valor = cell.v
+          .trim()
+          .replace(/\s+/g, " ")
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "");
+        cell.v = valor;
+        cell.w = valor;
+      }
+    });
+
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    const cleanBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const cleanBlob = new Blob([cleanBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    return { jsonData, cleanBlob };
+  };
+
+  const _buildPreview = (jsonData) => {
+    const WANTED_COLS = [
+      { label: "Empleado", keys: ["empleado"] },
+      { label: "Horario de trabajo", keys: ["horario de trabajo"] },
+      { label: "Estado", keys: ["estado"] },
+      { label: "Fecha de inicio", keys: ["fecha de inicio"] },
+      { label: "Fecha de finalizacion", keys: ["fecha de finalizacion", "fecha de fin"] },
+    ];
+
+    const rawHeaders = (jsonData[0] || []).map((h) =>
+      String(h).trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    );
+
+    const matched = WANTED_COLS.map((col) => ({
+      label: col.label,
+      idx: rawHeaders.findIndex((h) => col.keys.includes(h)),
+    })).filter((c) => c.idx >= 0);
+
+    let finalHeaders, finalIndices;
+    if (matched.length === 0) {
+      // Fallback: primeras 5 columnas originales
+      const origHeaders = (jsonData[0] || []).map(String);
+      finalHeaders = origHeaders.slice(0, 5);
+      finalIndices = [0, 1, 2, 3, 4];
+    } else {
+      finalHeaders = matched.map((c) => c.label);
+      finalIndices = matched.map((c) => c.idx);
+    }
+
+    const dataRows = jsonData.slice(1).filter((row) => row.some((c) => c !== ""));
+
+    return {
+      headers: finalHeaders,
+      rows: dataRows.map((row) => finalIndices.map((i) => row[i] ?? "")),
+      totalRows: dataRows.length,
+    };
+  };
+
+  const _doUpload = async (blob, fileName) => {
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+
+    const response = await axios.post(
+      `${API_BASE_URL}/contracts-upload/import`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+
+    if (response.data.success) {
+      uploadSuccessMessage.value = response.data.message;
+      fetchMallasDesdeOdoo();
+    } else {
+      const rawErrors = response.data.errors || [];
+      uploadErrors.value = rawErrors.map((err) => ({
+        fila: err.fila || err.row || err.linea || "?",
+        campo: err.campo || err.field || err.column || "General",
+        error: err.error || err.message || err.err || "Error sin descripcion",
+        valor_enviado: err.valor_enviado || null,
+      }));
+    }
+  };
+
+  // ── Punto de entrada único: seleccionar archivo ──────────────────────────
+
+  const handleFileSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (event.target) event.target.value = "";
+
+    // Limpiar estado anterior
+    uploadErrors.value = [];
+    uploadSuccessMessage.value = "";
+    showResultModal.value = false;
+
+    try {
+      const { jsonData, cleanBlob } = await _readAndCleanExcel(file);
+      const preview = _buildPreview(jsonData);
+
+      previewHeaders.value = preview.headers;
+      previewRows.value = preview.rows;
+      pendingCleanBlob.value = cleanBlob;
+      pendingFileName.value = file.name;
+
+      // Mostrar modal de elección
+      showChoiceModal.value = true;
+    } catch (err) {
+      console.error("Error leyendo archivo:", err);
+      uploadErrors.value = [
+        { fila: "!", campo: "Archivo", error: "No se pudo leer el archivo Excel." },
+      ];
+      showResultModal.value = true;
+    }
+  };
+
+  // Desde el modal de elección: ver preview
+  const openPreview = () => {
+    showChoiceModal.value = false;
+    showPreviewModal.value = true;
+  };
+
+  // Desde el modal de elección: subir directo
+  const uploadDirect = async () => {
+    showChoiceModal.value = false;
+    if (!pendingCleanBlob.value) return;
+
+    try {
+      isUploading.value = true;
+      await _doUpload(pendingCleanBlob.value, pendingFileName.value);
+    } catch (error) {
+      uploadErrors.value = [
+        { fila: "!", campo: "RED", error: error.response?.data?.message || "Error de conexion" },
+      ];
+    } finally {
+      isUploading.value = false;
+      showResultModal.value = true;
+      pendingCleanBlob.value = null;
+    }
+  };
+
+  // Desde el modal de preview: confirmar carga
+  const confirmUpload = async () => {
+    if (!pendingCleanBlob.value) return;
+    showPreviewModal.value = false;
 
     try {
       isUploading.value = true;
       uploadErrors.value = [];
       uploadSuccessMessage.value = "";
-
-      // 1. Leer el Excel con SheetJS y limpiar espacios
-      const XLSX = await import("xlsx");
-      const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-
-      // Recorrer todas las celdas y hacer trim a los strings
-      Object.keys(sheet).forEach((cellRef) => {
-        if (cellRef.startsWith("!")) return;
-        const cell = sheet[cellRef];
-        if (cell && cell.t === "s" && typeof cell.v === "string") {
-          // Trim de espacios
-          let valor = cell.v.trim();
-
-          // Normalizar espacios dobles internos
-          valor = valor.replace(/\s+/g, " ");
-
-          // Quitar tildes y caracteres especiales → ASCII limpio
-          valor = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-          cell.v = valor;
-          cell.w = valor;
-        }
-      });
-
-      // 2. Re-generar el archivo limpio como Blob
-      const cleanBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const cleanFile = new Blob([cleanBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      // 3. Armar el FormData con el archivo limpio
-      const formData = new FormData();
-      formData.append("file", cleanFile, file.name);
-
-      const response = await axios.post(
-        `${API_BASE_URL}/contracts-upload/import`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
-
-      if (response.data.success) {
-        uploadSuccessMessage.value = response.data.message;
-        fetchMallasDesdeOdoo();
-      } else {
-        const rawErrors = response.data.errors || [];
-        uploadErrors.value = rawErrors.map((err) => ({
-          fila: err.fila || err.row || err.linea || "?",
-          campo: err.campo || err.field || err.column || "General",
-          error: err.error || err.message || err.err || "Error sin descripción",
-          valor_enviado: err.valor_enviado || null,
-        }));
-      }
+      await _doUpload(pendingCleanBlob.value, pendingFileName.value);
     } catch (error) {
       uploadErrors.value = [
-        {
-          fila: "!",
-          campo: "RED",
-          error: error.response?.data?.message || "Error de conexión",
-        },
+        { fila: "!", campo: "RED", error: error.response?.data?.message || "Error de conexion" },
       ];
     } finally {
       isUploading.value = false;
       showResultModal.value = true;
-      if (event.target) event.target.value = "";
+      pendingCleanBlob.value = null;
     }
   };
 
-  // --- Lógica de Filtro y Paginación (Optimizada) ---
+  const cancelAll = () => {
+    showChoiceModal.value = false;
+    showPreviewModal.value = false;
+    pendingCleanBlob.value = null;
+    previewRows.value = [];
+    previewHeaders.value = [];
+  };
+
+  // ── Filtro y Paginación ──────────────────────────────────────────────────
+
   const filteredMallas = computed(() => {
     if (!searchQuery.value) return mallasData.value;
     const query = searchQuery.value.toLowerCase();
@@ -235,10 +316,19 @@ export function useMallasGeneral() {
     uploadErrors,
     uploadSuccessMessage,
     showResultModal,
+    showChoiceModal,
+    showPreviewModal,
+    previewRows,
+    previewHeaders,
+    pendingFileName,
     selectedCompany,
     fetchMallasDesdeOdoo,
     downloadMallaTemplate,
-    handleFileUpload,
+    handleFileSelect,
+    openPreview,
+    uploadDirect,
+    confirmUpload,
+    cancelAll,
     paginatedMallas,
     currentPage,
     totalPages,
