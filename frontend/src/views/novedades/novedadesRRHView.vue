@@ -25,30 +25,79 @@
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all"
           :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
           <i class="fas fa-search text-[#FF8F00] text-[9px]"></i>
-          <input v-model="filters.nombre" type="text" placeholder="Buscar por nombre..."
-            class="bg-transparent text-[10px] font-bold outline-none w-36 placeholder:font-normal placeholder:text-slate-500"
+          <input v-model="filters.nombre" type="text" placeholder="Nombre..."
+            class="bg-transparent text-[10px] font-bold outline-none w-28 placeholder:font-normal placeholder:text-slate-500"
             :class="isDark ? 'text-white' : 'text-slate-700'" />
-          <button v-if="filters.nombre" @click="filters.nombre = ''"
-            class="opacity-40 hover:opacity-80 transition-opacity">
+          <button v-if="filters.nombre" @click="filters.nombre = ''" class="opacity-40 hover:opacity-80 transition-opacity">
             <i class="fas fa-xmark text-[9px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
           </button>
         </div>
 
-        <!-- Filtro fecha -->
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border"
-          :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
-          <i class="fas fa-calendar-day text-[#FF8F00] text-[9px]"></i>
-          <input type="date" v-model="filters.fecha"
-            class="bg-transparent text-[10px] font-bold outline-none cursor-pointer"
-            :class="isDark ? 'text-white [color-scheme:dark]' : 'text-slate-700'" />
+        <!-- Filtro departamento con autocomplete -->
+        <div class="relative">
+          <div
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all"
+            :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
+            <i class="fas fa-building text-[#FF8F00] text-[9px]"></i>
+            <input v-model="filters.departamento" type="text" placeholder="Departamento..."
+              class="bg-transparent text-[10px] font-bold outline-none w-32 placeholder:font-normal placeholder:text-slate-500"
+              :class="isDark ? 'text-white' : 'text-slate-700'"
+              @focus="showDeptList = true"
+              @blur="setTimeout(() => showDeptList = false, 150)" />
+            <button v-if="filters.departamento" @click="filters.departamento = ''" class="opacity-40 hover:opacity-80 transition-opacity">
+              <i class="fas fa-xmark text-[9px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
+            </button>
+          </div>
+          <div v-if="showDeptList && deptSuggestions.length"
+            class="absolute top-full left-0 mt-1 z-50 w-56 rounded-xl border shadow-2xl overflow-hidden"
+            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+            <button v-for="s in deptSuggestions" :key="s"
+              @mousedown.prevent="filters.departamento = s; showDeptList = false"
+              class="w-full text-left px-3 py-2 text-[10px] font-bold transition-colors hover:bg-[#FF8F00]/10"
+              :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+              {{ s }}
+            </button>
+          </div>
         </div>
 
-        <!-- Badge fecha activa -->
-        <div v-if="filters.fecha"
-          class="flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest"
-          :class="isDark ? 'border-[#FF8F00]/30 bg-[#FF8F00]/10 text-[#FF8F00]' : 'border-[#FF8F00]/30 bg-[#FF8F00]/5 text-[#FF8F00]'">
-          <i class="fas fa-filter text-[8px]"></i>
-          {{ formatFecha(filters.fecha) }}
+        <!-- Filtro cargo con autocomplete -->
+        <div class="relative">
+          <div
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all"
+            :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
+            <i class="fas fa-briefcase text-[#FF8F00] text-[9px]"></i>
+            <input v-model="filters.cargo" type="text" placeholder="Cargo..."
+              class="bg-transparent text-[10px] font-bold outline-none w-28 placeholder:font-normal placeholder:text-slate-500"
+              :class="isDark ? 'text-white' : 'text-slate-700'"
+              @focus="showCargoList = true"
+              @blur="setTimeout(() => showCargoList = false, 150)" />
+            <button v-if="filters.cargo" @click="filters.cargo = ''" class="opacity-40 hover:opacity-80 transition-opacity">
+              <i class="fas fa-xmark text-[9px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
+            </button>
+          </div>
+          <div v-if="showCargoList && cargoSuggestions.length"
+            class="absolute top-full left-0 mt-1 z-50 w-56 rounded-xl border shadow-2xl overflow-hidden"
+            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+            <button v-for="s in cargoSuggestions" :key="s"
+              @mousedown.prevent="filters.cargo = s; showCargoList = false"
+              class="w-full text-left px-3 py-2 text-[10px] font-bold transition-colors hover:bg-[#FF8F00]/10"
+              :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+              {{ s }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Rango de fechas -->
+        <div class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border"
+          :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
+          <i class="fas fa-calendar-day text-[#FF8F00] text-[9px]"></i>
+          <input type="date" v-model="filters.fechaInicio"
+            class="bg-transparent text-[10px] font-bold outline-none cursor-pointer"
+            :class="isDark ? 'text-white [color-scheme:dark]' : 'text-slate-700'" />
+          <span class="text-[9px] opacity-40 mx-0.5" :class="isDark ? 'text-slate-400' : 'text-slate-500'">→</span>
+          <input type="date" v-model="filters.fechaFin"
+            class="bg-transparent text-[10px] font-bold outline-none cursor-pointer"
+            :class="isDark ? 'text-white [color-scheme:dark]' : 'text-slate-700'" />
         </div>
 
         <!-- Reset -->
@@ -262,8 +311,12 @@
           <p class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-500' : 'text-slate-400'">
             Resultados: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesFiltradas.length }}</span>
-            <span v-if="filters.fecha" class="ml-2 opacity-60">— {{ formatFecha(filters.fecha) }}</span>
             <span v-if="filters.nombre" class="ml-2 opacity-60">— "{{ filters.nombre }}"</span>
+            <span v-if="filters.departamento" class="ml-2 opacity-60">— {{ filters.departamento }}</span>
+            <span v-if="filters.cargo" class="ml-2 opacity-60">— {{ filters.cargo }}</span>
+            <span v-if="filters.fechaInicio || filters.fechaFin" class="ml-2 opacity-60">
+              — {{ formatFecha(filters.fechaInicio) }} → {{ formatFecha(filters.fechaFin) }}
+            </span>
           </p>
           <p class="text-[9px] font-bold opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
             Total: {{ novedades.length }}
@@ -500,6 +553,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+// setTimeout disponible globalmente en el navegador
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
 
 const props = defineProps({ isDark: Boolean, company: String });
@@ -515,13 +569,17 @@ const {
   getFileUrl
 } = useNovedades();
 
-const filters = ref({ fecha: '', nombre: '' });
+const filters = ref({ nombre: '', departamento: '', cargo: '', fechaInicio: '', fechaFin: '' });
 
-const mensajeVacio = computed(() =>
-  filters.value.nombre || filters.value.fecha
+const showDeptList = ref(false);
+const showCargoList = ref(false);
+
+const mensajeVacio = computed(() => {
+  const { nombre, departamento, cargo, fechaInicio, fechaFin } = filters.value;
+  return nombre || departamento || cargo || fechaInicio || fechaFin
     ? 'Sin resultados para el filtro aplicado'
-    : 'No hay novedades registradas'
-);
+    : 'No hay novedades registradas';
+});
 
 const modalOpen = ref(false);
 const modalLoading = ref(false);
@@ -562,19 +620,37 @@ const verMotivo = (texto, titulo = 'Motivo') => {
 };
 onMounted(() => fetchNovedades());
 
+// Sugerencias de autocomplete (solo valores que coincidan con lo escrito)
+const deptSuggestions = computed(() => {
+  const q = filters.value.departamento.toLowerCase().trim();
+  const all = [...new Set(novedades.value.map(n => n.departamento).filter(Boolean))].sort();
+  if (!q) return all.slice(0, 8);
+  return all.filter(d => d.toLowerCase().includes(q)).slice(0, 8);
+});
+
+const cargoSuggestions = computed(() => {
+  const q = filters.value.cargo.toLowerCase().trim();
+  const all = [...new Set(novedades.value.map(n => n.cargo).filter(Boolean))].sort();
+  if (!q) return all.slice(0, 8);
+  return all.filter(c => c.toLowerCase().includes(q)).slice(0, 8);
+});
+
 const novedadesFiltradas = computed(() => {
+  const { nombre, departamento, cargo, fechaInicio, fechaFin } = filters.value;
   return novedades.value.filter((n) => {
-    const matchNombre = !filters.value.nombre ||
-      (n.nombre ?? '').toLowerCase().includes(filters.value.nombre.toLowerCase());
+    if (nombre && !(n.nombre ?? '').toLowerCase().includes(nombre.toLowerCase())) return false;
+    if (departamento && !(n.departamento ?? '').toLowerCase().includes(departamento.toLowerCase())) return false;
+    if (cargo && !(n.cargo ?? '').toLowerCase().includes(cargo.toLowerCase())) return false;
 
-    if (!filters.value.fecha) return matchNombre;
+    if (fechaInicio || fechaFin) {
+      const ini = (n.fechaInicio ?? n.fecha_inicio ?? '').slice(0, 10);
+      const fin = (n.fechaFin ?? n.fecha_fin ?? '').slice(0, 10);
+      // La novedad se solapa con el rango seleccionado
+      if (fechaInicio && fin < fechaInicio) return false;
+      if (fechaFin && ini > fechaFin) return false;
+    }
 
-    const inicio = n.fechaInicio ?? n.fecha_inicio ?? '';
-    const fin = n.fechaFin ?? n.fecha_fin ?? '';
-    const matchFecha = filters.value.fecha >= inicio.slice(0, 10) &&
-      filters.value.fecha <= fin.slice(0, 10);
-
-    return matchNombre && matchFecha;
+    return true;
   });
 });
 
@@ -595,7 +671,7 @@ const calcDias = (inicio, fin) => {
 };
 
 const resetFilters = () => {
-  filters.value = { fecha: '', nombre: '' };
+  filters.value = { nombre: '', departamento: '', cargo: '', fechaInicio: '', fechaFin: '' };
   fetchNovedades();
 };
 

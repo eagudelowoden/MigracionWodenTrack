@@ -1,7 +1,8 @@
 // src/novedades/novedades.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import * as fs from 'fs';
@@ -29,6 +30,7 @@ export class NovedadesService {
     private readonly novedadRepo: Repository<Novedad>,
     private readonly config: ConfigService,
     private readonly sistemaConfig: SistemaConfigService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {
     this.localDir = path.join(process.cwd(), 'uploads', 'novedades');
     this.bucket = this.config.get<string>('AWS_S3_BUCKET', '');
@@ -122,7 +124,27 @@ export class NovedadesService {
 
   // ─── FIND ALL ──────────────────────────────────────────────────────────────
   async findAll() {
-    return this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+    const novedades = await this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+    if (!novedades.length) return [];
+
+    // Enriquecer con departamento y cargo desde usuarios_registrados
+    const nombres = [...new Set(novedades.map((n) => n.nombre).filter(Boolean))];
+    const escapedNames = nombres
+      .map((n) => `'${n.replace(/'/g, "''")}'`)
+      .join(', ');
+
+    const usuarios: Array<{ nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(
+        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
+      );
+
+    const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
+
+    return novedades.map((n) => ({
+      ...n,
+      departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
+      cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+    }));
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────
