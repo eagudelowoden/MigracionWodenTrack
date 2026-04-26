@@ -1,28 +1,28 @@
 <template>
-  <div class="mesh-container h-full animate-fade-in flex flex-col gap-2 font-round-custom">
+  <div class="h-full animate-fade-in flex flex-col gap-2 font-round-custom">
 
     <!-- ── Barra superior ──────────────────────────────────────────────── -->
     <div
-      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 -mt-3 shadow-sm"
+      class="flex flex-wrap items-center justify-between gap-3 p-2 px-4 rounded-2xl border transition-all duration-300 -mt-3 shadow-sm"
       :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
 
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-7 h-7 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-sm shadow-amber-500/20">
-          <i class="fas fa-calendar-check text-xs"></i>
+          class="flex-shrink-0 w-9 h-9 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-amber-500/25">
+          <i class="fas fa-calendar-check text-sm"></i>
         </div>
         <div class="leading-tight">
-          <h2 class="text-sm font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Mallas</h2>
-          <p class="text-[8px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-[0.15em]">Horarios</p>
+          <h2 class="text-base font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Mallas</h2>
+          <p class="text-[9px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-[0.15em]">Horarios</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
 
         <template v-if="hasPerm('admin.filtro_departamento')">
           <div class="relative">
             <select v-model="selectedDepartment"
-              class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
+              class="pl-3 pr-8 py-1.5 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm"
               :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
               <option value="">DEPARTAMENTOS</option>
               <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
@@ -34,7 +34,7 @@
         <div class="relative">
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
-            class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 md:w-44 transition-all"
+            class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 md:w-52 transition-all shadow-sm"
             :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
         </div>
 
@@ -42,7 +42,7 @@
 
           <!-- Descargar plantilla -->
           <button @click="downloadMallaTemplate"
-            class="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            class="p-2 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
             title="Descargar Plantilla">
             <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
           </button>
@@ -51,7 +51,7 @@
           <input type="file" id="fileInput" class="hidden" @change="handleFileSelect"
             :disabled="isUploading" accept=".xlsx,.xls" />
           <label for="fileInput"
-            class="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
+            class="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
             :class="{ 'opacity-50 pointer-events-none': isUploading }">
             <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
             <span>{{ isUploading ? 'Cargando...' : 'Subir' }}</span>
