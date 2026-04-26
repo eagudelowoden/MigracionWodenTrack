@@ -172,11 +172,13 @@ export function useMallasGeneral() {
   };
 
   const _doUpload = async (blob, fileName) => {
+    const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const formData = new FormData();
     formData.append("file", blob, fileName);
+    formData.append("asignado_por", session.name || "Desconocido");
 
     const response = await axios.post(
-      `${API_BASE_URL}/contracts-upload/import`,
+      `${API_BASE_URL}/mallas-upload/import`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } },
     );
@@ -189,7 +191,7 @@ export function useMallasGeneral() {
       uploadErrors.value = rawErrors.map((err) => ({
         fila: err.fila || err.row || err.linea || "?",
         campo: err.campo || err.field || err.column || "General",
-        error: err.error || err.message || err.err || "Error sin descripcion",
+        error: err.error || err.message || err.err || "Error sin descripción",
         valor_enviado: err.valor_enviado || null,
       }));
     }
