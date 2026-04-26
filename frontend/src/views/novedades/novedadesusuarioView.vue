@@ -21,7 +21,8 @@
       </div>
 
       <!-- Indicador de almacenamiento (solo lectura, configurado en Super Admin) -->
-      <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest mr-1"
+      <div
+        class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest mr-1"
         :class="storageMode === 's3'
           ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
           : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
@@ -166,7 +167,7 @@
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
                 <label for="file-upload"
                   class="px-4 py-2 rounded-md bg-[#FF8F00] text-black text-[10px] font-black uppercase italic cursor-pointer hover:brightness-110 active:scale-95 transition-all">
-                  {{ fileName ? 'Cambiar' : 'Buscar' }}
+                  {{ fileName ? 'Cambiar' : 'Subir' }}
                 </label>
               </div>
 
@@ -331,7 +332,7 @@ onMounted(async () => {
       const cfg = await res.json();
       if (cfg.storage_mode) storageMode.value = cfg.storage_mode;
     }
-  } catch {}
+  } catch { }
 });
 const processFile = (file) => {
   if (!file) return;
