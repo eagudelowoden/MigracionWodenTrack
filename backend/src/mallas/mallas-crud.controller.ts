@@ -38,6 +38,11 @@ export class MallasCrudController {
     return this.mallasCrudService.toggleActiva(Number(id), body.activa);
   }
 
+  @Patch(':id/detalles')
+  actualizarDetalles(@Param('id') id: string, @Body() body: { detalles: any[] }) {
+    return this.mallasCrudService.actualizarDetalles(Number(id), body.detalles ?? []);
+  }
+
   @Post('upload-excel')
   @UseInterceptors(FileInterceptor('file'))
   async uploadExcel(@UploadedFile() file: Express.Multer.File) {

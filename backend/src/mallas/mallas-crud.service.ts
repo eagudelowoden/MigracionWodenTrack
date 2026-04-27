@@ -60,6 +60,28 @@ export class MallasCrudService {
     return { ok: true };
   }
 
+  async actualizarDetalles(id: number, detalles: { dia_semana: number; hora_inicio: number; hora_fin: number; periodo?: string }[]) {
+    const malla = await this.mallaRepo.findOne({ where: { id } });
+    if (!malla) throw new BadRequestException(`Malla ${id} no encontrada`);
+
+    await this.detalleRepo.delete({ malla_id: id });
+
+    if (detalles?.length) {
+      const nuevos = detalles.map((d) =>
+        this.detalleRepo.create({
+          malla_id: id,
+          dia_semana: Number(d.dia_semana),
+          hora_inicio: Number(d.hora_inicio),
+          hora_fin: Number(d.hora_fin),
+          periodo: d.periodo || 'morning',
+        }),
+      );
+      await this.detalleRepo.save(nuevos);
+    }
+
+    return this.mallaRepo.findOne({ where: { id }, relations: ['detalles'] });
+  }
+
   async procesarExcelCreacion(buffer: Buffer) {
     const DIA_MAP: Record<string, number> = {
       lunes: 0, martes: 1, miercoles: 2, miércoles: 2,
