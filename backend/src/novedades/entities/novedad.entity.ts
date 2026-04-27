@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 
 @Entity('novedades')
@@ -50,6 +51,15 @@ export class Novedad {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ name: 'eliminado_por', type: 'int', nullable: true, default: null })
+  eliminadoPor: number | null;
+
+  @Column({ name: 'eliminado_por_nombre', type: 'nvarchar', length: 180, nullable: true, default: null })
+  eliminadoPorNombre: string | null;
 
   @Column({ type: 'int', default: null, nullable: true })
   aprobado: number | null; // null=pendiente, 1=aprobado, 0=rechazado

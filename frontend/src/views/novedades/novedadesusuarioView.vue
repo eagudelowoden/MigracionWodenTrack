@@ -456,13 +456,20 @@
                     </span>
                   </td>
 
-                  <!-- Ver soporte -->
+                  <!-- Acciones: Ver soporte + Eliminar -->
                   <td class="px-4 py-2.5 text-center">
-                    <a :href="getFileUrl(nov.id)" target="_blank"
-                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
-                      :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                      <i class="fas fa-eye text-[#FF8F00]"></i> Ver
-                    </a>
+                    <div class="flex items-center justify-center gap-1.5">
+                      <a :href="getFileUrl(nov.id)" target="_blank"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
+                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                        <i class="fas fa-eye text-[#FF8F00]"></i> Ver
+                      </a>
+                      <button @click="abrirModalEliminar(nov)"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
+                        :class="isDark ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20' : 'bg-red-50 text-red-500 border-red-200 hover:bg-red-100'">
+                        <i class="fas fa-trash-can"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -482,6 +489,79 @@
     </div>
 
   </div>
+
+  <!-- Modal confirmar eliminación -->
+  <teleport to="body">
+    <transition name="fade-msg">
+      <div v-if="modalEliminar.open"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55);"
+        @click.self="modalEliminar.open = false">
+
+        <div class="w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+          <!-- Header modal -->
+          <div class="flex items-center gap-3 px-5 py-4 border-b"
+            :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+            <div class="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+              <i class="fas fa-triangle-exclamation text-red-400 text-sm"></i>
+            </div>
+            <div>
+              <p class="text-sm font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Eliminar novedad
+              </p>
+              <p class="text-[10px] opacity-50 font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Esta acción no se puede deshacer
+              </p>
+            </div>
+          </div>
+
+          <!-- Cuerpo modal -->
+          <div class="px-5 py-4 flex flex-col gap-3">
+            <p class="text-xs" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+              ¿Deseas eliminar la siguiente novedad?
+            </p>
+            <div class="px-4 py-3 rounded-xl border"
+              :class="isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200'">
+              <p class="text-[11px] font-bold truncate"
+                :class="isDark ? 'text-white' : 'text-slate-800'">
+                {{ modalEliminar.novedad?.descripcion }}
+              </p>
+              <p class="text-[10px] opacity-50 mt-0.5"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ formatFecha(modalEliminar.novedad?.fechaInicio) }} →
+                {{ formatFecha(modalEliminar.novedad?.fechaFin) }}
+              </p>
+            </div>
+
+            <p class="text-[10px] text-red-400 font-medium">
+              <i class="fas fa-info-circle mr-1"></i>
+              Se registrará que <strong>{{ sessionNombre }}</strong> realizó esta eliminación.
+            </p>
+          </div>
+
+          <!-- Footer modal -->
+          <div class="flex items-center justify-end gap-2 px-5 py-3 border-t"
+            :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+            <button @click="modalEliminar.open = false"
+              class="px-4 py-2 rounded-lg border text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-95"
+              :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="confirmarEliminar" :disabled="loadingDelete"
+              class="px-5 py-2 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-600 active:scale-95 flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+              <i v-if="loadingDelete" class="fas fa-circle-notch fa-spin"></i>
+              <i v-else class="fas fa-trash-can"></i>
+              {{ loadingDelete ? 'Eliminando...' : 'Sí, eliminar' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </transition>
+  </teleport>
+
 </template>
 
 <script setup>
@@ -494,11 +574,12 @@ const props = defineProps({
   employee: Object,
 });
 
-const { crearNovedad, loading, jefe, fetchJefeDeArea, misNovedades, fetchMisNovedades, getFileUrl } = useNovedades();
+const { crearNovedad, loading, jefe, fetchJefeDeArea, misNovedades, fetchMisNovedades, getFileUrl, eliminarMiNovedad } = useNovedades();
 
 const activeTab = ref('registro');
 const storageMode = ref('local');
 const sessionIdOdoo = ref(null);
+const sessionNombre = ref('');
 
 const form = ref({
   nombre: '', cedula: '', descripcion: '',
@@ -514,6 +595,9 @@ const submitStatus = ref('');
 const submitMessage = ref('');
 
 const filtros = ref({ buscar: '', fechaDesde: '', fechaHasta: '' });
+
+const modalEliminar = ref({ open: false, novedad: null });
+const loadingDelete = ref(false);
 
 const ext = computed(() => fileName.value.split('.').pop().toLowerCase());
 const isImage = computed(() => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext.value));
@@ -543,6 +627,7 @@ onMounted(async () => {
   const session = JSON.parse(localStorage.getItem('user_session') || '{}');
   form.value.nombre = props.employee?.name || session?.name || '';
   sessionIdOdoo.value = props.employee?.id_odoo || session?.id_odoo || null;
+  sessionNombre.value = props.employee?.name || session?.name || '';
 
   const department = props.employee?.department || session?.department;
   if (department) await fetchJefeDeArea(department);
@@ -555,6 +640,27 @@ onMounted(async () => {
     }
   } catch { }
 });
+
+const abrirModalEliminar = (nov) => {
+  modalEliminar.value = { open: true, novedad: nov };
+};
+
+const confirmarEliminar = async () => {
+  if (!modalEliminar.value.novedad) return;
+  loadingDelete.value = true;
+  try {
+    await eliminarMiNovedad(
+      modalEliminar.value.novedad.id,
+      sessionIdOdoo.value,
+      sessionNombre.value,
+    );
+    modalEliminar.value.open = false;
+  } catch {
+    // el error ya se loguea en el composable
+  } finally {
+    loadingDelete.value = false;
+  }
+};
 
 const onOpenHistorial = async () => {
   activeTab.value = 'historial';

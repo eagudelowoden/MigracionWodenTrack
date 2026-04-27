@@ -53,7 +53,10 @@ export class NovedadesService {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
-    if (modo === 's3') {
+    // Si se pidió S3 pero el bucket no está configurado, cae en local
+    const modoEfectivo = modo === 's3' && !this.bucket ? 'local' : modo;
+
+    if (modoEfectivo === 's3') {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
@@ -210,15 +213,20 @@ export class NovedadesService {
     fs.createReadStream(filePath).pipe(res);
   }
 
-  // ─── DELETE ───────────────────────────────────────────────────────────────
-  async remove(id: number) {
+  // ─── DELETE (soft delete + auditoría) ────────────────────────────────────
+  async remove(
+    id: number,
+    eliminadoPor?: number,
+    eliminadoPorNombre?: string,
+  ) {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
+    // Borrar archivo físico
     if (novedad.soporteStorageMode === 'local') {
       const filePath = path.join(this.localDir, novedad.soporteStorageKey);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } else {
+    } else if (this.bucket) {
       await this.s3.send(
         new DeleteObjectCommand({
           Bucket: this.bucket,
@@ -227,7 +235,13 @@ export class NovedadesService {
       );
     }
 
-    await this.novedadRepo.delete(id);
+    // Guardar auditoría antes de soft-delete
+    novedad.eliminadoPor = eliminadoPor ?? null;
+    novedad.eliminadoPorNombre = eliminadoPorNombre ?? null;
+    await this.novedadRepo.save(novedad);
+
+    // Soft delete: marca deleted_at, el registro queda en BD
+    await this.novedadRepo.softDelete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
   async aprobarJefe(id: number, aprobado: number, motivo: string) {

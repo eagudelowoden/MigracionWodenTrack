@@ -126,6 +126,19 @@ export function useNovedades() {
     }
   };
 
+  // ─── DELETE desde historial usuario (con auditoría) ───────────────────────
+  const eliminarMiNovedad = async (id, eliminadoPor, eliminadoPorNombre) => {
+    try {
+      await axios.delete(`${API_URL}/novedades/${id}`, {
+        params: { eliminadoPor, eliminadoPorNombre },
+      });
+      misNovedades.value = misNovedades.value.filter((n) => n.id !== id);
+    } catch (e) {
+      console.error("Error al eliminar novedad:", e);
+      throw e;
+    }
+  };
+
   // ─── Aprobación Jefe ──────────────────────────────────────────────────────
   const aprobarJefe = async (id, aprobado, motivo) => {
     try {
@@ -171,5 +184,6 @@ export function useNovedades() {
     fetchJefeDeArea,
     misNovedades,
     fetchMisNovedades,
+    eliminarMiNovedad,
   };
 }

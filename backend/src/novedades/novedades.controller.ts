@@ -63,10 +63,18 @@ export class NovedadesController {
     return this.novedadesService.streamFile(+id, res);
   }
 
-  // DELETE /novedades/:id
+  // DELETE /novedades/:id?eliminadoPor=X&eliminadoPorNombre=Y
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.novedadesService.remove(+id);
+  remove(
+    @Param('id') id: string,
+    @Query('eliminadoPor') eliminadoPor?: string,
+    @Query('eliminadoPorNombre') eliminadoPorNombre?: string,
+  ) {
+    return this.novedadesService.remove(
+      +id,
+      eliminadoPor ? +eliminadoPor : undefined,
+      eliminadoPorNombre,
+    );
   }
 
   @Post(':id/aprobar-jefe')
