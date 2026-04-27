@@ -451,11 +451,12 @@ curl "${apiBase.value}/asistencias?fechaInicio=2024-01-01&fechaFin=2024-01-31" \
 
 const ejemploPython = computed(() => `import requests
 
-BASE = "${apiBase.value}"
+BASE     = "${apiBase.value}"
+USERNAME = "mi_usuario"       # usuario de la credencial
+PASSWORD = "mi_password"      # contraseña de la credencial
+TOKEN    = "mi_token_aqui"    # token estático (cópialo desde la tabla)
 
-# Token estático (cópialo desde la tabla de credenciales)
-TOKEN = "tu_token_aqui"
-
+# ── Opción A: usar el token estático directamente ──────────────────
 resp = requests.get(
     f"{BASE}/asistencias",
     params={
@@ -465,6 +466,15 @@ resp = requests.get(
     },
     headers={"Authorization": f"Bearer {TOKEN}"},
 )
+
+# ── Opción B: autenticarse con usuario y contraseña ────────────────
+# auth  = requests.post(f"{BASE}/auth", json={"username": USERNAME, "password": PASSWORD})
+# token = auth.json()["token"]
+# resp  = requests.get(
+#     f"{BASE}/asistencias",
+#     params={"fechaInicio": "2024-01-01", "fechaFin": "2024-01-31"},
+#     headers={"Authorization": f"Bearer {token}"},
+# )
 
 data = resp.json()
 print(f"Total registros: {data['total']}")
