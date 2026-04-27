@@ -297,6 +297,8 @@ export class HorasExtraService {
       const turno = turnoDetalles[0] ?? null;
       const cedula = cedulaMap.get(empId) ?? 'N/A';
 
+      const esDominical = diaSemana === 6;
+
       const registro = this.horaExtraRepo.create({
         cedula,
         nombre,
@@ -307,6 +309,8 @@ export class HorasExtraService {
         fecha_entrada: localIn,
         fecha_salida: localOut,
         calculado_por: dto.calculado_por ?? null,
+        es_dominical: esDominical,
+        aprobado: null,
         inicio_turno: null,
         fin_turno: null,
         inicio_extra_entrada: null,
@@ -318,7 +322,20 @@ export class HorasExtraService {
         total_minutos_extra: 0,
       });
 
-      if (turno) {
+      if (esDominical) {
+        // Domingo: todas las horas trabajadas son extra (sin validar malla)
+        if (localIn && localOut) {
+          const minsIn = this.parseMinutos(localIn);
+          const minsOut = this.parseMinutos(localOut);
+          let minsTrabajados = minsOut - minsIn;
+          if (minsTrabajados < 0) minsTrabajados += 1440;
+          if (minsTrabajados > 0) {
+            registro.inicio_extra_salida = localIn;
+            registro.fin_extra_salida = localOut;
+            registro.minutos_extra_salida = Math.round(minsTrabajados);
+          }
+        }
+      } else if (turno) {
         const horaInDecimal = Number(turno.hora_inicio);
         const horaFinDecimal = Number(turno.hora_fin);
         registro.inicio_turno = this.decimalToHora(horaInDecimal);
@@ -388,6 +405,7 @@ export class HorasExtraService {
     endDate?: string;
     company?: string;
     cedula?: string;
+    departamento?: string;
     soloConExtras?: boolean;
   }): Promise<HoraExtra[]> {
     const qb = this.horaExtraRepo
@@ -403,9 +421,39 @@ export class HorasExtraService {
       qb.andWhere('h.company = :company', { company: filters.company });
     if (filters.cedula)
       qb.andWhere('h.cedula LIKE :cedula', { cedula: `%${filters.cedula}%` });
+    if (filters.departamento)
+      qb.andWhere('h.departamento = :departamento', { departamento: filters.departamento });
     if (filters.soloConExtras)
       qb.andWhere('h.total_minutos_extra > 0');
 
     return qb.getMany();
+  }
+
+  async actualizarAprobacion(dto: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    tipo: 'todas' | 'dominicales' | 'ninguna';
+  }): Promise<{ updated: number }> {
+    const aprobadoValor = dto.tipo !== 'ninguna';
+
+    const qb = this.horaExtraRepo
+      .createQueryBuilder()
+      .update(HoraExtra)
+      .set({ aprobado: aprobadoValor });
+
+    if (dto.tipo === 'dominicales') {
+      qb.where('es_dominical = 1');
+    } else {
+      qb.where('1 = 1');
+    }
+
+    if (dto.startDate) qb.andWhere('fecha >= :start', { start: dto.startDate });
+    if (dto.endDate) qb.andWhere('fecha <= :end', { end: dto.endDate });
+    if (dto.company && dto.company !== 'Todas')
+      qb.andWhere('company = :company', { company: dto.company });
+
+    const result = await qb.execute();
+    return { updated: result.affected ?? 0 };
   }
 }

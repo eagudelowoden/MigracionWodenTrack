@@ -113,6 +113,34 @@
         </div>
       </div>
 
+      <!-- Botones de aprobación (solo si hay resultados calculados) -->
+      <div v-if="hayResultados && !verHistorial" class="mt-3 pt-3 border-t flex flex-wrap gap-2 items-center"
+        :class="isDark ? 'border-white/5' : 'border-slate-100'">
+        <span class="text-[9px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-500' : 'text-slate-400'">Aprobación:</span>
+        <button @click="aprobarResultados('todas')"
+          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
+          :class="isDark
+            ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'
+            : 'border-emerald-400 text-emerald-600 hover:bg-emerald-50'">
+          <i class="fas fa-check-double text-[9px]"></i> Aprobar todas
+        </button>
+        <button @click="aprobarResultados('dominicales')"
+          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
+          :class="isDark
+            ? 'border-violet-500/40 text-violet-400 hover:bg-violet-500/10'
+            : 'border-violet-400 text-violet-600 hover:bg-violet-50'">
+          <i class="fas fa-sun text-[9px]"></i> Aprobar solo dominicales
+        </button>
+        <button @click="aprobarResultados('ninguna')"
+          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
+          :class="isDark
+            ? 'border-rose-500/40 text-rose-400 hover:bg-rose-500/10'
+            : 'border-rose-400 text-rose-600 hover:bg-rose-50'">
+          <i class="fas fa-times text-[9px]"></i> No aprobar
+        </button>
+      </div>
+
       <!-- Toast inline -->
       <div v-if="toast.msg" class="mt-3 pt-3 border-t flex items-center gap-2 text-[10px] font-semibold" :class="[
         isDark ? 'border-white/5' : 'border-slate-100',
@@ -141,6 +169,9 @@
         <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           Total: <span class="font-black text-emerald-500">{{ formatMinutos(totalMinutos) }}</span>
         </div>
+        <div v-if="aprobadas > 0" class="text-[10px] text-emerald-500 font-semibold">
+          {{ aprobadas }} aprobadas · {{ noAprobadas }} no aprobadas
+        </div>
         <div v-if="guardado" class="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
           <i class="fas fa-check-circle text-[9px]"></i> Guardado en base de datos
         </div>
@@ -159,34 +190,47 @@
               <th class="px-3 py-2 text-left font-black uppercase tracking-wide">CC</th>
               <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Depto</th>
               <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Fecha</th>
+              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Día</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Turno</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Entrada</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Salida</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-amber-500">Extra Entrada</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-blue-500">Extra Salida</th>
               <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-emerald-500">Total</th>
+              <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Aprobado</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(row, i) in tablaVisible" :key="i" class="border-t transition-colors" :class="[
               isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-              row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
+              row.es_dominical ? (isDark ? 'bg-violet-500/5' : 'bg-violet-50/40') :
+                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
             ]">
 
               <td class="px-3 py-2 font-semibold max-w-[160px] truncate"
                 :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
-              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}
-              </td>
+              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
               <td class="px-3 py-2 max-w-[120px] truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ row.departamento || '—' }}
               </td>
               <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
+              <td class="px-3 py-2">
+                <span v-if="row.es_dominical"
+                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-violet-500/15 text-violet-500">
+                  DOMINICAL
+                </span>
+                <span v-else class="text-[10px] font-semibold"
+                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                  {{ getNombreDia(row.fecha) }}
+                </span>
+              </td>
 
               <td class="px-3 py-2 text-center">
                 <span v-if="row.inicio_turno" class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
                   :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                   {{ row.inicio_turno }} – {{ row.fin_turno }}
                 </span>
+                <span v-else-if="row.es_dominical" class="text-violet-400 italic text-[9px]">Dominical</span>
                 <span v-else class="text-slate-400 italic text-[9px]">Sin malla</span>
               </td>
 
@@ -209,7 +253,10 @@
 
               <td class="px-3 py-2 text-center">
                 <div v-if="row.minutos_extra_salida > 0" class="flex flex-col items-center gap-0.5">
-                  <span class="font-black text-blue-500">{{ formatMinutos(row.minutos_extra_salida) }}</span>
+                  <span class="font-black"
+                    :class="row.es_dominical ? 'text-violet-500' : 'text-blue-500'">
+                    {{ formatMinutos(row.minutos_extra_salida) }}
+                  </span>
                   <span class="text-[8px] text-slate-400">
                     {{ soloHora(row.inicio_extra_salida) }} → {{ soloHora(row.fin_extra_salida) }}
                   </span>
@@ -223,6 +270,14 @@
                   {{ formatMinutos(row.total_minutos_extra) }}
                 </span>
                 <span v-else class="text-slate-400">0</span>
+              </td>
+
+              <td class="px-3 py-2 text-center">
+                <span v-if="row.aprobado === true"
+                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-600">Sí</span>
+                <span v-else-if="row.aprobado === false"
+                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-500">No</span>
+                <span v-else class="text-slate-400 text-[9px]">—</span>
               </td>
             </tr>
           </tbody>
@@ -260,17 +315,30 @@
 
     <!-- ── HISTORIAL ── -->
     <div v-if="verHistorial" class="flex flex-col gap-3">
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <div class="w-1 h-5 bg-[#FF8F00] rounded-full"></div>
         <h3 class="text-[11px] font-black uppercase tracking-wide" :class="isDark ? 'text-white' : 'text-slate-800'">
           Historial guardado</h3>
         <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8F00]/10 text-[#FF8F00]">
           {{ historial.length }} registros
         </span>
-        <button @click="cargarHistorial" class="ml-2 text-[10px] transition-colors"
+        <button @click="cargarHistorial" class="ml-1 text-[10px] transition-colors"
           :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-400 hover:text-[#FF8F00]'">
           <i class="fas fa-rotate-right mr-1"></i>Actualizar
         </button>
+
+        <!-- Filtro departamento historial -->
+        <div v-if="tieneFiltroDepartamento && departamentosHistorial.length" class="flex items-center gap-1 ml-2">
+          <select v-model="historialDepartamento" @change="cargarHistorial"
+            class="text-[10px] font-semibold px-2 py-1 rounded-lg border outline-none transition-colors"
+            :class="isDark
+              ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
+              : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-[#FF8F00]'">
+            <option value="">Todos los departamentos</option>
+            <option v-for="d in departamentosHistorial" :key="d" :value="d">{{ d }}</option>
+          </select>
+        </div>
+
         <button @click="descargarHistorial" :disabled="!historial.length"
           class="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black border transition-all disabled:opacity-40"
           :class="isDark
@@ -288,27 +356,40 @@
               <tr :class="isDark ? 'bg-[#1e293b] text-slate-400' : 'bg-slate-50 text-slate-500'">
                 <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Colaborador</th>
                 <th class="px-3 py-2 text-left font-black uppercase tracking-wide">CC</th>
+                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Depto</th>
                 <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Fecha</th>
+                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Día</th>
                 <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Turno</th>
                 <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-amber-500">Extra Entrada</th>
                 <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-blue-500">Extra Salida</th>
                 <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-emerald-500">Total</th>
+                <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Aprobado</th>
                 <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Calculado por</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, i) in historial" :key="i" class="border-t transition-colors" :class="[
                 isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
+                row.es_dominical ? (isDark ? 'bg-violet-500/5' : 'bg-violet-50/40') :
+                  row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
               ]">
-                <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}
+                <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
+                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
+                <td class="px-3 py-2 max-w-[120px] truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  {{ row.departamento || '—' }}
                 </td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}
-                </td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}
+                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
+                <td class="px-3 py-2">
+                  <span v-if="row.es_dominical"
+                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-violet-500/15 text-violet-500">
+                    DOMINICAL
+                  </span>
+                  <span v-else class="text-[10px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                    {{ getNombreDia(row.fecha) }}
+                  </span>
                 </td>
                 <td class="px-3 py-2 text-center" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  {{ row.inicio_turno ? `${row.inicio_turno} – ${row.fin_turno}` : '—' }}
+                  {{ row.inicio_turno ? `${row.inicio_turno} – ${row.fin_turno}` : (row.es_dominical ? 'Dominical' : '—') }}
                 </td>
                 <td class="px-3 py-2 text-center">
                   <div v-if="row.minutos_extra_entrada > 0" class="flex flex-col items-center">
@@ -321,7 +402,9 @@
                 </td>
                 <td class="px-3 py-2 text-center">
                   <div v-if="row.minutos_extra_salida > 0" class="flex flex-col items-center">
-                    <span class="font-black text-blue-500">{{ formatMinutos(row.minutos_extra_salida) }}</span>
+                    <span class="font-black" :class="row.es_dominical ? 'text-violet-500' : 'text-blue-500'">
+                      {{ formatMinutos(row.minutos_extra_salida) }}
+                    </span>
                     <span class="text-[8px] text-slate-400">
                       {{ soloHora(row.inicio_extra_salida) }} → {{ soloHora(row.fin_extra_salida) }}
                     </span>
@@ -334,6 +417,13 @@
                     {{ formatMinutos(row.total_minutos_extra) }}
                   </span>
                   <span v-else class="text-slate-400">0</span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                  <span v-if="row.aprobado === true"
+                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-600">Sí</span>
+                  <span v-else-if="row.aprobado === false"
+                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-500">No</span>
+                  <span v-else class="text-slate-400 text-[9px]">—</span>
                 </td>
                 <td class="px-3 py-2 text-center text-[9px]" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
                   {{ row.calculado_por || '—' }}
@@ -378,6 +468,7 @@ const startDate = ref(new Date().toISOString().split('T')[0]);
 const endDate = ref(new Date().toISOString().split('T')[0]);
 const soloConExtras = ref(false);
 const selectedDepartamento = ref('');
+const historialDepartamento = ref('');
 const loadingCalc = ref(false);
 const loadingGuardar = ref(false);
 const calculado = ref(false);
@@ -397,20 +488,24 @@ const segmentoActivo = ref(null);
 const fechasValidas = computed(() => !!(startDate.value || endDate.value));
 const hayResultados = computed(() => resultados.value.length > 0);
 
-// Departamentos únicos extraídos de los resultados (para el filtro client-side)
 const departamentos = computed(() => {
-  const deps = resultados.value
-    .map((r) => r.departamento)
-    .filter(Boolean);
+  const deps = resultados.value.map((r) => r.departamento).filter(Boolean);
+  return [...new Set(deps)].sort();
+});
+
+const departamentosHistorial = computed(() => {
+  const deps = historial.value.map((r) => r.departamento).filter(Boolean);
   return [...new Set(deps)].sort();
 });
 
 const conExtras = computed(() => resultados.value.filter((r) => r.total_minutos_extra > 0).length);
+const aprobadas = computed(() => resultados.value.filter((r) => r.aprobado === true).length);
+const noAprobadas = computed(() => resultados.value.filter((r) => r.aprobado === false).length);
+
 const totalMinutos = computed(() =>
   filtrados.value.reduce((acc, r) => acc + (r.total_minutos_extra || 0), 0),
 );
 
-// Filtrado client-side: departamento + solo-con-extras
 const filtrados = computed(() => {
   let data = resultados.value;
   if (selectedDepartamento.value) {
@@ -431,6 +526,16 @@ const tablaVisible = computed(() => {
 watch([soloConExtras, selectedDepartamento, filtrados], () => { currentPage.value = 1; });
 
 // ── Helpers ──
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+function getNombreDia(fecha) {
+  if (!fecha) return '';
+  const [a, m, d] = fecha.split('-').map(Number);
+  const js = new Date(a, m - 1, d).getDay(); // 0=Dom...6=Sáb
+  const idx = js === 0 ? 6 : js - 1;
+  return DIAS[idx];
+}
+
 function soloHora(dt) {
   if (!dt) return null;
   const t = dt.split(' ')[1];
@@ -457,12 +562,22 @@ function buildParams() {
     company: props.company || session.company || null,
     calculado_por: session.name || 'Admin',
   };
-  // Admin sin permiso de filtro_departamento → enviar su área/segmento
   if (!tieneFiltroDepartamento.value) {
     if (areaActiva.value) body.area_id = areaActiva.value;
     if (segmentoActivo.value) body.segmento_id = segmentoActivo.value;
   }
   return body;
+}
+
+// ── Aprobación masiva (client-side sobre resultados en memoria) ──
+function aprobarResultados(tipo) {
+  resultados.value = resultados.value.map((r) => {
+    if (tipo === 'todas') return { ...r, aprobado: true };
+    if (tipo === 'dominicales') return { ...r, aprobado: r.es_dominical ? true : false };
+    return { ...r, aprobado: false }; // ninguna
+  });
+  const txt = tipo === 'todas' ? 'Todas aprobadas' : tipo === 'dominicales' ? 'Solo dominicales aprobadas' : 'Marcadas como no aprobadas';
+  showToast(txt, 'success');
 }
 
 // ── Carga de perfil en mount ──
@@ -509,16 +624,24 @@ async function calcular() {
   }
 }
 
-// ── GUARDAR (recalcula + persiste en DB) ──
+// ── GUARDAR (recalcula + persiste en DB incluyendo aprobado) ──
 async function guardar() {
   if (!hayResultados.value) return;
   loadingGuardar.value = true;
 
   try {
+    // Enviar los resultados actuales (con aprobado) en el body
+    const params = {
+      ...buildParams(),
+      registros: resultados.value.map((r) => ({
+        id: r.id,
+        aprobado: r.aprobado ?? null,
+      })),
+    };
     const res = await fetch(`${API_BASE_URL}/horas-extra/guardar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildParams()),
+      body: JSON.stringify(params),
     });
     if (!res.ok) throw new Error('Error al guardar');
     guardado.value = true;
@@ -537,6 +660,7 @@ function buildFilas(data) {
     Cedula: r.cedula,
     Departamento: r.departamento || '',
     Fecha: r.fecha,
+    Dia: r.es_dominical ? 'Dominical' : getNombreDia(r.fecha),
     Inicio_Turno: r.inicio_turno || '',
     Fin_Turno: r.fin_turno || '',
     Entrada_Real: soloHora(r.fecha_entrada) || '',
@@ -548,6 +672,8 @@ function buildFilas(data) {
     Fin_Extra_Salida: soloHora(r.fin_extra_salida) || '',
     Minutos_Extra_Salida: r.minutos_extra_salida || 0,
     Total_Minutos_Extra: r.total_minutos_extra || 0,
+    Es_Dominical: r.es_dominical ? 'Sí' : 'No',
+    Aprobado: r.aprobado === true ? 'Sí' : r.aprobado === false ? 'No' : 'Pendiente',
   }));
 }
 
@@ -568,6 +694,7 @@ async function cargarHistorial() {
     const company = props.company || session.company;
     if (company) params.set('company', company);
     if (soloConExtras.value) params.set('soloConExtras', 'true');
+    if (historialDepartamento.value) params.set('departamento', historialDepartamento.value);
 
     const res = await fetch(`${API_BASE_URL}/horas-extra/historial?${params}`);
     if (res.ok) historial.value = await res.json();

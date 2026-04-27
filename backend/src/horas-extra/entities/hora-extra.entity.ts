@@ -64,6 +64,12 @@ export class HoraExtra {
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   calculado_por: string | null;
 
+  @Column({ type: 'bit', default: false })
+  es_dominical: boolean;
+
+  @Column({ type: 'bit', nullable: true })
+  aprobado: boolean | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

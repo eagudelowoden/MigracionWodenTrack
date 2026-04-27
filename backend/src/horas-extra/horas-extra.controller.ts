@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Query } from '@nestjs/common';
 import { HorasExtraService } from './horas-extra.service';
 
 @Controller('usuarios/horas-extra')
@@ -43,6 +43,7 @@ export class HorasExtraController {
     @Query('endDate') endDate?: string,
     @Query('company') company?: string,
     @Query('cedula') cedula?: string,
+    @Query('departamento') departamento?: string,
     @Query('soloConExtras') soloConExtras?: string,
   ) {
     return this.service.getHistorial({
@@ -50,7 +51,21 @@ export class HorasExtraController {
       endDate,
       company,
       cedula,
+      departamento,
       soloConExtras: soloConExtras === 'true',
     });
+  }
+
+  @Patch('aprobar')
+  aprobar(
+    @Body()
+    dto: {
+      startDate?: string;
+      endDate?: string;
+      company?: string;
+      tipo: 'todas' | 'dominicales' | 'ninguna';
+    },
+  ) {
+    return this.service.actualizarAprobacion(dto);
   }
 }
