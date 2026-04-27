@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Query } from '@nestjs/common';
 import { HorasExtraService } from './horas-extra.service';
 
-@Controller('horas-extra')
+@Controller('usuarios/horas-extra')
 export class HorasExtraController {
   constructor(private readonly service: HorasExtraService) {}
 
