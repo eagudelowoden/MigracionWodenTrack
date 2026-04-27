@@ -66,25 +66,33 @@ export class HorasExtraService {
   }
 
   // Malla map: Map<employee_id_odoo, MallaAsignacion[]> ordenadas DESC
+  // Procesado en lotes de 500 para evitar el límite de 2100 parámetros de SQL Server
   private async getMallasMap(
     employeeIds: number[],
   ): Promise<Map<number, any[]>> {
     if (!employeeIds.length) return new Map();
 
-    const asignaciones = await this.asignacionRepo
-      .createQueryBuilder('a')
-      .leftJoinAndSelect('a.malla', 'malla')
-      .leftJoinAndSelect('malla.detalles', 'detalles')
-      .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
-      .orderBy('a.fecha_inicio', 'DESC')
-      .getMany();
-
+    const CHUNK = 500;
     const map = new Map<number, any[]>();
-    for (const a of asignaciones) {
-      const list = map.get(a.usuario_id_odoo) ?? [];
-      list.push(a);
-      map.set(a.usuario_id_odoo, list);
+
+    for (let i = 0; i < employeeIds.length; i += CHUNK) {
+      const lote = employeeIds.slice(i, i + CHUNK);
+
+      const asignaciones = await this.asignacionRepo
+        .createQueryBuilder('a')
+        .leftJoinAndSelect('a.malla', 'malla')
+        .leftJoinAndSelect('malla.detalles', 'detalles')
+        .where('a.usuario_id_odoo IN (:...ids)', { ids: lote })
+        .orderBy('a.fecha_inicio', 'DESC')
+        .getMany();
+
+      for (const a of asignaciones) {
+        const list = map.get(a.usuario_id_odoo) ?? [];
+        list.push(a);
+        map.set(a.usuario_id_odoo, list);
+      }
     }
+
     return map;
   }
 
@@ -334,8 +342,10 @@ export class HorasExtraService {
       await qb.execute();
     }
 
-    if (resultados.length > 0) {
-      await this.horaExtraRepo.save(resultados);
+    // Guardar en lotes de 50 (20 columnas × 50 = 1000 params, bajo el límite de 2100)
+    const SAVE_CHUNK = 50;
+    for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
+      await this.horaExtraRepo.save(resultados.slice(i, i + SAVE_CHUNK));
     }
 
     return resultados;
