@@ -12,4 +12,6 @@ export class CreateNovedadDto {
   responsableIdOdoo?: number | null;
   responsableNombre?: string | null;
   responsableCargo?: string | null;
+
+  creadoPor?: number | null;
 }

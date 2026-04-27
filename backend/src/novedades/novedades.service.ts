@@ -111,6 +111,7 @@ export class NovedadesService {
         : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,
+      creadoPor: dto.creadoPor ? Number(dto.creadoPor) : undefined,
     });
 
     const saved = await this.novedadRepo.save(novedad);
@@ -145,6 +146,31 @@ export class NovedadesService {
       departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
       cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
     }));
+  }
+
+  // ─── FIND MIS NOVEDADES (historial del usuario) ───────────────────────────
+  async findMias(
+    idOdoo: number,
+    fechaDesde?: string,
+    fechaHasta?: string,
+    buscar?: string,
+  ) {
+    const qb = this.novedadRepo
+      .createQueryBuilder('n')
+      .where('n.creadoPor = :idOdoo', { idOdoo })
+      .orderBy('n.createdAt', 'DESC');
+
+    if (fechaDesde) qb.andWhere('n.fechaInicio >= :fechaDesde', { fechaDesde });
+    if (fechaHasta) qb.andWhere('n.fechaInicio <= :fechaHasta', { fechaHasta });
+    if (buscar) {
+      const like = `%${buscar}%`;
+      qb.andWhere(
+        '(n.descripcion LIKE :like OR n.tipificacion LIKE :like OR n.nombre LIKE :like)',
+        { like },
+      );
+    }
+
+    return qb.getMany();
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────

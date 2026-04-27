@@ -11,7 +11,8 @@
         </div>
         <div>
           <h2 class="text-base font-black uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Registro <span class="text-[#FF8F00]">Novedad</span>
+            {{ activeTab === 'registro' ? 'Registro' : 'Mi Historial' }}
+            <span class="text-[#FF8F00]">{{ activeTab === 'registro' ? 'Novedad' : 'Novedades' }}</span>
           </h2>
           <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -20,19 +21,40 @@
         </div>
       </div>
 
-      <!-- Indicador de almacenamiento (solo lectura, configurado en Super Admin) -->
-      <div
-        class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest mr-1"
-        :class="storageMode === 's3'
-          ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
-          : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
-        <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
-        {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
+      <div class="flex items-center gap-2 mr-1">
+        <!-- Tabs -->
+        <div class="flex items-center rounded-xl border overflow-hidden"
+          :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+          <button @click="activeTab = 'registro'"
+            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
+            :class="activeTab === 'registro'
+              ? 'bg-[#FF8F00] text-black'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-plus mr-1"></i>Registrar
+          </button>
+          <button @click="onOpenHistorial"
+            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
+            :class="activeTab === 'historial'
+              ? 'bg-[#FF8F00] text-black'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-clock-rotate-left mr-1"></i>Mi Historial
+          </button>
+        </div>
+
+        <!-- Indicador almacenamiento (solo en tab registro) -->
+        <div v-if="activeTab === 'registro'"
+          class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest"
+          :class="storageMode === 's3'
+            ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
+            : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
+          <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
+          {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
+        </div>
       </div>
     </div>
 
-    <!-- BODY: formulario + visor lado a lado -->
-    <div class="flex-1 flex gap-1 overflow-hidden">
+    <!-- TAB: REGISTRO -->
+    <div v-if="activeTab === 'registro'" class="flex-1 flex gap-1 overflow-hidden">
 
       <!-- Formulario -->
       <div class="flex flex-col overflow-hidden rounded-2xl border transition-all duration-300" :class="[
@@ -48,7 +70,6 @@
             <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
             <span v-if="storageMode === 's3'">
               Soporte → <strong>AWS S3</strong>
-
             </span>
             <span v-else>
               Soporte → <strong>carpeta local</strong>
@@ -71,7 +92,7 @@
               </div>
             </div>
 
-            <!-- Jefe de área — debajo del campo Nombre -->
+            <!-- Jefe de área -->
             <div v-if="jefe" class="md:col-span-2 flex items-center gap-3 px-4 py-2.5 rounded-lg border"
               :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
               <div
@@ -144,7 +165,6 @@
                 </span>
               </label>
 
-              <!-- Drop zone -->
               <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
                 class="flex items-center p-1.5 rounded-lg border transition-all" :class="[
                   dragOver ? 'border-dashed border-[#FF8F00] scale-[1.01]' : '',
@@ -171,14 +191,12 @@
                 </label>
               </div>
 
-              <!-- Miniatura imagen -->
               <div v-if="previewUrl && isImage"
                 class="rounded-xl overflow-hidden border max-h-28 flex items-center justify-center"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
                 <img :src="previewUrl" class="max-h-28 object-contain" />
               </div>
 
-              <!-- Info otros tipos -->
               <div v-else-if="fileName" class="flex items-center gap-3 px-4 py-3 rounded-xl border"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
                 <i :class="['text-xl', fileIcon]"></i>
@@ -272,6 +290,197 @@
       </transition>
 
     </div>
+
+    <!-- TAB: HISTORIAL -->
+    <div v-else class="flex-1 flex flex-col gap-2 overflow-hidden">
+
+      <!-- Filtros -->
+      <div class="flex flex-wrap items-end gap-2 px-1 shrink-0">
+
+        <!-- Buscar -->
+        <div class="flex flex-col gap-1 min-w-[200px] flex-1">
+          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Buscar</label>
+          <div class="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all focus-within:ring-1 focus-within:ring-[#FF8F00]/40"
+            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
+            <i class="fas fa-magnifying-glass text-[#FF8F00] text-[10px]"></i>
+            <input v-model="filtros.buscar" type="text" placeholder="Descripción o tipificación..."
+              class="bg-transparent flex-1 outline-none font-medium text-xs placeholder:text-slate-500"
+              :class="isDark ? 'text-white' : 'text-slate-800'" />
+            <button v-if="filtros.buscar" @click="filtros.buscar = ''"
+              class="text-slate-400 hover:text-slate-600 transition-colors">
+              <i class="fas fa-xmark text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Fecha desde -->
+        <div class="flex flex-col gap-1">
+          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
+          <input v-model="filtros.fechaDesde" type="date"
+            class="px-3 py-2 rounded-xl border text-xs font-bold outline-none transition-all"
+            :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+        </div>
+
+        <!-- Fecha hasta -->
+        <div class="flex flex-col gap-1">
+          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
+          <input v-model="filtros.fechaHasta" type="date"
+            class="px-3 py-2 rounded-xl border text-xs font-bold outline-none transition-all"
+            :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+        </div>
+
+        <!-- Botones -->
+        <div class="flex items-center gap-1.5 pb-0.5">
+          <button @click="aplicarFiltros"
+            class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF8F00] text-black text-[10px] font-black uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm">
+            <i class="fas fa-filter text-[9px]"></i> Filtrar
+          </button>
+          <button @click="limpiarFiltros"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all"
+            :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+            <i class="fas fa-rotate-left text-[9px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="flex-1 rounded-2xl border overflow-hidden flex flex-col"
+        :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+        <!-- Loading -->
+        <div v-if="loading" class="flex-1 flex items-center justify-center gap-2 opacity-50">
+          <i class="fas fa-circle-notch fa-spin text-[#FF8F00]"></i>
+          <span class="text-xs font-bold" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando...</span>
+        </div>
+
+        <!-- Vacío -->
+        <div v-else-if="!misNovedades.length" class="flex-1 flex flex-col items-center justify-center gap-3 opacity-40">
+          <i class="fas fa-inbox text-4xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+          <p class="text-xs font-bold" :class="isDark ? 'text-slate-500' : 'text-slate-400'">No hay novedades
+            registradas</p>
+        </div>
+
+        <!-- Tabla con datos -->
+        <template v-else>
+          <div class="overflow-x-auto overflow-y-auto flex-1">
+            <table class="w-full text-[11px]">
+              <thead class="sticky top-0 z-10"
+                :class="isDark ? 'bg-[#1a2035] border-b border-[#2d3548]' : 'bg-slate-50 border-b border-slate-200'">
+                <tr>
+                  <th class="px-4 py-2.5 text-left font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">#</th>
+                  <th class="px-4 py-2.5 text-left font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Descripción</th>
+                  <th class="px-4 py-2.5 text-left font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipo</th>
+                  <th class="px-4 py-2.5 text-left font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Inicio</th>
+                  <th class="px-4 py-2.5 text-left font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fin</th>
+                  <th class="px-4 py-2.5 text-center font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe</th>
+                  <th class="px-4 py-2.5 text-center font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">RRHH</th>
+                  <th class="px-4 py-2.5 text-center font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Estado</th>
+                  <th class="px-4 py-2.5 text-center font-black uppercase tracking-widest text-[9px]"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Soporte</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(nov, i) in misNovedades" :key="nov.id"
+                  class="border-b transition-colors cursor-default"
+                  :class="isDark
+                    ? 'border-[#2d3548] hover:bg-[#273045]'
+                    : 'border-slate-100 hover:bg-slate-50'">
+
+                  <!-- # -->
+                  <td class="px-4 py-2.5">
+                    <span class="text-[9px] font-black opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                      {{ i + 1 }}
+                    </span>
+                  </td>
+
+                  <!-- Descripción -->
+                  <td class="px-4 py-2.5 max-w-[200px]">
+                    <p class="font-medium truncate" :class="isDark ? 'text-slate-200' : 'text-slate-700'"
+                      :title="nov.descripcion">
+                      {{ nov.descripcion }}
+                    </p>
+                  </td>
+
+                  <!-- Tipo / Tipificación -->
+                  <td class="px-4 py-2.5">
+                    <span v-if="nov.tipificacion"
+                      class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border"
+                      :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                      {{ nov.tipificacion }}
+                    </span>
+                    <span v-else class="opacity-30 text-[10px]">—</span>
+                  </td>
+
+                  <!-- Fechas -->
+                  <td class="px-4 py-2.5 whitespace-nowrap font-bold"
+                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                    {{ formatFecha(nov.fechaInicio) }}
+                  </td>
+                  <td class="px-4 py-2.5 whitespace-nowrap font-bold"
+                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                    {{ formatFecha(nov.fechaFin) }}
+                  </td>
+
+                  <!-- Estado Jefe -->
+                  <td class="px-4 py-2.5 text-center">
+                    <span :class="estadoBadge(nov.aprobadoJefe)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                      <i :class="estadoIcon(nov.aprobadoJefe)" class="mr-0.5"></i>
+                      {{ estadoLabel(nov.aprobadoJefe) }}
+                    </span>
+                  </td>
+
+                  <!-- Estado RRHH -->
+                  <td class="px-4 py-2.5 text-center">
+                    <span :class="estadoBadge(nov.aprobadoRrhh)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                      <i :class="estadoIcon(nov.aprobadoRrhh)" class="mr-0.5"></i>
+                      {{ estadoLabel(nov.aprobadoRrhh) }}
+                    </span>
+                  </td>
+
+                  <!-- Estado general -->
+                  <td class="px-4 py-2.5 text-center">
+                    <span :class="estadoBadge(nov.aprobado)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                      <i :class="estadoIcon(nov.aprobado)" class="mr-0.5"></i>
+                      {{ estadoLabel(nov.aprobado) }}
+                    </span>
+                  </td>
+
+                  <!-- Ver soporte -->
+                  <td class="px-4 py-2.5 text-center">
+                    <a :href="getFileUrl(nov.id)" target="_blank"
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
+                      :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                      <i class="fas fa-eye text-[#FF8F00]"></i> Ver
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Footer conteo -->
+          <div class="px-4 py-2 border-t shrink-0 flex items-center justify-between"
+            :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+            <span class="text-[9px] font-black uppercase tracking-widest opacity-40"
+              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ misNovedades.length }} novedad{{ misNovedades.length !== 1 ? 'es' : '' }}
+            </span>
+          </div>
+        </template>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -285,11 +494,11 @@ const props = defineProps({
   employee: Object,
 });
 
+const { crearNovedad, loading, jefe, fetchJefeDeArea, misNovedades, fetchMisNovedades, getFileUrl } = useNovedades();
 
-const { crearNovedad, loading, jefe, fetchJefeDeArea } = useNovedades();
-
-// Storage mode: se lee desde la config del sistema (Super Admin)
+const activeTab = ref('registro');
 const storageMode = ref('local');
+const sessionIdOdoo = ref(null);
 
 const form = ref({
   nombre: '', cedula: '', descripcion: '',
@@ -304,6 +513,8 @@ const viewerOpen = ref(false);
 const submitStatus = ref('');
 const submitMessage = ref('');
 
+const filtros = ref({ buscar: '', fechaDesde: '', fechaHasta: '' });
+
 const ext = computed(() => fileName.value.split('.').pop().toLowerCase());
 const isImage = computed(() => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext.value));
 const isPdf = computed(() => ext.value === 'pdf');
@@ -315,15 +526,25 @@ const fileIcon = computed(() => {
   return 'fas fa-file text-slate-400';
 });
 
+const estadoLabel = (v) => v === 1 ? 'Aprobado' : v === 0 ? 'Rechazado' : 'Pendiente';
+const estadoIcon = (v) => v === 1 ? 'fas fa-check' : v === 0 ? 'fas fa-times' : 'fas fa-clock';
+const estadoBadge = (v) => {
+  if (v === 1) return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+  if (v === 0) return 'bg-red-500/10 text-red-400 border-red-500/20';
+  return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+};
+const formatFecha = (f) => {
+  if (!f) return '—';
+  const [y, m, d] = String(f).split('T')[0].split('-');
+  return `${d}/${m}/${y}`;
+};
 
 onMounted(async () => {
   const session = JSON.parse(localStorage.getItem('user_session') || '{}');
   form.value.nombre = props.employee?.name || session?.name || '';
+  sessionIdOdoo.value = props.employee?.id_odoo || session?.id_odoo || null;
 
-  // department ya existe en la sesión ✅
   const department = props.employee?.department || session?.department;
-  console.log('🏢 department:', department);
-
   if (department) await fetchJefeDeArea(department);
 
   try {
@@ -334,6 +555,26 @@ onMounted(async () => {
     }
   } catch { }
 });
+
+const onOpenHistorial = async () => {
+  activeTab.value = 'historial';
+  await fetchMisNovedades({ idOdoo: sessionIdOdoo.value });
+};
+
+const aplicarFiltros = async () => {
+  await fetchMisNovedades({
+    idOdoo: sessionIdOdoo.value,
+    fechaDesde: filtros.value.fechaDesde || undefined,
+    fechaHasta: filtros.value.fechaHasta || undefined,
+    buscar: filtros.value.buscar || undefined,
+  });
+};
+
+const limpiarFiltros = async () => {
+  filtros.value = { buscar: '', fechaDesde: '', fechaHasta: '' };
+  await fetchMisNovedades({ idOdoo: sessionIdOdoo.value });
+};
+
 const processFile = (file) => {
   if (!file) return;
   form.value.soporte = file;
@@ -356,8 +597,6 @@ const handleSubmit = async () => {
     return;
   }
 
-  console.log('👔 jefe al enviar:', jefe.value); // ← debug
-
   submitStatus.value = '';
   try {
     const res = await crearNovedad({
@@ -368,11 +607,10 @@ const handleSubmit = async () => {
       fechaFin: form.value.fechaFin,
       soporte: form.value.soporte,
       storageMode: storageMode.value,
-
-      // ─── Responsable ──────────────────────────────────
       responsableIdOdoo: jefe.value?.id_odoo ?? null,
       responsableNombre: jefe.value?.name ?? null,
       responsableCargo: jefe.value?.job ?? null,
+      creadoPor: sessionIdOdoo.value,
     });
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;

@@ -5,6 +5,7 @@ import {
   Post,
   Delete,
   Param,
+  Query,
   Res,
   UseInterceptors,
   UploadedFile,
@@ -37,6 +38,17 @@ export class NovedadesController {
   @Get()
   findAll() {
     return this.novedadesService.findAll();
+  }
+
+  // GET /novedades/mis-novedades?idOdoo=X&fechaDesde=...&fechaHasta=...&buscar=...
+  @Get('mis-novedades')
+  findMias(
+    @Query('idOdoo') idOdoo: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
+    @Query('buscar') buscar?: string,
+  ) {
+    return this.novedadesService.findMias(+idOdoo, fechaDesde, fechaHasta, buscar);
   }
 
   // GET /novedades/:id  — detalle + fileUrl
