@@ -304,7 +304,7 @@ onMounted(async () => {
 watch(() => props.company, (newCompany) => {
   if (newCompany && newCompany !== selectedCompany.value) {
     selectedCompany.value = newCompany;
-
+    fetchReporte();
   }
 });
 
@@ -314,13 +314,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length 
 watch([reportData, search, selectedDepartment, filterHoy, startDate, endDate], () => {
   currentPage.value = 1;
 });
-
-// Sincronizar compañía del header con la lógica
-watch(() => props.company, (newCompany) => {
-  if (newCompany) {
-    selectedCompany.value = newCompany;
-  }
-}, { immediate: true });
 
 
 const formatSoloHora = (value) => {
