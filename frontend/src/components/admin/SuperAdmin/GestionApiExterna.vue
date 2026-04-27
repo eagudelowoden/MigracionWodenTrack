@@ -7,21 +7,18 @@
         <i class="fas fa-plug text-[#FF8F00]"></i>
       </div>
       <div>
-        <h2 class="text-sm font-black uppercase tracking-tight"
-          :class="isDark ? 'text-white' : 'text-slate-800'">API Externa · Asistencias</h2>
-        <p class="text-[10px] opacity-50 font-medium"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+        <h2 class="text-sm font-black uppercase tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">API
+          Externa · Asistencias</h2>
+        <p class="text-[10px] opacity-50 font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           Expone datos de asistencia a sistemas externos con autenticación Bearer Token
         </p>
       </div>
     </div>
 
     <!-- Tabs internos -->
-    <div class="flex items-center gap-1 border-b pb-2"
-      :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+    <div class="flex items-center gap-1 border-b pb-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
       <button v-for="t in tabs" :key="t.key" @click="tab = t.key"
-        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-        :class="tab === t.key
+        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all" :class="tab === t.key
           ? 'bg-[#FF8F00] text-black'
           : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
         <i :class="t.icon + ' mr-1'"></i>{{ t.label }}
@@ -58,8 +55,7 @@
             <label class="text-[9px] font-black uppercase tracking-widest"
               :class="isDark ? 'text-slate-400' : 'text-slate-500'">Contraseña</label>
             <div class="relative">
-              <input v-model="nueva.password" :type="showPass ? 'text' : 'password'"
-                placeholder="••••••••"
+              <input v-model="nueva.password" :type="showPass ? 'text' : 'password'" placeholder="••••••••"
                 class="w-full px-3 py-2 pr-9 rounded-xl border text-xs font-medium outline-none transition-all placeholder:text-slate-400"
                 :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'" />
               <button type="button" @click="showPass = !showPass"
@@ -90,7 +86,8 @@
 
         <div v-else-if="!credenciales.length" class="p-8 flex flex-col items-center gap-2 opacity-40">
           <i class="fas fa-key text-3xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
-          <p class="text-xs font-bold" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin credenciales creadas</p>
+          <p class="text-xs font-bold" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin credenciales creadas
+          </p>
         </div>
 
         <table v-else class="w-full text-[11px]">
@@ -111,8 +108,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in credenciales" :key="c.id"
-              class="border-b transition-colors"
+            <tr v-for="c in credenciales" :key="c.id" class="border-b transition-colors"
               :class="isDark ? 'border-[#2d3548] hover:bg-[#273045]' : 'border-slate-100 hover:bg-slate-50'">
 
               <td class="px-4 py-3 font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
@@ -127,18 +123,16 @@
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ c.token.substring(0, 16) }}…
                   </code>
-                  <button @click="copiarToken(c.token)"
-                    class="text-[#FF8F00] hover:brightness-125 transition-all"
+                  <button @click="copiarToken(c.token)" class="text-[#FF8F00] hover:brightness-125 transition-all"
                     title="Copiar token completo">
                     <i class="fas fa-copy text-[10px]"></i>
                   </button>
                 </div>
               </td>
               <td class="px-4 py-3 text-center">
-                <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase border"
-                  :class="c.activa
-                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                    : 'bg-red-500/10 text-red-400 border-red-500/20'">
+                <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase border" :class="c.activa
+                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                  : 'bg-red-500/10 text-red-400 border-red-500/20'">
                   {{ c.activa ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
@@ -156,7 +150,8 @@
                   <button @click="toggleActiva(c)" title="Activar/Desactivar"
                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all hover:brightness-110 active:scale-95"
                     :class="isDark ? 'bg-[#273045] border-[#3d4558] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
-                    <i :class="c.activa ? 'fas fa-toggle-on text-emerald-500' : 'fas fa-toggle-off text-red-400'" class="text-[10px]"></i>
+                    <i :class="c.activa ? 'fas fa-toggle-on text-emerald-500' : 'fas fa-toggle-off text-red-400'"
+                      class="text-[10px]"></i>
                   </button>
                   <button @click="confirmarEliminar(c)" title="Eliminar"
                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all hover:brightness-110 active:scale-95"
@@ -194,12 +189,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in campos" :key="c.campo"
-              class="border-b transition-colors"
+            <tr v-for="c in campos" :key="c.campo" class="border-b transition-colors"
               :class="isDark ? 'border-[#2d3548] hover:bg-[#273045]' : 'border-slate-100 hover:bg-slate-50'">
               <td class="px-4 py-3">
                 <p class="font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ c.label }}</p>
-                <code class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ c.campo }}</code>
+                <code class="text-[9px] opacity-40"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ c.campo }}</code>
               </td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase border"
@@ -208,8 +203,7 @@
                 </span>
               </td>
               <td class="px-4 py-3 text-center">
-                <button @click="toggleCampo(c)"
-                  class="relative w-10 h-5 rounded-full transition-all duration-200"
+                <button @click="toggleCampo(c)" class="relative w-10 h-5 rounded-full transition-all duration-200"
                   :class="c.activo ? 'bg-[#FF8F00]' : (isDark ? 'bg-[#2d3548]' : 'bg-slate-200')">
                   <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
                     :class="c.activo ? 'left-5' : 'left-0.5'"></span>
@@ -218,8 +212,7 @@
             </tr>
           </tbody>
         </table>
-        <div class="px-4 py-3 border-t flex justify-end"
-          :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+        <div class="px-4 py-3 border-t flex justify-end" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
           <button @click="guardarCampos" :disabled="savingCampos"
             class="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#FF8F00] text-black text-[10px] font-black uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-60">
             <i v-if="savingCampos" class="fas fa-circle-notch fa-spin"></i>
@@ -320,8 +313,7 @@
             :class="isDark ? 'text-slate-300' : 'text-slate-700'">
             <i class="fas fa-sliders text-[#FF8F00] mr-1"></i> Parámetros de consulta
           </p>
-          <div class="rounded-xl border overflow-hidden"
-            :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+          <div class="rounded-xl border overflow-hidden" :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
             <table class="w-full text-[11px]">
               <thead :class="isDark ? 'bg-[#1a2035]' : 'bg-slate-50'">
                 <tr>
@@ -334,11 +326,13 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="p in parametros" :key="p.nombre"
-                  class="border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                <tr v-for="p in parametros" :key="p.nombre" class="border-t"
+                  :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <td class="px-4 py-2 font-mono text-[10px] text-[#FF8F00]">{{ p.nombre }}</td>
-                  <td class="px-4 py-2 text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ p.tipo }}</td>
-                  <td class="px-4 py-2 text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ p.desc }}</td>
+                  <td class="px-4 py-2 text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ p.tipo }}
+                  </td>
+                  <td class="px-4 py-2 text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ p.desc }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -401,47 +395,47 @@
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
-const emit  = defineEmits(['success', 'error']);
+const emit = defineEmits(['success', 'error']);
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const tabs = [
-  { key: 'credenciales', icon: 'fas fa-key',        label: 'Credenciales' },
-  { key: 'campos',       icon: 'fas fa-table-list',  label: 'Campos expuestos' },
-  { key: 'docs',         icon: 'fas fa-book-open',   label: 'Documentación' },
+  { key: 'credenciales', icon: 'fas fa-key', label: 'Credenciales' },
+  { key: 'campos', icon: 'fas fa-table-list', label: 'Campos expuestos' },
+  { key: 'docs', icon: 'fas fa-book-open', label: 'Documentación' },
 ];
 const tab = ref('credenciales');
 
 // ─── Estado ────────────────────────────────────────────────────────────────
-const credenciales  = ref([]);
-const campos        = ref([]);
-const loadingList   = ref(false);
-const loadingCred   = ref(false);
+const credenciales = ref([]);
+const campos = ref([]);
+const loadingList = ref(false);
+const loadingCred = ref(false);
 const loadingCampos = ref(false);
-const savingCampos  = ref(false);
-const showPass      = ref(false);
-const toastMsg      = ref('');
+const savingCampos = ref(false);
+const showPass = ref(false);
+const toastMsg = ref('');
 const credAEliminar = ref(null);
 
 const nueva = ref({ nombre: '', username: '', password: '' });
 
 const tiposCampo = {
-  cedula:        'Number',
-  nombre:        'Text',
-  inicio_turno:  'Timestamp',
-  fin_turno:     'Timestamp',
+  cedula: 'Number',
+  nombre: 'Text',
+  inicio_turno: 'Timestamp',
+  fin_turno: 'Timestamp',
   fecha_entrada: 'Timestamp',
-  fecha_salida:  'Timestamp',
+  fecha_salida: 'Timestamp',
 };
 
 const parametros = [
   { nombre: 'fechaInicio', tipo: 'string (YYYY-MM-DD)', desc: 'Fecha inicial del rango (requerido)' },
-  { nombre: 'fechaFin',    tipo: 'string (YYYY-MM-DD)', desc: 'Fecha final del rango (requerido)' },
-  { nombre: 'cedula',      tipo: 'string',               desc: 'Filtrar por cédula de un colaborador (opcional)' },
+  { nombre: 'fechaFin', tipo: 'string (YYYY-MM-DD)', desc: 'Fecha final del rango (requerido)' },
+  { nombre: 'cedula', tipo: 'string', desc: 'Filtrar por cédula de un colaborador (opcional)' },
 ];
 
 // ─── URL y ejemplos de código ──────────────────────────────────────────────
-const apiBase = computed(() => `${API_URL}/api-externa`);
+const apiBase = computed(() => `${API_URL}/api-externa/`);
 
 const ejemploAuth = computed(() => `# POST ${apiBase.value}/auth
 curl -X POST ${apiBase.value}/auth \\
@@ -637,6 +631,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.fade-toast-enter-active, .fade-toast-leave-active { transition: all 0.25s ease; }
-.fade-toast-enter-from, .fade-toast-leave-to { opacity: 0; transform: translateY(8px); }
+.fade-toast-enter-active,
+.fade-toast-leave-active {
+  transition: all 0.25s ease;
+}
+
+.fade-toast-enter-from,
+.fade-toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
 </style>
