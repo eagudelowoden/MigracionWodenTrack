@@ -504,9 +504,11 @@ export class UsuariosService {
     areaId?: number,
     segmentoId?: number,
   ) {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const now = new Date();
-    const dayOfWeekOdoo = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    // Día de semana en hora Colombia (Lun=0 … Dom=6)
+    const nowColombia = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+    const dayOfWeekOdoo = nowColombia.getDay() === 0 ? 6 : nowColombia.getDay() - 1;
 
     // 1. Traer usuarios activos de DB local con filtros
     const usuarioQuery = this.usuarioRepo
@@ -567,8 +569,8 @@ export class UsuariosService {
         nombreMalla = asigLocal.malla.nombre;
         if (asigLocal.malla.detalles?.length) {
           const detalleHoy = asigLocal.malla.detalles
-            .filter((d: any) => d.dia_semana === dayOfWeekOdoo)
-            .sort((a: any, b: any) => a.hora_inicio - b.hora_inicio)[0];
+            .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
+            .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
 
           if (detalleHoy) {
             horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
@@ -724,10 +726,16 @@ export class UsuariosService {
   private resolverDetallesParaFecha(asignaciones: any[], fechaLocal: string): any[] {
     if (!asignaciones?.length) return [];
 
+    const toDateStr = (v: any): string => {
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).slice(0, 10);
+    };
+
     // Buscar la asignación cuyo rango cubre la fecha
     const vigente = asignaciones.find((a) => {
-      const inicio = String(a.fecha_inicio).slice(0, 10);
-      const fin = a.fecha_fin ? String(a.fecha_fin).slice(0, 10) : null;
+      const inicio = toDateStr(a.fecha_inicio);
+      const fin = a.fecha_fin ? toDateStr(a.fecha_fin) : null;
       return inicio <= fechaLocal && (fin === null || fin >= fechaLocal);
     });
 
@@ -735,7 +743,7 @@ export class UsuariosService {
 
     // Fallback: asignación más reciente anterior a la fecha (lista ya viene DESC)
     const anterior = asignaciones.find(
-      (a) => String(a.fecha_inicio).slice(0, 10) <= fechaLocal,
+      (a) => toDateStr(a.fecha_inicio) <= fechaLocal,
     );
     return anterior?.malla?.detalles ?? [];
   }
