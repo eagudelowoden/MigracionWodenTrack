@@ -12,8 +12,7 @@
           <label class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
           <input type="date" v-model="startDate"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors"
-            :class="isDark
+            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
               ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
               : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
         </div>
@@ -23,8 +22,7 @@
           <label class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
           <input type="date" v-model="endDate"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors"
-            :class="isDark
+            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
               ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
               : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
         </div>
@@ -34,8 +32,7 @@
           <label class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Departamento</label>
           <select v-model="selectedDepartamento"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors"
-            :class="isDark
+            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
               ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
               : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
             <option value="">Todos los departamentos</option>
@@ -49,7 +46,9 @@
             <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
             <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-[#FF8F00]"
               :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
-            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm"></div>
+            <div
+              class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm">
+            </div>
           </div>
           <span class="text-[10px] font-bold uppercase tracking-wide"
             :class="isDark ? 'text-slate-300' : 'text-slate-600'">Solo con extras</span>
@@ -102,8 +101,7 @@
 
           <!-- Historial -->
           <button @click="toggleHistorial"
-            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border transition-all"
-            :class="verHistorial
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border transition-all" :class="verHistorial
               ? 'bg-[#FF8F00]/10 border-[#FF8F00]/40 text-[#FF8F00]'
               : isDark
                 ? 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
@@ -116,24 +114,20 @@
       </div>
 
       <!-- Toast inline -->
-      <div v-if="toast.msg"
-        class="mt-3 pt-3 border-t flex items-center gap-2 text-[10px] font-semibold"
-        :class="[
-          isDark ? 'border-white/5' : 'border-slate-100',
-          toast.type === 'success' ? 'text-emerald-500'
+      <div v-if="toast.msg" class="mt-3 pt-3 border-t flex items-center gap-2 text-[10px] font-semibold" :class="[
+        isDark ? 'border-white/5' : 'border-slate-100',
+        toast.type === 'success' ? 'text-emerald-500'
           : toast.type === 'error' ? 'text-rose-500'
-          : 'text-[#FF8F00]'
-        ]">
-        <i class="fas"
-          :class="toast.type === 'success' ? 'fa-circle-check'
-            : toast.type === 'error' ? 'fa-circle-exclamation'
+            : 'text-[#FF8F00]'
+      ]">
+        <i class="fas" :class="toast.type === 'success' ? 'fa-circle-check'
+          : toast.type === 'error' ? 'fa-circle-exclamation'
             : 'fa-circle-info'"></i>
         {{ toast.msg }}
       </div>
 
       <!-- Resumen -->
-      <div v-if="hayResultados && !verHistorial"
-        class="mt-3 pt-3 border-t flex flex-wrap gap-5"
+      <div v-if="hayResultados && !verHistorial" class="mt-3 pt-3 border-t flex flex-wrap gap-5"
         :class="isDark ? 'border-white/5' : 'border-slate-100'">
         <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <span class="font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
@@ -154,8 +148,7 @@
     </div>
 
     <!-- Tabla resultados -->
-    <div v-if="!verHistorial && tablaVisible.length"
-      class="rounded-xl border overflow-hidden"
+    <div v-if="!verHistorial && tablaVisible.length" class="rounded-xl border overflow-hidden"
       :class="isDark ? 'border-white/5 bg-[#273045]' : 'border-slate-200 bg-white shadow-sm'">
 
       <div class="overflow-x-auto custom-scroll">
@@ -175,24 +168,22 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, i) in tablaVisible" :key="i"
-              class="border-t transition-colors"
-              :class="[
-                isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
-              ]">
+            <tr v-for="(row, i) in tablaVisible" :key="i" class="border-t transition-colors" :class="[
+              isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
+              row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
+            ]">
 
               <td class="px-3 py-2 font-semibold max-w-[160px] truncate"
                 :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
-              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
+              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}
+              </td>
               <td class="px-3 py-2 max-w-[120px] truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ row.departamento || '—' }}
               </td>
               <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
 
               <td class="px-3 py-2 text-center">
-                <span v-if="row.inicio_turno"
-                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
+                <span v-if="row.inicio_turno" class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
                   :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                   {{ row.inicio_turno }} – {{ row.fin_turno }}
                 </span>
@@ -239,8 +230,7 @@
       </div>
 
       <!-- Paginación -->
-      <div v-if="totalPages > 1"
-        class="flex items-center justify-between px-4 py-2 border-t text-[10px]"
+      <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t text-[10px]"
         :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
         <span>Pág {{ currentPage }} / {{ totalPages }} — {{ filtrados.length }} registros</span>
         <div class="flex gap-1">
@@ -272,13 +262,12 @@
     <div v-if="verHistorial" class="flex flex-col gap-3">
       <div class="flex items-center gap-2">
         <div class="w-1 h-5 bg-[#FF8F00] rounded-full"></div>
-        <h3 class="text-[11px] font-black uppercase tracking-wide"
-          :class="isDark ? 'text-white' : 'text-slate-800'">Historial guardado</h3>
+        <h3 class="text-[11px] font-black uppercase tracking-wide" :class="isDark ? 'text-white' : 'text-slate-800'">
+          Historial guardado</h3>
         <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8F00]/10 text-[#FF8F00]">
           {{ historial.length }} registros
         </span>
-        <button @click="cargarHistorial"
-          class="ml-2 text-[10px] transition-colors"
+        <button @click="cargarHistorial" class="ml-2 text-[10px] transition-colors"
           :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-400 hover:text-[#FF8F00]'">
           <i class="fas fa-rotate-right mr-1"></i>Actualizar
         </button>
@@ -308,15 +297,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, i) in historial" :key="i"
-                class="border-t transition-colors"
-                :class="[
-                  isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                  row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
-                ]">
-                <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
+              <tr v-for="(row, i) in historial" :key="i" class="border-t transition-colors" :class="[
+                isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
+                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
+              ]">
+                <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}
+                </td>
+                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}
+                </td>
+                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}
+                </td>
                 <td class="px-3 py-2 text-center" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   {{ row.inicio_turno ? `${row.inicio_turno} – ${row.fin_turno}` : '—' }}
                 </td>
@@ -486,7 +476,7 @@ onMounted(async () => {
         if (perfil.area?.id) areaActiva.value = perfil.area.id;
         if (perfil.segmento?.id) segmentoActivo.value = perfil.segmento.id;
       }
-    } catch {}
+    } catch { }
   }
 });
 
@@ -500,7 +490,7 @@ async function calcular() {
   verHistorial.value = false;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/calcular`, {
+    const res = await fetch(`${API_BASE_URL}/horas-extra/calcular`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildParams()),
@@ -525,7 +515,7 @@ async function guardar() {
   loadingGuardar.value = true;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/guardar`, {
+    const res = await fetch(`${API_BASE_URL}/horas-extra/guardar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildParams()),
@@ -579,9 +569,9 @@ async function cargarHistorial() {
     if (company) params.set('company', company);
     if (soloConExtras.value) params.set('soloConExtras', 'true');
 
-    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/historial?${params}`);
+    const res = await fetch(`${API_BASE_URL}/horas-extra/historial?${params}`);
     if (res.ok) historial.value = await res.json();
-  } catch {}
+  } catch { }
 }
 
 function descargarHistorial() {
