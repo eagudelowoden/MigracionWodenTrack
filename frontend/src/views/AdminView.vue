@@ -60,6 +60,22 @@
             class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
         </button>
 
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.calculos']"
+          @click="currentModule = 'calculos'"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="currentModule === 'calculos'
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
+
+          <div v-if="currentModule === 'calculos'"
+            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
+        </button>
+
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
           @click="currentModule = 'novedadusuario'"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
@@ -231,6 +247,26 @@
             </div>
           </div>
           <MeshModule v-else :isDark="isDark" :company="selectedCompany" />
+        </template>
+
+        <!-- Horas Extra / Cálculos -->
+        <template v-if="currentModule === 'calculos'">
+          <div v-if="!moduloActivo('calculos')" class="h-full flex items-center justify-center animate-fade-in">
+            <div class="text-center max-w-sm">
+              <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+                <i class="fas fa-wrench text-2xl text-[#FF8F00]"></i>
+              </div>
+              <h3 class="text-sm font-black uppercase tracking-tight mb-2"
+                :class="isDark ? 'text-white' : 'text-slate-800'">
+                Módulo en mantenimiento
+              </h3>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ modulosConfig.module_calculos_message }}
+              </p>
+            </div>
+          </div>
+          <ModuloCalculos v-else :isDark="isDark" :company="selectedCompany" />
         </template>
 
         <!-- Novedades mantenimiento -->
@@ -406,6 +442,7 @@ import { useRouter } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
 import AttendanceModule from '../components/admin/ModuloUsuariosAsistencias.vue';
 import MeshModule from '../components/admin/ModuloMallaUpload.vue';
+import ModuloCalculos from '../components/admin/ModuloCalculos.vue';
 import NovedadesAdmin from './novedades/novedadesadminView.vue';
 import NovedadesRRHH from './novedades/novedadesRRHView.vue';
 import NovedadesUsuario from './novedades/novedadesusuarioView.vue';
@@ -434,6 +471,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 const modulosConfig = reactive({
   module_asistencias_active: 'true',
   module_asistencias_message: 'Módulo en mantenimiento. Vuelve pronto.',
+  module_calculos_active: 'true',
+  module_calculos_message: 'Módulo en mantenimiento. Vuelve pronto.',
   module_mallas_active: 'true',
   module_mallas_message: 'Módulo en mantenimiento. Vuelve pronto.',
   module_novedades_active: 'true',
