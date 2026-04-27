@@ -14,6 +14,8 @@ export class HorasExtraController {
       soloHoy?: boolean;
       company?: string;
       calculado_por?: string;
+      area_id?: number;
+      segmento_id?: number;
     },
   ) {
     return this.service.calcularExtras({ ...dto, guardar: false });
@@ -28,6 +30,8 @@ export class HorasExtraController {
       soloHoy?: boolean;
       company?: string;
       calculado_por?: string;
+      area_id?: number;
+      segmento_id?: number;
     },
   ) {
     return this.service.calcularExtras({ ...dto, guardar: true });

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HoraExtra } from './entities/hora-extra.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
 
 function getFechaColombiaHoy(): string {
@@ -20,7 +21,9 @@ export interface CalcularExtrasDto {
   soloHoy?: boolean;
   company?: string;
   calculado_por?: string;
-  guardar?: boolean; // si true persiste en DB, por defecto solo calcula
+  guardar?: boolean;
+  area_id?: number;
+  segmento_id?: number;
 }
 
 @Injectable()
@@ -30,8 +33,23 @@ export class HorasExtraService {
     private readonly horaExtraRepo: Repository<HoraExtra>,
     @InjectRepository(MallaAsignacion)
     private readonly asignacionRepo: Repository<MallaAsignacion>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
     private readonly odoo: OdooService,
   ) {}
+
+  // Resuelve IDs de Odoo según el área/segmento asignado en la tabla local
+  private async resolverIdsPorEstructura(
+    areaId?: number,
+    segmentoId?: number,
+  ): Promise<number[] | null> {
+    if (!areaId && !segmentoId) return null;
+    const where: any = {};
+    if (areaId) where.area_id = areaId;
+    if (segmentoId) where.segmento_id = segmentoId;
+    const usuarios = await this.usuarioRepo.find({ where, select: ['id_odoo'] });
+    return usuarios.map((u) => u.id_odoo).filter((id) => id != null);
+  }
 
   // UTC string de Odoo → hora Colombia local "YYYY-MM-DD HH:MM:SS"
   private toLocal(utcDate: string): string | null {
@@ -148,12 +166,23 @@ export class HorasExtraService {
       finUTC = `${fd.getFullYear()}-${String(fd.getMonth() + 1).padStart(2, '0')}-${String(fd.getDate()).padStart(2, '0')} 04:59:59`;
     }
 
+    // Filtro por área/segmento → resuelve IDs locales y los pasa a Odoo
+    const idsPorEstructura = await this.resolverIdsPorEstructura(
+      dto.area_id,
+      dto.segmento_id,
+    );
+    // Si hay filtro de estructura pero resultó vacío → no hay datos para este usuario
+    if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
+
     // Dominio Odoo
     const domain: any[] = [];
     if (inicioUTC) domain.push(['check_in', '>=', inicioUTC]);
     if (finUTC) domain.push(['check_in', '<=', finUTC]);
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
       domain.push(['employee_id.company_id.name', '=', dto.company]);
+    }
+    if (idsPorEstructura && idsPorEstructura.length > 0) {
+      domain.push(['employee_id', 'in', idsPorEstructura]);
     }
 
     // Consulta Odoo asistencias
