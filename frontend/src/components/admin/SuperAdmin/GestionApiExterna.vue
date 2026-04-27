@@ -435,7 +435,7 @@ const parametros = [
 ];
 
 // ─── URL y ejemplos de código ──────────────────────────────────────────────
-const apiBase = computed(() => `${API_URL}/api-externa/`);
+const apiBase = computed(() => `${API_URL}/api-externa`);
 
 const ejemploAuth = computed(() => `# POST ${apiBase.value}/auth
 curl -X POST ${apiBase.value}/auth \\
@@ -453,19 +453,18 @@ const ejemploPython = computed(() => `import requests
 
 BASE = "${apiBase.value}"
 
-# 1. Autenticar
-auth = requests.post(f"{BASE}/auth", json={
-    "username": "mi_usuario",
-    "password": "mi_password"
-})
-token = auth.json()["token"]
+# Token estático (cópialo desde la tabla de credenciales)
+TOKEN = "tu_token_aqui"
 
-# 2. Consultar asistencias
-resp = requests.get(f"{BASE}/asistencias", params={
-    "fechaInicio": "2024-01-01",
-    "fechaFin":    "2024-01-31",
-    # "cedula": "123456789"  # opcional
-}, headers={"Authorization": f"Bearer {token}"})
+resp = requests.get(
+    f"{BASE}/asistencias",
+    params={
+        "fechaInicio": "2024-01-01",
+        "fechaFin":    "2024-01-31",
+        # "cedula": "123456789"  # opcional
+    },
+    headers={"Authorization": f"Bearer {TOKEN}"},
+)
 
 data = resp.json()
 print(f"Total registros: {data['total']}")
