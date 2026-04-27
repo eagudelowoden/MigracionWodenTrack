@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizacionModule } from './organizacion/organizacion.module';
 import { NovedadesModule } from './novedades/novedades.module';
 import { SistemaConfigModule } from './sistema-config/sistema-config.module';
+import { ApiExternaModule } from './api-externa/api-externa.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { SistemaConfigModule } from './sistema-config/sistema-config.module';
     OrganizacionModule,
     NovedadesModule,
     SistemaConfigModule,
+    ApiExternaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

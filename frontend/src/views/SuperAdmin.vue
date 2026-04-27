@@ -13,6 +13,7 @@ import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vu
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
+import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -210,7 +211,8 @@ onMounted(async () => {
             notifications: ['fas fa-bullhorn', 'Avisos'],
             estructura: ['fas fa-sitemap', 'Organización'],
             mallas: ['fas fa-calendar-alt', 'Mallas'],
-            config: ['fas fa-sliders', 'Configuraciones']
+            config: ['fas fa-sliders', 'Configuraciones'],
+            api: ['fas fa-plug', 'API Externa']
           }" :key="key" @click="currentTab = key" :class="[
             'w-full flex items-center rounded-lg transition-all duration-200 p-2.5 text-[10px] font-bold uppercase',
             currentTab === key ? 'bg-[#FF8F00] text-black shadow-md' : 'hover:bg-slate-500/10',
@@ -329,6 +331,12 @@ onMounted(async () => {
         <!-- TEMPLATE CONFIGURACIONES -->
         <div v-if="currentTab === 'config'" class="animate-fade-in p-2">
           <GestionConfiguraciones :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
+        </div>
+
+        <!-- TEMPLATE API EXTERNA -->
+        <div v-if="currentTab === 'api'" class="animate-fade-in p-2">
+          <GestionApiExterna :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
       </div>
