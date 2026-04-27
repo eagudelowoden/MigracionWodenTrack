@@ -16,7 +16,21 @@ export class HorasExtraController {
       calculado_por?: string;
     },
   ) {
-    return this.service.calcularExtras(dto);
+    return this.service.calcularExtras({ ...dto, guardar: false });
+  }
+
+  @Post('guardar')
+  guardar(
+    @Body()
+    dto: {
+      startDate?: string;
+      endDate?: string;
+      soloHoy?: boolean;
+      company?: string;
+      calculado_por?: string;
+    },
+  ) {
+    return this.service.calcularExtras({ ...dto, guardar: true });
   }
 
   @Get('historial')

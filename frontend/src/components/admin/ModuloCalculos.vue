@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-col gap-4 animate-fade-in">
 
-    <!-- Header + filtros -->
+    <!-- Filtros + acciones -->
     <div class="rounded-xl border p-4"
       :class="isDark ? 'bg-[#273045] border-white/5' : 'bg-white border-slate-200 shadow-sm'">
 
       <div class="flex flex-wrap items-end gap-3">
 
-        <!-- Fechas -->
+        <!-- Fecha inicio -->
         <div class="flex flex-col gap-1">
           <label class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
@@ -18,6 +18,7 @@
               : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
         </div>
 
+        <!-- Fecha fin -->
         <div class="flex flex-col gap-1">
           <label class="text-[9px] font-black uppercase tracking-widest"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
@@ -28,85 +29,99 @@
               : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
         </div>
 
-        <!-- Separador -->
-        <div class="h-8 w-px" :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
-
-        <!-- Solo con extras -->
-        <label class="flex items-center gap-2 cursor-pointer select-none">
+        <!-- Toggle solo con extras -->
+        <label class="flex items-center gap-2 cursor-pointer select-none self-end mb-0.5">
           <div class="relative">
             <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
             <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-[#FF8F00]"
               :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
-            <div
-              class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm">
-            </div>
+            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm"></div>
           </div>
           <span class="text-[10px] font-bold uppercase tracking-wide"
-            :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-            Solo con extras
-          </span>
+            :class="isDark ? 'text-slate-300' : 'text-slate-600'">Solo con extras</span>
         </label>
 
-        <!-- Botones -->
-        <div class="flex gap-2 ml-auto">
+        <!-- ── Tres botones principales ── -->
+        <div class="flex gap-2 ml-auto flex-wrap">
 
-          <button @click="calcular" :disabled="loading || (!startDate && !endDate)"
+          <!-- CALCULAR -->
+          <button @click="calcular" :disabled="loadingCalc || !fechasValidas"
             class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all"
-            :class="loading || (!startDate && !endDate)
+            :class="loadingCalc || !fechasValidas
               ? 'opacity-40 cursor-not-allowed bg-[#FF8F00]/40 text-white'
               : 'bg-[#FF8F00] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20'">
-            <i class="fas" :class="loading ? 'fa-spinner fa-spin' : 'fa-calculator'"></i>
-            {{ loading ? 'Calculando...' : 'Calcular Extras' }}
+            <i class="fas" :class="loadingCalc ? 'fa-spinner fa-spin' : 'fa-calculator'"></i>
+            {{ loadingCalc ? 'Calculando...' : 'Calcular' }}
           </button>
 
-          <button v-if="resultados.length" @click="verHistorial = !verHistorial"
+          <!-- GUARDAR -->
+          <button @click="guardar" :disabled="loadingGuardar || !hayResultados"
             class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all"
-            :class="isDark
-              ? 'border-white/10 text-slate-300 hover:border-[#FF8F00] hover:text-[#FF8F00]'
-              : 'border-slate-200 text-slate-600 hover:border-[#FF8F00] hover:text-[#FF8F00]'">
+            :class="loadingGuardar || !hayResultados
+              ? 'opacity-40 cursor-not-allowed border-slate-300 text-slate-400'
+              : isDark
+                ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10'
+                : 'border-emerald-500 text-emerald-600 hover:bg-emerald-50'">
+            <i class="fas" :class="loadingGuardar ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
+            {{ loadingGuardar ? 'Guardando...' : 'Guardar' }}
+          </button>
+
+          <!-- DESCARGAR -->
+          <button @click="descargar" :disabled="!hayResultados"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all"
+            :class="!hayResultados
+              ? 'opacity-40 cursor-not-allowed border-slate-300 text-slate-400'
+              : isDark
+                ? 'border-blue-500/50 text-blue-400 hover:bg-blue-500/10'
+                : 'border-blue-500 text-blue-600 hover:bg-blue-50'">
+            <i class="fas fa-file-excel text-xs"></i>
+            Descargar
+          </button>
+
+          <!-- Historial -->
+          <button @click="toggleHistorial"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border transition-all"
+            :class="verHistorial
+              ? 'bg-[#FF8F00]/10 border-[#FF8F00]/40 text-[#FF8F00]'
+              : isDark
+                ? 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
+                : 'border-slate-200 text-slate-500 hover:border-slate-300'">
             <i class="fas fa-history text-xs"></i>
-            {{ verHistorial ? 'Ver cálculo' : 'Ver historial' }}
+            Historial
           </button>
 
         </div>
       </div>
 
-      <!-- Resumen -->
-      <div v-if="resultados.length && !verHistorial"
-        class="mt-3 pt-3 border-t flex flex-wrap gap-4"
+      <!-- Toast inline de estado -->
+      <div v-if="toast.msg" class="mt-3 pt-3 border-t flex items-center gap-2 text-[10px] font-semibold"
+        :class="[
+          isDark ? 'border-white/5' : 'border-slate-100',
+          toast.type === 'success' ? 'text-emerald-500' : toast.type === 'error' ? 'text-rose-500' : 'text-[#FF8F00]'
+        ]">
+        <i class="fas"
+          :class="toast.type === 'success' ? 'fa-circle-check' : toast.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'"></i>
+        {{ toast.msg }}
+      </div>
+
+      <!-- Resumen del cálculo -->
+      <div v-if="hayResultados && !verHistorial"
+        class="mt-3 pt-3 border-t flex flex-wrap gap-5"
         :class="isDark ? 'border-white/5' : 'border-slate-100'">
-
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-slate-400"></div>
-          <span class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            <span class="font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
-              {{ resultados.length }}
-            </span> registros
-          </span>
+        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span class="font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ resultados.length }}</span>
+          registros calculados
         </div>
-
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-[#FF8F00]"></div>
-          <span class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            <span class="font-black text-[#FF8F00]">{{ conExtras }}</span> con horas extra
-          </span>
+        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span class="font-black text-[#FF8F00]">{{ conExtras }}</span> con horas extra
         </div>
-
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-          <span class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            Total:
-            <span class="font-black text-emerald-500">{{ formatMinutos(totalMinutos) }}</span>
-          </span>
+        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          Total: <span class="font-black text-emerald-500">{{ formatMinutos(totalMinutos) }}</span>
+        </div>
+        <div v-if="guardado" class="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+          <i class="fas fa-check-circle text-[9px]"></i> Guardado en base de datos
         </div>
       </div>
-    </div>
-
-    <!-- Error -->
-    <div v-if="error"
-      class="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[11px] font-semibold">
-      <i class="fas fa-circle-exclamation"></i>
-      {{ error }}
     </div>
 
     <!-- Tabla resultados -->
@@ -135,44 +150,37 @@
               class="border-t transition-colors"
               :class="[
                 isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/50') : ''
+                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
               ]">
 
               <td class="px-3 py-2 font-semibold max-w-[160px] truncate"
                 :class="isDark ? 'text-white' : 'text-slate-800'">
                 {{ row.nombre }}
               </td>
-
               <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                 {{ row.cedula }}
               </td>
-
               <td class="px-3 py-2 max-w-[120px] truncate"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ row.departamento || '—' }}
               </td>
-
               <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                 {{ row.fecha }}
               </td>
 
-              <!-- Turno -->
               <td class="px-3 py-2 text-center">
                 <span v-if="row.inicio_turno"
-                  class="inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
+                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
                   :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                   {{ row.inicio_turno }} – {{ row.fin_turno }}
                 </span>
-                <span v-else class="text-slate-400">Sin malla</span>
+                <span v-else class="text-slate-400 italic">Sin malla</span>
               </td>
 
-              <!-- Entrada -->
               <td class="px-3 py-2 text-center font-mono"
                 :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                 {{ soloHora(row.fecha_entrada) || '—' }}
               </td>
-
-              <!-- Salida -->
               <td class="px-3 py-2 text-center font-mono"
                 :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                 {{ soloHora(row.fecha_salida) || '—' }}
@@ -182,7 +190,7 @@
               <td class="px-3 py-2 text-center">
                 <div v-if="row.minutos_extra_entrada > 0" class="flex flex-col items-center gap-0.5">
                   <span class="font-black text-amber-500">{{ formatMinutos(row.minutos_extra_entrada) }}</span>
-                  <span class="text-[8px]" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                  <span class="text-[8px] text-slate-400">
                     {{ soloHora(row.inicio_extra_entrada) }} → {{ soloHora(row.fin_extra_entrada) }}
                   </span>
                 </div>
@@ -193,7 +201,7 @@
               <td class="px-3 py-2 text-center">
                 <div v-if="row.minutos_extra_salida > 0" class="flex flex-col items-center gap-0.5">
                   <span class="font-black text-blue-500">{{ formatMinutos(row.minutos_extra_salida) }}</span>
-                  <span class="text-[8px]" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                  <span class="text-[8px] text-slate-400">
                     {{ soloHora(row.inicio_extra_salida) }} → {{ soloHora(row.fin_extra_salida) }}
                   </span>
                 </div>
@@ -203,10 +211,10 @@
               <!-- Total -->
               <td class="px-3 py-2 text-center">
                 <span v-if="row.total_minutos_extra > 0"
-                  class="inline-block px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
+                  class="px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
                   {{ formatMinutos(row.total_minutos_extra) }}
                 </span>
-                <span v-else class="text-slate-400 font-semibold">0</span>
+                <span v-else class="text-slate-400">0</span>
               </td>
             </tr>
           </tbody>
@@ -217,7 +225,7 @@
       <div v-if="totalPages > 1"
         class="flex items-center justify-between px-4 py-2 border-t text-[10px]"
         :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-        <span>Pág {{ currentPage }} / {{ totalPages }}</span>
+        <span>Pág {{ currentPage }} / {{ totalPages }} — {{ filtrados.length }} registros</span>
         <div class="flex gap-1">
           <button @click="currentPage--" :disabled="currentPage === 1"
             class="px-2 py-1 rounded disabled:opacity-30 hover:text-[#FF8F00] transition-colors">
@@ -231,8 +239,8 @@
       </div>
     </div>
 
-    <!-- Estado vacío -->
-    <div v-else-if="!verHistorial && !loading && calculado"
+    <!-- Estado vacío post-cálculo -->
+    <div v-else-if="!verHistorial && !loadingCalc && calculado"
       class="flex flex-col items-center justify-center py-16 gap-3">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center"
         :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
@@ -243,19 +251,27 @@
       </p>
     </div>
 
-    <!-- Historial -->
+    <!-- ── HISTORIAL ── -->
     <div v-if="verHistorial" class="flex flex-col gap-3">
+
       <div class="flex items-center gap-2">
         <div class="w-1 h-5 bg-[#FF8F00] rounded-full"></div>
         <h3 class="text-[11px] font-black uppercase tracking-wide"
-          :class="isDark ? 'text-white' : 'text-slate-800'">
-          Historial guardado
-        </h3>
+          :class="isDark ? 'text-white' : 'text-slate-800'">Historial guardado</h3>
         <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8F00]/10 text-[#FF8F00]">
           {{ historial.length }} registros
         </span>
-        <button @click="cargarHistorial" class="ml-auto text-[10px] text-slate-400 hover:text-[#FF8F00] transition-colors">
-          <i class="fas fa-refresh mr-1"></i> Actualizar
+        <button @click="cargarHistorial"
+          class="ml-2 text-[10px] transition-colors"
+          :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-400 hover:text-[#FF8F00]'">
+          <i class="fas fa-rotate-right mr-1"></i>Actualizar
+        </button>
+        <button @click="descargarHistorial" :disabled="!historial.length"
+          class="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black border transition-all disabled:opacity-40"
+          :class="isDark
+            ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10'
+            : 'border-blue-400 text-blue-600 hover:bg-blue-50'">
+          <i class="fas fa-file-excel text-xs"></i> Descargar historial
         </button>
       </div>
 
@@ -280,7 +296,7 @@
                 class="border-t transition-colors"
                 :class="[
                   isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                  row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/50') : ''
+                  row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
                 ]">
                 <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
                   {{ row.nombre }}
@@ -292,7 +308,7 @@
                   {{ row.fecha }}
                 </td>
                 <td class="px-3 py-2 text-center" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  {{ row.inicio_turno && row.fin_turno ? `${row.inicio_turno} – ${row.fin_turno}` : '—' }}
+                  {{ row.inicio_turno ? `${row.inicio_turno} – ${row.fin_turno}` : '—' }}
                 </td>
                 <td class="px-3 py-2 text-center">
                   <div v-if="row.minutos_extra_entrada > 0" class="flex flex-col items-center">
@@ -314,7 +330,7 @@
                 </td>
                 <td class="px-3 py-2 text-center">
                   <span v-if="row.total_minutos_extra > 0"
-                    class="inline-block px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
+                    class="px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
                     {{ formatMinutos(row.total_minutos_extra) }}
                   </span>
                   <span v-else class="text-slate-400">0</span>
@@ -341,7 +357,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
+import * as XLSX from 'xlsx';
 
 const props = defineProps({
   isDark: Boolean,
@@ -351,46 +368,44 @@ const props = defineProps({
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 
-// Estado
+// ── Estado ──
 const startDate = ref(new Date().toISOString().split('T')[0]);
 const endDate = ref(new Date().toISOString().split('T')[0]);
 const soloConExtras = ref(false);
-const loading = ref(false);
-const error = ref('');
+const loadingCalc = ref(false);
+const loadingGuardar = ref(false);
 const calculado = ref(false);
+const guardado = ref(false);
 const resultados = ref([]);
 const historial = ref([]);
 const verHistorial = ref(false);
 const currentPage = ref(1);
-const itemsPerPage = 20;
+const ITEMS_PER_PAGE = 20;
+const toast = ref({ msg: '', type: '' });
 
-// Computed
+// ── Computed ──
+const fechasValidas = computed(() => !!(startDate.value || endDate.value));
+const hayResultados = computed(() => resultados.value.length > 0);
 const conExtras = computed(() => resultados.value.filter((r) => r.total_minutos_extra > 0).length);
 const totalMinutos = computed(() =>
   resultados.value.reduce((acc, r) => acc + (r.total_minutos_extra || 0), 0),
 );
-
-const filtrados = computed(() => {
-  if (!soloConExtras.value) return resultados.value;
-  return resultados.value.filter((r) => r.total_minutos_extra > 0);
-});
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filtrados.value.length / itemsPerPage)));
-
+const filtrados = computed(() =>
+  soloConExtras.value ? resultados.value.filter((r) => r.total_minutos_extra > 0) : resultados.value,
+);
+const totalPages = computed(() => Math.max(1, Math.ceil(filtrados.value.length / ITEMS_PER_PAGE)));
 const tablaVisible = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return filtrados.value.slice(start, start + itemsPerPage);
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE;
+  return filtrados.value.slice(start, start + ITEMS_PER_PAGE);
 });
 
-watch([soloConExtras, filtrados], () => {
-  currentPage.value = 1;
-});
+watch([soloConExtras, filtrados], () => { currentPage.value = 1; });
 
-// Helpers
-function soloHora(datetime) {
-  if (!datetime) return null;
-  const parts = datetime.split(' ');
-  return parts[1] ? parts[1].slice(0, 5) : datetime.slice(0, 5);
+// ── Helpers ──
+function soloHora(dt) {
+  if (!dt) return null;
+  const t = dt.split(' ')[1];
+  return t ? t.slice(0, 5) : null;
 }
 
 function formatMinutos(mins) {
@@ -401,37 +416,98 @@ function formatMinutos(mins) {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
-// Calcular y guardar
+function showToast(msg, type = 'info', duracion = 4000) {
+  toast.value = { msg, type };
+  setTimeout(() => { toast.value = { msg: '', type: '' }; }, duracion);
+}
+
+function buildParams() {
+  return {
+    startDate: startDate.value || null,
+    endDate: endDate.value || null,
+    company: props.company || session.company || null,
+    calculado_por: session.name || 'Admin',
+  };
+}
+
+// ── CALCULAR (sin guardar) ──
 async function calcular() {
-  if (!startDate.value && !endDate.value) return;
-  loading.value = true;
-  error.value = '';
+  loadingCalc.value = true;
   calculado.value = false;
+  guardado.value = false;
+  resultados.value = [];
+  verHistorial.value = false;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/horas-extra/calcular`, {
+    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/calcular`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startDate: startDate.value,
-        endDate: endDate.value,
-        company: props.company || session.company || null,
-        calculado_por: session.name || 'Admin',
-      }),
+      body: JSON.stringify(buildParams()),
     });
-
-    if (!res.ok) throw new Error('Error al calcular las horas extra');
+    if (!res.ok) throw new Error('Error al calcular');
     resultados.value = await res.json();
     calculado.value = true;
-    verHistorial.value = false;
+    showToast(`${resultados.value.length} registros calculados — ${conExtras.value} con horas extra`, 'info');
   } catch (err) {
-    error.value = err.message || 'Error de conexión';
+    showToast(err.message || 'Error de conexión', 'error');
   } finally {
-    loading.value = false;
+    loadingCalc.value = false;
   }
 }
 
-// Cargar historial
+// ── GUARDAR (recalcula + persiste en DB) ──
+async function guardar() {
+  if (!hayResultados.value) return;
+  loadingGuardar.value = true;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/guardar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildParams()),
+    });
+    if (!res.ok) throw new Error('Error al guardar');
+    guardado.value = true;
+    showToast('Cálculo guardado correctamente en la base de datos', 'success');
+  } catch (err) {
+    showToast(err.message || 'Error al guardar', 'error');
+  } finally {
+    loadingGuardar.value = false;
+  }
+}
+
+// ── DESCARGAR Excel del cálculo en pantalla ──
+function descargar() {
+  if (!hayResultados.value) return;
+
+  const filas = filtrados.value.map((r) => ({
+    Colaborador: r.nombre,
+    Cedula: r.cedula,
+    Departamento: r.departamento || '',
+    Fecha: r.fecha,
+    Inicio_Turno: r.inicio_turno || '',
+    Fin_Turno: r.fin_turno || '',
+    Entrada_Real: soloHora(r.fecha_entrada) || '',
+    Salida_Real: soloHora(r.fecha_salida) || '',
+    Inicio_Extra_Entrada: soloHora(r.inicio_extra_entrada) || '',
+    Fin_Extra_Entrada: soloHora(r.fin_extra_entrada) || '',
+    Minutos_Extra_Entrada: r.minutos_extra_entrada || 0,
+    Inicio_Extra_Salida: soloHora(r.inicio_extra_salida) || '',
+    Fin_Extra_Salida: soloHora(r.fin_extra_salida) || '',
+    Minutos_Extra_Salida: r.minutos_extra_salida || 0,
+    Total_Minutos_Extra: r.total_minutos_extra || 0,
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Horas Extra');
+
+  const desde = startDate.value || 'sin-fecha';
+  const hasta = endDate.value || desde;
+  XLSX.writeFile(wb, `HorasExtra_${desde}_${hasta}.xlsx`);
+}
+
+// ── HISTORIAL ──
 async function cargarHistorial() {
   try {
     const params = new URLSearchParams();
@@ -441,16 +517,41 @@ async function cargarHistorial() {
     if (company) params.set('company', company);
     if (soloConExtras.value) params.set('soloConExtras', 'true');
 
-    const res = await fetch(`${API_BASE_URL}/horas-extra/historial?${params}`);
+    const res = await fetch(`${API_BASE_URL}/usuarios/horas-extra/historial?${params}`);
     if (res.ok) historial.value = await res.json();
   } catch {}
 }
 
-watch(verHistorial, (val) => {
-  if (val) cargarHistorial();
-});
+function descargarHistorial() {
+  if (!historial.value.length) return;
 
-onMounted(() => {
-  // No cargar automáticamente — esperar al botón
-});
+  const filas = historial.value.map((r) => ({
+    Colaborador: r.nombre,
+    Cedula: r.cedula,
+    Departamento: r.departamento || '',
+    Fecha: r.fecha,
+    Inicio_Turno: r.inicio_turno || '',
+    Fin_Turno: r.fin_turno || '',
+    Entrada_Real: soloHora(r.fecha_entrada) || '',
+    Salida_Real: soloHora(r.fecha_salida) || '',
+    Inicio_Extra_Entrada: soloHora(r.inicio_extra_entrada) || '',
+    Fin_Extra_Entrada: soloHora(r.fin_extra_entrada) || '',
+    Minutos_Extra_Entrada: r.minutos_extra_entrada || 0,
+    Inicio_Extra_Salida: soloHora(r.inicio_extra_salida) || '',
+    Fin_Extra_Salida: soloHora(r.fin_extra_salida) || '',
+    Minutos_Extra_Salida: r.minutos_extra_salida || 0,
+    Total_Minutos_Extra: r.total_minutos_extra || 0,
+    Calculado_Por: r.calculado_por || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+  XLSX.writeFile(wb, `HistorialHorasExtra_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function toggleHistorial() {
+  verHistorial.value = !verHistorial.value;
+  if (verHistorial.value) cargarHistorial();
+}
 </script>

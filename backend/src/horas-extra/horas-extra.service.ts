@@ -20,6 +20,7 @@ export interface CalcularExtrasDto {
   soloHoy?: boolean;
   company?: string;
   calculado_por?: string;
+  guardar?: boolean; // si true persiste en DB, por defecto solo calcula
 }
 
 @Injectable()
@@ -326,26 +327,28 @@ export class HorasExtraService {
       resultados.push(registro);
     }
 
-    // Borrar cálculos anteriores del mismo rango + compañía y guardar los nuevos
-    if (startDay && endDay) {
-      const qb = this.horaExtraRepo
-        .createQueryBuilder()
-        .delete()
-        .from(HoraExtra)
-        .where('fecha >= :start AND fecha <= :end', {
-          start: startDay,
-          end: endDay,
-        });
-      if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
-        qb.andWhere('company = :company', { company: dto.company });
+    // Solo persiste en DB si se pidió explícitamente
+    if (dto.guardar) {
+      if (startDay && endDay) {
+        const qb = this.horaExtraRepo
+          .createQueryBuilder()
+          .delete()
+          .from(HoraExtra)
+          .where('fecha >= :start AND fecha <= :end', {
+            start: startDay,
+            end: endDay,
+          });
+        if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+          qb.andWhere('company = :company', { company: dto.company });
+        }
+        await qb.execute();
       }
-      await qb.execute();
-    }
 
-    // Guardar en lotes de 50 (20 columnas × 50 = 1000 params, bajo el límite de 2100)
-    const SAVE_CHUNK = 50;
-    for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
-      await this.horaExtraRepo.save(resultados.slice(i, i + SAVE_CHUNK));
+      // Guardar en lotes de 50 (20 cols × 50 = 1000 params, bajo el límite de 2100)
+      const SAVE_CHUNK = 50;
+      for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
+        await this.horaExtraRepo.save(resultados.slice(i, i + SAVE_CHUNK));
+      }
     }
 
     return resultados;
