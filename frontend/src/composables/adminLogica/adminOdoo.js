@@ -35,21 +35,39 @@ export function adminOdoo() {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+  // Inicialización sincrónica: leer company desde la sesión guardada para que
+  // los componentes hijos ya reciban el prop correcto cuando montan.
+  const _session = JSON.parse(localStorage.getItem("user_session") || "{}");
+  if (_session.company && !selectedCompany.value) {
+    selectedCompany.value = _session.company;
+  }
+
   const fetchCompanies = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
       const active = data.filter((c) => c.is_active);
 
-      const companyDelEmpleado = att.employee.value?.company;
-      if (companyDelEmpleado) {
+      const companyDelEmpleado =
+        _session.company || att.employee.value?.company;
+      const isSuperAdmin =
+        _session.isSuperAdmin || att.employee.value?.isSuperAdmin;
+
+      if (isSuperAdmin) {
+        // SuperAdmin ve todas las compañías y puede cambiar libremente
+        allCompanies.value = active;
+        if (!selectedCompany.value) {
+          selectedCompany.value = active[0]?.name ?? "";
+        }
+      } else if (companyDelEmpleado) {
         const match = active.find((c) => c.name === companyDelEmpleado);
+        // Admin normal solo ve su propia compañía
+        allCompanies.value = match ? [match] : active;
         selectedCompany.value = match?.name ?? active[0]?.name ?? "";
       } else {
+        allCompanies.value = active;
         selectedCompany.value = active[0]?.name ?? "";
       }
-
-      allCompanies.value = active;
     } catch (err) {
       console.error("Error cargando compañías:", err);
     }
