@@ -907,7 +907,7 @@ export class UsuariosService {
       fecha: string;
       localIn: string | null;
       localOut: string | null;
-      checkInUTC: string;        // UTC Odoo del check_in efectivo (para clasificar)
+      checkInUTC: string | null; // UTC Odoo del check_in efectivo (para clasificar)
       checkOutUTC: string | null;// UTC Odoo del check_out efectivo (para clasificar)
       primeraId: number;
       eliminado: boolean;
@@ -1005,16 +1005,16 @@ export class UsuariosService {
 
     // Paso 4: construir las filas de resultado
     return filas
-      .filter(f => !f.eliminado && f.localIn)
+      .filter(f => !f.eliminado && f.localIn && f.checkInUTC)
       .map(({ empId, nombre, dept, fecha, localIn, localOut, checkInUTC, checkOutUTC, primeraId }) => {
-        const fechaEntradaUTC = new Date(checkInUTC.replace(' ', 'T') + 'Z');
+        const fechaEntradaUTC = new Date((checkInUTC as string).replace(' ', 'T') + 'Z');
         const horaEntradaLocal = new Date(
           fechaEntradaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
         );
         const diaSemanaEntrada = horaEntradaLocal.getDay() === 0 ? 6 : horaEntradaLocal.getDay() - 1;
 
-        const cEntrada = empId && checkInUTC
-          ? this.clasificarPorMallaLocal(empId, checkInUTC, true, mallasLocalMap, diaSemanaEntrada)
+        const cEntrada = empId
+          ? this.clasificarPorMallaLocal(empId, checkInUTC as string, true, mallasLocalMap, diaSemanaEntrada)
           : 'No programado';
 
         const cSalida = checkOutUTC
@@ -1047,7 +1047,36 @@ export class UsuariosService {
     mallasLocalMap: Map<number, any[]> = new Map(),
   ): Promise<any[]> {
 
-    // --- AGRUPAR POR EMPLEADO + DÍA ---
+    const horaDecimalDeLocal = (local: string): number => {
+      const t = local.split(' ')[1] || '';
+      const [h, m] = t.split(':').map(Number);
+      return h + (m || 0) / 60;
+    };
+
+    const addOneDayToDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d + 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+
+    const getTurnoNocturno = (empId: number, fecha: string): { hi: number; hf: number } | null => {
+      const asignaciones = mallasLocalMap.get(empId);
+      if (!asignaciones?.length) return null;
+      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+      const [a, m, d] = fecha.split('-').map(Number);
+      const jsDay = new Date(a, m - 1, d).getDay();
+      const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+      const turnosDia = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
+      if (!turnosDia.length) return null;
+      const t = turnosDia[0];
+      const hi = Number(t.hora_inicio);
+      const hf = Number(t.hora_fin);
+      return hf < hi ? { hi, hf } : null;
+    };
+
+    // Paso 1: agrupar por empId + fecha del punch Colombia
     const grupos: Record<
       string,
       { empId: number; nombre: string; dept: string; registros: any[] }
@@ -1059,7 +1088,6 @@ export class UsuariosService {
       const localTime = toLocal(log.punching_time);
       const fecha = localTime ? localTime.split(' ')[0] : 'SIN_FECHA';
       const key = `${empId}_${fecha}`;
-
       if (!grupos[key]) {
         grupos[key] = {
           empId,
@@ -1073,56 +1101,127 @@ export class UsuariosService {
       grupos[key].registros.push(log);
     });
 
-    // --- UNA FILA POR EMPLEADO POR DÍA: MIN = entrada, MAX = salida ---
-    return Object.values(grupos).map(({ empId, nombre, dept, registros }) => {
+    // Paso 2: calcular primero/ultimo por grupo
+    type FilaLog = {
+      empId: number;
+      nombre: string;
+      dept: string;
+      fecha: string;
+      localIn: string | null;
+      localOut: string | null;
+      punchInUTC: string | null;   // UTC del punch de entrada (para clasificar)
+      punchOutUTC: string | null;  // UTC del punch de salida
+      eliminado: boolean;
+    };
+
+    const filas: FilaLog[] = Object.entries(grupos).map(([, { empId, nombre, dept, registros }]) => {
       const ordenados = registros.sort(
-        (a, b) =>
-          new Date(a.punching_time).getTime() -
-          new Date(b.punching_time).getTime(),
+        (a, b) => new Date(a.punching_time).getTime() - new Date(b.punching_time).getTime(),
       );
-
-      const primero = ordenados[0];                              // MIN → ENTRADA
-      const ultimo  = ordenados[ordenados.length - 1];           // MAX → SALIDA
-      // Hay salida real solo si el último punch es al menos 60 s después del primero
-      const diffPunchesMs = new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime();
-      const haySalida = ordenados.length > 1 && diffPunchesMs >= 60_000;
-
-      // diaSemana derivado de la ENTRADA (Colombia) — fijo para validar ambos extremos
-      const fechaPrimeroUTC = new Date(primero.punching_time.replace(' ', 'T') + 'Z');
-      const horaLocalPrimero = new Date(
-        fechaPrimeroUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
-      );
-      const diaSemanaEntrada = horaLocalPrimero.getDay() === 0 ? 6 : horaLocalPrimero.getDay() - 1;
+      const primero = ordenados[0];
+      const ultimo  = ordenados[ordenados.length - 1];
+      const diffMs  = new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime();
+      const haySalida = ordenados.length > 1 && diffMs >= 60_000;
 
       const localIn  = toLocal(primero.punching_time);
       const localOut = haySalida ? toLocal(ultimo.punching_time) : null;
       const fecha    = localIn ? localIn.split(' ')[0] : 'N/A';
 
-      const cEntrada = empId
-        ? this.clasificarPorMallaLocal(empId, primero.punching_time, true, mallasLocalMap, diaSemanaEntrada)
-        : 'No programado';
-
-      const cSalida = haySalida && empId
-        ? this.clasificarPorMallaLocal(empId, ultimo.punching_time, false, mallasLocalMap, diaSemanaEntrada)
-        : 'N/A';
-
-      const estado = haySalida ? 'Finalizado' : 'En curso';
-
       return {
-        id: `log_${empId}_${fecha}`,
-        empleado: nombre,
-        cc: partnerMap[nombre] || 'N/A',
-        department_id: dept,
-        check_in: localIn,
-        check_out: localOut,
-        c_entrada: cEntrada,
-        c_salida: cSalida,
-        fecha,
-        tipo: 'LOG CRUDO',
-        fuente: 'BIOMÉTRICO',
-        estado,
+        empId, nombre, dept, fecha,
+        localIn,
+        localOut,
+        punchInUTC:  primero.punching_time,
+        punchOutUTC: haySalida ? ultimo.punching_time : null,
+        eliminado: false,
       };
     });
+
+    // Índice por empId_fecha
+    const filaIdx = new Map<string, FilaLog>();
+    for (const f of filas) filaIdx.set(`${f.empId}_${f.fecha}`, f);
+
+    // Paso 3: detectar registros nocturnos invertidos
+    // Para un turno 22:00-06:00, el biométrico puede registrar en el mismo día:
+    // punch 06:01 AM (salida del turno anterior) y punch 22:xx PM (entrada al siguiente).
+    // Eso hace que primero=06:01 AM (mostrado como entrada) y ultimo=22:xx PM (como salida).
+    for (const fila of filas) {
+      if (!fila.localIn || fila.eliminado) continue;
+      const nocturno = getTurnoNocturno(fila.empId, fila.fecha);
+      if (!nocturno) continue;
+
+      const { hi, hf } = nocturno;
+      const hIn = horaDecimalDeLocal(fila.localIn);
+
+      // Caso invertido: primer punch en mañana + último punch en noche
+      if (fila.localOut && hIn <= hf + 1) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= hi - 1) {
+          const entradaReal    = fila.localOut;
+          const entradaRealUTC = fila.punchOutUTC;
+
+          // Buscar el punch matutino del día siguiente como salida real del turno
+          const nextKey  = `${fila.empId}_${addOneDayToDate(fila.fecha)}`;
+          const nextFila = filaIdx.get(nextKey);
+          let salidaReal: string | null = null;
+          let salidaRealUTC: string | null = null;
+
+          if (nextFila && nextFila.localIn && !nextFila.eliminado) {
+            const hNextIn = horaDecimalDeLocal(nextFila.localIn);
+            if (hNextIn <= hf + 1) {
+              salidaReal    = nextFila.localIn;
+              salidaRealUTC = nextFila.punchInUTC;
+              nextFila.eliminado = true;
+            }
+          }
+
+          fila.localIn     = entradaReal;
+          fila.punchInUTC  = entradaRealUTC;
+          fila.localOut    = salidaReal;
+          fila.punchOutUTC = salidaRealUTC;
+          continue;
+        }
+      }
+
+      // Solo un punch matutino sin salida = salida huérfana del turno anterior → eliminar
+      if (!fila.localOut && hIn <= hf + 1) {
+        fila.eliminado = true;
+      }
+    }
+
+    // Paso 4: construir filas de resultado
+    return filas
+      .filter(f => !f.eliminado && f.localIn && f.punchInUTC)
+      .map(({ empId, nombre, dept, fecha, localIn, localOut, punchInUTC, punchOutUTC }) => {
+        const fechaPrimeroUTC = new Date((punchInUTC as string).replace(' ', 'T') + 'Z');
+        const horaLocalPrimero = new Date(
+          fechaPrimeroUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+        );
+        const diaSemanaEntrada = horaLocalPrimero.getDay() === 0 ? 6 : horaLocalPrimero.getDay() - 1;
+
+        const cEntrada = empId
+          ? this.clasificarPorMallaLocal(empId, punchInUTC as string, true, mallasLocalMap, diaSemanaEntrada)
+          : 'No programado';
+
+        const cSalida = punchOutUTC && empId
+          ? this.clasificarPorMallaLocal(empId, punchOutUTC, false, mallasLocalMap, diaSemanaEntrada)
+          : 'N/A';
+
+        return {
+          id: `log_${empId}_${fecha}`,
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A',
+          department_id: dept,
+          check_in: localIn,
+          check_out: localOut,
+          c_entrada: cEntrada,
+          c_salida: cSalida,
+          fecha,
+          tipo: 'LOG CRUDO',
+          fuente: 'BIOMÉTRICO',
+          estado: localOut ? 'Finalizado' : 'En curso',
+        };
+      });
   }
   // ==========================================
   // MÉTODO PRINCIPAL - Solo orquesta
