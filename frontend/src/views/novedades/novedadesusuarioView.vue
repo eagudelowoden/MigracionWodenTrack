@@ -26,15 +26,13 @@
         <div class="flex items-center rounded-xl border overflow-hidden"
           :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
           <button @click="activeTab = 'registro'"
-            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
-            :class="activeTab === 'registro'
+            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all" :class="activeTab === 'registro'
               ? 'bg-[#FF8F00] text-black'
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-plus mr-1"></i>Registrar
           </button>
           <button @click="onOpenHistorial"
-            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
-            :class="activeTab === 'historial'
+            class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all" :class="activeTab === 'historial'
               ? 'bg-[#FF8F00] text-black'
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-clock-rotate-left mr-1"></i>Mi Historial
@@ -71,12 +69,12 @@
             <span v-if="storageMode === 's3'">
               Soporte → <strong>AWS S3</strong>
             </span>
+            <!--
             <span v-else>
               Soporte → <strong>carpeta local</strong>
               <code class="ml-1 opacity-50 text-[9px]">/uploads/novedades/</code>
-            </span>
+            </span>-->
           </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
 
             <!-- Nombre -->
@@ -301,7 +299,8 @@
         <div class="flex flex-col gap-1 min-w-[200px] flex-1">
           <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Buscar</label>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all focus-within:ring-1 focus-within:ring-[#FF8F00]/40"
+          <div
+            class="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all focus-within:ring-1 focus-within:ring-[#FF8F00]/40"
             :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
             <i class="fas fa-magnifying-glass text-[#FF8F00] text-[10px]"></i>
             <input v-model="filtros.buscar" type="text" placeholder="Descripción o tipificación..."
@@ -391,15 +390,15 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(nov, i) in misNovedades" :key="nov.id"
-                  class="border-b transition-colors cursor-default"
+                <tr v-for="(nov, i) in misNovedades" :key="nov.id" class="border-b transition-colors cursor-default"
                   :class="isDark
                     ? 'border-[#2d3548] hover:bg-[#273045]'
                     : 'border-slate-100 hover:bg-slate-50'">
 
                   <!-- # -->
                   <td class="px-4 py-2.5">
-                    <span class="text-[9px] font-black opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                    <span class="text-[9px] font-black opacity-40"
+                      :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                       {{ i + 1 }}
                     </span>
                   </td>
@@ -434,7 +433,8 @@
 
                   <!-- Estado Jefe -->
                   <td class="px-4 py-2.5 text-center">
-                    <span :class="estadoBadge(nov.aprobadoJefe)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                    <span :class="estadoBadge(nov.aprobadoJefe)"
+                      class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
                       <i :class="estadoIcon(nov.aprobadoJefe)" class="mr-0.5"></i>
                       {{ estadoLabel(nov.aprobadoJefe) }}
                     </span>
@@ -442,7 +442,8 @@
 
                   <!-- Estado RRHH -->
                   <td class="px-4 py-2.5 text-center">
-                    <span :class="estadoBadge(nov.aprobadoRrhh)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                    <span :class="estadoBadge(nov.aprobadoRrhh)"
+                      class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
                       <i :class="estadoIcon(nov.aprobadoRrhh)" class="mr-0.5"></i>
                       {{ estadoLabel(nov.aprobadoRrhh) }}
                     </span>
@@ -450,7 +451,8 @@
 
                   <!-- Estado general -->
                   <td class="px-4 py-2.5 text-center">
-                    <span :class="estadoBadge(nov.aprobado)" class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
+                    <span :class="estadoBadge(nov.aprobado)"
+                      class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
                       <i :class="estadoIcon(nov.aprobado)" class="mr-0.5"></i>
                       {{ estadoLabel(nov.aprobado) }}
                     </span>
@@ -493,10 +495,8 @@
   <!-- Modal confirmar eliminación -->
   <teleport to="body">
     <transition name="fade-msg">
-      <div v-if="modalEliminar.open"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style="background:rgba(0,0,0,0.55);"
-        @click.self="modalEliminar.open = false">
+      <div v-if="modalEliminar.open" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55);" @click.self="modalEliminar.open = false">
 
         <div class="w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden"
           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
@@ -524,12 +524,10 @@
             </p>
             <div class="px-4 py-3 rounded-xl border"
               :class="isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200'">
-              <p class="text-[11px] font-bold truncate"
-                :class="isDark ? 'text-white' : 'text-slate-800'">
+              <p class="text-[11px] font-bold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">
                 {{ modalEliminar.novedad?.descripcion }}
               </p>
-              <p class="text-[10px] opacity-50 mt-0.5"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              <p class="text-[10px] opacity-50 mt-0.5" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ formatFecha(modalEliminar.novedad?.fechaInicio) }} →
                 {{ formatFecha(modalEliminar.novedad?.fechaFin) }}
               </p>

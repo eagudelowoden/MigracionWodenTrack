@@ -62,10 +62,11 @@
               <span v-if="storageMode === 's3'">
                 Soporte → <strong>AWS S3</strong>
               </span>
+              <!--
               <span v-else>
                 Soporte → <strong>carpeta local</strong>
                 <code class="ml-1 opacity-50 text-[9px]">/uploads/novedades/</code>
-              </span>
+              </span>-->
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
