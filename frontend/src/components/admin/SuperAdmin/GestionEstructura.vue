@@ -7,10 +7,16 @@
       <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
         <i class="fas fa-sitemap text-white text-[11px]"></i>
       </div>
-      <div>
+      <div class="flex-1">
         <h2 class="text-[11px] font-semibold uppercase tracking-wider text-blue-500">Estructura organizacional</h2>
         <p class="text-[9px] font-medium opacity-40 uppercase tracking-wide mt-0.5">Departamentos, áreas y segmentos</p>
       </div>
+      <button @click="recargar" :disabled="isReloading"
+        class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all flex-shrink-0"
+        :class="isDark ? 'border-white/10 text-white/40 hover:bg-white/5 hover:text-white' : 'border-slate-200 text-slate-400 hover:bg-slate-100'"
+        title="Recargar áreas y segmentos">
+        <i class="fas fa-rotate text-[11px]" :class="isReloading ? 'fa-spin' : ''"></i>
+      </button>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
@@ -275,7 +281,14 @@ const props = defineProps({
   isDark: Boolean,
 });
 
-const emit = defineEmits(['save', 'update-area']);
+const emit = defineEmits(['save', 'update-area', 'refresh']);
+
+const isReloading = ref(false);
+const recargar = async () => {
+  isReloading.value = true;
+  emit('refresh');
+  setTimeout(() => { isReloading.value = false; }, 800);
+};
 
 // ─── Formulario nuevo ───────────────────────────────────────────────────────
 const searchQuery = ref('');

@@ -334,7 +334,8 @@ onMounted(async () => {
             :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
             :departamentosDisponibles="segmentos.map(s => s.nombre)"
             @save="handleSaveEstructura"
-            @update-area="handleUpdateArea" />
+            @update-area="handleUpdateArea"
+            @refresh="fetchOrganizacion" />
         </div>
 
         <!-- TEMPLATE MALLAS -->
