@@ -31,6 +31,7 @@ const {
   areas,
   segmentos,
   areasAgrupadas,
+  departamentos,
   fetchDatos: fetchOrganizacion,
   crearArea,
   crearSegmento,
@@ -331,7 +332,7 @@ onMounted(async () => {
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
-            :departamentosDisponibles="departamentosUnicos"
+            :departamentosDisponibles="departamentos"
             @save="handleSaveEstructura"
             @update-area="handleUpdateArea" />
         </div>

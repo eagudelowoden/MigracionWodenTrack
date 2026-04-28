@@ -288,10 +288,8 @@ const editForm = ref({ departamento: '', responsableId: null });
 const editSearchQuery = ref('');
 const showEditDropdown = ref(false);
 
-// ─── Departamentos reales (de BD) sin "TODOS" ─────────────────────────────
-const deptosReales = computed(() =>
-  (props.departamentosDisponibles || []).filter(d => d !== 'TODOS' && d !== 'Sin asignar')
-);
+// ─── Departamentos reales directamente de la BD (ya vienen limpios del endpoint) ───
+const deptosReales = computed(() => props.departamentosDisponibles || []);
 
 const areasAgrupadasLocal = computed(() => props.areasAgrupadas || {});
 

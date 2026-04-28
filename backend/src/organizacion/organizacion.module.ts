@@ -4,11 +4,11 @@ import { OrganizacionService } from './organizacion.service';
 import { OrganizacionController } from './organizacion.controller';
 import { Area } from '../usuarios/entities/area.entity';
 import { Segmento } from '../usuarios/entities/segmento.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 @Module({
   imports: [
-    // ESTA LÍNEA ES LA QUE RESUELVE EL ERROR:
-    TypeOrmModule.forFeature([Area, Segmento]),
+    TypeOrmModule.forFeature([Area, Segmento, Usuario]),
   ],
   controllers: [OrganizacionController],
   providers: [OrganizacionService],

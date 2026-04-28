@@ -5,6 +5,13 @@ import { OrganizacionService } from './organizacion.service';
 export class OrganizacionController {
   constructor(private readonly organizacionService: OrganizacionService) {}
 
+  // --- DEPARTAMENTOS (desde usuarios_registrados) ---
+
+  @Get('departamentos')
+  async getDepartamentos() {
+    return await this.organizacionService.getDepartamentos();
+  }
+
   // --- RUTAS PARA ÁREAS ---
 
   @Get('areas')

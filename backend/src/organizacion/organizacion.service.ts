@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Area } from '../usuarios/entities/area.entity';
 import { Segmento } from '.././usuarios/entities/segmento.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 @Injectable()
 export class OrganizacionService {
@@ -12,7 +13,25 @@ export class OrganizacionService {
 
     @InjectRepository(Segmento)
     private readonly segmentoRepo: Repository<Segmento>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
   ) {}
+
+  async getDepartamentos(): Promise<string[]> {
+    const rows = await this.usuarioRepo
+      .createQueryBuilder('u')
+      .select('DISTINCT u.departamento', 'departamento')
+      .where('u.departamento IS NOT NULL')
+      .andWhere("u.departamento != ''")
+      .andWhere('u.is_active = :active', { active: true })
+      .getRawMany();
+
+    return rows
+      .map((r) => r.departamento as string)
+      .filter(Boolean)
+      .sort();
+  }
 
   // --- LÓGICA PARA ÁREAS ---
 

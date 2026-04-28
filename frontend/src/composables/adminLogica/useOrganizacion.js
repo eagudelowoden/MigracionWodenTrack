@@ -5,24 +5,28 @@ export function useOrganizacion() {
   const areas = ref([]);
   const segmentos = ref([]);
   const areasAgrupadas = ref({});
+  const departamentos = ref([]);
   const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchDatos = async () => {
     try {
-      const [resA, resS, resAg] = await Promise.all([
+      const [resA, resS, resAg, resDep] = await Promise.all([
         axios.get(`${API_URL}/organizacion/areas`),
         axios.get(`${API_URL}/organizacion/segmentos`),
         axios.get(`${API_URL}/organizacion/areas-agrupadas`),
+        axios.get(`${API_URL}/organizacion/departamentos`),
       ]);
 
       areas.value = Array.isArray(resA.data) ? resA.data : [];
       segmentos.value = Array.isArray(resS.data) ? resS.data : [];
       areasAgrupadas.value = resAg.data && typeof resAg.data === 'object' ? resAg.data : {};
+      departamentos.value = Array.isArray(resDep.data) ? resDep.data : [];
     } catch (e) {
       console.error("Error cargando estructura:", e);
       areas.value = [];
       segmentos.value = [];
       areasAgrupadas.value = {};
+      departamentos.value = [];
     }
   };
 
@@ -73,5 +77,5 @@ export function useOrganizacion() {
     }
   };
 
-  return { areas, segmentos, areasAgrupadas, fetchDatos, crearArea, crearSegmento, updateArea };
+  return { areas, segmentos, areasAgrupadas, departamentos, fetchDatos, crearArea, crearSegmento, updateArea };
 }
