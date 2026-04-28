@@ -843,7 +843,39 @@ export class UsuariosService {
     toLocal: (d: string) => string | null,
     mallasLocalMap: Map<number, any[]>,
   ): any[] {
-    // Agrupar por empleado + día (un solo registro por persona por día)
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    const horaDecimalDeLocal = (local: string): number => {
+      const t = local.split(' ')[1] || '';
+      const [h, m] = t.split(':').map(Number);
+      return h + (m || 0) / 60;
+    };
+
+    const addOneDayToDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d + 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+
+    const getTurnoNocturno = (empId: number, fecha: string): { hi: number; hf: number } | null => {
+      const asignaciones = mallasLocalMap.get(empId);
+      if (!asignaciones?.length) return null;
+      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+      const [a, m, d] = fecha.split('-').map(Number);
+      const jsDay = new Date(a, m - 1, d).getDay();
+      const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+      const turnosDia = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
+      if (!turnosDia.length) return null;
+      const t = turnosDia[0];
+      const hi = Number(t.hora_inicio);
+      const hf = Number(t.hora_fin);
+      return hf < hi ? { hi, hf } : null; // solo devuelve si es nocturno
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Paso 1: agrupar por empId + fecha del check_in Colombia
     const grupos: Record<
       string,
       { empId: number; nombre: string; dept: string; registros: any[] }
@@ -855,7 +887,6 @@ export class UsuariosService {
       const localIn = toLocal(att.check_in);
       const fecha = localIn ? localIn.split(' ')[0] : 'SIN_FECHA';
       const key = `${empId}_${fecha}`;
-
       if (!grupos[key]) {
         grupos[key] = {
           empId,
@@ -867,73 +898,144 @@ export class UsuariosService {
       grupos[key].registros.push(att);
     }
 
-    return Object.values(grupos).map(({ empId, nombre, dept, registros }) => {
-      // Ordenar por check_in para tomar el primero (entrada real del día)
+    // Paso 2: para cada grupo calcular primero/ultimoConSalida y detectar nocturno invertido
+    type Fila = {
+      key: string;
+      empId: number;
+      nombre: string;
+      dept: string;
+      fecha: string;
+      localIn: string | null;
+      localOut: string | null;
+      checkInUTC: string;        // UTC Odoo del check_in efectivo (para clasificar)
+      checkOutUTC: string | null;// UTC Odoo del check_out efectivo (para clasificar)
+      primeraId: number;
+      eliminado: boolean;
+    };
+
+    const filas: Fila[] = Object.entries(grupos).map(([key, { empId, nombre, dept, registros }]) => {
       const ordenados = registros.sort(
-        (a, b) =>
-          new Date(a.check_in).getTime() - new Date(b.check_in).getTime(),
+        (a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime(),
       );
-
       const primero = ordenados[0];
-
-      // La salida es el check_out MÁS TARDÍO, ignorando cierres automáticos de Odoo
-      // (registros donde check_out - check_in < 60 s → worked_hours ≈ 0)
       const conSalida = registros.filter((r) => {
         if (!r.check_out) return false;
-        const diffMs = new Date(r.check_out).getTime() - new Date(r.check_in).getTime();
-        return diffMs >= 60_000; // descartar cierres automáticos (< 1 minuto)
+        return new Date(r.check_out).getTime() - new Date(r.check_in).getTime() >= 60_000;
       });
       const ultimoConSalida = conSalida.length
         ? conSalida.reduce((best, cur) =>
-            new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
-          )
+            new Date(cur.check_out) > new Date(best.check_out) ? cur : best)
         : null;
 
-      const localIn = toLocal(primero.check_in);
+      const localIn  = toLocal(primero.check_in);
       const localOut = ultimoConSalida ? toLocal(ultimoConSalida.check_out) : null;
-      const fecha = localIn ? localIn.split(' ')[0] : 'N/A';
-
-      // Calcular diaSemana desde la ENTRADA (Colombia) para usar en ambas validaciones
-      const fechaEntradaUTC = new Date(primero.check_in.replace(' ', 'T') + 'Z');
-      const horaEntradaLocal = new Date(
-        fechaEntradaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
-      );
-      const diaSemanaEntrada = horaEntradaLocal.getDay() === 0 ? 6 : horaEntradaLocal.getDay() - 1;
-
-      // Prioridad: usar el estado que ya calculó Odoo en tiempo real (x_studio_tipo_entrada/salida)
-      // Si no está disponible, clasificar contra la malla local
-      const odooEntrada = primero.x_studio_tipo_entrada;
-      const odooSalida  = ultimoConSalida?.x_studio_tipo_salida;
-
-      const cEntrada = (odooEntrada && odooEntrada !== false)
-        ? odooEntrada
-        : empId && primero.check_in
-          ? this.clasificarPorMallaLocal(empId, primero.check_in, true, mallasLocalMap, diaSemanaEntrada)
-          : 'No programado';
-
-      const cSalida = ultimoConSalida
-        ? (odooSalida && odooSalida !== false)
-          ? odooSalida
-          : empId
-            ? this.clasificarPorMallaLocal(empId, ultimoConSalida.check_out, false, mallasLocalMap, diaSemanaEntrada)
-            : 'N/A'
-        : 'N/A';
+      const fecha    = localIn ? localIn.split(' ')[0] : 'N/A';
 
       return {
-        id: `att_${primero.id}`,
-        empleado: nombre,
-        cc: partnerMap[nombre] || 'N/A',
-        department_id: dept,
-        c_entrada: cEntrada,
-        c_salida: cSalida,
-        check_in: localIn,
-        check_out: localOut,
+        key,
+        empId,
+        nombre,
+        dept,
         fecha,
-        tipo: 'ASISTENCIA',
-        fuente: 'APLICATIVO',
-        estado: localOut ? 'Finalizado' : 'En curso',
+        localIn,
+        localOut,
+        checkInUTC:  primero.check_in,
+        checkOutUTC: ultimoConSalida?.check_out ?? null,
+        primeraId: primero.id,
+        eliminado: false,
       };
     });
+
+    // Índice por empId_fecha para acceso rápido en el segundo paso
+    const filaIdx = new Map<string, Fila>();
+    for (const f of filas) filaIdx.set(`${f.empId}_${f.fecha}`, f);
+
+    // Paso 3: detectar y corregir registros nocturnos invertidos
+    // Odoo puede grabar: check_in=06:01 AM (salida del turno anterior) y
+    // check_out=22:xx PM (entrada al turno actual) en un solo registro,
+    // porque el dispositivo biométrico envía marcas sin distinguir IN/OUT.
+    for (const fila of filas) {
+      if (!fila.localIn || fila.eliminado) continue;
+
+      const nocturno = getTurnoNocturno(fila.empId, fila.fecha);
+      if (!nocturno) continue;
+
+      const { hi, hf } = nocturno;
+      const hIn = horaDecimalDeLocal(fila.localIn);
+
+      // Registro INVERTIDO: check_in en la mañana (≤ hf+1h) y check_out en la noche (≥ hi-1h)
+      if (fila.localOut && hIn <= hf + 1) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= hi - 1) {
+          // check_out (noche) = entrada real al turno actual
+          // check_in (mañana) = salida del turno anterior → la descartamos (no tenemos la entrada)
+          const entradaReal    = fila.localOut;   // local Colombia noche
+          const entradaRealUTC = fila.checkOutUTC; // UTC Odoo correspondiente
+
+          // Buscar la salida real en la fila del día siguiente (su check_in matutino)
+          const nextKey  = `${fila.empId}_${addOneDayToDate(fila.fecha)}`;
+          const nextFila = filaIdx.get(nextKey);
+
+          let salidaReal: string | null = null;
+          let salidaRealUTC: string | null = null;
+
+          if (nextFila && nextFila.localIn && !nextFila.eliminado) {
+            const hNextIn = horaDecimalDeLocal(nextFila.localIn);
+            if (hNextIn <= hf + 1) {
+              // El check_in del día siguiente en la mañana = salida del turno nocturno
+              salidaReal    = nextFila.localIn;
+              salidaRealUTC = nextFila.checkInUTC;
+              nextFila.eliminado = true; // consumido como salida del turno actual
+            }
+          }
+
+          fila.localIn      = entradaReal;
+          fila.checkInUTC   = entradaRealUTC;
+          fila.localOut     = salidaReal;
+          fila.checkOutUTC  = salidaRealUTC;
+          continue;
+        }
+      }
+
+      // Solo check_in matutino sin check_out = salida huérfana del turno anterior → eliminar
+      if (!fila.localOut && hIn <= hf + 1) {
+        fila.eliminado = true;
+      }
+    }
+
+    // Paso 4: construir las filas de resultado
+    return filas
+      .filter(f => !f.eliminado && f.localIn)
+      .map(({ empId, nombre, dept, fecha, localIn, localOut, checkInUTC, checkOutUTC, primeraId }) => {
+        const fechaEntradaUTC = new Date(checkInUTC.replace(' ', 'T') + 'Z');
+        const horaEntradaLocal = new Date(
+          fechaEntradaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+        );
+        const diaSemanaEntrada = horaEntradaLocal.getDay() === 0 ? 6 : horaEntradaLocal.getDay() - 1;
+
+        const cEntrada = empId && checkInUTC
+          ? this.clasificarPorMallaLocal(empId, checkInUTC, true, mallasLocalMap, diaSemanaEntrada)
+          : 'No programado';
+
+        const cSalida = checkOutUTC
+          ? this.clasificarPorMallaLocal(empId, checkOutUTC, false, mallasLocalMap, diaSemanaEntrada)
+          : 'N/A';
+
+        return {
+          id: `att_${primeraId}`,
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A',
+          department_id: dept,
+          c_entrada: cEntrada,
+          c_salida: cSalida,
+          check_in: localIn,
+          check_out: localOut,
+          fecha,
+          tipo: 'ASISTENCIA',
+          fuente: 'APLICATIVO',
+          estado: localOut ? 'Finalizado' : 'En curso',
+        };
+      });
   }
 
   private async mapLogs(
