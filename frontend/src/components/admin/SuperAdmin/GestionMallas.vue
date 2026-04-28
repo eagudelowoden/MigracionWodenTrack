@@ -144,8 +144,75 @@
                     <i class="fas fa-check"></i>
                   </th>
                   <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Día</th>
-                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Hora inicio</th>
-                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Hora fin</th>
+
+                  <!-- HEADER HORA INICIO — abre dropdown masivo -->
+                  <th class="px-3 py-2 text-left">
+                    <div class="relative inline-block">
+                      <button @click="toggleHeaderDropdown('inicio')"
+                        class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1 group"
+                        :class="headerDropdown === 'inicio'
+                          ? 'bg-amber-500 text-black'
+                          : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
+                        <i class="fas fa-clock text-[9px]"></i>
+                        Hora inicio
+                        <i class="fas fa-chevron-down text-[8px]" :class="headerDropdown === 'inicio' ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                      </button>
+                      <div v-if="headerDropdown === 'inicio'"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-44 overflow-hidden"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                          <p class="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5"
+                            :class="isDark ? 'text-white' : 'text-slate-500'">Aplicar a todos</p>
+                          <input v-model="searchHoraInicio" type="text" placeholder="Buscar hora..."
+                            class="w-full text-[11px] outline-none bg-transparent border-b pb-1"
+                            :class="isDark ? 'text-white placeholder:text-white/30 border-white/10' : 'text-slate-700 placeholder:text-slate-300 border-slate-200'" />
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto custom-scroll">
+                          <div v-for="h in horasFiltradas(searchHoraInicio)" :key="h.value"
+                            @click="aplicarHoraATodos('inicio', h.value)"
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
+                            :class="isDark ? 'hover:bg-amber-500/20 text-white hover:text-amber-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            {{ h.label }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- HEADER HORA FIN — abre dropdown masivo -->
+                  <th class="px-3 py-2 text-left">
+                    <div class="relative inline-block">
+                      <button @click="toggleHeaderDropdown('fin')"
+                        class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1"
+                        :class="headerDropdown === 'fin'
+                          ? 'bg-amber-500 text-black'
+                          : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
+                        <i class="fas fa-clock text-[9px]"></i>
+                        Hora fin
+                        <i class="fas fa-chevron-down text-[8px]" :class="headerDropdown === 'fin' ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                      </button>
+                      <div v-if="headerDropdown === 'fin'"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-44 overflow-hidden"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                          <p class="text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1.5"
+                            :class="isDark ? 'text-white' : 'text-slate-500'">Aplicar a todos</p>
+                          <input v-model="searchHoraFin" type="text" placeholder="Buscar hora..."
+                            class="w-full text-[11px] outline-none bg-transparent border-b pb-1"
+                            :class="isDark ? 'text-white placeholder:text-white/30 border-white/10' : 'text-slate-700 placeholder:text-slate-300 border-slate-200'" />
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto custom-scroll">
+                          <div v-for="h in horasFiltradas(searchHoraFin)" :key="h.value"
+                            @click="aplicarHoraATodos('fin', h.value)"
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
+                            :class="isDark ? 'hover:bg-amber-500/20 text-white hover:text-amber-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            {{ h.label }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
                   <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Periodo</th>
                 </tr>
               </thead>
@@ -163,39 +230,93 @@
                   <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">
                     {{ DIAS[detalle.dia_semana] }}
                   </td>
+
+                  <!-- HORA INICIO — dropdown buscable por fila -->
                   <td class="px-3 py-2">
-                    <select v-model="detalle.hora_inicio" :disabled="!detalle.activo"
-                      class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
-                      :class="isDark
-                        ? 'bg-white/5 border-white/10 text-white focus:border-amber-500/50'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-amber-400'">
-                      <option v-for="h in HORAS" :key="h.value" :value="h.value">{{ h.label }}</option>
-                    </select>
+                    <div class="relative">
+                      <button :disabled="!detalle.activo"
+                        @click="toggleRowDropdown(detalle.dia_semana, 'inicio')"
+                        class="rounded-lg border px-2 py-1 text-[10px] font-semibold outline-none transition-all flex items-center gap-1.5 min-w-[68px]"
+                        :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
+                        {{ formatHora(detalle.hora_inicio) }}
+                        <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
+                      </button>
+                      <div v-if="rowDropdown === `${detalle.dia_semana}-inicio`"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-1.5 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                          <input v-model="searchRow" type="text" placeholder="Buscar..."
+                            class="w-full text-[11px] outline-none bg-transparent px-1"
+                            :class="isDark ? 'text-white placeholder:text-white/30' : 'text-slate-700 placeholder:text-slate-300'"
+                            @click.stop />
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto custom-scroll">
+                          <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
+                            @click="selectRowHora(detalle, 'inicio', h.value)"
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
+                            :class="[
+                              detalle.hora_inicio === h.value ? 'text-amber-500 font-black' : '',
+                              isDark ? 'hover:bg-amber-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                            ]">
+                            {{ h.label }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </td>
+
+                  <!-- HORA FIN — dropdown buscable por fila -->
                   <td class="px-3 py-2">
-                    <select v-model="detalle.hora_fin" :disabled="!detalle.activo"
-                      class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
-                      :class="isDark
-                        ? 'bg-white/5 border-white/10 text-white focus:border-amber-500/50'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-amber-400'">
-                      <option v-for="h in HORAS" :key="h.value" :value="h.value">{{ h.label }}</option>
-                    </select>
+                    <div class="relative">
+                      <button :disabled="!detalle.activo"
+                        @click="toggleRowDropdown(detalle.dia_semana, 'fin')"
+                        class="rounded-lg border px-2 py-1 text-[10px] font-semibold outline-none transition-all flex items-center gap-1.5 min-w-[68px]"
+                        :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
+                        {{ formatHora(detalle.hora_fin) }}
+                        <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
+                      </button>
+                      <div v-if="rowDropdown === `${detalle.dia_semana}-fin`"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-1.5 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                          <input v-model="searchRow" type="text" placeholder="Buscar..."
+                            class="w-full text-[11px] outline-none bg-transparent px-1"
+                            :class="isDark ? 'text-white placeholder:text-white/30' : 'text-slate-700 placeholder:text-slate-300'"
+                            @click.stop />
+                        </div>
+                        <div class="max-h-[160px] overflow-y-auto custom-scroll">
+                          <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
+                            @click="selectRowHora(detalle, 'fin', h.value)"
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
+                            :class="[
+                              detalle.hora_fin === h.value ? 'text-amber-500 font-black' : '',
+                              isDark ? 'hover:bg-amber-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                            ]">
+                            {{ h.label }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </td>
+
                   <td class="px-3 py-2">
                     <select v-model="detalle.periodo" :disabled="!detalle.activo"
                       class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
                       :class="isDark
                         ? 'bg-white/5 border-white/10 text-white focus:border-amber-500/50'
                         : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-amber-400'">
-                      <option value="morning">Diurna (morning)</option>
-                      <option value="afternoon">Tarde (afternoon)</option>
-                      <option value="night">Nocturna (night)</option>
+                      <option value="morning">Diurna</option>
+                      <option value="afternoon">Tarde</option>
+                      <option value="night">Nocturna</option>
                     </select>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+
+          <!-- Overlay para cerrar dropdowns de la tabla -->
+          <div v-if="headerDropdown || rowDropdown" @click="headerDropdown = null; rowDropdown = null" class="fixed inset-0 z-40"></div>
 
           <!-- REDUCCIÓN DE HORAS -->
           <div class="rounded-xl border transition-all overflow-hidden"
@@ -473,6 +594,48 @@ const cargandoExcel = ref(false);
 const resultadoUpload = ref(null);
 const reduccion = ref(reduccionInicial());
 
+// ── Dropdowns de horas ──────────────────────────────────────
+const headerDropdown = ref(null);   // 'inicio' | 'fin' | null
+const rowDropdown    = ref(null);   // '0-inicio' | '3-fin' | null
+const searchHoraInicio = ref('');
+const searchHoraFin    = ref('');
+const searchRow        = ref('');
+
+const horasFiltradas = (query) => {
+  if (!query) return HORAS;
+  return HORAS.filter(h => h.label.includes(query.trim()));
+};
+
+const toggleHeaderDropdown = (tipo) => {
+  rowDropdown.value = null;
+  searchHoraInicio.value = '';
+  searchHoraFin.value = '';
+  headerDropdown.value = headerDropdown.value === tipo ? null : tipo;
+};
+
+const toggleRowDropdown = (dia, tipo) => {
+  headerDropdown.value = null;
+  searchRow.value = '';
+  const key = `${dia}-${tipo}`;
+  rowDropdown.value = rowDropdown.value === key ? null : key;
+};
+
+const aplicarHoraATodos = (tipo, valor) => {
+  form.value.detalles.forEach(d => {
+    if (d.activo) {
+      if (tipo === 'inicio') d.hora_inicio = valor;
+      else d.hora_fin = valor;
+    }
+  });
+  headerDropdown.value = null;
+};
+
+const selectRowHora = (detalle, tipo, valor) => {
+  if (tipo === 'inicio') detalle.hora_inicio = valor;
+  else detalle.hora_fin = valor;
+  rowDropdown.value = null;
+};
+
 // ── API ─────────────────────────────────────────────────────
 const cargarMallas = async () => {
   cargando.value = true;
@@ -604,6 +767,10 @@ onMounted(cargarMallas);
 </script>
 
 <style scoped>
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.2); border-radius: 10px; }
+
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.2s ease;
