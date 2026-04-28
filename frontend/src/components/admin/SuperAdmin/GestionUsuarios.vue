@@ -17,41 +17,122 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-1 flex-1 justify-end">
+            <div class="flex flex-wrap items-center gap-2 flex-1 justify-end">
 
-                <!-- BUSCAR -->
+                <!-- BUSCAR NOMBRE -->
                 <input v-model="searchUser" type="text" placeholder="Buscar usuario..."
-                    class="bg-transparent border-b outline-none text-[12px] font-medium transition-all py-1 min-w-[110px]"
+                    class="bg-transparent border-b outline-none text-[12px] font-medium transition-all py-1 min-w-[120px]"
                     :class="isDark
                         ? 'border-white/10 text-white placeholder:text-white/30 focus:border-amber-500'
                         : 'border-slate-200 text-slate-700 placeholder:text-slate-300 focus:border-amber-500'" />
 
-                <!-- PAÍS -->
-                <select v-model="selectedCountry"
-                    class="bg-transparent border-b outline-none text-[11px] font-semibold uppercase cursor-pointer py-1 text-blue-400 transition-all"
-                    :class="isDark ? 'border-white/10' : 'border-slate-200'">
-                    <option value="TODOS" :class="isDark ? 'bg-slate-900' : 'bg-white'">País: Todos</option>
-                    <option v-for="c in odooCompanies" :key="c.id" :value="c.name"
-                        :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ c.name }}</option>
-                </select>
+                <!-- FILTRO PAÍS -->
+                <div class="relative" ref="paisRef">
+                    <div class="flex items-center gap-1 border-b py-1 cursor-pointer transition-all min-w-[90px]"
+                        :class="isDark ? 'border-white/10' : 'border-slate-200'"
+                        @click="toggleDropdown('pais')">
+                        <span class="text-[11px] font-semibold uppercase text-blue-400 truncate max-w-[100px]">
+                            {{ selectedCountry === 'TODOS' ? 'País' : selectedCountry }}
+                        </span>
+                        <i class="fas fa-chevron-down text-[8px] text-blue-400 opacity-60 flex-shrink-0"
+                            :class="openDropdown === 'pais' ? 'rotate-180' : ''" style="transition: transform .15s"></i>
+                    </div>
+                    <div v-if="openDropdown === 'pais'"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl overflow-hidden w-56"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                            <input v-model="searchPais" ref="inputPais" type="text" placeholder="Buscar país..."
+                                class="w-full text-[11px] outline-none bg-transparent font-medium"
+                                :class="isDark ? 'text-white placeholder:text-white/30' : 'text-slate-700 placeholder:text-slate-300'" />
+                        </div>
+                        <div class="max-h-[180px] overflow-y-auto custom-scroll">
+                            <div @click="selectPais('TODOS')"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-medium"
+                                :class="[selectedCountry === 'TODOS' ? 'text-blue-400 font-bold' : '', isDark ? 'hover:bg-white/5 text-white/60' : 'hover:bg-slate-50 text-slate-500']">
+                                Todos los países
+                            </div>
+                            <div v-for="c in filteredPaises" :key="c.id" @click="selectPais(c.name)"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-semibold uppercase"
+                                :class="[selectedCountry === c.name ? 'text-blue-400' : '', isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-slate-50 text-slate-700']">
+                                {{ c.name }}
+                            </div>
+                            <div v-if="!filteredPaises.length" class="px-3 py-3 text-[11px] text-center opacity-30">Sin resultados</div>
+                        </div>
+                    </div>
+                </div>
 
-                <!-- DEPARTAMENTO -->
-                <select v-model="selectedDept"
-                    class="bg-transparent border-b outline-none text-[11px] font-semibold uppercase cursor-pointer py-1 text-amber-500 transition-all"
-                    :class="isDark ? 'border-white/10' : 'border-slate-200'">
-                    <option value="TODOS" :class="isDark ? 'bg-slate-900' : 'bg-white'">Dpto: Todos</option>
-                    <option v-for="d in departamentosUnicos" :key="d" :value="d"
-                        :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ d }}</option>
-                </select>
+                <!-- FILTRO DEPARTAMENTO -->
+                <div class="relative" ref="deptoRef">
+                    <div class="flex items-center gap-1 border-b py-1 cursor-pointer transition-all min-w-[90px]"
+                        :class="isDark ? 'border-white/10' : 'border-slate-200'"
+                        @click="toggleDropdown('depto')">
+                        <span class="text-[11px] font-semibold uppercase text-amber-500 truncate max-w-[120px]">
+                            {{ selectedDept === 'TODOS' ? 'Departamento' : selectedDept }}
+                        </span>
+                        <i class="fas fa-chevron-down text-[8px] text-amber-500 opacity-60 flex-shrink-0"
+                            :class="openDropdown === 'depto' ? 'rotate-180' : ''" style="transition: transform .15s"></i>
+                    </div>
+                    <div v-if="openDropdown === 'depto'"
+                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl overflow-hidden w-64"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                            <input v-model="searchDepto" ref="inputDepto" type="text" placeholder="Buscar departamento..."
+                                class="w-full text-[11px] outline-none bg-transparent font-medium"
+                                :class="isDark ? 'text-white placeholder:text-white/30' : 'text-slate-700 placeholder:text-slate-300'" />
+                        </div>
+                        <div class="max-h-[200px] overflow-y-auto custom-scroll">
+                            <div @click="selectDepto('TODOS')"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-medium"
+                                :class="[selectedDept === 'TODOS' ? 'text-amber-500 font-bold' : '', isDark ? 'hover:bg-white/5 text-white/60' : 'hover:bg-slate-50 text-slate-500']">
+                                Todos los departamentos
+                            </div>
+                            <div v-for="d in filteredDeptos" :key="d" @click="selectDepto(d)"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-semibold uppercase"
+                                :class="[selectedDept === d ? 'text-amber-500' : '', isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-slate-50 text-slate-700']">
+                                {{ d }}
+                            </div>
+                            <div v-if="!filteredDeptos.length" class="px-3 py-3 text-[11px] text-center opacity-30">Sin resultados</div>
+                        </div>
+                    </div>
+                </div>
 
-                <!-- CARGO -->
-                <select v-model="selectedCargo"
-                    class="bg-transparent border-b outline-none text-[11px] font-semibold uppercase cursor-pointer py-1 text-violet-400 transition-all"
-                    :class="isDark ? 'border-white/10' : 'border-slate-200'">
-                    <option value="TODOS" :class="isDark ? 'bg-slate-900' : 'bg-white'">Cargo: Todos</option>
-                    <option v-for="c in cargosUnicos" :key="c" :value="c"
-                        :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ c }}</option>
-                </select>
+                <!-- FILTRO CARGO -->
+                <div class="relative" ref="cargoRef">
+                    <div class="flex items-center gap-1 border-b py-1 cursor-pointer transition-all min-w-[80px]"
+                        :class="isDark ? 'border-white/10' : 'border-slate-200'"
+                        @click="toggleDropdown('cargo')">
+                        <span class="text-[11px] font-semibold uppercase text-violet-400 truncate max-w-[130px]">
+                            {{ selectedCargo === 'TODOS' ? 'Cargo' : selectedCargo }}
+                        </span>
+                        <i class="fas fa-chevron-down text-[8px] text-violet-400 opacity-60 flex-shrink-0"
+                            :class="openDropdown === 'cargo' ? 'rotate-180' : ''" style="transition: transform .15s"></i>
+                    </div>
+                    <div v-if="openDropdown === 'cargo'"
+                        class="absolute top-full right-0 mt-1 z-50 rounded-xl border shadow-xl overflow-hidden w-72"
+                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        <div class="p-2 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                            <input v-model="searchCargo" ref="inputCargo" type="text" placeholder="Escribir cargo..."
+                                class="w-full text-[11px] outline-none bg-transparent font-medium"
+                                :class="isDark ? 'text-white placeholder:text-white/30' : 'text-slate-700 placeholder:text-slate-300'" />
+                        </div>
+                        <div class="max-h-[220px] overflow-y-auto custom-scroll">
+                            <div @click="selectCargo('TODOS')"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-medium"
+                                :class="[selectedCargo === 'TODOS' ? 'text-violet-400 font-bold' : '', isDark ? 'hover:bg-white/5 text-white/60' : 'hover:bg-slate-50 text-slate-500']">
+                                Todos los cargos
+                            </div>
+                            <div v-for="c in filteredCargos" :key="c" @click="selectCargo(c)"
+                                class="px-3 py-1.5 text-[11px] cursor-pointer transition-all font-semibold uppercase"
+                                :class="[selectedCargo === c ? 'text-violet-400' : '', isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-slate-50 text-slate-700']">
+                                {{ c }}
+                            </div>
+                            <div v-if="!filteredCargos.length" class="px-3 py-3 text-[11px] text-center opacity-30">Sin resultados</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overlay para cerrar dropdowns -->
+                <div v-if="openDropdown" @click="openDropdown = null" class="fixed inset-0 z-40"></div>
 
                 <!-- REFRESCAR -->
                 <button @click="handleRefresh" :disabled="isRefreshing"
@@ -264,7 +345,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useUsuariosSync } from '../../../composables/adminLogica/useUsuariosSync.js';
 import { useCompanies } from '../../../composables/adminLogica/useCompanies.js';
 
@@ -282,6 +363,49 @@ const {
 } = useUsuariosSync();
 
 const { odooCompanies, fetchOdooRaw } = useCompanies();
+
+// ─── Dropdowns de búsqueda ─────────────────────────────────────────────────
+const openDropdown = ref(null); // 'pais' | 'depto' | 'cargo' | null
+const searchPais   = ref('');
+const searchDepto  = ref('');
+const searchCargo  = ref('');
+
+const inputPais  = ref(null);
+const inputDepto = ref(null);
+const inputCargo = ref(null);
+
+const toggleDropdown = async (name) => {
+    if (openDropdown.value === name) { openDropdown.value = null; return; }
+    openDropdown.value = name;
+    searchPais.value = '';
+    searchDepto.value = '';
+    searchCargo.value = '';
+    await nextTick();
+    if (name === 'pais')  inputPais.value?.focus();
+    if (name === 'depto') inputDepto.value?.focus();
+    if (name === 'cargo') inputCargo.value?.focus();
+};
+
+const filteredPaises = computed(() => {
+    const q = searchPais.value.toLowerCase();
+    return (odooCompanies.value || []).filter(c => c.name.toLowerCase().includes(q));
+});
+
+const filteredDeptos = computed(() => {
+    const q = searchDepto.value.toLowerCase();
+    return (departamentosUnicos.value || [])
+        .filter(d => d !== 'TODOS' && d.toLowerCase().includes(q));
+});
+
+const filteredCargos = computed(() => {
+    const q = searchCargo.value.toLowerCase();
+    return (cargosUnicos.value || [])
+        .filter(c => c !== 'TODOS' && c.toLowerCase().includes(q));
+});
+
+const selectPais = (val) => { selectedCountry.value = val; openDropdown.value = null; };
+const selectDepto = (val) => { selectedDept.value = val; openDropdown.value = null; };
+const selectCargo = (val) => { selectedCargo.value = val; openDropdown.value = null; };
 
 const progressPercent = ref(0);
 const isRefreshing = ref(false);
@@ -354,3 +478,9 @@ onMounted(async () => {
     }
 });
 </script>
+
+<style scoped>
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.2); border-radius: 10px; }
+</style>
