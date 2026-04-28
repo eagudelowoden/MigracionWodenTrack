@@ -793,9 +793,22 @@ export class UsuariosService {
       const horaInicio = Number(turno.hora_inicio);
       const horaFin = Number(turno.hora_fin);
 
+      // Turno nocturno: horaFin < horaInicio (ej. 22:00-06:00 cruza medianoche)
+      const esNocturno = horaFin < horaInicio;
+
       if (esEntrada) {
+        if (esNocturno && horaDecimal < horaFin + 0.5) {
+          // La "entrada" registrada en Odoo está en la madrugada (franja de fin del turno
+          // nocturno). En realidad es la salida del turno anterior grabada como check_in.
+          return horaDecimal <= horaFin + tolerancia ? 'A TIEMPO' : 'SALIDA ANTICIPADA';
+        }
         return horaDecimal > horaInicio + tolerancia ? 'ENTRADA TARDE' : 'A TIEMPO';
       } else {
+        if (esNocturno && horaDecimal >= horaInicio - 0.5) {
+          // La "salida" registrada en Odoo está en la noche (franja de inicio del turno).
+          // En realidad es la entrada al siguiente turno grabada como check_out.
+          return horaDecimal > horaInicio + tolerancia ? 'ENTRADA TARDE' : 'A TIEMPO';
+        }
         return horaDecimal < horaFin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
       }
     }

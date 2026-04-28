@@ -345,25 +345,40 @@ export class HorasExtraService {
         const shiftStartMins = horaInDecimal * 60;
         const shiftEndMins = horaFinDecimal * 60;
 
+        // Turno nocturno: hora_fin < hora_inicio (ej. 22:00-06:00 cruza medianoche)
+        const esNocturno = horaFinDecimal < horaInDecimal;
+
         // Extra por entrada anticipada (umbral: 60 min antes del turno)
         if (localIn) {
           const entradaMins = this.parseMinutos(localIn);
-          const minsBefore = shiftStartMins - entradaMins;
-          if (minsBefore >= 60) {
-            registro.inicio_extra_entrada = localIn;
-            registro.fin_extra_entrada = `${fecha} ${this.decimalToHora(horaInDecimal)}:00`;
-            registro.minutos_extra_entrada = Math.round(minsBefore);
+          // Para turno nocturno, la entrada real debe estar en la franja de la noche
+          // (≥ shiftStartMins - 3h). Si está en la mañana (< shiftStartMins - 3h) es
+          // la salida del turno anterior registrada como check_in por Odoo → ignorar.
+          const esEntradaValida = !esNocturno || entradaMins >= shiftStartMins - 180;
+          if (esEntradaValida) {
+            const minsBefore = shiftStartMins - entradaMins;
+            if (minsBefore >= 60) {
+              registro.inicio_extra_entrada = localIn;
+              registro.fin_extra_entrada = `${fecha} ${this.decimalToHora(horaInDecimal)}:00`;
+              registro.minutos_extra_entrada = Math.round(minsBefore);
+            }
           }
         }
 
         // Extra por salida tardía (umbral: 60 min después del turno)
         if (localOut) {
           const salidaMins = this.parseMinutos(localOut);
-          const minsAfter = salidaMins - shiftEndMins;
-          if (minsAfter >= 60) {
-            registro.inicio_extra_salida = `${fecha} ${this.decimalToHora(horaFinDecimal)}:00`;
-            registro.fin_extra_salida = localOut;
-            registro.minutos_extra_salida = Math.round(minsAfter);
+          // Para turno nocturno, la salida real debe estar en la mañana (≤ shiftEndMins + 2h).
+          // Si salidaMins está en la noche (≥ shiftStartMins - 30min), es una entrada al
+          // siguiente turno grabada como check_out por Odoo → ignorar.
+          const esSalidaValida = !esNocturno || salidaMins <= shiftEndMins + 120;
+          if (esSalidaValida) {
+            const minsAfter = salidaMins - shiftEndMins;
+            if (minsAfter >= 60) {
+              registro.inicio_extra_salida = `${fecha} ${this.decimalToHora(horaFinDecimal)}:00`;
+              registro.fin_extra_salida = localOut;
+              registro.minutos_extra_salida = Math.round(minsAfter);
+            }
           }
         }
       }
