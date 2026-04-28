@@ -1140,7 +1140,7 @@ export class UsuariosService {
       const t = turnosDia[0];
       const hi = Number(t.hora_inicio);
       const hf = Number(t.hora_fin);
-      return hf < hi ? { hi, hf } : null; // Solo retorna si el fin es menor al inicio (Nocturno)
+      return hf < hi ? { hi, hf } : null;
     };
 
     // --- PASO 1: AGRUPAR POR EMPLEADO Y DÍA ---
@@ -1178,6 +1178,7 @@ export class UsuariosService {
       localOut: string | null;
       punchInUTC: string | null;
       punchOutUTC: string | null;
+      fuente: string; // <--- AGREGADO
       eliminado: boolean;
     };
 
@@ -1193,9 +1194,14 @@ export class UsuariosService {
         const diffMs =
           new Date(ultimo.punching_time).getTime() -
           new Date(primero.punching_time).getTime();
-
-        // Un grupo tiene salida si hay más de 1 registro y pasaron más de 1 minuto
         const haySalida = ordenados.length > 1 && diffMs >= 60_000;
+
+        // Detectar fuente: Si algún registro del grupo viene de la App, marcamos como App
+        // Odoo suele usar campos como 'in_mode' o 'check_in_mode'.
+        // Ajusta 'log.in_mode' al nombre técnico real de tu campo.
+        const esApp = registros.some(
+          (r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP',
+        );
 
         return {
           empId,
@@ -1206,6 +1212,7 @@ export class UsuariosService {
           localOut: haySalida ? toLocal(ultimo.punching_time) : null,
           punchInUTC: primero.punching_time,
           punchOutUTC: haySalida ? ultimo.punching_time : null,
+          fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
           eliminado: false,
         };
       },
@@ -1224,16 +1231,11 @@ export class UsuariosService {
       const { hi, hf } = nocturno;
       const hIn = horaDecimalDeLocal(fila.localIn);
 
-      // Si el primer punch del día es temprano (ej. 6:00 AM)
-      // Es muy probable que sea la SALIDA del turno que empezó ayer.
       if (hIn <= hf + 2) {
-        // Caso 1: Hay otro punch más tarde ese mismo día (ej. 10:00 PM)
-        // El de las 10 PM es la ENTRADA real. El de las 6 AM es la SALIDA de ayer.
         if (fila.localOut && horaDecimalDeLocal(fila.localOut) >= hi - 2) {
           const entradaRealLocal = fila.localOut;
           const entradaRealUTC = fila.punchOutUTC;
 
-          // Buscamos la salida real (mañana por la mañana)
           const nextKey = `${fila.empId}_${addOneDayToDate(fila.fecha)}`;
           const nextFila = filaIdx.get(nextKey);
 
@@ -1247,50 +1249,28 @@ export class UsuariosService {
           ) {
             salidaRealLocal = nextFila.localIn;
             salidaRealUTC = nextFila.punchInUTC;
-            nextFila.eliminado = true; // La salida de mañana ya fue usada para cerrar hoy
+            nextFila.eliminado = true;
           }
 
           fila.localIn = entradaRealLocal;
           fila.punchInUTC = entradaRealUTC;
           fila.localOut = salidaRealLocal;
           fila.punchOutUTC = salidaRealUTC;
-        }
-        // Caso 2: Solo hay un punch temprano (6:00 AM) y no hay nada más tarde.
-        // Este registro "suelto" es la salida de ayer, lo eliminamos porque ya
-        // debió ser procesado por la lógica de "mañana" del día anterior.
-        else if (!fila.localOut) {
+        } else if (!fila.localOut) {
           fila.eliminado = true;
         }
       }
     }
 
-    // --- PASO 4: CONSTRUCCIÓN DEL RESULTADO FINAL Y CLASIFICACIÓN ---
+    // --- PASO 4: RESULTADO FINAL ---
     return filas
       .filter((f) => !f.eliminado && f.localIn && f.punchInUTC)
       .map((f) => {
         const [a, m, d] = f.fecha.split('-').map(Number);
-        const fechaObj = new Date(a, m - 1, d);
         const diaSemanaEntrada =
-          fechaObj.getDay() === 0 ? 6 : fechaObj.getDay() - 1;
-
-        // Aquí enviamos el diaSemana de la ENTRADA para que la salida se valide contra ese mismo turno
-        const cEntrada = this.clasificarPorMallaLocal(
-          f.empId,
-          f.punchInUTC!,
-          true,
-          mallasLocalMap,
-          diaSemanaEntrada,
-        );
-
-        const cSalida = f.punchOutUTC
-          ? this.clasificarPorMallaLocal(
-              f.empId,
-              f.punchOutUTC,
-              false,
-              mallasLocalMap,
-              diaSemanaEntrada,
-            )
-          : 'SIN SALIDA';
+          new Date(a, m - 1, d).getDay() === 0
+            ? 6
+            : new Date(a, m - 1, d).getDay() - 1;
 
         return {
           id: `log_${f.empId}_${f.fecha}`,
@@ -1299,11 +1279,25 @@ export class UsuariosService {
           department_id: f.dept,
           check_in: f.localIn,
           check_out: f.localOut,
-          c_entrada: cEntrada,
-          c_salida: cSalida,
+          c_entrada: this.clasificarPorMallaLocal(
+            f.empId,
+            f.punchInUTC!,
+            true,
+            mallasLocalMap,
+            diaSemanaEntrada,
+          ),
+          c_salida: f.punchOutUTC
+            ? this.clasificarPorMallaLocal(
+                f.empId,
+                f.punchOutUTC,
+                false,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
+            : 'SIN SALIDA',
           fecha: f.fecha,
-          tipo: 'LOG BIOMÉTRICO',
-          fuente: 'ODOO_LOGS',
+          tipo: 'LOG CRUDO',
+          fuente: f.fuente, // <--- DINÁMICO: APP o BIOMÉTRICO
           estado: f.localOut ? 'Finalizado' : 'En curso',
         };
       });
