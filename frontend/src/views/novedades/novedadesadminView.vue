@@ -58,7 +58,7 @@
             <div class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold border" :class="storageMode === 's3'
               ? 'bg-[#FF8F00]/10 border-[#FF8F00]/25 text-[#FF8F00]'
               : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600'">
-              <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
+              <!-- <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i> -->
               <span v-if="storageMode === 's3'">
                 <!-- Soporte → <strong>AWS S3</strong> -->
               </span>
