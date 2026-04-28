@@ -44,6 +44,15 @@
                         :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ d }}</option>
                 </select>
 
+                <!-- CARGO -->
+                <select v-model="selectedCargo"
+                    class="bg-transparent border-b outline-none text-[11px] font-semibold uppercase cursor-pointer py-1 text-violet-400 transition-all"
+                    :class="isDark ? 'border-white/10' : 'border-slate-200'">
+                    <option value="TODOS" :class="isDark ? 'bg-slate-900' : 'bg-white'">Cargo: Todos</option>
+                    <option v-for="c in cargosUnicos" :key="c" :value="c"
+                        :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ c }}</option>
+                </select>
+
                 <!-- REFRESCAR -->
                 <button @click="handleRefresh" :disabled="isRefreshing"
                     class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all flex-shrink-0"
@@ -267,8 +276,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 const {
     dbUsuarios, odooUsuarios,
     isSyncing: isSyncingUsers,
-    searchUser, selectedDept, selectedCountry,
-    departamentosUnicos, filteredOdoo, filteredLocal,
+    searchUser, selectedDept, selectedCargo, selectedCountry,
+    departamentosUnicos, cargosUnicos, filteredOdoo, filteredLocal,
     fetchDbUsuarios, fetchOdooUsuarios,
 } = useUsuariosSync();
 

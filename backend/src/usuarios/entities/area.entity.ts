@@ -19,6 +19,9 @@ export class Area {
   nombre: string;
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
+  departamento: string | null;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
   creado_por: string | null;
 
   @CreateDateColumn()

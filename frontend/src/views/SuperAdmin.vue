@@ -30,6 +30,7 @@ const { departamentosUnicos } = useUsuariosSync();
 const {
   areas,
   segmentos,
+  areasAgrupadas,
   fetchDatos: fetchOrganizacion,
   crearArea,
   crearSegmento
@@ -39,7 +40,7 @@ const {
 const handleSaveEstructura = async (data) => {
   try {
     if (data.tipo === 'area') {
-      await crearArea({ nombre: data.nombre, responsableId: data.responsableId });
+      await crearArea({ nombre: data.nombre, responsableId: data.responsableId, departamento: data.departamento });
     } else {
       await crearSegmento({ nombre: data.nombre, responsableId: data.responsableId });
     }
@@ -319,7 +320,7 @@ onMounted(async () => {
         <!-- TEMPLATE AREAS Y SEGMENTOS -->
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
-            :segmentos="segmentos" @save="handleSaveEstructura" />
+            :segmentos="segmentos" :areasAgrupadas="areasAgrupadas" @save="handleSaveEstructura" />
         </div>
 
         <!-- TEMPLATE MALLAS -->

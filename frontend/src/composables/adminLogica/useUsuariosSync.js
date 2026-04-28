@@ -8,8 +8,7 @@ export function useUsuariosSync() {
   const syncProgress = ref(0);
   const searchUser = ref("");
   const selectedDept = ref("TODOS");
-  
-  // NUEVO: Estado para el país seleccionado
+  const selectedCargo = ref("TODOS");
   const selectedCountry = ref("TODOS");
 
   const API_URL = import.meta.env.VITE_API_URL + "/sincronizar";
@@ -107,7 +106,8 @@ const executeSync = async () => {
       const matchesSearch = u.nombre?.toLowerCase().includes(searchUser.value.toLowerCase()) ||
                             u.identificacion?.includes(searchUser.value);
       const matchesDept = selectedDept.value === "TODOS" || u.departamento === selectedDept.value;
-      return matchesSearch && matchesDept;
+      const matchesCargo = selectedCargo.value === "TODOS" || u.cargo === selectedCargo.value;
+      return matchesSearch && matchesDept && matchesCargo;
     });
   });
 
@@ -118,6 +118,13 @@ const executeSync = async () => {
     return ["TODOS", ...new Set(depts)].sort();
   });
 
+  const cargosUnicos = computed(() => {
+    const cargos = (dbUsuarios.value || [])
+      .map((u) => u.cargo)
+      .filter(Boolean);
+    return ["TODOS", ...new Set(cargos)].sort();
+  });
+
   return {
     dbUsuarios,
     odooUsuarios,
@@ -126,10 +133,12 @@ const executeSync = async () => {
     syncProgress,
     searchUser,
     selectedDept,
+    selectedCargo,
     selectedCountry,
     filteredOdoo,
     filteredLocal,
     departamentosUnicos,
+    cargosUnicos,
     fetchDbUsuarios,
     fetchOdooUsuarios,
     executeSync,

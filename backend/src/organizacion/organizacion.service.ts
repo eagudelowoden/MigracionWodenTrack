@@ -23,13 +23,25 @@ export class OrganizacionService {
     });
   }
 
-  async createArea(data: { nombre: string; responsableId: number; creadoPor?: string }) {
+  async createArea(data: { nombre: string; responsableId: number; departamento?: string; creadoPor?: string }) {
     const nuevaArea = this.areaRepo.create({
       nombre: data.nombre,
+      departamento: data.departamento?.trim() || null,
       responsable: { id: data.responsableId } as any,
       creado_por: data.creadoPor ?? null,
     });
     return await this.areaRepo.save(nuevaArea);
+  }
+
+  async getAreasAgrupadas(): Promise<Record<string, any[]>> {
+    const areas = await this.areaRepo.find({ relations: ['responsable'] });
+    const grupos: Record<string, any[]> = {};
+    for (const area of areas) {
+      const key = area.departamento?.trim() || 'Sin departamento';
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(area);
+    }
+    return grupos;
   }
 
   // --- LÓGICA PARA SEGMENTOS ---

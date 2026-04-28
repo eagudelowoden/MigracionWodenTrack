@@ -12,9 +12,14 @@ export class OrganizacionController {
     return await this.organizacionService.getAreas();
   }
 
+  @Get('areas-agrupadas')
+  async findAreasAgrupadas() {
+    return await this.organizacionService.getAreasAgrupadas();
+  }
+
   @Post('areas')
   async createArea(
-    @Body() createAreaDto: { nombre: string; responsableId: number; creadoPor?: string },
+    @Body() createAreaDto: { nombre: string; responsableId: number; departamento?: string; creadoPor?: string },
   ) {
     return await this.organizacionService.createArea(createAreaDto);
   }
