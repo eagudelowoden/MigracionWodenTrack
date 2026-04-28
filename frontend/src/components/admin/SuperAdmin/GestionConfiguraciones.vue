@@ -10,7 +10,8 @@
         <h2 class="text-base font-black uppercase tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
           Configuraciones del sistema
         </h2>
-        <p class="text-[10px] font-bold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+        <p class="text-[10px] font-bold uppercase tracking-widest"
+          :class="isDark ? 'text-slate-500' : 'text-slate-400'">
           Super Admin · Ajustes globales
         </p>
       </div>
@@ -22,7 +23,8 @@
 
       <div class="flex items-center gap-2 pb-3 border-b" :class="isDark ? 'border-white/10' : 'border-slate-100'">
         <i class="fas fa-folder-open text-[#FF8F00]"></i>
-        <h3 class="text-[11px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+        <h3 class="text-[11px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-200' : 'text-slate-700'">
           Almacenamiento de soportes
         </h3>
         <span class="ml-auto px-2 py-0.5 rounded-full text-[9px] font-black uppercase"
@@ -71,8 +73,7 @@
         </button>
       </div>
 
-      <div v-if="config.storage_mode === 's3'"
-        class="mt-1 px-4 py-3 rounded-xl text-[10px] flex items-center gap-2"
+      <div v-if="config.storage_mode === 's3'" class="mt-1 px-4 py-3 rounded-xl text-[10px] flex items-center gap-2"
         :class="isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-700'">
         <i class="fas fa-info-circle shrink-0"></i>
         Las credenciales AWS (access key, secret, región, bucket) se configuran en el archivo
@@ -86,7 +87,8 @@
 
       <div class="flex items-center gap-2 pb-3 border-b" :class="isDark ? 'border-white/10' : 'border-slate-100'">
         <i class="fas fa-toggle-on text-[#FF8F00]"></i>
-        <h3 class="text-[11px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+        <h3 class="text-[11px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-200' : 'text-slate-700'">
           Estado de módulos (Admin)
         </h3>
       </div>
@@ -96,16 +98,14 @@
       </p>
 
       <div class="space-y-3">
-        <div v-for="mod in modulos" :key="mod.key"
-          class="rounded-xl border p-4 transition-all"
+        <div v-for="mod in modulos" :key="mod.key" class="rounded-xl border p-4 transition-all"
           :class="isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'">
 
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                :class="isActive(mod.key)
-                  ? 'bg-emerald-500/15 text-emerald-500'
-                  : 'bg-rose-500/15 text-rose-500'">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="isActive(mod.key)
+                ? 'bg-emerald-500/15 text-emerald-500'
+                : 'bg-rose-500/15 text-rose-500'">
                 <i :class="mod.icon + ' text-sm'"></i>
               </div>
               <div>
@@ -137,8 +137,7 @@
               </label>
               <input v-model="config[mod.key + '_message']" type="text"
                 placeholder="Ej: Módulo en mantenimiento. Vuelve pronto."
-                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all"
-                :class="isDark
+                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all" :class="isDark
                   ? 'bg-white/5 border-white/10 text-white focus:border-[#FF8F00]'
                   : 'bg-white border-slate-300 text-slate-700 focus:border-[#FF8F00]'" />
             </div>
@@ -224,6 +223,14 @@ onMounted(cargar);
 </script>
 
 <style scoped>
-.slide-enter-active, .slide-leave-active { transition: all 0.2s ease; }
-.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-6px); }
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
 </style>
