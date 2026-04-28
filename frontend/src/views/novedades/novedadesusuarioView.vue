@@ -67,7 +67,7 @@
             : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600'">
             <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
             <span v-if="storageMode === 's3'">
-              Soporte → <strong>AWS S3</strong>
+              <!-- Soporte → <strong>AWS S3</strong> -->
             </span>
             <!--
             <span v-else>
