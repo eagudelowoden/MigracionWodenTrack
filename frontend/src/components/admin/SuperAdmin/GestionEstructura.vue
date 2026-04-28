@@ -47,23 +47,23 @@
             :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-amber-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-300 focus:border-amber-400'" />
         </div>
 
-        <!-- DEPARTAMENTO (solo áreas) — select con opciones reales de BD -->
+        <!-- SEGMENTO/DEPARTAMENTO (solo áreas) — opciones desde maestro_segmentos -->
         <div v-if="form.tipo === 'area'">
           <label class="text-[9px] font-semibold uppercase tracking-wider opacity-50 block mb-1 flex items-center gap-1">
             <span class="w-1.5 h-1.5 bg-violet-400 rounded-full inline-block"></span>
-            Departamento al que pertenece
+            Segmento / Departamento al que pertenece
           </label>
           <div class="relative">
             <select v-model="form.departamento"
               class="w-full rounded-lg px-3 py-2 pr-7 text-[12px] font-medium outline-none border transition-all appearance-none cursor-pointer"
               :class="isDark ? 'bg-white/5 border-white/10 text-white focus:border-violet-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-violet-400'">
-              <option value="" :class="isDark ? 'bg-slate-900' : 'bg-white'">— Sin departamento —</option>
+              <option value="" :class="isDark ? 'bg-slate-900' : 'bg-white'">— Sin segmento —</option>
               <option v-for="d in deptosReales" :key="d" :value="d"
                 :class="isDark ? 'bg-slate-900' : 'bg-white'">{{ d }}</option>
             </select>
             <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[9px] opacity-30 pointer-events-none"></i>
           </div>
-          <p class="text-[9px] opacity-30 mt-1 px-1">Departamentos sincronizados desde la BD de personal.</p>
+          <p class="text-[9px] opacity-30 mt-1 px-1">Segmentos registrados en maestro_segmentos.</p>
         </div>
 
         <!-- RESPONSABLE -->
@@ -116,7 +116,7 @@
               <!-- Encabezado departamento -->
               <div class="flex items-center gap-2 mb-1.5 px-1">
                 <div class="w-4 h-4 rounded-md bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-building text-violet-400 text-[8px]"></i>
+                  <i class="fas fa-layer-group text-violet-400 text-[8px]"></i>
                 </div>
                 <span class="text-[9px] font-bold uppercase tracking-wider"
                   :class="isDark ? 'text-violet-300' : 'text-violet-600'">{{ depto }}</span>
@@ -152,9 +152,9 @@
                     </button>
                   </div>
 
-                  <!-- Select departamento -->
+                  <!-- Select segmento/departamento -->
                   <div>
-                    <label class="text-[9px] font-semibold uppercase tracking-wider opacity-50 block mb-1">Departamento</label>
+                    <label class="text-[9px] font-semibold uppercase tracking-wider opacity-50 block mb-1">Segmento / Departamento</label>
                     <div class="relative">
                       <select v-model="editForm.departamento"
                         class="w-full rounded-lg px-3 py-1.5 pr-7 text-[11px] font-medium outline-none border transition-all appearance-none cursor-pointer"
@@ -227,15 +227,15 @@
             </div>
           </div>
 
-          <!-- SEGMENTOS -->
+          <!-- SEGMENTOS (son los departamentos padre) -->
           <template v-if="props.segmentos?.length">
             <div>
               <div class="flex items-center gap-2 mb-1.5 px-1">
                 <div class="w-4 h-4 rounded-md bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-layer-group text-emerald-400 text-[8px]"></i>
+                  <i class="fas fa-building text-emerald-400 text-[8px]"></i>
                 </div>
                 <span class="text-[9px] font-bold uppercase tracking-wider"
-                  :class="isDark ? 'text-emerald-300' : 'text-emerald-600'">Segmentos</span>
+                  :class="isDark ? 'text-emerald-300' : 'text-emerald-600'">Segmentos / Departamentos</span>
                 <div class="h-px flex-1" :class="isDark ? 'bg-emerald-500/10' : 'bg-emerald-200/60'"></div>
               </div>
               <div v-for="seg in props.segmentos" :key="'s-' + seg.id"

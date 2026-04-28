@@ -332,7 +332,7 @@ onMounted(async () => {
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
-            :departamentosDisponibles="departamentos"
+            :departamentosDisponibles="segmentos.map(s => s.nombre)"
             @save="handleSaveEstructura"
             @update-area="handleUpdateArea" />
         </div>
