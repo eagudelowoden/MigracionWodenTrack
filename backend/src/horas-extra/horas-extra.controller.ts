@@ -32,6 +32,7 @@ export class HorasExtraController {
       calculado_por?: string;
       area_id?: number;
       segmento_id?: number;
+      registros?: { cedula: string; fecha: string; aprobado: boolean | null }[];
     },
   ) {
     return this.service.calcularExtras({ ...dto, guardar: true });

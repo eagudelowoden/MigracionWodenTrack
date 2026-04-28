@@ -630,11 +630,11 @@ async function guardar() {
   loadingGuardar.value = true;
 
   try {
-    // Enviar los resultados actuales (con aprobado) en el body
     const params = {
       ...buildParams(),
       registros: resultados.value.map((r) => ({
-        id: r.id,
+        cedula: r.cedula,
+        fecha: r.fecha,
         aprobado: r.aprobado ?? null,
       })),
     };

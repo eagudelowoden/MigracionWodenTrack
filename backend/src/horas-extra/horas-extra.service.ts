@@ -24,6 +24,7 @@ export interface CalcularExtrasDto {
   guardar?: boolean;
   area_id?: number;
   segmento_id?: number;
+  registros?: { cedula: string; fecha: string; aprobado: boolean | null }[];
 }
 
 @Injectable()
@@ -373,6 +374,18 @@ export class HorasExtraService {
       resultados.push(registro);
     }
 
+    // Aplicar aprobación enviada desde el frontend (por cedula+fecha)
+    if (dto.registros?.length) {
+      const aprobMap = new Map<string, boolean | null>();
+      for (const r of dto.registros) {
+        aprobMap.set(`${r.cedula}_${r.fecha}`, r.aprobado);
+      }
+      for (const reg of resultados) {
+        const key = `${reg.cedula}_${reg.fecha}`;
+        if (aprobMap.has(key)) reg.aprobado = aprobMap.get(key)!;
+      }
+    }
+
     // Solo persiste en DB si se pidió explícitamente
     if (dto.guardar) {
       if (startDay && endDay) {
@@ -390,7 +403,7 @@ export class HorasExtraService {
         await qb.execute();
       }
 
-      // Guardar en lotes de 50 (20 cols × 50 = 1000 params, bajo el límite de 2100)
+      // Guardar en lotes de 50 (22 cols × 50 = 1100 params, bajo el límite de 2100)
       const SAVE_CHUNK = 50;
       for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
         await this.horaExtraRepo.save(resultados.slice(i, i + SAVE_CHUNK));
