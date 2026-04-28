@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import { MallaHoraria } from './entities/malla-horaria.entity';
 import { MallaDetalle } from './entities/malla-detalle.entity';
+import { MallaAsignacion } from './entities/malla-asignacion.entity';
 
 @Injectable()
 export class MallasCrudService {
@@ -12,6 +13,8 @@ export class MallasCrudService {
     private readonly mallaRepo: Repository<MallaHoraria>,
     @InjectRepository(MallaDetalle)
     private readonly detalleRepo: Repository<MallaDetalle>,
+    @InjectRepository(MallaAsignacion)
+    private readonly asignacionRepo: Repository<MallaAsignacion>,
   ) {}
 
   async listar() {
@@ -50,6 +53,7 @@ export class MallasCrudService {
   }
 
   async eliminar(id: number) {
+    await this.asignacionRepo.delete({ malla_id: id });
     await this.detalleRepo.delete({ malla_id: id });
     await this.mallaRepo.delete(id);
     return { ok: true };
