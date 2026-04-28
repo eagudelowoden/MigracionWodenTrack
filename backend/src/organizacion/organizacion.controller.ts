@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, ParseIntPipe } from '@nestjs/common';
 import { OrganizacionService } from './organizacion.service';
 
 @Controller('usuarios/organizacion') // Lo dejamos vacío para que la ruta sea directamente http://localhost:8082/areas
@@ -15,6 +15,14 @@ export class OrganizacionController {
   @Get('areas-agrupadas')
   async findAreasAgrupadas() {
     return await this.organizacionService.getAreasAgrupadas();
+  }
+
+  @Put('areas/:id')
+  async updateArea(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { departamento?: string; responsableId?: number; nombre?: string },
+  ) {
+    return await this.organizacionService.updateArea(id, body);
   }
 
   @Post('areas')

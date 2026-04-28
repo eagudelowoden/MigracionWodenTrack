@@ -33,7 +33,8 @@ const {
   areasAgrupadas,
   fetchDatos: fetchOrganizacion,
   crearArea,
-  crearSegmento
+  crearSegmento,
+  updateArea,
 } = useOrganizacion();
 
 // 3. Crear la función puente para el evento @save del componente
@@ -47,6 +48,15 @@ const handleSaveEstructura = async (data) => {
     showNotification(`${data.tipo.toUpperCase()} guardado con éxito`);
   } catch (e) {
     showNotification("Error al guardar la estructura", "error");
+  }
+};
+
+const handleUpdateArea = async ({ id, departamento, responsableId, nombre }) => {
+  try {
+    await updateArea(id, { departamento, responsableId, nombre });
+    showNotification("Área actualizada correctamente");
+  } catch (e) {
+    showNotification("Error al actualizar el área", "error");
   }
 };
 
@@ -320,7 +330,10 @@ onMounted(async () => {
         <!-- TEMPLATE AREAS Y SEGMENTOS -->
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
-            :segmentos="segmentos" :areasAgrupadas="areasAgrupadas" @save="handleSaveEstructura" />
+            :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
+            :departamentosDisponibles="departamentosUnicos"
+            @save="handleSaveEstructura"
+            @update-area="handleUpdateArea" />
         </div>
 
         <!-- TEMPLATE MALLAS -->

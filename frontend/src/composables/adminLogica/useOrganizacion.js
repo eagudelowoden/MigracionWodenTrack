@@ -63,5 +63,15 @@ export function useOrganizacion() {
     }
   };
 
-  return { areas, segmentos, areasAgrupadas, fetchDatos, crearArea, crearSegmento };
+  const updateArea = async (id, payload) => {
+    try {
+      await axios.put(`${API_URL}/organizacion/areas/${id}`, payload);
+      await fetchDatos();
+    } catch (e) {
+      console.error("Error al actualizar área:", e);
+      throw e;
+    }
+  };
+
+  return { areas, segmentos, areasAgrupadas, fetchDatos, crearArea, crearSegmento, updateArea };
 }
