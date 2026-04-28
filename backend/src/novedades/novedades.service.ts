@@ -53,8 +53,12 @@ export class NovedadesService {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
-    // Si se pidió S3 pero el bucket no está configurado, cae en local
-    const modoEfectivo = modo === 's3' && !this.bucket ? 'local' : modo;
+    if (modo === 's3' && !this.bucket) {
+      throw new Error(
+        'El modo de almacenamiento está configurado como S3 pero AWS_S3_BUCKET no está definido en las variables de entorno.',
+      );
+    }
+    const modoEfectivo = modo;
 
     if (modoEfectivo === 's3') {
       await this.s3.send(
