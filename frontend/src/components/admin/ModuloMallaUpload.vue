@@ -208,8 +208,17 @@
               <!-- Filas de datos -->
               <template v-else v-for="(item, idx) in filasPaginadas" :key="idx">
 
+                <!-- Fila cabecera empresa -->
+                <tr v-if="item.tipo === 'empresa'">
+                  <td colspan="15"
+                    class="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white border-b"
+                    :class="isDark ? 'bg-[#1e293b] border-white/10' : 'bg-[#334155] border-slate-600'">
+                    <i class="fas fa-building mr-2 opacity-70"></i>{{ item.data.empresa }}
+                  </td>
+                </tr>
+
                 <!-- Fila normal -->
-                <tr v-if="item.tipo === 'fila'"
+                <tr v-else-if="item.tipo === 'fila'"
                   class="group transition-all duration-100"
                   :class="[
                     idx % 2 !== 0

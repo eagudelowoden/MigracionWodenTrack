@@ -105,17 +105,21 @@ export function useReporteMallas() {
     return list;
   });
 
-  // ── Agrupación por colaborador con subtotales ──────────────────────────────
+  // ── Agrupación por empresa → colaborador con subtotales ───────────────────
 
   const COLS_HX = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'];
 
-  const gruposConSubtotales = computed(() => {
-    const mapa = new Map();
+  const gruposPorEmpresa = computed(() => {
+    const empresaMapa = new Map();
 
     for (const r of registrosFiltrados.value) {
+      const empresa = r.company || 'Sin empresa';
+      if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
+
+      const colabMapa = empresaMapa.get(empresa);
       const key = r.cedula;
-      if (!mapa.has(key)) {
-        mapa.set(key, {
+      if (!colabMapa.has(key)) {
+        colabMapa.set(key, {
           cedula: r.cedula,
           nombre: r.nombre,
           cargo: r.cargo,
@@ -124,7 +128,7 @@ export function useReporteMallas() {
           subtotales: Object.fromEntries(COLS_HX.map((c) => [c, 0])),
         });
       }
-      const grupo = mapa.get(key);
+      const grupo = colabMapa.get(key);
       grupo.filas.push(r);
       for (const col of COLS_HX) {
         grupo.subtotales[col] =
@@ -132,17 +136,28 @@ export function useReporteMallas() {
       }
     }
 
-    return [...mapa.values()];
+    return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
+      empresa,
+      grupos: [...colabMapa.values()],
+    }));
   });
 
-  // Filas aplanadas (fila normal + fila subtotal al final de cada grupo) para paginación
+  // Mantener compatibilidad — lista plana de grupos por colaborador
+  const gruposConSubtotales = computed(() =>
+    gruposPorEmpresa.value.flatMap((e) => e.grupos),
+  );
+
+  // Filas aplanadas: cabecera empresa → filas colaborador → subtotal
   const filasAplanadas = computed(() => {
     const out = [];
-    for (const g of gruposConSubtotales.value) {
-      for (const f of g.filas) {
-        out.push({ tipo: 'fila', data: f });
+    for (const { empresa, grupos } of gruposPorEmpresa.value) {
+      out.push({ tipo: 'empresa', data: { empresa } });
+      for (const g of grupos) {
+        for (const f of g.filas) {
+          out.push({ tipo: 'fila', data: f });
+        }
+        out.push({ tipo: 'subtotal', data: g });
       }
-      out.push({ tipo: 'subtotal', data: g });
     }
     return out;
   });
@@ -321,6 +336,7 @@ export function useReporteMallas() {
 
     // Datos procesados
     registrosFiltrados,
+    gruposPorEmpresa,
     gruposConSubtotales,
     filasAplanadas,
     filasPaginadas,

@@ -585,188 +585,202 @@ export class HorasExtraService {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Reporte HX');
 
-    // Estilos
-    const headerFill: ExcelJS.Fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF334155' },
-    };
-    const subHeaderFill: ExcelJS.Fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF475569' },
-    };
-    const subtotalFill: ExcelJS.Fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFFFD580' },
-    };
-    const aprobadoFill: ExcelJS.Fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFD1FAE5' },
-    };
-    const pendienteFill: ExcelJS.Fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFFFF7ED' },
-    };
+    // ── Estilos reutilizables ──────────────────────────────────────────────
+    const COLS = 14; // A-N (sin APROBAR en el Excel)
+
+    const fillColor = (argb: string): ExcelJS.Fill => ({
+      type: 'pattern', pattern: 'solid', fgColor: { argb },
+    });
 
     const borderThin: ExcelJS.Borders = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
+      top: { style: 'thin' }, left: { style: 'thin' },
+      bottom: { style: 'thin' }, right: { style: 'thin' },
       diagonal: { style: 'thin', up: false, down: false },
     };
 
-    // Fila 1: grupos de encabezado
-    ws.mergeCells('A1:B1');
-    ws.getCell('A1').value = 'COLABORADOR';
-    ws.mergeCells('C1:C1');
-    ws.getCell('C1').value = 'FECHA';
-    ws.mergeCells('D1:E1');
-    ws.getCell('D1').value = 'JORNADA LABORAL';
-    ws.mergeCells('F1:G1');
-    ws.getCell('F1').value = 'TIEMPO LABORADO';
-    ['H1', 'I1', 'J1', 'K1', 'L1', 'M1', 'N1', 'O1'].forEach((cell, i) => {
-      ws.getCell(cell).value = ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN', 'APROBAR'][i];
-    });
+    const applyBorderAlign = (
+      cell: ExcelJS.Cell,
+      hAlign: 'left' | 'center' = 'center',
+    ) => {
+      cell.border = borderThin;
+      cell.alignment = { vertical: 'middle' as const, horizontal: hAlign };
+    };
 
-    // Fila 2: sub-encabezados
-    ws.getCell('A2').value = 'Cédula';
-    ws.getCell('B2').value = 'Nombre';
-    ws.getCell('C2').value = 'Fecha';
-    ws.getCell('D2').value = 'Hora Inicial';
-    ws.getCell('E2').value = 'Hora Final';
-    ws.getCell('F2').value = 'Hora Inicial';
-    ws.getCell('G2').value = 'Hora Final';
-    ['H2', 'I2', 'J2', 'K2', 'L2', 'M2', 'N2'].forEach((c) => {
-      ws.getCell(c).value = '0';
-    });
-    ws.getCell('O2').value = 'Estado';
-
-    // Aplicar estilo a encabezados
-    for (let col = 1; col <= 15; col++) {
-      const c1 = ws.getCell(1, col);
-      const c2 = ws.getCell(2, col);
-      [c1, c2].forEach((c) => {
-        c.fill = headerFill;
-        c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-        c.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
-        c.border = borderThin;
-      });
-      c2.fill = subHeaderFill;
-    }
-
-    ws.getRow(1).height = 20;
-    ws.getRow(2).height = 16;
-
-    // Anchos
-    const colWidths = [14, 30, 12, 12, 12, 12, 12, 7, 7, 7, 7, 7, 7, 7, 10];
+    // ── Anchos de columna ──────────────────────────────────────────────────
+    const colWidths = [15, 32, 12, 11, 11, 11, 11, 7, 7, 7, 7, 7, 7, 7];
     colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
-    // Agrupar por colaborador para subtotales
-    const grupos: Map<string, HoraExtra[]> = new Map();
-    for (const r of registros) {
-      const key = `${r.cedula}__${r.nombre}`;
-      if (!grupos.has(key)) grupos.set(key, []);
-      grupos.get(key)!.push(r);
+    // ── Cabecera global (filas 1-2) ────────────────────────────────────────
+    const encabezadosFila1 = [
+      { merge: 'A1:B1', label: 'COLABORADOR' },
+      { merge: 'C1:C1', label: 'FECHA' },
+      { merge: 'D1:E1', label: 'JORNADA LABORAL' },
+      { merge: 'F1:G1', label: 'TIEMPO LABORADO' },
+    ];
+    encabezadosFila1.forEach(({ merge, label }) => {
+      ws.mergeCells(merge);
+      const cell = ws.getCell(merge.split(':')[0]);
+      cell.value = label;
+      cell.fill = fillColor('FF334155');
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      cell.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
+      cell.border = borderThin;
+    });
+
+    ['H1', 'I1', 'J1', 'K1', 'L1', 'M1', 'N1'].forEach((addr, i) => {
+      const cell = ws.getCell(addr);
+      cell.value = ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN'][i];
+      cell.fill = fillColor('FF334155');
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      cell.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
+      cell.border = borderThin;
+    });
+
+    const subHeaders = ['Cédula', 'Nombre', 'Fecha', 'Hora Inicial', 'Hora Final',
+                        'Hora Inicial', 'Hora Final', '0', '0', '0', '0', '0', '0', '0'];
+    subHeaders.forEach((v, i) => {
+      const cell = ws.getCell(2, i + 1);
+      cell.value = v;
+      cell.fill = fillColor('FF475569');
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      applyBorderAlign(cell, i < 2 ? 'left' : 'center');
+    });
+
+    ws.getRow(1).height = 18;
+    ws.getRow(2).height = 14;
+
+    // ── Datos agrupados por EMPRESA → COLABORADOR ─────────────────────────
+    // Ordenar: primero por company, luego por nombre, luego por fecha
+    const sorted = [...registros].sort((a, b) => {
+      const cmp = (a.company ?? '').localeCompare(b.company ?? '');
+      if (cmp !== 0) return cmp;
+      const cmpN = (a.nombre ?? '').localeCompare(b.nombre ?? '');
+      if (cmpN !== 0) return cmpN;
+      return (a.fecha ?? '').localeCompare(b.fecha ?? '');
+    });
+
+    // Agrupar: empresa → colaborador → filas
+    const empresas = new Map<string, Map<string, HoraExtra[]>>();
+    for (const r of sorted) {
+      const emp = r.company ?? 'SIN EMPRESA';
+      const colab = `${r.cedula}__${r.nombre}`;
+      if (!empresas.has(emp)) empresas.set(emp, new Map());
+      const colabs = empresas.get(emp)!;
+      if (!colabs.has(colab)) colabs.set(colab, []);
+      colabs.get(colab)!.push(r);
     }
 
     let rowIdx = 3;
     const numFmt = '0.00';
+    const COLS_HX = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'] as const;
 
-    for (const [, filas] of grupos) {
-      for (const r of filas) {
-        const row = ws.getRow(rowIdx);
-        const fechaDisplay = r.fecha
-          ? r.fecha.split('-').reverse().join('/')
-          : '';
-        const horaEntrada = r.fecha_entrada
-          ? r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? ''
-          : '';
-        const horaSalida = r.fecha_salida
-          ? r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? ''
-          : '';
+    for (const [empresa, colabMap] of empresas) {
+      // ── Fila de empresa ──────────────────────────────────────────────────
+      ws.mergeCells(rowIdx, 1, rowIdx, COLS);
+      const empCell = ws.getCell(rowIdx, 1);
+      empCell.value = empresa.toUpperCase();
+      empCell.fill = fillColor('FF1E293B');
+      empCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9, italic: true };
+      empCell.alignment = { horizontal: 'left' as const, vertical: 'middle' as const };
+      empCell.border = borderThin;
+      ws.getRow(rowIdx).height = 14;
+      rowIdx++;
 
-        row.values = [
-          r.cedula,
-          r.nombre,
-          fechaDisplay,
-          r.inicio_turno ?? '',
-          r.fin_turno ?? '',
-          horaEntrada,
-          horaSalida,
-          Number(r.rn) || 0,
-          Number(r.rndf) || 0,
-          Number(r.rddf) || 0,
-          Number(r.hedo) || 0,
-          Number(r.heno) || 0,
-          Number(r.hefd) || 0,
-          Number(r.hefn) || 0,
-          r.aprobado === true ? 'APROBADO' : r.aprobado === false ? 'RECHAZADO' : 'PENDIENTE',
-        ];
+      for (const [, filas] of colabMap) {
+        // ── Filas de datos ───────────────────────────────────────────────
+        filas.forEach((r, fi) => {
+          const row = ws.getRow(rowIdx);
+          const fechaDisplay = r.fecha ? r.fecha.split('-').reverse().join('/') : '';
+          const horaEntrada = r.fecha_entrada
+            ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '') : '';
+          const horaSalida = r.fecha_salida
+            ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '') : '';
 
-        // Formato numérico para columnas HX
-        for (let c = 8; c <= 14; c++) {
-          row.getCell(c).numFmt = numFmt;
-        }
+          const values = [
+            r.cedula, r.nombre, fechaDisplay,
+            r.inicio_turno ?? '', r.fin_turno ?? '',
+            horaEntrada, horaSalida,
+            Number(r.rn) || 0, Number(r.rndf) || 0, Number(r.rddf) || 0,
+            Number(r.hedo) || 0, Number(r.heno) || 0,
+            Number(r.hefd) || 0, Number(r.hefn) || 0,
+          ];
+          values.forEach((v, ci) => { row.getCell(ci + 1).value = v as any; });
 
-        // Color por aprobación
-        const aprobCell = row.getCell(15);
-        if (r.aprobado === true) {
-          aprobCell.fill = aprobadoFill;
-          aprobCell.font = { color: { argb: 'FF065F46' }, bold: true, size: 9 };
-        } else if (r.aprobado === false) {
-          aprobCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
-          aprobCell.font = { color: { argb: 'FF991B1B' }, bold: true, size: 9 };
-        } else {
-          aprobCell.fill = pendienteFill;
-          aprobCell.font = { color: { argb: 'FF92400E' }, bold: true, size: 9 };
-        }
+          // Formato numérico cols HX
+          for (let c = 8; c <= 14; c++) row.getCell(c).numFmt = numFmt;
 
-        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-          if (colNum <= 15) {
-            cell.border = borderThin;
-            cell.alignment = { vertical: 'middle' as const, horizontal: (colNum <= 2 ? 'left' : 'center') as 'left' | 'center' };
-            if (!cell.font) cell.font = { size: 9 };
-            else cell.font = { ...cell.font, size: 9 };
+          // Estilos por celda
+          const bgRow = fi % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+          for (let c = 1; c <= COLS; c++) {
+            const cell = row.getCell(c);
+            cell.fill = fillColor(bgRow);
+            cell.font = { size: 9 };
+            applyBorderAlign(cell, c <= 2 ? 'left' : 'center');
           }
+          row.height = 13;
+          rowIdx++;
         });
 
+        // ── Subtotal colaborador ─────────────────────────────────────────
+        const stRow = ws.getRow(rowIdx);
+        const first = filas[0];
+        stRow.getCell(1).value = first.cedula;
+        stRow.getCell(2).value = `SUBTOTAL – ${first.nombre}`;
+
+        COLS_HX.forEach((col, i) => {
+          const val = filas.reduce((s, r) => s + (Number(r[col]) || 0), 0);
+          const cell = stRow.getCell(8 + i);
+          cell.value = Math.round(val * 100) / 100;
+          cell.numFmt = numFmt;
+        });
+
+        for (let c = 1; c <= COLS; c++) {
+          const cell = stRow.getCell(c);
+          cell.fill = fillColor('FFFFF3CD');
+          cell.font = { bold: true, size: 9 };
+          applyBorderAlign(cell, c <= 2 ? 'left' : 'center');
+        }
+        stRow.height = 14;
         rowIdx++;
       }
 
-      // Fila de subtotal por colaborador
-      const st = ws.getRow(rowIdx);
-      const first = filas[0];
-      st.getCell(1).value = first.cedula;
-      st.getCell(2).value = `SUBTOTAL – ${first.nombre}`;
-
-      const sumCols = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'] as const;
-      sumCols.forEach((col, i) => {
-        const val = filas.reduce((s, r) => s + (Number(r[col]) || 0), 0);
-        st.getCell(8 + i).value = Math.round(val * 100) / 100;
-        st.getCell(8 + i).numFmt = numFmt;
-      });
-
-      st.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        if (colNum <= 15) {
-          cell.fill = subtotalFill;
-          cell.font = { bold: true, size: 9 };
-          cell.border = borderThin;
-          cell.alignment = { vertical: 'middle' as const, horizontal: (colNum <= 2 ? 'left' : 'center') as 'left' | 'center' };
-        }
-      });
-
+      // Fila vacía entre empresas
       rowIdx++;
     }
 
-    // Nota al pie
-    ws.getRow(rowIdx + 1).getCell(1).value =
-      'NOTA: Valores en sistema sexagesimal. 15 min = 0,25 | 30 min = 0,50 | 45 min = 0,75 | 60 min = 1,0';
-    ws.getRow(rowIdx + 1).getCell(1).font = { italic: true, size: 8, color: { argb: 'FF64748B' } };
+    // ── Notas y convenciones al pie ────────────────────────────────────────
+    rowIdx++;
+    const notas = [
+      'NOTA IMPORTANTE: Para la correcta liquidación de las horas extras, es necesario reportar los datos en el sistema sexagesimal. Ejemplo: 15 minutos = 0,25; 30 minutos = 0,50; 45 minutos = 0,75; 60 minutos = 1,0',
+      'Se debe subtotalizar por colaborador el número de Horas Extras o Suplementarias laboradas.',
+      'Se debe hacer un formato de reporte diferenciando la empresa por la cual están vinculados los colaboradores.',
+      '',
+      'CONVENCIONES:',
+      'RN = Recargo Nocturno: Dentro de la jornada laboral de 21:00 Hr a 6:00 Hr',
+      'RNDF = Recargo Nocturno Dominical o Festivo: Dentro de la jornada Laboral, Domingo, de 21:00 Hr y 6:00 Hr',
+      'RDDF = Recargo Diurno Dominical o Festivo: Dentro de la Jornada laboral, Domingo o Días Festivos de 6:00 Hr y 21:00 Hr',
+      'HEDO = Hora Extra Diurna Ordinaria: Hora adicional a su jornada laboral, de 6:00 Hr y 21:00 Hr',
+      'HENO = Hora Extra Nocturna Ordinaria: Hora adicional a su jornada laboral, de 21:00 Hr y 6:00 Hr',
+      'HEFD = Hora Extra Festiva Diurna: Hora adicional a su jornada laboral, Domingo o Festivo, 6:00 Hr y 21:00 Hr',
+      'HEFN = Hora Extra Festiva Nocturna: Hora adicional a su jornada laboral, Domingo o Festivo, de 21:00 Hr y 6:00 Hr',
+    ];
+
+    notas.forEach((texto) => {
+      ws.mergeCells(rowIdx, 1, rowIdx, COLS);
+      const cell = ws.getCell(rowIdx, 1);
+      cell.value = texto;
+      const isTitulo = texto === 'CONVENCIONES:';
+      const isNota = texto.startsWith('NOTA IMPORTANTE');
+      cell.font = {
+        bold: isTitulo || isNota,
+        italic: !isTitulo && !isNota && texto !== '',
+        size: 8,
+        color: { argb: texto === '' ? 'FFFFFFFF' : 'FF334155' },
+      };
+      cell.alignment = { horizontal: 'left' as const, vertical: 'middle' as const, wrapText: true };
+      ws.getRow(rowIdx).height = isNota ? 24 : 13;
+      rowIdx++;
+    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
