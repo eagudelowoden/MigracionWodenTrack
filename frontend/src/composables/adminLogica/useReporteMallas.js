@@ -1,10 +1,10 @@
-import { ref, computed, watch } from 'vue';
-import axios from 'axios';
+import { ref, computed, watch } from "vue";
+import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function getSession() {
-  return JSON.parse(localStorage.getItem('user_session') || '{}');
+  return JSON.parse(localStorage.getItem("user_session") || "{}");
 }
 
 function hasPerm(permiso) {
@@ -19,7 +19,7 @@ function getToday() {
 
 function getFirstDayOfMonth() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 export function useReporteMallas() {
@@ -32,9 +32,9 @@ export function useReporteMallas() {
   const endDate = ref(getToday());
 
   // Filtros
-  const filterNombre = ref('');
-  const filterCargo = ref('');
-  const filterDepartamento = ref('');
+  const filterNombre = ref("");
+  const filterCargo = ref("");
+  const filterDepartamento = ref("");
   const soloConExtras = ref(false);
 
   // Aprobaciones locales (id → boolean|null) — se aplican antes de guardar
@@ -49,7 +49,11 @@ export function useReporteMallas() {
   function getAreaSegmento() {
     const s = getSession();
     // "desarrollador_junior" ve todo (sin filtro de área/segmento)
-    if (s.isSuperAdmin || s.role === 'desarrollador_junior' || hasPerm('admin.ver_todo')) {
+    if (
+      s.isSuperAdmin ||
+      s.role === "desarrollador_junior" ||
+      hasPerm("admin.ver_todo")
+    ) {
       return {};
     }
     const params = {};
@@ -71,7 +75,9 @@ export function useReporteMallas() {
   });
 
   const opcionesDepartamentos = computed(() => {
-    const set = new Set(registros.value.map((r) => r.departamento).filter(Boolean));
+    const set = new Set(
+      registros.value.map((r) => r.departamento).filter(Boolean),
+    );
     return [...set].sort();
   });
 
@@ -107,13 +113,13 @@ export function useReporteMallas() {
 
   // ── Agrupación por empresa → colaborador con subtotales ───────────────────
 
-  const COLS_HX = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'];
+  const COLS_HX = ["rn", "rndf", "rddf", "hedo", "heno", "hefd", "hefn"];
 
   const gruposPorEmpresa = computed(() => {
     const empresaMapa = new Map();
 
     for (const r of registrosFiltrados.value) {
-      const empresa = r.company || 'Sin empresa';
+      const empresa = r.company || "Sin empresa";
       if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
 
       const colabMapa = empresaMapa.get(empresa);
@@ -132,7 +138,8 @@ export function useReporteMallas() {
       grupo.filas.push(r);
       for (const col of COLS_HX) {
         grupo.subtotales[col] =
-          Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) / 100;
+          Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) /
+          100;
       }
     }
 
@@ -151,12 +158,12 @@ export function useReporteMallas() {
   const filasAplanadas = computed(() => {
     const out = [];
     for (const { empresa, grupos } of gruposPorEmpresa.value) {
-      out.push({ tipo: 'empresa', data: { empresa } });
+      out.push({ tipo: "empresa", data: { empresa } });
       for (const g of grupos) {
         for (const f of g.filas) {
-          out.push({ tipo: 'fila', data: f });
+          out.push({ tipo: "fila", data: f });
         }
-        out.push({ tipo: 'subtotal', data: g });
+        out.push({ tipo: "subtotal", data: g });
       }
     }
     return out;
@@ -186,23 +193,23 @@ export function useReporteMallas() {
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
-        ...(company && company !== 'Todas' ? { company } : {}),
+        ...(company && company !== "Todas" ? { company } : {}),
         ...getAreaSegmento(),
       };
 
       // Si el usuario tiene filtro de departamento fijo (sin permiso de ver todo)
-      if (!hasPerm('admin.filtro_departamento') && !s.isSuperAdmin) {
+      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
         if (s.department) params.departamento = s.department;
       }
 
       const { data } = await axios.get(
-        `${API_BASE_URL}/usuarios/horas-extra/historial`,
+        `${API_BASE_URL}/horas-extra/historial`,
         { params },
       );
       registros.value = data;
       currentPage.value = 1;
     } catch (err) {
-      console.error('Error cargando historial horas extra:', err);
+      console.error("Error cargando historial horas extra:", err);
     } finally {
       isLoading.value = false;
     }
@@ -216,19 +223,16 @@ export function useReporteMallas() {
       const payload = {
         startDate: startDate.value,
         endDate: endDate.value,
-        company: company || '',
-        calculado_por: s.name || 'Desconocido',
+        company: company || "",
+        calculado_por: s.name || "Desconocido",
         guardar: true,
         ...getAreaSegmento(),
       };
 
-      await axios.post(
-        `${API_BASE_URL}/usuarios/horas-extra/guardar`,
-        payload,
-      );
+      await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
       await cargarHistorial(company);
     } catch (err) {
-      console.error('Error calculando horas extra:', err);
+      console.error("Error calculando horas extra:", err);
       throw err;
     } finally {
       isCalculating.value = false;
@@ -237,20 +241,21 @@ export function useReporteMallas() {
 
   async function aprobarMasivo(company, tipo) {
     try {
-      await axios.patch(`${API_BASE_URL}/usuarios/horas-extra/aprobar`, {
+      await axios.patch(`${API_BASE_URL}/horas-extra/aprobar`, {
         startDate: startDate.value,
         endDate: endDate.value,
-        company: company || '',
+        company: company || "",
         tipo,
       });
       // Reflejar localmente
       registros.value = registros.value.map((r) => {
-        if (tipo === 'todas') return { ...r, aprobado: true };
-        if (tipo === 'dominicales') return { ...r, aprobado: r.es_dominical ? true : false };
+        if (tipo === "todas") return { ...r, aprobado: true };
+        if (tipo === "dominicales")
+          return { ...r, aprobado: r.es_dominical ? true : false };
         return { ...r, aprobado: false };
       });
     } catch (err) {
-      console.error('Error aprobación masiva:', err);
+      console.error("Error aprobación masiva:", err);
       throw err;
     }
   }
@@ -258,15 +263,14 @@ export function useReporteMallas() {
   async function aprobarRegistro(id, aprobado) {
     try {
       aprobacionesLocales.value[id] = aprobado;
-      await axios.patch(
-        `${API_BASE_URL}/usuarios/horas-extra/aprobar/${id}`,
-        { aprobado },
-      );
+      await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, {
+        aprobado,
+      });
       // Actualizar en la lista local
       const idx = registros.value.findIndex((r) => r.id === id);
       if (idx !== -1) registros.value[idx].aprobado = aprobado;
     } catch (err) {
-      console.error('Error aprobando registro:', err);
+      console.error("Error aprobando registro:", err);
       delete aprobacionesLocales.value[id];
       throw err;
     }
@@ -280,30 +284,30 @@ export function useReporteMallas() {
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
-        ...(company && company !== 'Todas' ? { company } : {}),
+        ...(company && company !== "Todas" ? { company } : {}),
         ...getAreaSegmento(),
       };
 
-      if (!hasPerm('admin.filtro_departamento') && !s.isSuperAdmin) {
+      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
         if (s.department) params.departamento = s.department;
       }
 
       const response = await axios.get(
-        `${API_BASE_URL}/usuarios/horas-extra/exportar-excel`,
-        { params, responseType: 'blob' },
+        `${API_BASE_URL}/horas-extra/exportar-excel`,
+        { params, responseType: "blob" },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       const fecha = new Date().toISOString().slice(0, 10);
-      link.setAttribute('download', `reporte_hx_mallas_${fecha}.xlsx`);
+      link.setAttribute("download", `reporte_hx_mallas_${fecha}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Error exportando Excel:', err);
+      console.error("Error exportando Excel:", err);
       throw err;
     } finally {
       isExporting.value = false;
@@ -313,25 +317,25 @@ export function useReporteMallas() {
   // ── Helpers UI ─────────────────────────────────────────────────────────────
 
   function formatHora(datetime) {
-    if (!datetime) return '';
-    const parts = datetime.split(' ');
-    return parts[1] ? parts[1].slice(0, 5) : '';
+    if (!datetime) return "";
+    const parts = datetime.split(" ");
+    return parts[1] ? parts[1].slice(0, 5) : "";
   }
 
   function formatFecha(fechaStr) {
-    if (!fechaStr) return '';
-    return fechaStr.split('-').reverse().join('/');
+    if (!fechaStr) return "";
+    return fechaStr.split("-").reverse().join("/");
   }
 
   function formatDecimal(val) {
     const n = Number(val) || 0;
-    return n === 0 ? '0' : n.toFixed(2).replace('.', ',');
+    return n === 0 ? "0" : n.toFixed(2).replace(".", ",");
   }
 
   function getAprobadoLabel(aprobado) {
-    if (aprobado === true) return 'APROBADO';
-    if (aprobado === false) return 'RECHAZADO';
-    return 'PENDIENTE';
+    if (aprobado === true) return "APROBADO";
+    if (aprobado === false) return "RECHAZADO";
+    return "PENDIENTE";
   }
 
   return {
