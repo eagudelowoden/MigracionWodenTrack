@@ -565,7 +565,7 @@ export class HorasExtraService {
     return { updated: result.affected ?? 0 };
   }
 
-  async aprobarRegistro(id: number, aprobado: boolean | null): Promise<HoraExtra> {
+  async aprobarRegistro(id: number, aprobado: boolean | null): Promise<HoraExtra | null> {
     await this.horaExtraRepo.update(id, { aprobado });
     return this.horaExtraRepo.findOne({ where: { id } });
   }
@@ -612,11 +612,12 @@ export class HorasExtraService {
       fgColor: { argb: 'FFFFF7ED' },
     };
 
-    const borderThin: Partial<ExcelJS.Borders> = {
+    const borderThin: ExcelJS.Borders = {
       top: { style: 'thin' },
       left: { style: 'thin' },
       bottom: { style: 'thin' },
       right: { style: 'thin' },
+      diagonal: { style: 'thin', up: false, down: false },
     };
 
     // Fila 1: grupos de encabezado
@@ -652,7 +653,7 @@ export class HorasExtraService {
       [c1, c2].forEach((c) => {
         c.fill = headerFill;
         c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        c.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
         c.border = borderThin;
       });
       c2.fill = subHeaderFill;
@@ -728,7 +729,7 @@ export class HorasExtraService {
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
           if (colNum <= 15) {
             cell.border = borderThin;
-            cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
+            cell.alignment = { vertical: 'middle' as const, horizontal: (colNum <= 2 ? 'left' : 'center') as 'left' | 'center' };
             if (!cell.font) cell.font = { size: 9 };
             else cell.font = { ...cell.font, size: 9 };
           }
@@ -755,7 +756,7 @@ export class HorasExtraService {
           cell.fill = subtotalFill;
           cell.font = { bold: true, size: 9 };
           cell.border = borderThin;
-          cell.alignment = { vertical: 'middle', horizontal: colNum <= 2 ? 'left' : 'center' };
+          cell.alignment = { vertical: 'middle' as const, horizontal: (colNum <= 2 ? 'left' : 'center') as 'left' | 'center' };
         }
       });
 
