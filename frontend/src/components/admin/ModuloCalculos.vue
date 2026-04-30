@@ -1,444 +1,360 @@
 <template>
-  <div class="flex flex-col gap-4 animate-fade-in">
+  <div class="h-full animate-fade-in flex flex-col gap-2">
 
-    <!-- Filtros + acciones -->
-    <div class="rounded-xl border p-4"
-      :class="isDark ? 'bg-[#273045] border-white/5' : 'bg-white border-slate-200 shadow-sm'">
+    <!-- ── Barra de controles ──────────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-end gap-3 p-3 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
+      :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
 
-      <div class="flex flex-wrap items-end gap-3">
+      <!-- Desde -->
+      <div class="flex flex-col gap-1">
+        <label class="text-[8px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
+        <input type="date" v-model="startDate"
+          class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+      </div>
 
-        <!-- Fecha inicio -->
-        <div class="flex flex-col gap-1">
-          <label class="text-[9px] font-black uppercase tracking-widest"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
-          <input type="date" v-model="startDate"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
-              ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
-              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+      <!-- Hasta -->
+      <div class="flex flex-col gap-1">
+        <label class="text-[8px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
+        <input type="date" v-model="endDate"
+          class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+      </div>
+
+      <!-- Filtro Nombre -->
+      <div class="flex flex-col gap-1">
+        <label class="text-[8px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Nombre</label>
+        <div class="relative">
+          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
+          <input v-model="filterNombre" type="text" placeholder="Buscar..."
+            class="pl-7 pr-2.5 py-1.5 text-[10px] font-semibold rounded-lg border outline-none w-36 transition-colors"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
         </div>
+      </div>
 
-        <!-- Fecha fin -->
-        <div class="flex flex-col gap-1">
-          <label class="text-[9px] font-black uppercase tracking-widest"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
-          <input type="date" v-model="endDate"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
-              ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
-              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
-        </div>
-
-        <!-- Filtro departamento — solo admins con permiso o superadmin -->
-        <div v-if="tieneFiltroDepartamento && departamentos.length" class="flex flex-col gap-1">
-          <label class="text-[9px] font-black uppercase tracking-widest"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Departamento</label>
-          <select v-model="selectedDepartamento"
-            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg border outline-none transition-colors" :class="isDark
-              ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
-              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
-            <option value="">Todos los departamentos</option>
-            <option v-for="d in departamentos" :key="d" :value="d">{{ d }}</option>
+      <!-- Filtro Cargo -->
+      <div class="flex flex-col gap-1">
+        <label class="text-[8px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargo</label>
+        <div class="relative">
+          <select v-model="filterCargo"
+            class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-40 cursor-pointer transition-colors"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
+            <option value="">Todos los cargos</option>
+            <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
           </select>
-        </div>
-
-        <!-- Toggle solo con extras -->
-        <label class="flex items-center gap-2 cursor-pointer select-none self-end mb-0.5">
-          <div class="relative">
-            <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
-            <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-[#FF8F00]"
-              :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
-            <div
-              class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm">
-            </div>
-          </div>
-          <span class="text-[10px] font-bold uppercase tracking-wide"
-            :class="isDark ? 'text-slate-300' : 'text-slate-600'">Solo con extras</span>
-        </label>
-
-        <!-- Indicador de área/segmento activo (para no-superadmin sin filtro_departamento) -->
-        <div v-if="!tieneFiltroDepartamento && (areaActiva || segmentoActivo)"
-          class="self-end mb-0.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-semibold"
-          :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'">
-          <i class="fas fa-filter text-[8px]"></i>
-          Viendo tu área asignada
-        </div>
-
-        <!-- ── Tres botones principales ── -->
-        <div class="flex gap-2 ml-auto flex-wrap">
-
-          <!-- CALCULAR -->
-          <button @click="calcular" :disabled="loadingCalc || !fechasValidas"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all"
-            :class="loadingCalc || !fechasValidas
-              ? 'opacity-40 cursor-not-allowed bg-[#FF8F00]/40 text-white'
-              : 'bg-[#FF8F00] hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20'">
-            <i class="fas" :class="loadingCalc ? 'fa-spinner fa-spin' : 'fa-calculator'"></i>
-            {{ loadingCalc ? 'Calculando...' : 'Calcular' }}
-          </button>
-
-          <!-- GUARDAR -->
-          <button @click="guardar" :disabled="loadingGuardar || !hayResultados"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all"
-            :class="loadingGuardar || !hayResultados
-              ? 'opacity-40 cursor-not-allowed border-slate-300 text-slate-400'
-              : isDark
-                ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10'
-                : 'border-emerald-500 text-emerald-600 hover:bg-emerald-50'">
-            <i class="fas" :class="loadingGuardar ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
-            {{ loadingGuardar ? 'Guardando...' : 'Guardar' }}
-          </button>
-
-          <!-- DESCARGAR -->
-          <button @click="descargar" :disabled="!hayResultados"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all"
-            :class="!hayResultados
-              ? 'opacity-40 cursor-not-allowed border-slate-300 text-slate-400'
-              : isDark
-                ? 'border-blue-500/50 text-blue-400 hover:bg-blue-500/10'
-                : 'border-blue-500 text-blue-600 hover:bg-blue-50'">
-            <i class="fas fa-file-excel text-xs"></i>
-            Descargar
-          </button>
-
-          <!-- Historial -->
-          <button @click="toggleHistorial"
-            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border transition-all" :class="verHistorial
-              ? 'bg-[#FF8F00]/10 border-[#FF8F00]/40 text-[#FF8F00]'
-              : isDark
-                ? 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
-                : 'border-slate-200 text-slate-500 hover:border-slate-300'">
-            <i class="fas fa-history text-xs"></i>
-            Historial
-          </button>
-
+          <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-400 pointer-events-none"></i>
         </div>
       </div>
 
-      <!-- Botones de aprobación (solo si hay resultados calculados) -->
-      <div v-if="hayResultados && !verHistorial" class="mt-3 pt-3 border-t flex flex-wrap gap-2 items-center"
-        :class="isDark ? 'border-white/5' : 'border-slate-100'">
-        <span class="text-[9px] font-black uppercase tracking-widest"
-          :class="isDark ? 'text-slate-500' : 'text-slate-400'">Aprobación:</span>
-        <button @click="aprobarResultados('todas')"
-          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
-          :class="isDark
-            ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'
-            : 'border-emerald-400 text-emerald-600 hover:bg-emerald-50'">
-          <i class="fas fa-check-double text-[9px]"></i> Aprobar todas
-        </button>
-        <button @click="aprobarResultados('dominicales')"
-          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
-          :class="isDark
-            ? 'border-violet-500/40 text-violet-400 hover:bg-violet-500/10'
-            : 'border-violet-400 text-violet-600 hover:bg-violet-50'">
-          <i class="fas fa-sun text-[9px]"></i> Aprobar solo dominicales
-        </button>
-        <button @click="aprobarResultados('ninguna')"
-          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-bold border transition-all"
-          :class="isDark
-            ? 'border-rose-500/40 text-rose-400 hover:bg-rose-500/10'
-            : 'border-rose-400 text-rose-600 hover:bg-rose-50'">
-          <i class="fas fa-times text-[9px]"></i> No aprobar
-        </button>
+      <!-- Filtro Departamento -->
+      <div v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" class="flex flex-col gap-1">
+        <label class="text-[8px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Departamento</label>
+        <div class="relative">
+          <select v-model="filterDepartamento"
+            class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-44 cursor-pointer transition-colors"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
+            <option value="">Todos los departamentos</option>
+            <option v-for="d in opcionesDepartamentos" :key="d" :value="d">{{ d }}</option>
+          </select>
+          <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-400 pointer-events-none"></i>
+        </div>
       </div>
 
-      <!-- Toast inline -->
-      <div v-if="toast.msg" class="mt-3 pt-3 border-t flex items-center gap-2 text-[10px] font-semibold" :class="[
-        isDark ? 'border-white/5' : 'border-slate-100',
-        toast.type === 'success' ? 'text-emerald-500'
-          : toast.type === 'error' ? 'text-rose-500'
-            : 'text-[#FF8F00]'
-      ]">
-        <i class="fas" :class="toast.type === 'success' ? 'fa-circle-check'
-          : toast.type === 'error' ? 'fa-circle-exclamation'
-            : 'fa-circle-info'"></i>
-        {{ toast.msg }}
-      </div>
+      <!-- Solo con extras -->
+      <label class="flex items-center gap-2 cursor-pointer select-none self-end pb-1.5">
+        <div class="relative">
+          <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
+          <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-[#FF8F00]"
+            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
+          <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm"></div>
+        </div>
+        <span class="text-[9px] font-black uppercase tracking-wide whitespace-nowrap"
+          :class="isDark ? 'text-slate-300' : 'text-slate-600'">Solo con extras</span>
+      </label>
 
-      <!-- Resumen -->
-      <div v-if="hayResultados && !verHistorial" class="mt-3 pt-3 border-t flex flex-wrap gap-5"
-        :class="isDark ? 'border-white/5' : 'border-slate-100'">
-        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
-            {{ filtrados.length }}
-          </span>
-          registros{{ filtrados.length !== resultados.length ? ` (de ${resultados.length})` : '' }}
-        </div>
-        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-black text-[#FF8F00]">{{ conExtras }}</span> con horas extra
-        </div>
-        <div class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          Total: <span class="font-black text-emerald-500">{{ formatMinutos(totalMinutos) }}</span>
-        </div>
-        <div v-if="aprobadas > 0" class="text-[10px] text-emerald-500 font-semibold">
-          {{ aprobadas }} aprobadas · {{ noAprobadas }} no aprobadas
-        </div>
-        <div v-if="guardado" class="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
-          <i class="fas fa-check-circle text-[9px]"></i> Guardado en base de datos
-        </div>
+      <!-- Acciones -->
+      <div class="flex items-center gap-2 ml-auto self-end">
+
+        <!-- Calcular -->
+        <button @click="handleCalcular" :disabled="isCalculating || isLoading"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
+          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-xs"></i>
+          <span>{{ isCalculating ? 'Calculando...' : 'Calcular' }}</span>
+        </button>
+
+        <!-- Refrescar historial -->
+        <button @click="handleCargar" :disabled="isLoading"
+          class="p-2 rounded-lg transition-all"
+          :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-500 hover:text-[#FF8F00]'"
+          title="Refrescar historial">
+          <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoading }"></i>
+        </button>
+
+        <!-- Excel -->
+        <button @click="handleExportar" :disabled="isExporting || !registros.length"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all active:scale-95 disabled:opacity-50">
+          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-xs"></i>
+          <span>{{ isExporting ? 'Exportando...' : 'Excel' }}</span>
+        </button>
+
       </div>
     </div>
 
-    <!-- Tabla resultados -->
-    <div v-if="!verHistorial && tablaVisible.length" class="rounded-xl border overflow-hidden"
-      :class="isDark ? 'border-white/5 bg-[#273045]' : 'border-slate-200 bg-white shadow-sm'">
+    <!-- ── Aprobación masiva ───────────────────────────────────────────────── -->
+    <div v-if="registros.length" class="flex flex-wrap items-center gap-2 px-1">
+      <span class="text-[8px] font-black uppercase tracking-widest"
+        :class="isDark ? 'text-slate-500' : 'text-slate-400'">Aprobación:</span>
+      <button @click="handleAprobarMasivo('todas')"
+        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
+        :class="isDark ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-400 text-emerald-600 hover:bg-emerald-50'">
+        <i class="fas fa-check-double text-[8px]"></i> Aprobar todas
+      </button>
+      <button @click="handleAprobarMasivo('dominicales')"
+        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
+        :class="isDark ? 'border-violet-500/40 text-violet-400 hover:bg-violet-500/10' : 'border-violet-400 text-violet-600 hover:bg-violet-50'">
+        <i class="fas fa-sun text-[8px]"></i> Solo dominicales
+      </button>
+      <button @click="handleAprobarMasivo('ninguna')"
+        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
+        :class="isDark ? 'border-rose-500/40 text-rose-400 hover:bg-rose-500/10' : 'border-rose-400 text-rose-600 hover:bg-rose-50'">
+        <i class="fas fa-times text-[8px]"></i> No aprobar
+      </button>
+      <span class="ml-auto text-[9px] font-semibold" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+        <span :class="isDark ? 'text-white font-black' : 'text-slate-900 font-black'">{{ totalRegistros }}</span>
+        registros
+      </span>
+    </div>
 
-      <div class="overflow-x-auto custom-scroll">
-        <table class="w-full text-[10px]">
-          <thead>
-            <tr :class="isDark ? 'bg-[#1e293b] text-slate-400' : 'bg-slate-50 text-slate-500'">
-              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Colaborador</th>
-              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">CC</th>
-              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Depto</th>
-              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Fecha</th>
-              <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Día</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Turno</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Entrada</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Salida</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-amber-500">Extra Entrada</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-blue-500">Extra Salida</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-emerald-500">Total</th>
-              <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Aprobado</th>
+    <!-- ── Nota sexagesimal ───────────────────────────────────────────────── -->
+    <div class="px-4 py-1.5 rounded-xl text-[9px] font-medium"
+      :class="isDark ? 'bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20' : 'bg-orange-50 text-orange-700 border border-orange-200'">
+      <i class="fas fa-circle-info mr-1.5"></i>
+      <strong>NOTA:</strong> Valores en sistema sexagesimal.
+      15 min = 0,25 &nbsp;|&nbsp; 30 min = 0,50 &nbsp;|&nbsp; 45 min = 0,75 &nbsp;|&nbsp; 60 min = 1,0
+    </div>
+
+    <!-- ── Tabla principal ────────────────────────────────────────────────── -->
+    <div class="flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
+      :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
+
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+        <table class="w-full border-separate border-spacing-0 text-[10px]">
+
+          <!-- Encabezado -->
+          <thead class="sticky top-0 z-30">
+            <tr :class="isDark ? 'bg-[#1e293b]' : 'bg-[#334155]'">
+              <th colspan="2" class="px-3 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-r border-white/10 text-white">
+                COLABORADOR
+              </th>
+              <th class="px-3 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-r border-white/10 text-white">
+                FECHA
+              </th>
+              <th colspan="2" class="px-3 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-r border-white/10 text-white">
+                JORNADA LABORAL
+              </th>
+              <th colspan="2" class="px-3 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-r border-white/10 text-white">
+                TIEMPO LABORADO
+              </th>
+              <th v-for="col in ['RN','RNDF','RDDF','HEDO','HENO','HEFD','HEFN']" :key="col"
+                class="px-2 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-r border-white/10 text-white w-12">
+                {{ col }}
+              </th>
+              <th class="px-3 py-2 text-center text-[9px] font-black uppercase tracking-wider border-b border-white/10 text-white w-20">
+                APROBAR
+              </th>
+            </tr>
+            <tr :class="isDark ? 'bg-[#253045]' : 'bg-[#475569]'">
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-28">Cédula</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300">Nombre</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-24">Fecha</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-20">Hora Ini.</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-20">Hora Fin</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-20">Hora Ini.</th>
+              <th class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-white/10 text-slate-300 w-20">Hora Fin</th>
+              <th v-for="_ in 7" :key="_"
+                class="px-2 py-1.5 text-[8px] font-bold text-center tracking-wider border-b border-r border-white/10 text-slate-400">0</th>
+              <th class="px-3 py-1.5 border-b border-white/10 text-slate-300"></th>
             </tr>
           </thead>
+
           <tbody>
-            <tr v-for="(row, i) in tablaVisible" :key="i" class="border-t transition-colors" :class="[
-              isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-              row.es_dominical ? (isDark ? 'bg-violet-500/5' : 'bg-violet-50/40') :
-                row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
-            ]">
-
-              <td class="px-3 py-2 font-semibold max-w-[160px] truncate"
-                :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
-              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
-              <td class="px-3 py-2 max-w-[120px] truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                {{ row.departamento || '—' }}
-              </td>
-              <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
-              <td class="px-3 py-2">
-                <span v-if="row.es_dominical"
-                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-violet-500/15 text-violet-500">
-                  DOMINICAL
-                </span>
-                <span v-else class="text-[10px] font-semibold"
-                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                  {{ getNombreDia(row.fecha) }}
-                </span>
-              </td>
-
-              <td class="px-3 py-2 text-center">
-                <span v-if="row.inicio_turno" class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-500/10"
-                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                  {{ row.inicio_turno }} – {{ row.fin_turno }}
-                </span>
-                <span v-else-if="row.es_dominical" class="text-violet-400 italic text-[9px]">Dominical</span>
-                <span v-else class="text-slate-400 italic text-[9px]">Sin malla</span>
-              </td>
-
-              <td class="px-3 py-2 text-center font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                {{ soloHora(row.fecha_entrada) || '—' }}
-              </td>
-              <td class="px-3 py-2 text-center font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                {{ soloHora(row.fecha_salida) || '—' }}
-              </td>
-
-              <td class="px-3 py-2 text-center">
-                <div v-if="row.minutos_extra_entrada > 0" class="flex flex-col items-center gap-0.5">
-                  <span class="font-black text-amber-500">{{ formatMinutos(row.minutos_extra_entrada) }}</span>
-                  <span class="text-[8px] text-slate-400">
-                    {{ soloHora(row.inicio_extra_entrada) }} → {{ soloHora(row.fin_extra_entrada) }}
-                  </span>
-                </div>
-                <span v-else class="text-slate-400">—</span>
-              </td>
-
-              <td class="px-3 py-2 text-center">
-                <div v-if="row.minutos_extra_salida > 0" class="flex flex-col items-center gap-0.5">
-                  <span class="font-black"
-                    :class="row.es_dominical ? 'text-violet-500' : 'text-blue-500'">
-                    {{ formatMinutos(row.minutos_extra_salida) }}
-                  </span>
-                  <span class="text-[8px] text-slate-400">
-                    {{ soloHora(row.inicio_extra_salida) }} → {{ soloHora(row.fin_extra_salida) }}
-                  </span>
-                </div>
-                <span v-else class="text-slate-400">—</span>
-              </td>
-
-              <td class="px-3 py-2 text-center">
-                <span v-if="row.total_minutos_extra > 0"
-                  class="px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
-                  {{ formatMinutos(row.total_minutos_extra) }}
-                </span>
-                <span v-else class="text-slate-400">0</span>
-              </td>
-
-              <td class="px-3 py-2 text-center">
-                <span v-if="row.aprobado === true"
-                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-600">Sí</span>
-                <span v-else-if="row.aprobado === false"
-                  class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-500">No</span>
-                <span v-else class="text-slate-400 text-[9px]">—</span>
+            <!-- Loading skeleton -->
+            <tr v-if="isLoading || isCalculating" v-for="n in 8" :key="'sk-'+n">
+              <td colspan="15" class="px-3 py-3">
+                <div class="h-3 w-full rounded animate-pulse"
+                  :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
               </td>
             </tr>
+
+            <!-- Sin datos -->
+            <tr v-else-if="!filasPaginadas.length">
+              <td colspan="15" class="px-4 py-14 text-center">
+                <div class="flex flex-col items-center gap-3">
+                  <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+                    :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+                    <i class="fas fa-calculator text-xl text-[#FF8F00]"></i>
+                  </div>
+                  <p class="text-[11px] font-bold uppercase"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                    Selecciona un rango de fechas y presiona Calcular
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Filas de datos -->
+            <template v-else v-for="(item, idx) in filasPaginadas" :key="idx">
+
+              <!-- Cabecera empresa -->
+              <tr v-if="item.tipo === 'empresa'">
+                <td colspan="15"
+                  class="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-white border-b"
+                  :class="isDark ? 'bg-[#1e293b] border-white/10' : 'bg-[#334155] border-slate-600'">
+                  <i class="fas fa-building mr-2 opacity-70"></i>{{ item.data.empresa }}
+                </td>
+              </tr>
+
+              <!-- Fila normal -->
+              <tr v-else-if="item.tipo === 'fila'"
+                class="group transition-all duration-100"
+                :class="[
+                  idx % 2 !== 0
+                    ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60')
+                    : '',
+                  isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-orange-50/40'
+                ]">
+
+                <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                  :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
+                  {{ item.data.cedula }}
+                </td>
+
+                <td class="px-3 py-2 border-b border-r"
+                  :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                  <div class="font-bold uppercase"
+                    :class="isDark ? 'text-white' : 'text-slate-900'">
+                    {{ item.data.nombre }}
+                  </div>
+                  <div class="text-[8px] mt-0.5"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                    {{ item.data.cargo || '—' }}
+                  </div>
+                </td>
+
+                <td class="px-3 py-2 border-b border-r text-center"
+                  :class="[isDark ? 'border-white/5' : 'border-slate-100',
+                    item.data.es_dominical
+                      ? 'text-violet-500 font-black'
+                      : (isDark ? 'text-slate-300' : 'text-slate-700')]">
+                  <span>{{ formatFecha(item.data.fecha) }}</span>
+                  <span v-if="item.data.es_dominical"
+                    class="ml-1 text-[7px] font-black bg-violet-500/20 text-violet-500 px-1 rounded">DOM</span>
+                </td>
+
+                <td class="px-3 py-2 border-b border-r text-center font-mono"
+                  :class="isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-700'">
+                  {{ item.data.inicio_turno || '—' }}
+                </td>
+                <td class="px-3 py-2 border-b border-r text-center font-mono"
+                  :class="isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-700'">
+                  {{ item.data.fin_turno || '—' }}
+                </td>
+
+                <td class="px-3 py-2 border-b border-r text-center font-mono"
+                  :class="isDark ? 'border-white/5 text-emerald-400' : 'border-slate-100 text-emerald-700'">
+                  {{ formatHora(item.data.fecha_entrada) || '—' }}
+                </td>
+                <td class="px-3 py-2 border-b border-r text-center font-mono"
+                  :class="isDark ? 'border-white/5 text-emerald-400' : 'border-slate-100 text-emerald-700'">
+                  {{ formatHora(item.data.fecha_salida) || '—' }}
+                </td>
+
+                <td v-for="col in COLS_HX" :key="col"
+                  class="px-2 py-2 border-b border-r text-center"
+                  :class="[
+                    isDark ? 'border-white/5' : 'border-slate-100',
+                    Number(item.data[col]) > 0
+                      ? (isDark ? 'text-[#FF8F00] font-black' : 'text-orange-600 font-black')
+                      : (isDark ? 'text-slate-600' : 'text-slate-300')
+                  ]">
+                  {{ formatDecimal(item.data[col]) }}
+                </td>
+
+                <td class="px-2 py-2 border-b text-center"
+                  :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                  <div class="flex items-center justify-center gap-1">
+                    <button @click="handleAprobar(item.data.id, true)"
+                      class="w-6 h-6 rounded flex items-center justify-center transition-all"
+                      :class="item.data.aprobado === true
+                        ? 'bg-emerald-500 text-white shadow-sm'
+                        : (isDark ? 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50')">
+                      <i class="fas fa-check text-[9px]"></i>
+                    </button>
+                    <button @click="handleAprobar(item.data.id, false)"
+                      class="w-6 h-6 rounded flex items-center justify-center transition-all"
+                      :class="item.data.aprobado === false
+                        ? 'bg-rose-500 text-white shadow-sm'
+                        : (isDark ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50')">
+                      <i class="fas fa-times text-[9px]"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Subtotal colaborador -->
+              <tr v-else-if="item.tipo === 'subtotal'">
+                <td colspan="7"
+                  class="px-3 py-2 border-b border-r text-[9px] font-black uppercase italic"
+                  :class="isDark
+                    ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20 text-[#FF8F00]'
+                    : 'bg-orange-50 border-orange-200 text-orange-800'">
+                  Subtotal — {{ item.data.nombre }}
+                </td>
+                <td v-for="col in COLS_HX" :key="col"
+                  class="px-2 py-2 border-b border-r text-center text-[10px] font-black"
+                  :class="isDark
+                    ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20 text-[#FF8F00]'
+                    : 'bg-orange-50 border-orange-200 text-orange-700'">
+                  {{ formatDecimal(item.data.subtotales[col]) }}
+                </td>
+                <td class="border-b"
+                  :class="isDark ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20' : 'bg-orange-50 border-orange-200'">
+                </td>
+              </tr>
+
+            </template>
           </tbody>
         </table>
       </div>
 
       <!-- Paginación -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-4 py-2 border-t text-[10px]"
-        :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">
-        <span>Pág {{ currentPage }} / {{ totalPages }} — {{ filtrados.length }} registros</span>
-        <div class="flex gap-1">
+      <div v-if="filasAplanadas.length > 0"
+        class="px-4 py-2 border-t flex items-center justify-between"
+        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
+        <span class="text-[10px] font-bold uppercase" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          Registros: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ totalRegistros }}</span>
+        </span>
+        <div class="flex items-center gap-2">
           <button @click="currentPage--" :disabled="currentPage === 1"
-            class="px-2 py-1 rounded disabled:opacity-30 hover:text-[#FF8F00] transition-colors">
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'">
             <i class="fas fa-chevron-left text-[9px]"></i>
           </button>
-          <button @click="currentPage++" :disabled="currentPage === totalPages"
-            class="px-2 py-1 rounded disabled:opacity-30 hover:text-[#FF8F00] transition-colors">
+          <div class="px-3 py-1 rounded-lg text-[11px] font-bold border"
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-300 text-slate-900'">
+            {{ currentPage }} / {{ totalPages }}
+          </div>
+          <button @click="currentPage++" :disabled="currentPage >= totalPages"
+            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
+            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'">
             <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Estado vacío -->
-    <div v-else-if="!verHistorial && !loadingCalc && calculado"
-      class="flex flex-col items-center justify-center py-16 gap-3">
-      <div class="w-14 h-14 rounded-2xl flex items-center justify-center"
-        :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
-        <i class="fas fa-calculator text-2xl text-[#FF8F00]"></i>
-      </div>
-      <p class="text-[11px] font-semibold" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-        No se encontraron registros con los filtros aplicados
-      </p>
-    </div>
-
-    <!-- ── HISTORIAL ── -->
-    <div v-if="verHistorial" class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="w-1 h-5 bg-[#FF8F00] rounded-full"></div>
-        <h3 class="text-[11px] font-black uppercase tracking-wide" :class="isDark ? 'text-white' : 'text-slate-800'">
-          Historial guardado</h3>
-        <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8F00]/10 text-[#FF8F00]">
-          {{ historial.length }} registros
-        </span>
-        <button @click="cargarHistorial" class="ml-1 text-[10px] transition-colors"
-          :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-400 hover:text-[#FF8F00]'">
-          <i class="fas fa-rotate-right mr-1"></i>Actualizar
-        </button>
-
-        <!-- Filtro departamento historial -->
-        <div v-if="tieneFiltroDepartamento && departamentosHistorial.length" class="flex items-center gap-1 ml-2">
-          <select v-model="historialDepartamento" @change="cargarHistorial"
-            class="text-[10px] font-semibold px-2 py-1 rounded-lg border outline-none transition-colors"
-            :class="isDark
-              ? 'bg-[#1e293b] border-white/10 text-white focus:border-[#FF8F00]'
-              : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-[#FF8F00]'">
-            <option value="">Todos los departamentos</option>
-            <option v-for="d in departamentosHistorial" :key="d" :value="d">{{ d }}</option>
-          </select>
-        </div>
-
-        <button @click="descargarHistorial" :disabled="!historial.length"
-          class="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black border transition-all disabled:opacity-40"
-          :class="isDark
-            ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10'
-            : 'border-blue-400 text-blue-600 hover:bg-blue-50'">
-          <i class="fas fa-file-excel text-xs"></i> Descargar historial
-        </button>
-      </div>
-
-      <div v-if="historial.length" class="rounded-xl border overflow-hidden"
-        :class="isDark ? 'border-white/5 bg-[#273045]' : 'border-slate-200 bg-white shadow-sm'">
-        <div class="overflow-x-auto custom-scroll">
-          <table class="w-full text-[10px]">
-            <thead>
-              <tr :class="isDark ? 'bg-[#1e293b] text-slate-400' : 'bg-slate-50 text-slate-500'">
-                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Colaborador</th>
-                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">CC</th>
-                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Depto</th>
-                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Fecha</th>
-                <th class="px-3 py-2 text-left font-black uppercase tracking-wide">Día</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Turno</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-amber-500">Extra Entrada</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-blue-500">Extra Salida</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide text-emerald-500">Total</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Aprobado</th>
-                <th class="px-3 py-2 text-center font-black uppercase tracking-wide">Calculado por</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, i) in historial" :key="i" class="border-t transition-colors" :class="[
-                isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50',
-                row.es_dominical ? (isDark ? 'bg-violet-500/5' : 'bg-violet-50/40') :
-                  row.total_minutos_extra > 0 ? (isDark ? 'bg-[#FF8F00]/5' : 'bg-orange-50/40') : ''
-              ]">
-                <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ row.nombre }}</td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.cedula }}</td>
-                <td class="px-3 py-2 max-w-[120px] truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  {{ row.departamento || '—' }}
-                </td>
-                <td class="px-3 py-2 font-mono" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ row.fecha }}</td>
-                <td class="px-3 py-2">
-                  <span v-if="row.es_dominical"
-                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-violet-500/15 text-violet-500">
-                    DOMINICAL
-                  </span>
-                  <span v-else class="text-[10px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                    {{ getNombreDia(row.fecha) }}
-                  </span>
-                </td>
-                <td class="px-3 py-2 text-center" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  {{ row.inicio_turno ? `${row.inicio_turno} – ${row.fin_turno}` : (row.es_dominical ? 'Dominical' : '—') }}
-                </td>
-                <td class="px-3 py-2 text-center">
-                  <div v-if="row.minutos_extra_entrada > 0" class="flex flex-col items-center">
-                    <span class="font-black text-amber-500">{{ formatMinutos(row.minutos_extra_entrada) }}</span>
-                    <span class="text-[8px] text-slate-400">
-                      {{ soloHora(row.inicio_extra_entrada) }} → {{ soloHora(row.fin_extra_entrada) }}
-                    </span>
-                  </div>
-                  <span v-else class="text-slate-400">—</span>
-                </td>
-                <td class="px-3 py-2 text-center">
-                  <div v-if="row.minutos_extra_salida > 0" class="flex flex-col items-center">
-                    <span class="font-black" :class="row.es_dominical ? 'text-violet-500' : 'text-blue-500'">
-                      {{ formatMinutos(row.minutos_extra_salida) }}
-                    </span>
-                    <span class="text-[8px] text-slate-400">
-                      {{ soloHora(row.inicio_extra_salida) }} → {{ soloHora(row.fin_extra_salida) }}
-                    </span>
-                  </div>
-                  <span v-else class="text-slate-400">—</span>
-                </td>
-                <td class="px-3 py-2 text-center">
-                  <span v-if="row.total_minutos_extra > 0"
-                    class="px-2 py-0.5 rounded-full font-black text-[9px] bg-emerald-500/10 text-emerald-600">
-                    {{ formatMinutos(row.total_minutos_extra) }}
-                  </span>
-                  <span v-else class="text-slate-400">0</span>
-                </td>
-                <td class="px-3 py-2 text-center">
-                  <span v-if="row.aprobado === true"
-                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-600">Sí</span>
-                  <span v-else-if="row.aprobado === false"
-                    class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-500">No</span>
-                  <span v-else class="text-slate-400 text-[9px]">—</span>
-                </td>
-                <td class="px-3 py-2 text-center text-[9px]" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
-                  {{ row.calculado_por || '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div v-else class="flex flex-col items-center py-12 gap-2">
-        <i class="fas fa-history text-3xl text-slate-300"></i>
-        <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          No hay cálculos guardados aún
-        </p>
       </div>
     </div>
 
@@ -446,275 +362,81 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import * as XLSX from 'xlsx';
+import { onMounted, watch } from 'vue';
+import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 
 const props = defineProps({
   isDark: Boolean,
   company: String,
 });
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+const isSuperAdmin = session.isSuperAdmin || false;
 
-// Permisos
-const isSuperAdmin = computed(() => session.isSuperAdmin === true);
-const tieneFiltroDepartamento = computed(
-  () => isSuperAdmin.value || session.permisos?.['admin.filtro_departamento'] === true,
-);
+const {
+  registros,
+  isLoading,
+  isCalculating,
+  isExporting,
+  startDate,
+  endDate,
+  filterNombre,
+  filterCargo,
+  filterDepartamento,
+  soloConExtras,
+  opcionesCargos,
+  opcionesDepartamentos,
+  filasPaginadas,
+  filasAplanadas,
+  currentPage,
+  totalPages,
+  totalRegistros,
+  cargarHistorial,
+  calcularYCargar,
+  aprobarRegistro,
+  aprobarMasivo,
+  exportarExcel,
+  formatHora,
+  formatFecha,
+  formatDecimal,
+  COLS_HX,
+  hasPerm,
+} = useReporteMallas();
 
-// ── Estado ──
-const startDate = ref(new Date().toISOString().split('T')[0]);
-const endDate = ref(new Date().toISOString().split('T')[0]);
-const soloConExtras = ref(false);
-const selectedDepartamento = ref('');
-const historialDepartamento = ref('');
-const loadingCalc = ref(false);
-const loadingGuardar = ref(false);
-const calculado = ref(false);
-const guardado = ref(false);
-const resultados = ref([]);
-const historial = ref([]);
-const verHistorial = ref(false);
-const currentPage = ref(1);
-const ITEMS_PER_PAGE = 20;
-const toast = ref({ msg: '', type: '' });
-
-// Área/segmento del perfil del usuario
-const areaActiva = ref(null);
-const segmentoActivo = ref(null);
-
-// ── Computed ──
-const fechasValidas = computed(() => !!(startDate.value || endDate.value));
-const hayResultados = computed(() => resultados.value.length > 0);
-
-const departamentos = computed(() => {
-  const deps = resultados.value.map((r) => r.departamento).filter(Boolean);
-  return [...new Set(deps)].sort();
-});
-
-const departamentosHistorial = computed(() => {
-  const deps = historial.value.map((r) => r.departamento).filter(Boolean);
-  return [...new Set(deps)].sort();
-});
-
-const conExtras = computed(() => resultados.value.filter((r) => r.total_minutos_extra > 0).length);
-const aprobadas = computed(() => resultados.value.filter((r) => r.aprobado === true).length);
-const noAprobadas = computed(() => resultados.value.filter((r) => r.aprobado === false).length);
-
-const totalMinutos = computed(() =>
-  filtrados.value.reduce((acc, r) => acc + (r.total_minutos_extra || 0), 0),
-);
-
-const filtrados = computed(() => {
-  let data = resultados.value;
-  if (selectedDepartamento.value) {
-    data = data.filter((r) => r.departamento === selectedDepartamento.value);
-  }
-  if (soloConExtras.value) {
-    data = data.filter((r) => r.total_minutos_extra > 0);
-  }
-  return data;
-});
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filtrados.value.length / ITEMS_PER_PAGE)));
-const tablaVisible = computed(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE;
-  return filtrados.value.slice(start, start + ITEMS_PER_PAGE);
-});
-
-watch([soloConExtras, selectedDepartamento, filtrados], () => { currentPage.value = 1; });
-
-// ── Helpers ──
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-function getNombreDia(fecha) {
-  if (!fecha) return '';
-  const [a, m, d] = fecha.split('-').map(Number);
-  const js = new Date(a, m - 1, d).getDay(); // 0=Dom...6=Sáb
-  const idx = js === 0 ? 6 : js - 1;
-  return DIAS[idx];
+async function handleCargar() {
+  await cargarHistorial(props.company);
 }
 
-function soloHora(dt) {
-  if (!dt) return null;
-  const t = dt.split(' ')[1];
-  return t ? t.slice(0, 5) : null;
-}
-
-function formatMinutos(mins) {
-  if (!mins) return '0 min';
-  const h = Math.floor(mins / 60);
-  const m = Math.round(mins % 60);
-  if (h === 0) return `${m} min`;
-  return m > 0 ? `${h}h ${m}min` : `${h}h`;
-}
-
-function showToast(msg, type = 'info', ms = 4500) {
-  toast.value = { msg, type };
-  setTimeout(() => { toast.value = { msg: '', type: '' }; }, ms);
-}
-
-function buildParams() {
-  const body = {
-    startDate: startDate.value || null,
-    endDate: endDate.value || null,
-    company: props.company || session.company || null,
-    calculado_por: session.name || 'Admin',
-  };
-  if (!tieneFiltroDepartamento.value) {
-    if (areaActiva.value) body.area_id = areaActiva.value;
-    if (segmentoActivo.value) body.segmento_id = segmentoActivo.value;
-  }
-  return body;
-}
-
-// ── Aprobación masiva (client-side sobre resultados en memoria) ──
-function aprobarResultados(tipo) {
-  resultados.value = resultados.value.map((r) => {
-    if (tipo === 'todas') return { ...r, aprobado: true };
-    if (tipo === 'dominicales') return { ...r, aprobado: r.es_dominical ? true : false };
-    return { ...r, aprobado: false }; // ninguna
-  });
-  const txt = tipo === 'todas' ? 'Todas aprobadas' : tipo === 'dominicales' ? 'Solo dominicales aprobadas' : 'Marcadas como no aprobadas';
-  showToast(txt, 'success');
-}
-
-// ── Carga de perfil en mount ──
-onMounted(async () => {
-  if (!isSuperAdmin.value && session.id_odoo) {
-    try {
-      const baseUrl = API_BASE_URL.replace(/\/$/, '');
-      const res = await fetch(`${baseUrl}/perfil-completo/${session.id_odoo}`);
-      if (res.ok) {
-        const perfil = await res.json();
-        if (perfil.area?.id) areaActiva.value = perfil.area.id;
-        if (perfil.segmento?.id) segmentoActivo.value = perfil.segmento.id;
-      }
-    } catch { }
-  }
-});
-
-// ── CALCULAR (sin guardar) ──
-async function calcular() {
-  loadingCalc.value = true;
-  calculado.value = false;
-  guardado.value = false;
-  resultados.value = [];
-  selectedDepartamento.value = '';
-  verHistorial.value = false;
-
+async function handleCalcular() {
   try {
-    const res = await fetch(`${API_BASE_URL}/horas-extra/calcular`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildParams()),
-    });
-    if (!res.ok) throw new Error('Error al calcular');
-    resultados.value = await res.json();
-    calculado.value = true;
-    showToast(
-      `${resultados.value.length} registros — ${conExtras.value} con horas extra`,
-      'info',
-    );
-  } catch (err) {
-    showToast(err.message || 'Error de conexión', 'error');
-  } finally {
-    loadingCalc.value = false;
-  }
+    await calcularYCargar(props.company);
+  } catch { /* el composable ya loguea */ }
 }
 
-// ── GUARDAR (recalcula + persiste en DB incluyendo aprobado) ──
-async function guardar() {
-  if (!hayResultados.value) return;
-  loadingGuardar.value = true;
-
+async function handleExportar() {
   try {
-    const params = {
-      ...buildParams(),
-      registros: resultados.value.map((r) => ({
-        cedula: r.cedula,
-        fecha: r.fecha,
-        aprobado: r.aprobado ?? null,
-      })),
-    };
-    const res = await fetch(`${API_BASE_URL}/horas-extra/guardar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) throw new Error('Error al guardar');
-    guardado.value = true;
-    showToast('Cálculo guardado correctamente en la base de datos', 'success');
-  } catch (err) {
-    showToast(err.message || 'Error al guardar', 'error');
-  } finally {
-    loadingGuardar.value = false;
-  }
+    await exportarExcel(props.company);
+  } catch { /* silencioso */ }
 }
 
-// ── DESCARGAR Excel ──
-function buildFilas(data) {
-  return data.map((r) => ({
-    Colaborador: r.nombre,
-    Cedula: r.cedula,
-    Departamento: r.departamento || '',
-    Fecha: r.fecha,
-    Dia: r.es_dominical ? 'Dominical' : getNombreDia(r.fecha),
-    Inicio_Turno: r.inicio_turno || '',
-    Fin_Turno: r.fin_turno || '',
-    Entrada_Real: soloHora(r.fecha_entrada) || '',
-    Salida_Real: soloHora(r.fecha_salida) || '',
-    Inicio_Extra_Entrada: soloHora(r.inicio_extra_entrada) || '',
-    Fin_Extra_Entrada: soloHora(r.fin_extra_entrada) || '',
-    Minutos_Extra_Entrada: r.minutos_extra_entrada || 0,
-    Inicio_Extra_Salida: soloHora(r.inicio_extra_salida) || '',
-    Fin_Extra_Salida: soloHora(r.fin_extra_salida) || '',
-    Minutos_Extra_Salida: r.minutos_extra_salida || 0,
-    Total_Minutos_Extra: r.total_minutos_extra || 0,
-    Es_Dominical: r.es_dominical ? 'Sí' : 'No',
-    Aprobado: r.aprobado === true ? 'Sí' : r.aprobado === false ? 'No' : 'Pendiente',
-  }));
-}
-
-function descargar() {
-  if (!hayResultados.value) return;
-  const ws = XLSX.utils.json_to_sheet(buildFilas(filtrados.value));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Horas Extra');
-  XLSX.writeFile(wb, `HorasExtra_${startDate.value}_${endDate.value}.xlsx`);
-}
-
-// ── HISTORIAL ──
-async function cargarHistorial() {
+async function handleAprobar(id, aprobado) {
   try {
-    const params = new URLSearchParams();
-    if (startDate.value) params.set('startDate', startDate.value);
-    if (endDate.value) params.set('endDate', endDate.value);
-    const company = props.company || session.company;
-    if (company) params.set('company', company);
-    if (soloConExtras.value) params.set('soloConExtras', 'true');
-    if (historialDepartamento.value) params.set('departamento', historialDepartamento.value);
-
-    const res = await fetch(`${API_BASE_URL}/horas-extra/historial?${params}`);
-    if (res.ok) historial.value = await res.json();
-  } catch { }
+    await aprobarRegistro(id, aprobado);
+  } catch { /* silencioso */ }
 }
 
-function descargarHistorial() {
-  if (!historial.value.length) return;
-  const filas = historial.value.map((r) => ({
-    ...buildFilas([r])[0],
-    Calculado_Por: r.calculado_por || '',
-  }));
-  const ws = XLSX.utils.json_to_sheet(filas);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Historial');
-  XLSX.writeFile(wb, `HistorialHorasExtra_${new Date().toISOString().slice(0, 10)}.xlsx`);
+async function handleAprobarMasivo(tipo) {
+  try {
+    await aprobarMasivo(props.company, tipo);
+  } catch { /* silencioso */ }
 }
 
-function toggleHistorial() {
-  verHistorial.value = !verHistorial.value;
-  if (verHistorial.value) cargarHistorial();
-}
+watch(() => props.company, (v) => {
+  cargarHistorial(v);
+});
+
+onMounted(() => {
+  cargarHistorial(props.company);
+});
 </script>
+<style></style>

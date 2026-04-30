@@ -235,6 +235,26 @@ export function useReporteMallas() {
     }
   }
 
+  async function aprobarMasivo(company, tipo) {
+    try {
+      await axios.patch(`${API_BASE_URL}/usuarios/horas-extra/aprobar`, {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        company: company || '',
+        tipo,
+      });
+      // Reflejar localmente
+      registros.value = registros.value.map((r) => {
+        if (tipo === 'todas') return { ...r, aprobado: true };
+        if (tipo === 'dominicales') return { ...r, aprobado: r.es_dominical ? true : false };
+        return { ...r, aprobado: false };
+      });
+    } catch (err) {
+      console.error('Error aprobación masiva:', err);
+      throw err;
+    }
+  }
+
   async function aprobarRegistro(id, aprobado) {
     try {
       aprobacionesLocales.value[id] = aprobado;
@@ -348,6 +368,7 @@ export function useReporteMallas() {
     cargarHistorial,
     calcularYCargar,
     aprobarRegistro,
+    aprobarMasivo,
     exportarExcel,
 
     // Helpers UI
