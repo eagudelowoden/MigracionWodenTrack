@@ -8,7 +8,7 @@ import {
   Param,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { HorasExtraService } from './horas-extra.service';
 
 @Controller('usuarios/horas-extra')
@@ -106,7 +106,7 @@ export class HorasExtraController {
     @Query('departamento') departamento?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
-    @Res() res: Response,
+    @Res() res?: Response,
   ) {
     const buffer = await this.service.exportarExcel({
       startDate,
@@ -122,14 +122,14 @@ export class HorasExtraController {
     const fecha = new Date().toISOString().slice(0, 10);
     const filename = `reporte_hx_${fecha}.xlsx`;
 
-    res.setHeader(
+    res!.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader(
+    res!.setHeader(
       'Content-Disposition',
       `attachment; filename="${filename}"`,
     );
-    res.send(buffer);
+    res!.send(buffer);
   }
 }
