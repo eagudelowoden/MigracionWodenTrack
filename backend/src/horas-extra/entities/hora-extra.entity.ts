@@ -70,6 +70,32 @@ export class HoraExtra {
   @Column({ type: 'bit', nullable: true })
   aprobado: boolean | null;
 
+  // Cargo del colaborador
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  cargo: string | null;
+
+  // Categorías colombianas (horas decimales sexagesimales: 30min = 0.50)
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  rn: number; // Recargo Nocturno (21:00-06:00 dentro del turno, día ordinario)
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  rndf: number; // Recargo Nocturno Día Festivo
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  rddf: number; // Recargo Diurno Día Festivo
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  hedo: number; // Horas Extra Diurnas Ordinarias
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  heno: number; // Horas Extra Nocturnas Ordinarias
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  hefd: number; // Horas Extra Festivas Diurnas
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  hefn: number; // Horas Extra Festivas Nocturnas
+
   @CreateDateColumn()
   created_at: Date;
 }
