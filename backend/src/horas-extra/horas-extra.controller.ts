@@ -106,7 +106,7 @@ export class HorasExtraController {
     @Query('departamento') departamento?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
-    @Res() res?: Response,
+    @Res() res: Response,
   ) {
     const buffer = await this.service.exportarExcel({
       startDate,
