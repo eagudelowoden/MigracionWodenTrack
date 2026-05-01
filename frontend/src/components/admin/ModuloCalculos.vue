@@ -105,31 +105,6 @@
       </div>
     </div>
 
-    <!-- ── Aprobación masiva ───────────────────────────────────────────────── -->
-    <div v-if="registros.length" class="flex flex-wrap items-center gap-2 px-1">
-      <span class="text-[8px] font-black uppercase tracking-widest"
-        :class="isDark ? 'text-slate-500' : 'text-slate-400'">Aprobación:</span>
-      <button @click="handleAprobarMasivo('todas')"
-        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
-        :class="isDark ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-400 text-emerald-600 hover:bg-emerald-50'">
-        <i class="fas fa-check-double text-[8px]"></i> Aprobar todas
-      </button>
-      <button @click="handleAprobarMasivo('dominicales')"
-        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
-        :class="isDark ? 'border-violet-500/40 text-violet-400 hover:bg-violet-500/10' : 'border-violet-400 text-violet-600 hover:bg-violet-50'">
-        <i class="fas fa-sun text-[8px]"></i> Solo dominicales
-      </button>
-      <button @click="handleAprobarMasivo('ninguna')"
-        class="flex items-center gap-1 px-3 py-1 rounded-lg text-[9px] font-bold border transition-all"
-        :class="isDark ? 'border-rose-500/40 text-rose-400 hover:bg-rose-500/10' : 'border-rose-400 text-rose-600 hover:bg-rose-50'">
-        <i class="fas fa-times text-[8px]"></i> No aprobar
-      </button>
-      <span class="ml-auto text-[9px] font-semibold" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-        <span :class="isDark ? 'text-white font-black' : 'text-slate-900 font-black'">{{ totalRegistros }}</span>
-        registros
-      </span>
-    </div>
-
     <!-- ── Nota sexagesimal ───────────────────────────────────────────────── -->
     <div class="px-4 py-1.5 rounded-xl text-[9px] font-medium"
       :class="isDark ? 'bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20' : 'bg-orange-50 text-orange-700 border border-orange-200'">
@@ -394,7 +369,6 @@ const {
   cargarHistorial,
   calcularYCargar,
   aprobarRegistro,
-  aprobarMasivo,
   exportarExcel,
   formatHora,
   formatFecha,
@@ -422,12 +396,6 @@ async function handleExportar() {
 async function handleAprobar(id, aprobado) {
   try {
     await aprobarRegistro(id, aprobado);
-  } catch { /* silencioso */ }
-}
-
-async function handleAprobarMasivo(tipo) {
-  try {
-    await aprobarMasivo(props.company, tipo);
   } catch { /* silencioso */ }
 }
 
