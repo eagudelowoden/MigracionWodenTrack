@@ -2,7 +2,7 @@
   <div class="h-full animate-fade-in flex flex-col gap-2">
 
     <!-- ── Barra de controles ──────────────────────────────────────────────── -->
-    <div class="flex flex-wrap items-end gap-2 p-2 px-3 rounded-2xl border transition-all duration-300 shadow-sm"
+    <div class="flex flex-wrap items-end gap-2 p-2 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
       :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
 
       <!-- Desde -->
