@@ -51,13 +51,19 @@ export class NovedadesController {
     return this.novedadesService.findMias(+idOdoo, fechaDesde, fechaHasta, buscar);
   }
 
-  // GET /novedades/por-area?idOdoo=X  — novedades donde el usuario es responsable (jefe)
+  // GET /novedades/por-area?idOdoo=X  — solo empleados de las áreas que gestiona
   @Get('por-area')
   findPorArea(@Query('idOdoo') idOdoo: string) {
-    return this.novedadesService.findPorResponsable(+idOdoo);
+    return this.novedadesService.findPorAreaResponsable(+idOdoo);
   }
 
-  // GET /novedades/por-departamento?departamentos=A,B  — novedades del depto (director)
+  // GET /novedades/por-segmento?idOdoo=X  — todos los empleados del segmento (con o sin área)
+  @Get('por-segmento')
+  findPorSegmento(@Query('idOdoo') idOdoo: string) {
+    return this.novedadesService.findPorSegmentoResponsable(+idOdoo);
+  }
+
+  // GET /novedades/por-departamento?departamentos=A,B  — todos en los deptos del director
   @Get('por-departamento')
   findPorDepartamento(@Query('departamentos') departamentos: string) {
     const list = departamentos

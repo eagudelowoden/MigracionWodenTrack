@@ -140,7 +140,7 @@ export function useNovedades() {
     }
   };
 
-  // ─── Novedades de mi área (jefe inmediato) ───────────────────────────────
+  // ─── Nivel ÁREA: solo los empleados del área asignada ───────────────────
   const fetchPorArea = async (idOdoo) => {
     try {
       loading.value = true;
@@ -154,7 +154,21 @@ export function useNovedades() {
     }
   };
 
-  // ─── Novedades de mi departamento (director) ─────────────────────────────
+  // ─── Nivel SEGMENTO: todos los empleados del segmento (con o sin área) ───
+  const fetchPorSegmento = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-segmento`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por segmento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── Nivel DEPARTAMENTO: todos en los deptos configurados ────────────────
   const fetchPorDepartamentos = async (departamentos) => {
     if (!departamentos?.length) { novedades.value = []; return; }
     try {
@@ -186,6 +200,7 @@ export function useNovedades() {
     jefe,
     fetchJefeDeArea,
     fetchPorArea,
+    fetchPorSegmento,
     fetchPorDepartamentos,
   };
 }

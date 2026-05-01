@@ -248,6 +248,7 @@ const MODULOS = [
     'admin.filtro_departamento',
     'marcacion.novedad',
     'novedades.ver_area',
+    'novedades.ver_segmento',
     'novedades.director',
 ];
 
@@ -267,12 +268,13 @@ const MODULO_LABELS = {
     'admin.novedades.rrhh': { nombre: 'Novedades — RRHH', desc: 'Auditoría y revisión' },
     'admin.filtro_departamento': { nombre: 'Filtro Departamento', desc: 'Limitar vista por departamento' },
     'marcacion.novedad': { nombre: 'Registrar Novedad', desc: 'Ver botón de novedad en marcación' },
-    'novedades.ver_area': { nombre: 'Novedades — Jefe Área', desc: 'Ver y aprobar novedades de su área asignada' },
-    'novedades.director': { nombre: 'Novedades — Director Depto', desc: 'Ver todas las novedades del departamento' },
+    'novedades.ver_area': { nombre: 'Novedades — Jefe Área', desc: 'Solo empleados de su área asignada (area_id)' },
+    'novedades.ver_segmento': { nombre: 'Novedades — Jefe Segmento', desc: 'Todos los empleados del segmento (con o sin área)' },
+    'novedades.director': { nombre: 'Novedades — Director Depto', desc: 'Todos los empleados del departamento completo' },
 };
 const isSubNovedad = (slug) =>
     ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh',
-     'novedades.ver_area', 'novedades.director'].includes(slug);
+     'novedades.ver_area', 'novedades.ver_segmento', 'novedades.director'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,

@@ -155,33 +155,64 @@ export class NovedadesService {
     }));
   }
 
-  // ─── FIND POR RESPONSABLE (jefe inmediato: ve su área) ───────────────────
-  async findPorResponsable(idOdoo: number) {
-    const novedades = await this.novedadRepo.find({
-      where: { responsableIdOdoo: idOdoo },
-      order: { createdAt: 'DESC' },
-    });
-    if (!novedades.length) return [];
+  // ─── Helper: novedades de un conjunto de cédulas ─────────────────────────
+  private async novedadesPorCedulas(
+    empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string }>,
+  ) {
+    if (!empleados.length) return [];
 
-    const nombres = [...new Set(novedades.map((n) => n.nombre).filter(Boolean))];
-    const escapedNames = nombres
-      .map((n) => `'${n.replace(/'/g, "''")}'`)
+    const cedulas = [
+      ...new Set(empleados.map((e) => e.cedula).filter(Boolean)),
+    ];
+    if (!cedulas.length) return [];
+
+    const escaped = cedulas
+      .map((c) => `'${String(c).replace(/'/g, "''")}'`)
       .join(', ');
 
-    const usuarios: Array<{ nombre: string; departamento: string; cargo: string }> =
-      await this.dataSource.query(
-        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
-      );
-    const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
+    const novedades = await this.novedadRepo
+      .createQueryBuilder('n')
+      .where(`n.cedula IN (${escaped})`)
+      .orderBy('n.createdAt', 'DESC')
+      .getMany();
 
+    const empMap = new Map(empleados.map((e) => [e.cedula, e]));
     return novedades.map((n) => ({
       ...n,
-      departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
-      cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+      departamento: empMap.get(n.cedula)?.departamento ?? null,
+      cargo: empMap.get(n.cedula)?.cargo ?? null,
     }));
   }
 
-  // ─── FIND POR DEPARTAMENTOS (director: ve todo su depto) ─────────────────
+  // ─── ÁREA: solo empleados cuyo area_id pertenece a este responsable ───────
+  async findPorAreaResponsable(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_areas a    ON u.area_id = a.id
+        INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+        WHERE  r.id_odoo = ${idOdoo}
+          AND  u.identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
+  // ─── SEGMENTO: TODOS los empleados del segmento, sin importar area_id ────
+  async findPorSegmentoResponsable(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_segmentos s ON u.segmento_id = s.id
+        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+        WHERE  r.id_odoo = ${idOdoo}
+          AND  u.identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
+  // ─── DEPARTAMENTO: todos en los deptos del director ───────────────────────
   async findPorDepartamentos(departamentos: string[]) {
     if (!departamentos.length) return [];
 
@@ -189,24 +220,15 @@ export class NovedadesService {
       .map((d) => `'${d.replace(/'/g, "''")}'`)
       .join(', ');
 
-    const usuariosEnDepto: Array<{ nombre: string; departamento: string; cargo: string }> =
-      await this.dataSource.query(
-        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE departamento IN (${escapedDeptos})`,
-      );
-    if (!usuariosEnDepto.length) return [];
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(`
+        SELECT identificacion AS cedula, nombre, departamento, cargo
+        FROM   usuarios_registrados
+        WHERE  departamento IN (${escapedDeptos})
+          AND  identificacion IS NOT NULL
+      `);
 
-    const nombresEnDepto = new Set(usuariosEnDepto.map((u) => u.nombre));
-    const usuarioMap = new Map(usuariosEnDepto.map((u) => [u.nombre, u]));
-
-    const novedades = await this.novedadRepo.find({ order: { createdAt: 'DESC' } });
-
-    return novedades
-      .filter((n) => nombresEnDepto.has(n.nombre))
-      .map((n) => ({
-        ...n,
-        departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
-        cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
-      }));
+    return this.novedadesPorCedulas(empleados);
   }
 
   // ─── FIND MIS NOVEDADES (historial del usuario) ───────────────────────────

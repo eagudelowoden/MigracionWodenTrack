@@ -359,21 +359,30 @@ import axios from 'axios';
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['volver']);
 
-const { novedades, loading, aprobarJefe, getFileUrl, fetchPorArea, fetchPorDepartamentos } = useNovedades();
+const { novedades, loading, aprobarJefe, getFileUrl, fetchPorArea, fetchPorSegmento, fetchPorDepartamentos } = useNovedades();
 
 const API_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const miIdOdoo = session?.id_odoo;
 
-// ─── Nivel de acceso ──────────────────────────────────────────────────────
-const esDirector = session?.isSuperAdmin ||
+// ─── Nivel de acceso (prioridad: director > segmento > área) ─────────────
+const esDirector  = session?.isSuperAdmin ||
     session?.permisos?.['novedades.director'] === true;
-const esJefeArea = !esDirector &&
-    session?.permisos?.['novedades.ver_area'] === true;
+const esSegmento  = !esDirector &&
+    session?.permisos?.['novedades.ver_segmento'] === true;
+// esArea: sin permiso especial también puede caer aquí como fallback
+const esArea = !esDirector && !esSegmento;
 
-// Etiqueta del modo activo
-const modoLabel = esDirector ? 'Director — Todo el departamento' : 'Jefe — Mi área';
-const modoIcon  = esDirector ? 'fas fa-building' : 'fas fa-users';
+const modoLabel = esDirector
+    ? 'Director — Todo el departamento'
+    : esSegmento
+        ? 'Jefe — Todo el segmento'
+        : 'Jefe — Solo mi área';
+const modoIcon = esDirector
+    ? 'fas fa-building'
+    : esSegmento
+        ? 'fas fa-sitemap'
+        : 'fas fa-users';
 
 const verMotivos = (motivojefe) => {
     motivoModalRRHH.value = { open: true, texto: motivojefe };
@@ -406,8 +415,10 @@ onMounted(async () => {
             const deptos = Array.isArray(res.data) ? res.data : [];
             await fetchPorDepartamentos(deptos);
         } catch {
-            await fetchPorArea(miIdOdoo);
+            await fetchPorSegmento(miIdOdoo);
         }
+    } else if (esSegmento) {
+        await fetchPorSegmento(miIdOdoo);
     } else {
         await fetchPorArea(miIdOdoo);
     }
