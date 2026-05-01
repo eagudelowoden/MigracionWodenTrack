@@ -1,11 +1,6 @@
 <template>
   <div class="h-full animate-fade-in flex flex-col gap-2 font-round-custom">
 
-    <!-- ══════════════════════════════════════════════════════════════════════
-         ASIGNACIÓN DE MALLAS
-    ══════════════════════════════════════════════════════════════════════════ -->
-    <template>
-
       <!-- Barra superior asignación -->
       <div
         class="flex flex-wrap items-center justify-between gap-3 p-2 px-4 rounded-2xl border transition-all duration-300 -mt-1 shadow-sm"
@@ -306,8 +301,6 @@
           </div>
         </div>
       </div>
-
-    </template>
 
   </div>
 </template>
