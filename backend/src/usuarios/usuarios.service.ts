@@ -176,6 +176,30 @@ export class UsuariosService {
       return acc;
     }, {});
 
+    // Auto-detectar si es responsable de segmento o área en la estructura local.
+    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
+    // para que un override manual (nivel_acceso='user') siempre prevalezca.
+    const [respSegmento, respArea] = await Promise.all([
+      this.dataSource.query(`
+        SELECT TOP 1 1 AS es
+        FROM   maestro_segmentos s
+        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+        WHERE  r.id_odoo = ${emp.id}
+      `),
+      this.dataSource.query(`
+        SELECT TOP 1 1 AS es
+        FROM   maestro_areas a
+        INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+        WHERE  r.id_odoo = ${emp.id}
+      `),
+    ]);
+
+    // Responsable de segmento → puede ver todas las novedades del segmento
+    if (respSegmento.length > 0 && mapaPermisos['novedades.ver_segmento'] === undefined) {
+      mapaPermisos['novedades.ver_segmento'] = true;
+    }
+    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
     const openAttendances = await this.odoo.executeKw<any[]>(
