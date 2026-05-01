@@ -287,7 +287,14 @@ onMounted(async () => {
       if (resp.ok) {
         const perfil = await resp.json();
         userProfile.value = perfil;
-        if (perfil.area?.id) {
+
+        // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
+        // Responsable de área → filtrar solo por área.
+        // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
+        const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
+        if (esResponsableSegmento && perfil.segmento?.id) {
+          selectedSegmento.value = perfil.segmento.id;
+        } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;
         }
       }
