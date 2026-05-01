@@ -1,165 +1,200 @@
 <template>
   <div class="page-root">
 
-    <!-- Blobs de fondo -->
-    <div class="blob blob-orange"></div>
-    <div class="blob blob-blue"></div>
-    <div class="blob blob-purple"></div>
+    <!-- Grid HUD de fondo -->
+    <div class="hud-grid"></div>
+    <div class="hud-scan"></div>
 
-    <!-- ── LOADING ────────────────────────────────────── -->
+    <!-- Glows -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="glow glow-3"></div>
+
+    <!-- ── LOADING ──────────────────────────────────── -->
     <div v-if="loading" class="state-center">
-      <div class="loader-ring"></div>
-      <p class="loader-text">Sincronizando...</p>
+      <div class="hud-loader">
+        <div class="hud-loader-ring"></div>
+        <div class="hud-loader-ring ring-2"></div>
+        <i class="fab fa-android hud-loader-icon"></i>
+      </div>
+      <p class="loader-text"><span class="blink-char">▮</span> Sincronizando sistema...</p>
     </div>
 
-    <!-- ── CONTENIDO ──────────────────────────────────── -->
+    <!-- ── CONTENIDO ────────────────────────────────── -->
     <div v-else-if="apkData" class="content-wrap">
 
-      <!-- Cabecera branding -->
+      <!-- Cabecera -->
       <div class="brand-head">
-        <div class="app-icon">
-          <i class="fab fa-android"></i>
+        <div class="brand-icon-wrap">
+          <div class="brand-icon-glow"></div>
+          <div class="brand-icon">
+            <i class="fab fa-android"></i>
+          </div>
         </div>
-        <div class="brand-text">
-          <h1 class="brand-name">Woden<span class="brand-orange">Track</span></h1>
-          <span class="brand-badge">Uso Profesional</span>
+        <div>
+          <div class="sys-label"><span class="blink-char">◈</span> SISTEMA ACTIVO</div>
+          <h1 class="brand-name">
+            <span class="name-woden">WODEN</span><span class="name-track">TRACK</span>
+          </h1>
+          <p class="brand-sub">Control de asistencia · Android</p>
         </div>
       </div>
 
-      <!-- ── Sin APK disponible ── -->
-      <div v-if="!apkData.exists" class="glass-card empty-card">
-        <div class="empty-icon">
-          <i class="fas fa-clock"></i>
-        </div>
-        <h3 class="empty-title">Sin actualizaciones</h3>
-        <p class="empty-text">
-          Estamos preparando una nueva versión. Intenta de nuevo en unos minutos.
-        </p>
+      <!-- Sin APK -->
+      <div v-if="!apkData.exists" class="hud-card empty-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <i class="fas fa-clock empty-icon"></i>
+        <p class="empty-title">// SIN ACTUALIZACIÓN DISPONIBLE</p>
+        <p class="empty-text">Nueva versión en preparación. Reintenta en unos minutos.</p>
       </div>
 
-      <!-- ── APK disponible ── -->
-      <div v-else class="glass-card main-card">
+      <!-- Con APK -->
+      <div v-else class="hud-card main-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
 
-        <!-- Versión y tamaño -->
-        <div class="meta-row">
-          <div class="meta-chip">
-            <i class="fas fa-tag"></i>
-            <span>v{{ apkData.version }}</span>
+        <!-- Metadatos -->
+        <div class="meta-bar">
+          <div class="meta-tag">
+            <span class="meta-label">VERSIÓN</span>
+            <span class="meta-value">v{{ apkData.version }}</span>
           </div>
-          <div class="meta-chip">
-            <i class="fas fa-weight-hanging"></i>
-            <span>{{ apkData.size }} MB</span>
+          <div class="meta-divider"></div>
+          <div class="meta-tag">
+            <span class="meta-label">TAMAÑO</span>
+            <span class="meta-value">{{ apkData.size }} MB</span>
           </div>
-          <div class="meta-chip meta-chip-green">
-            <i class="fas fa-circle-check"></i>
-            <span>Verificada</span>
+          <div class="meta-divider"></div>
+          <div class="meta-tag">
+            <span class="meta-label">ESTADO</span>
+            <span class="meta-value meta-ok"><i class="fas fa-shield-halved"></i> OK</span>
           </div>
         </div>
 
-        <!-- Botón de descarga principal -->
+        <!-- Botón descarga -->
         <button @click="descargarApk" class="btn-download">
-          <span class="btn-download-icon">
-            <i class="fas fa-download"></i>
-          </span>
-          <span class="btn-download-text">
-            <span class="btn-download-main">Descargar APK</span>
-            <span class="btn-download-sub">Android 6.0+</span>
-          </span>
-          <i class="fas fa-chevron-right btn-download-arrow"></i>
+          <div class="btn-download-bg"></div>
+          <div class="btn-download-content">
+            <div class="btn-dl-left">
+              <div class="btn-dl-icon"><i class="fas fa-download"></i></div>
+              <div>
+                <span class="btn-dl-main">DESCARGAR APK</span>
+                <span class="btn-dl-sub">Toca para iniciar · Android 6.0+</span>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right btn-dl-arrow"></i>
+          </div>
         </button>
 
-        <!-- Acciones secundarias -->
-        <div class="secondary-actions">
-          <button @click="activeModal = 'changelog'" class="btn-secondary">
-            <i class="fas fa-rocket text-blue-400"></i>
-            Novedades
+        <!-- Acciones -->
+        <div class="action-row">
+          <button @click="activeModal = 'changelog'" class="btn-action">
+            <i class="fas fa-rocket"></i>
+            <span>Novedades</span>
           </button>
-          <button @click="activeModal = 'qr'" class="btn-secondary">
-            <i class="fas fa-qrcode text-[#FF8F00]"></i>
-            Código QR
+          <button @click="activeModal = 'qr'" class="btn-action">
+            <i class="fas fa-qrcode"></i>
+            <span>Código QR</span>
           </button>
         </div>
       </div>
 
-      <!-- Sección de privacidad -->
-      <div class="glass-card privacy-card">
-        <div class="privacy-row">
-          <div class="privacy-icons">
-            <span class="priv-icon"><i class="fas fa-camera-slash"></i></span>
-            <span class="priv-icon"><i class="fas fa-microphone-slash"></i></span>
-            <span class="priv-icon"><i class="fas fa-address-book-slash"></i></span>
+      <!-- Privacidad -->
+      <div class="hud-card privacy-card">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+
+        <div class="priv-header">
+          <div class="priv-badges">
+            <span class="priv-badge"><i class="fas fa-microphone-slash"></i></span>
+            <span class="priv-badge"><i class="fas fa-user-slash"></i></span>
+            <span class="priv-badge"><i class="fas fa-ban"></i></span>
           </div>
-          <div class="privacy-info">
-            <p class="privacy-title">WodenTrack NO es intrusiva</p>
-            <p class="privacy-sub">Sin acceso a cámara, micrófono ni contactos</p>
+          <div>
+            <p class="priv-title">NO INTRUSIVA</p>
+            <p class="priv-sub">Sin acceso a micrófono, contactos ni datos privados</p>
           </div>
         </div>
         <button @click="activeModal = 'privacy'" class="btn-privacy">
-          ¿Cómo funcionan los permisos?
-          <i class="fas fa-arrow-right text-[10px]"></i>
+          <i class="fas fa-shield-halved"></i>
+          Ver política de permisos
+          <i class="fas fa-chevron-right text-[9px] ml-auto"></i>
         </button>
       </div>
 
       <!-- Back -->
       <router-link to="/login" class="back-link">
-        <i class="fas fa-arrow-left"></i> Volver al inicio
+        <i class="fas fa-arrow-left"></i> VOLVER AL SISTEMA
       </router-link>
 
     </div>
 
-    <!-- ── MODALES ──────────────────────────────────────── -->
+    <!-- ── MODALES ───────────────────────────────────── -->
     <Transition name="modal">
       <div v-if="activeModal" class="modal-overlay" @click.self="activeModal = null">
         <div class="modal-box">
+          <div class="corner tl"></div><div class="corner tr"></div>
+          <div class="corner bl"></div><div class="corner br"></div>
 
-          <button @click="activeModal = null" class="modal-close">
-            <i class="fas fa-xmark"></i>
-          </button>
-
-          <!-- Privacidad -->
-          <div v-if="activeModal === 'privacy'" class="modal-body">
-            <div class="modal-icon modal-icon-green">
+          <div class="modal-head">
+            <div v-if="activeModal === 'privacy'" class="modal-head-icon icon-green">
               <i class="fas fa-shield-halved"></i>
             </div>
-            <h3 class="modal-title">Política de Cero Permisos</h3>
-            <p class="modal-text">
-              Tu dispositivo muestra alertas cuando una app intenta acceder a datos privados.
-              WodenTrack <strong>nunca activará esas alertas</strong>.
-            </p>
-            <div class="modal-highlight">
-              <i class="fas fa-check-circle text-emerald-400 mt-0.5 shrink-0"></i>
-              <p>Nuestra arquitectura es <em>No Intrusiva</em> y funciona sin pedir permisos de fotos, contactos o micrófono.</p>
-            </div>
-            <button @click="activeModal = null" class="btn-modal-ok">Entendido</button>
-          </div>
-
-          <!-- QR -->
-          <div v-if="activeModal === 'qr'" class="modal-body">
-            <div class="modal-icon modal-icon-orange">
+            <div v-else-if="activeModal === 'qr'" class="modal-head-icon icon-orange">
               <i class="fas fa-qrcode"></i>
             </div>
-            <h3 class="modal-title">Escaneo Rápido</h3>
-            <div v-if="apkData?.exists" class="qr-wrapper">
-              <qrcode-vue :value="apkData.downloadUrl" :size="180" level="H" foreground="#0f121a" />
-            </div>
-            <p v-else class="text-rose-400 text-xs font-bold uppercase text-center">QR no disponible</p>
-            <p class="modal-hint">Apunta tu cámara al código para descargar</p>
-          </div>
-
-          <!-- Changelog -->
-          <div v-if="activeModal === 'changelog'" class="modal-body">
-            <div class="modal-icon modal-icon-blue">
+            <div v-else class="modal-head-icon icon-blue">
               <i class="fas fa-rocket"></i>
             </div>
-            <h3 class="modal-title">Novedades</h3>
-            <ul class="changelog-list">
-              <li v-for="(item, i) in apkData.changelog" :key="i" class="changelog-item">
-                <i class="fas fa-circle-dot text-[#FF8F00] text-[8px] mt-1 shrink-0"></i>
-                <span>{{ item }}</span>
-              </li>
-            </ul>
+
+            <div class="modal-head-text">
+              <span class="modal-sys-label">// MÓDULO</span>
+              <h3 class="modal-title">
+                {{ activeModal === 'privacy' ? 'POLÍTICA DE PERMISOS' : activeModal === 'qr' ? 'ESCANEO RÁPIDO' : 'NOVEDADES DEL SISTEMA' }}
+              </h3>
+            </div>
+
+            <button @click="activeModal = null" class="modal-close">
+              <i class="fas fa-xmark"></i>
+            </button>
           </div>
 
+          <div class="modal-body">
+
+            <!-- Privacidad -->
+            <template v-if="activeModal === 'privacy'">
+              <p class="modal-text">
+                Tu dispositivo alerta cuando una app accede a datos privados.
+                <strong>WodenTrack nunca activará esas alertas.</strong>
+              </p>
+              <div class="modal-highlight">
+                <i class="fas fa-circle-check text-emerald-400 shrink-0 mt-0.5"></i>
+                <p>Arquitectura <em>No Intrusiva</em> — funciona sin permisos de cámara, micrófono ni contactos.</p>
+              </div>
+              <button @click="activeModal = null" class="btn-modal-ok">ENTENDIDO</button>
+            </template>
+
+            <!-- QR -->
+            <template v-if="activeModal === 'qr'">
+              <div v-if="apkData?.exists" class="qr-frame">
+                <qrcode-vue :value="apkData.downloadUrl" :size="170" level="H" foreground="#050810" />
+              </div>
+              <p v-else class="text-rose-400 text-xs font-bold uppercase text-center">QR no disponible</p>
+              <p class="modal-hint">Apunta tu cámara para descargar directamente</p>
+            </template>
+
+            <!-- Changelog -->
+            <template v-if="activeModal === 'changelog'">
+              <ul class="changelog-list">
+                <li v-for="(item, i) in apkData.changelog" :key="i" class="changelog-item">
+                  <span class="cl-index">{{ String(i + 1).padStart(2, '0') }}</span>
+                  <span class="cl-text">{{ item }}</span>
+                </li>
+              </ul>
+            </template>
+
+          </div>
         </div>
       </div>
     </Transition>
@@ -174,19 +209,18 @@ import { useApkRepo } from '../../composables/adminLogica/useApkRepo.js';
 
 const { apkData, loading, error, fetchApkInfo, descargarApk } = useApkRepo();
 const activeModal = ref(null);
-
 onMounted(fetchApkInfo);
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
 * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
 
-/* ─── ROOT ───────────────────────────────────────── */
+/* ─── ROOT ──────────────────────────────────────── */
 .page-root {
   min-height: 100dvh;
-  background: #080c18;
+  background: #050810;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -194,488 +228,434 @@ onMounted(fetchApkInfo);
   padding: 2rem 1rem;
   position: relative;
   overflow: hidden;
-  color: #ffffff;
+  color: #e2e8f0;
 }
 
-/* ─── BLOBS ──────────────────────────────────────── */
-.blob {
+/* ─── HUD GRID ──────────────────────────────────── */
+.hud-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,143,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,143,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+.hud-scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(255, 143, 0, 0.015) 50%,
+    transparent 100%
+  );
+  background-size: 100% 200px;
+  animation: scan 8s linear infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  from { background-position: 0 -200px; }
+  to   { background-position: 0 100vh; }
+}
+
+/* ─── GLOWS ─────────────────────────────────────── */
+.glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(90px);
   pointer-events: none;
-  animation: drift 12s ease-in-out infinite alternate;
 }
-.blob-orange {
-  width: 420px; height: 420px;
-  background: rgba(255, 143, 0, 0.12);
-  top: -100px; left: -100px;
+.glow-1 {
+  width: 500px; height: 500px;
+  background: rgba(255,143,0,0.08);
+  top: -180px; left: -180px;
+  animation: breathe 7s ease-in-out infinite alternate;
 }
-.blob-blue {
-  width: 360px; height: 360px;
-  background: rgba(59, 91, 219, 0.1);
-  bottom: -80px; right: -80px;
-  animation-delay: -4s;
+.glow-2 {
+  width: 400px; height: 400px;
+  background: rgba(59,91,219,0.07);
+  bottom: -150px; right: -150px;
+  animation: breathe 9s ease-in-out infinite alternate-reverse;
 }
-.blob-purple {
-  width: 280px; height: 280px;
-  background: rgba(139, 92, 246, 0.07);
+.glow-3 {
+  width: 250px; height: 250px;
+  background: rgba(0,212,255,0.04);
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: -8s;
+  transform: translate(-50%,-50%);
+  animation: breathe 5s ease-in-out infinite alternate;
 }
-@keyframes drift {
-  from { transform: scale(1) translate(0, 0); }
-  to   { transform: scale(1.15) translate(20px, -20px); }
+@keyframes breathe {
+  from { opacity: 0.6; transform: scale(1); }
+  to   { opacity: 1;   transform: scale(1.15); }
 }
 
-/* ─── LOADING ────────────────────────────────────── */
+/* ─── LOADING ───────────────────────────────────── */
 .state-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.5rem; z-index: 10;
 }
-.loader-ring {
-  width: 44px; height: 44px;
-  border: 3px solid rgba(255,143,0,0.2);
-  border-top-color: #FF8F00;
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loader-text {
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  color: #FF8F00;
-}
-
-/* ─── CONTENT ────────────────────────────────────── */
-.content-wrap {
-  width: 100%;
-  max-width: 400px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* ─── BRAND HEAD ─────────────────────────────────── */
-.brand-head {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0 0.25rem;
-  margin-bottom: 0.5rem;
-}
-.app-icon {
+.hud-loader {
+  position: relative;
   width: 64px; height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #1e2540, #111827);
-  border: 1px solid rgba(255,143,0,0.2);
-  box-shadow: 0 0 30px rgba(255,143,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.9rem;
-  color: #FF8F00;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
 }
-.brand-text { display: flex; flex-direction: column; gap: 0.3rem; }
-.brand-name {
-  font-size: 2rem;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  color: #f1f5f9;
+.hud-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #FF8F00;
+  animation: spin 1s linear infinite;
 }
-.brand-orange { color: #FF8F00; }
-.brand-badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  background: rgba(255,143,0,0.1);
-  border: 1px solid rgba(255,143,0,0.2);
-  border-radius: 99px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #FF8F00;
-  width: fit-content;
+.ring-2 {
+  inset: 8px;
+  border-top-color: rgba(255,143,0,0.4);
+  animation-duration: 1.5s;
+  animation-direction: reverse;
 }
+.hud-loader-icon { color: #FF8F00; font-size: 1.2rem; position: relative; z-index: 1; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── GLASS CARD ─────────────────────────────────── */
-.glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 24px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
-}
-
-/* ─── MAIN CARD ──────────────────────────────────── */
-.main-card {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-/* Meta chips */
-.meta-row {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.meta-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.75rem;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 99px;
+.loader-text {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: rgba(255,143,0,0.7);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
-.meta-chip i { font-size: 0.65rem; }
-.meta-chip-green { color: #4ade80; border-color: rgba(74,222,128,0.2); background: rgba(74,222,128,0.07); }
+.blink-char { animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─── CONTENT ───────────────────────────────────── */
+.content-wrap {
+  width: 100%; max-width: 420px;
+  z-index: 10;
+  display: flex; flex-direction: column; gap: 0.85rem;
+}
+
+/* ─── BRAND HEAD ────────────────────────────────── */
+.brand-head {
+  display: flex; align-items: center; gap: 1.1rem;
+  padding: 0.5rem 0.25rem 0.75rem;
+}
+.brand-icon-wrap { position: relative; flex-shrink: 0; }
+.brand-icon-glow {
+  position: absolute; inset: -8px;
+  background: radial-gradient(circle, rgba(255,143,0,0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: breathe 3s ease-in-out infinite alternate;
+}
+.brand-icon {
+  width: 68px; height: 68px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #0f1629, #1a2040);
+  border: 1px solid rgba(255,143,0,0.35);
+  box-shadow: 0 0 20px rgba(255,143,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; color: #FF8F00;
+  position: relative; z-index: 1;
+}
+.sys-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; font-weight: 700;
+  color: #FF8F00; letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 0.2rem;
+}
+.brand-name {
+  font-size: 2.1rem; font-weight: 900;
+  letter-spacing: -0.02em; line-height: 1;
+  margin-bottom: 0.25rem;
+}
+.name-woden { color: #f1f5f9; }
+.name-track  { color: #FF8F00; }
+.brand-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; color: rgba(255,255,255,0.25);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+/* ─── HUD CARD ──────────────────────────────────── */
+.hud-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,143,0,0.15);
+  border-radius: 20px;
+  position: relative;
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 40px rgba(255,143,0,0.04), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Esquinas HUD */
+.corner {
+  position: absolute;
+  width: 14px; height: 14px;
+  border-color: #FF8F00;
+  border-style: solid;
+}
+.corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+.corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+.corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+.corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+/* ─── MAIN CARD ─────────────────────────────────── */
+.main-card { display: flex; flex-direction: column; gap: 1.1rem; }
+
+/* Meta bar */
+.meta-bar {
+  display: flex; align-items: center;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,143,0,0.1);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  gap: 1rem;
+}
+.meta-tag { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; align-items: center; }
+.meta-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem; font-weight: 700;
+  color: rgba(255,255,255,0.25); letter-spacing: 0.15em;
+}
+.meta-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem; font-weight: 700; color: #f1f5f9;
+}
+.meta-ok { color: #4ade80; }
+.meta-divider { width: 1px; height: 28px; background: rgba(255,143,0,0.15); }
 
 /* Download button */
 .btn-download {
-  width: 100%;
-  padding: 1rem 1.25rem;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #FF8F00 0%, #e67700 100%);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 28px -4px rgba(255,143,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
-  transition: all 0.25s ease;
+  width: 100%; border: none; cursor: pointer;
+  border-radius: 16px; padding: 0;
+  position: relative; overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.btn-download:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 36px -4px rgba(255,143,0,0.6);
-}
+.btn-download:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -4px rgba(255,143,0,0.5); }
 .btn-download:active { transform: translateY(0); }
 
-.btn-download-icon {
-  width: 40px; height: 40px;
-  border-radius: 12px;
-  background: rgba(0,0,0,0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  color: #ffffff;
-  flex-shrink: 0;
+.btn-download-bg {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, #FF8F00 0%, #e06800 60%, #FF8F00 100%);
+  background-size: 200% 200%;
+  animation: shimmer 3s ease infinite;
 }
-.btn-download-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  flex: 1;
+@keyframes shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-.btn-download-main {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #000000;
-  letter-spacing: -0.01em;
+.btn-download-content {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem; gap: 1rem;
 }
-.btn-download-sub {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: rgba(0,0,0,0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.btn-dl-left { display: flex; align-items: center; gap: 0.85rem; }
+.btn-dl-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: rgba(0,0,0,0.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; color: #fff; flex-shrink: 0;
 }
-.btn-download-arrow {
-  color: rgba(0,0,0,0.35);
-  font-size: 0.75rem;
+.btn-dl-main {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; font-weight: 700;
+  color: #000; letter-spacing: 0.05em;
 }
+.btn-dl-sub {
+  display: block;
+  font-size: 0.6rem; font-weight: 600;
+  color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-top: 0.1rem;
+}
+.btn-dl-arrow { color: rgba(0,0,0,0.3); font-size: 0.8rem; }
 
-/* Secondary actions */
-.secondary-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-}
-.btn-secondary {
-  padding: 0.75rem;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: #cbd5e1;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* Action row */
+.action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.btn-action {
+  padding: 0.75rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,143,0,0.12);
+  color: rgba(255,255,255,0.55);
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   transition: all 0.2s;
 }
-.btn-secondary:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
-}
-
-/* ─── EMPTY CARD ─────────────────────────────────── */
-.empty-card {
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-.empty-icon {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: rgba(255,143,0,0.1);
-  border: 1px solid rgba(255,143,0,0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.btn-action:hover {
+  background: rgba(255,143,0,0.07);
+  border-color: rgba(255,143,0,0.3);
   color: #FF8F00;
-  font-size: 1.25rem;
-  animation: pulse 2s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255,143,0,0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(255,143,0,0); }
-}
-.empty-title { font-size: 0.85rem; font-weight: 800; color: #FF8F00; text-transform: uppercase; letter-spacing: 0.1em; }
-.empty-text { font-size: 0.75rem; color: #64748b; line-height: 1.6; max-width: 260px; }
+.btn-action i { font-size: 0.8rem; }
 
-/* ─── PRIVACY CARD ───────────────────────────────── */
-.privacy-card {
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ─── EMPTY CARD ────────────────────────────────── */
+.empty-card { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+.empty-icon { font-size: 1.5rem; color: #FF8F00; animation: breathe 2s ease-in-out infinite alternate; }
+.empty-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem; font-weight: 700;
+  color: rgba(255,143,0,0.7); letter-spacing: 0.1em;
 }
-.privacy-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.privacy-icons {
-  display: flex;
-  gap: 0.35rem;
-  flex-shrink: 0;
-}
-.priv-icon {
-  width: 32px; height: 32px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4ade80;
-  font-size: 0.7rem;
-}
-.privacy-info { flex: 1; }
-.privacy-title { font-size: 0.78rem; font-weight: 800; color: #f1f5f9; margin-bottom: 0.2rem; }
-.privacy-sub { font-size: 0.65rem; color: #64748b; font-weight: 500; }
+.empty-text { font-size: 0.75rem; color: #475569; line-height: 1.6; }
 
-.btn-privacy {
-  width: 100%;
-  padding: 0.7rem 1rem;
-  border-radius: 12px;
-  background: rgba(74,222,128,0.05);
+/* ─── PRIVACY CARD ──────────────────────────────── */
+.privacy-card { display: flex; flex-direction: column; gap: 1rem; }
+.priv-header { display: flex; align-items: center; gap: 0.85rem; }
+.priv-badges { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.priv-badge {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(74,222,128,0.06);
   border: 1px solid rgba(74,222,128,0.15);
+  display: flex; align-items: center; justify-content: center;
+  color: #4ade80; font-size: 0.65rem;
+}
+.priv-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; font-weight: 700;
+  color: #4ade80; letter-spacing: 0.1em; margin-bottom: 0.2rem;
+}
+.priv-sub { font-size: 0.65rem; color: #475569; }
+.btn-privacy {
+  width: 100%; padding: 0.7rem 1rem;
+  border-radius: 12px;
+  background: rgba(74,222,128,0.04);
+  border: 1px solid rgba(74,222,128,0.12);
   color: #4ade80;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  display: flex; align-items: center; gap: 0.5rem;
   transition: all 0.2s;
 }
-.btn-privacy:hover { background: rgba(74,222,128,0.1); }
+.btn-privacy:hover { background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.25); }
 
-/* ─── BACK LINK ──────────────────────────────────── */
+/* ─── BACK ──────────────────────────────────────── */
 .back-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.18);
-  text-decoration: none;
-  transition: color 0.2s;
-  padding: 0.5rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.12); text-decoration: none;
+  transition: color 0.2s; padding: 0.5rem;
 }
-.back-link:hover { color: rgba(255,255,255,0.6); }
+.back-link:hover { color: rgba(255,143,0,0.6); }
 
-/* ─── MODAL ──────────────────────────────────────── */
+/* ─── MODAL ─────────────────────────────────────── */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(4, 6, 15, 0.85);
-  backdrop-filter: blur(16px);
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center; padding: 1rem;
+  background: rgba(2,4,12,0.9);
+  backdrop-filter: blur(20px);
 }
-@media (min-width: 480px) {
-  .modal-overlay { align-items: center; }
-}
+@media (min-width: 500px) { .modal-overlay { align-items: center; } }
 
 .modal-box {
-  width: 100%;
-  max-width: 380px;
-  background: #0f1629;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 28px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+  width: 100%; max-width: 400px;
+  background: #080d1e;
+  border: 1px solid rgba(255,143,0,0.2);
+  border-radius: 24px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 60px rgba(255,143,0,0.1), 0 40px 80px rgba(0,0,0,0.6);
+}
+
+.modal-head {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255,143,0,0.1);
+  background: rgba(255,143,0,0.03);
+}
+.modal-head-icon {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.icon-green  { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2); color: #4ade80; }
+.icon-orange { background: rgba(255,143,0,0.1);  border: 1px solid rgba(255,143,0,0.2);  color: #FF8F00; }
+.icon-blue   { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: #60a5fa; }
+
+.modal-head-text { flex: 1; }
+.modal-sys-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem; color: rgba(255,143,0,0.5); letter-spacing: 0.2em; display: block;
+}
+.modal-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem; font-weight: 700; color: #f1f5f9; letter-spacing: 0.05em;
 }
 .modal-close {
-  position: absolute;
-  top: 1.1rem; right: 1.1rem;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #94a3b8;
-  font-size: 0.8rem;
-  cursor: pointer;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  color: #64748b; font-size: 0.75rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-  z-index: 1;
+  transition: all 0.2s; flex-shrink: 0;
 }
-.modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
 .modal-body {
-  padding: 2rem 1.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  padding: 1.5rem;
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
 }
-
-.modal-icon {
-  width: 60px; height: 60px;
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
-}
-.modal-icon-green  { background: rgba(74,222,128,0.1);  border: 1px solid rgba(74,222,128,0.2);  color: #4ade80; }
-.modal-icon-orange { background: rgba(255,143,0,0.1);   border: 1px solid rgba(255,143,0,0.2);   color: #FF8F00; }
-.modal-icon-blue   { background: rgba(96,165,250,0.1);  border: 1px solid rgba(96,165,250,0.2);  color: #60a5fa; }
-
-.modal-title {
-  font-size: 0.9rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #f1f5f9;
-  text-align: center;
-}
-.modal-text {
-  font-size: 0.78rem;
-  color: #64748b;
-  line-height: 1.7;
-  text-align: center;
-}
+.modal-text { font-size: 0.78rem; color: #64748b; line-height: 1.7; text-align: center; }
 .modal-text strong { color: #f1f5f9; }
-
 .modal-highlight {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(74,222,128,0.05);
-  border-left: 3px solid #4ade80;
-  border-radius: 0 12px 12px 0;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  line-height: 1.6;
-  width: 100%;
+  display: flex; align-items: flex-start; gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  background: rgba(74,222,128,0.04);
+  border-left: 2px solid #4ade80;
+  border-radius: 0 10px 10px 0;
+  font-size: 0.73rem; color: #64748b; line-height: 1.6; width: 100%;
 }
 .modal-highlight em { color: #fff; font-style: normal; font-weight: 700; }
-
 .btn-modal-ok {
-  width: 100%;
-  padding: 0.9rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #FF8F00, #e67700);
-  color: #000;
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  width: 100%; padding: 0.85rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FF8F00, #e06800);
+  color: #000; font-size: 0.72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.15em;
+  border: none; cursor: pointer; transition: all 0.2s;
+  font-family: 'JetBrains Mono', monospace;
 }
 .btn-modal-ok:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,143,0,0.4); }
 
-.qr-wrapper {
-  padding: 1rem;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+.qr-frame {
+  padding: 0.85rem; background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 0 30px rgba(255,143,0,0.15);
 }
 .modal-hint {
-  font-size: 0.65rem;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 600;
-  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem; color: #334155;
+  text-transform: uppercase; letter-spacing: 0.15em; text-align: center;
 }
 
 .changelog-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  list-style: none;
-  padding: 0; margin: 0;
-  max-height: 260px;
-  overflow-y: auto;
+  width: 100%; display: flex; flex-direction: column; gap: 0.5rem;
+  list-style: none; padding: 0; margin: 0;
+  max-height: 280px; overflow-y: auto;
 }
 .changelog-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  line-height: 1.5;
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,143,0,0.08);
+  border-radius: 10px;
 }
+.cl-index {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; font-weight: 700;
+  color: #FF8F00; flex-shrink: 0; margin-top: 1px;
+}
+.cl-text { font-size: 0.73rem; color: #94a3b8; line-height: 1.5; }
 
-/* ─── TRANSITIONS ────────────────────────────────── */
-.modal-enter-active { transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-.modal-leave-active { transition: all 0.25s ease; }
-.modal-enter-from   { opacity: 0; }
-.modal-leave-to     { opacity: 0; }
-.modal-enter-from .modal-box { transform: translateY(40px) scale(0.95); }
-.modal-leave-to   .modal-box { transform: scale(0.96); }
+/* ─── TRANSITIONS ───────────────────────────────── */
+.modal-enter-active { transition: opacity 0.3s ease; }
+.modal-leave-active { transition: opacity 0.25s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active .modal-box { animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes slideUp {
+  from { transform: translateY(30px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
 </style>
