@@ -6,7 +6,9 @@
       "Bash(git push *)",
       "Bash(xargs grep *)",
       "Bash(grep -E \"\\\\.\\(vue|js|ts\\)$\")",
-      "Bash(grep -r \"reporte-novedades\" /c/Users/Daniel/Documents/WodenTrack/MigracionWodenTrack/.claude/worktrees/musing-shannon-4fbf2f/backend -type f --include=\"*.ts\" --include=\"*.js\" -l)"
+      "Bash(grep -r \"reporte-novedades\" /c/Users/Daniel/Documents/WodenTrack/MigracionWodenTrack/.claude/worktrees/musing-shannon-4fbf2f/backend -type f --include=\"*.ts\" --include=\"*.js\" -l)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git checkout *)"
     ]
   }
 }
