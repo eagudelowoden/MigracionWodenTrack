@@ -15,7 +15,7 @@ export class MallasUploadService {
     private readonly asignacionRepo: Repository<MallaAsignacion>,
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
-  ) {}
+  ) { }
 
   async procesarExcel(fileBuffer: any, asignado_por?: string) {
     const workbook = new ExcelJS.Workbook();
@@ -37,8 +37,8 @@ export class MallasUploadService {
       try {
         const cedula = row.getCell(1).text?.trim();
         const nombreMalla = row.getCell(2).text?.trim();
-        const fechaInicio =
-          row.getCell(3).text?.trim() || new Date().toISOString().slice(0, 10);
+        const fechaInicio = row.getCell(3).text?.trim() ||
+          new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
 
         if (!cedula || !nombreMalla) {
           errores.push({
