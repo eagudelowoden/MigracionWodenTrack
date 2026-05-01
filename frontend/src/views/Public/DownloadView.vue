@@ -1,195 +1,157 @@
 <template>
   <div class="page-root">
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
 
-    <!-- Grid HUD de fondo -->
-    <div class="hud-grid"></div>
-    <div class="hud-scan"></div>
-
-    <!-- Glows -->
-    <div class="glow glow-1"></div>
-    <div class="glow glow-2"></div>
-    <div class="glow glow-3"></div>
-
-    <!-- ── LOADING ──────────────────────────────────── -->
+    <!-- LOADING -->
     <div v-if="loading" class="state-center">
-      <div class="hud-loader">
-        <div class="hud-loader-ring"></div>
-        <div class="hud-loader-ring ring-2"></div>
-        <i class="fab fa-android hud-loader-icon"></i>
-      </div>
-      <p class="loader-text"><span class="blink-char">▮</span> Sincronizando sistema...</p>
+      <div class="spin-ring"></div>
+      <p class="loading-txt">Cargando...</p>
     </div>
 
-    <!-- ── CONTENIDO ────────────────────────────────── -->
-    <div v-else-if="apkData" class="content-wrap">
+    <!-- CONTENIDO -->
+    <div v-else-if="apkData" class="content">
 
-      <!-- Cabecera -->
-      <div class="brand-head">
-        <div class="brand-icon-wrap">
-          <div class="brand-icon-glow"></div>
-          <div class="brand-icon">
-            <i class="fab fa-android"></i>
-          </div>
+      <!-- App icon + nombre -->
+      <div class="brand">
+        <div class="app-icon">
+          <i class="fab fa-android"></i>
         </div>
-        <div>
-          <div class="sys-label"><span class="blink-char">◈</span> SISTEMA ACTIVO</div>
-          <h1 class="brand-name">
-            <span class="name-woden">WODEN</span><span class="name-track">TRACK</span>
-          </h1>
-          <p class="brand-sub">Control de asistencia · Android</p>
+        <div class="brand-info">
+          <p class="brand-sys">◈ Sistema activo</p>
+          <h1 class="brand-title">Woden<span>Track</span></h1>
+          <p class="brand-desc">Control de asistencia · Android</p>
         </div>
       </div>
 
       <!-- Sin APK -->
-      <div v-if="!apkData.exists" class="hud-card empty-card">
-        <div class="corner tl"></div><div class="corner tr"></div>
-        <div class="corner bl"></div><div class="corner br"></div>
-        <i class="fas fa-clock empty-icon"></i>
-        <p class="empty-title">// SIN ACTUALIZACIÓN DISPONIBLE</p>
-        <p class="empty-text">Nueva versión en preparación. Reintenta en unos minutos.</p>
+      <div v-if="!apkData.exists" class="card empty">
+        <i class="fas fa-clock" style="font-size:1.5rem;color:#FF8F00;"></i>
+        <p class="empty-title">Sin actualización disponible</p>
+        <p class="empty-sub">Nueva versión en preparación. Intenta más tarde.</p>
       </div>
 
       <!-- Con APK -->
-      <div v-else class="hud-card main-card">
-        <div class="corner tl"></div><div class="corner tr"></div>
-        <div class="corner bl"></div><div class="corner br"></div>
+      <div v-else class="card main">
 
-        <!-- Metadatos -->
-        <div class="meta-bar">
-          <div class="meta-tag">
-            <span class="meta-label">VERSIÓN</span>
-            <span class="meta-value">v{{ apkData.version }}</span>
+        <!-- Chips de info -->
+        <div class="chips">
+          <div class="chip">
+            <i class="fas fa-tag"></i>
+            <span>v{{ apkData.version }}</span>
           </div>
-          <div class="meta-divider"></div>
-          <div class="meta-tag">
-            <span class="meta-label">TAMAÑO</span>
-            <span class="meta-value">{{ apkData.size }} MB</span>
+          <div class="chip">
+            <i class="fas fa-database"></i>
+            <span>{{ apkData.size }} MB</span>
           </div>
-          <div class="meta-divider"></div>
-          <div class="meta-tag">
-            <span class="meta-label">ESTADO</span>
-            <span class="meta-value meta-ok"><i class="fas fa-shield-halved"></i> OK</span>
+          <div class="chip chip-green">
+            <i class="fas fa-check-circle"></i>
+            <span>Verificada</span>
           </div>
         </div>
 
         <!-- Botón descarga -->
-        <button @click="descargarApk" class="btn-download">
-          <div class="btn-download-bg"></div>
-          <div class="btn-download-content">
-            <div class="btn-dl-left">
-              <div class="btn-dl-icon"><i class="fas fa-download"></i></div>
-              <div>
-                <span class="btn-dl-main">DESCARGAR APK</span>
-                <span class="btn-dl-sub">Toca para iniciar · Android 6.0+</span>
-              </div>
-            </div>
-            <i class="fas fa-chevron-right btn-dl-arrow"></i>
+        <button class="btn-dl" @click="descargarApk">
+          <div class="btn-dl-icon">
+            <i class="fas fa-download"></i>
           </div>
+          <div class="btn-dl-text">
+            <span class="btn-dl-main">Descargar APK</span>
+            <span class="btn-dl-sub">Android 6.0 o superior</span>
+          </div>
+          <i class="fas fa-chevron-right btn-dl-arrow"></i>
         </button>
 
-        <!-- Acciones -->
-        <div class="action-row">
-          <button @click="activeModal = 'changelog'" class="btn-action">
-            <i class="fas fa-rocket"></i>
-            <span>Novedades</span>
+        <!-- Secundarios -->
+        <div class="sec-row">
+          <button class="btn-sec" @click="activeModal = 'changelog'">
+            <i class="fas fa-rocket"></i> Novedades
           </button>
-          <button @click="activeModal = 'qr'" class="btn-action">
-            <i class="fas fa-qrcode"></i>
-            <span>Código QR</span>
+          <button class="btn-sec" @click="activeModal = 'qr'">
+            <i class="fas fa-qrcode"></i> Código QR
           </button>
         </div>
       </div>
 
       <!-- Privacidad -->
-      <div class="hud-card privacy-card">
-        <div class="corner tl"></div><div class="corner tr"></div>
-        <div class="corner bl"></div><div class="corner br"></div>
-
-        <div class="priv-header">
-          <div class="priv-badges">
-            <span class="priv-badge"><i class="fas fa-microphone-slash"></i></span>
-            <span class="priv-badge"><i class="fas fa-user-slash"></i></span>
-            <span class="priv-badge"><i class="fas fa-ban"></i></span>
+      <div class="card priv">
+        <div class="priv-top">
+          <div class="priv-icons">
+            <span class="priv-ico"><i class="fas fa-microphone-slash"></i></span>
+            <span class="priv-ico"><i class="fas fa-user-slash"></i></span>
+            <span class="priv-ico"><i class="fas fa-ban"></i></span>
           </div>
           <div>
-            <p class="priv-title">NO INTRUSIVA</p>
+            <p class="priv-title">No intrusiva</p>
             <p class="priv-sub">Sin acceso a micrófono, contactos ni datos privados</p>
           </div>
         </div>
-        <button @click="activeModal = 'privacy'" class="btn-privacy">
-          <i class="fas fa-shield-halved"></i>
+        <button class="btn-priv" @click="activeModal = 'privacy'">
+          <i class="fas fa-shield-alt"></i>
           Ver política de permisos
-          <i class="fas fa-chevron-right text-[9px] ml-auto"></i>
+          <i class="fas fa-chevron-right" style="margin-left:auto;font-size:0.65rem;"></i>
         </button>
       </div>
 
-      <!-- Back -->
-      <router-link to="/login" class="back-link">
-        <i class="fas fa-arrow-left"></i> VOLVER AL SISTEMA
+      <!-- Volver -->
+      <router-link to="/login" class="back-lnk">
+        <i class="fas fa-arrow-left"></i> Volver al inicio
       </router-link>
-
     </div>
 
-    <!-- ── MODALES ───────────────────────────────────── -->
-    <Transition name="modal">
-      <div v-if="activeModal" class="modal-overlay" @click.self="activeModal = null">
-        <div class="modal-box">
-          <div class="corner tl"></div><div class="corner tr"></div>
-          <div class="corner bl"></div><div class="corner br"></div>
+    <!-- MODALES -->
+    <Transition name="mfade">
+      <div v-if="activeModal" class="modal-bg" @click.self="activeModal = null">
+        <div class="modal-card">
 
-          <div class="modal-head">
-            <div v-if="activeModal === 'privacy'" class="modal-head-icon icon-green">
-              <i class="fas fa-shield-halved"></i>
+          <!-- Cabecera -->
+          <div class="modal-hd">
+            <div class="modal-ico" :class="{
+              'mico-green' : activeModal==='privacy',
+              'mico-orange': activeModal==='qr',
+              'mico-blue'  : activeModal==='changelog'
+            }">
+              <i :class="{
+                'fas fa-shield-alt': activeModal==='privacy',
+                'fas fa-qrcode'    : activeModal==='qr',
+                'fas fa-rocket'    : activeModal==='changelog'
+              }"></i>
             </div>
-            <div v-else-if="activeModal === 'qr'" class="modal-head-icon icon-orange">
-              <i class="fas fa-qrcode"></i>
-            </div>
-            <div v-else class="modal-head-icon icon-blue">
-              <i class="fas fa-rocket"></i>
-            </div>
-
-            <div class="modal-head-text">
-              <span class="modal-sys-label">// MÓDULO</span>
-              <h3 class="modal-title">
-                {{ activeModal === 'privacy' ? 'POLÍTICA DE PERMISOS' : activeModal === 'qr' ? 'ESCANEO RÁPIDO' : 'NOVEDADES DEL SISTEMA' }}
-              </h3>
-            </div>
-
-            <button @click="activeModal = null" class="modal-close">
-              <i class="fas fa-xmark"></i>
+            <h3 class="modal-title">
+              {{ activeModal==='privacy' ? 'Política de permisos'
+               : activeModal==='qr'      ? 'Escaneo rápido'
+               :                           'Novedades' }}
+            </h3>
+            <button class="modal-cls" @click="activeModal=null">
+              <i class="fas fa-times"></i>
             </button>
           </div>
 
+          <!-- Cuerpo -->
           <div class="modal-body">
 
-            <!-- Privacidad -->
-            <template v-if="activeModal === 'privacy'">
-              <p class="modal-text">
-                Tu dispositivo alerta cuando una app accede a datos privados.
-                <strong>WodenTrack nunca activará esas alertas.</strong>
-              </p>
-              <div class="modal-highlight">
-                <i class="fas fa-circle-check text-emerald-400 shrink-0 mt-0.5"></i>
-                <p>Arquitectura <em>No Intrusiva</em> — funciona sin permisos de cámara, micrófono ni contactos.</p>
+            <template v-if="activeModal==='privacy'">
+              <p class="modal-txt">Tu dispositivo alerta cuando una app intenta acceder a tus datos. <strong>WodenTrack nunca activará esas alertas.</strong></p>
+              <div class="modal-hl">
+                <i class="fas fa-check-circle" style="color:#4ade80;flex-shrink:0;margin-top:2px;"></i>
+                <p>Arquitectura <strong>No Intrusiva</strong> — sin permisos de cámara, micrófono ni contactos.</p>
               </div>
-              <button @click="activeModal = null" class="btn-modal-ok">ENTENDIDO</button>
+              <button class="btn-ok" @click="activeModal=null">Entendido</button>
             </template>
 
-            <!-- QR -->
-            <template v-if="activeModal === 'qr'">
-              <div v-if="apkData?.exists" class="qr-frame">
-                <qrcode-vue :value="apkData.downloadUrl" :size="170" level="H" foreground="#050810" />
+            <template v-if="activeModal==='qr'">
+              <div class="qr-box" v-if="apkData?.exists">
+                <qrcode-vue :value="apkData.downloadUrl" :size="175" level="H" foreground="#0a0f1e" />
               </div>
-              <p v-else class="text-rose-400 text-xs font-bold uppercase text-center">QR no disponible</p>
+              <p v-else class="modal-txt" style="color:#f87171;">QR no disponible</p>
               <p class="modal-hint">Apunta tu cámara para descargar directamente</p>
             </template>
 
-            <!-- Changelog -->
-            <template v-if="activeModal === 'changelog'">
-              <ul class="changelog-list">
-                <li v-for="(item, i) in apkData.changelog" :key="i" class="changelog-item">
-                  <span class="cl-index">{{ String(i + 1).padStart(2, '0') }}</span>
-                  <span class="cl-text">{{ item }}</span>
+            <template v-if="activeModal==='changelog'">
+              <ul class="cl-list">
+                <li v-for="(item, i) in apkData.changelog" :key="i" class="cl-item">
+                  <span class="cl-num">{{ String(i+1).padStart(2,'0') }}</span>
+                  <span>{{ item }}</span>
                 </li>
               </ul>
             </template>
@@ -198,7 +160,6 @@
         </div>
       </div>
     </Transition>
-
   </div>
 </template>
 
@@ -213,449 +174,249 @@ onMounted(fetchApkInfo);
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+/* IMPORTANTE: nunca usar * { font-family } aquí — rompe FontAwesome */
 
-* { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
-
-/* ─── ROOT ──────────────────────────────────────── */
 .page-root {
   min-height: 100dvh;
-  background: #050810;
+  background: #0a0f1e;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 2rem 1.25rem;
   position: relative;
   overflow: hidden;
   color: #e2e8f0;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* ─── HUD GRID ──────────────────────────────────── */
-.hud-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,143,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,143,0,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-}
-.hud-scan {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    transparent 0%,
-    rgba(255, 143, 0, 0.015) 50%,
-    transparent 100%
-  );
-  background-size: 100% 200px;
-  animation: scan 8s linear infinite;
-  pointer-events: none;
-}
-@keyframes scan {
-  from { background-position: 0 -200px; }
-  to   { background-position: 0 100vh; }
-}
-
-/* ─── GLOWS ─────────────────────────────────────── */
-.glow {
+/* Glows de fondo */
+.bg-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(100px);
   pointer-events: none;
+  animation: breathe 8s ease-in-out infinite alternate;
 }
-.glow-1 {
-  width: 500px; height: 500px;
-  background: rgba(255,143,0,0.08);
-  top: -180px; left: -180px;
-  animation: breathe 7s ease-in-out infinite alternate;
-}
-.glow-2 {
-  width: 400px; height: 400px;
-  background: rgba(59,91,219,0.07);
-  bottom: -150px; right: -150px;
-  animation: breathe 9s ease-in-out infinite alternate-reverse;
-}
-.glow-3 {
-  width: 250px; height: 250px;
-  background: rgba(0,212,255,0.04);
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-  animation: breathe 5s ease-in-out infinite alternate;
-}
+.bg-glow-1 { width: 480px; height: 480px; background: rgba(255,143,0,0.09); top: -150px; left: -150px; }
+.bg-glow-2 { width: 380px; height: 380px; background: rgba(59,91,219,0.08); bottom: -120px; right: -120px; animation-delay: -4s; }
 @keyframes breathe {
-  from { opacity: 0.6; transform: scale(1); }
-  to   { opacity: 1;   transform: scale(1.15); }
+  from { opacity: .6; transform: scale(1); }
+  to   { opacity: 1;  transform: scale(1.12); }
 }
 
-/* ─── LOADING ───────────────────────────────────── */
-.state-center {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 1.5rem; z-index: 10;
-}
-.hud-loader {
-  position: relative;
-  width: 64px; height: 64px;
-  display: flex; align-items: center; justify-content: center;
-}
-.hud-loader-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid transparent;
+/* Loading */
+.state-center { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.spin-ring {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 3px solid rgba(255,143,0,.2);
   border-top-color: #FF8F00;
-  animation: spin 1s linear infinite;
+  animation: spin .9s linear infinite;
 }
-.ring-2 {
-  inset: 8px;
-  border-top-color: rgba(255,143,0,0.4);
-  animation-duration: 1.5s;
-  animation-direction: reverse;
-}
-.hud-loader-icon { color: #FF8F00; font-size: 1.2rem; position: relative; z-index: 1; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .2em; color: rgba(255,143,0,.7); }
 
-.loader-text {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(255,143,0,0.7);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-.blink-char { animation: blink 1s step-end infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+/* Content */
+.content { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: .9rem; z-index: 1; }
 
-/* ─── CONTENT ───────────────────────────────────── */
-.content-wrap {
-  width: 100%; max-width: 420px;
-  z-index: 10;
-  display: flex; flex-direction: column; gap: 0.85rem;
-}
-
-/* ─── BRAND HEAD ────────────────────────────────── */
-.brand-head {
-  display: flex; align-items: center; gap: 1.1rem;
-  padding: 0.5rem 0.25rem 0.75rem;
-}
-.brand-icon-wrap { position: relative; flex-shrink: 0; }
-.brand-icon-glow {
-  position: absolute; inset: -8px;
-  background: radial-gradient(circle, rgba(255,143,0,0.3) 0%, transparent 70%);
-  border-radius: 50%;
-  animation: breathe 3s ease-in-out infinite alternate;
-}
-.brand-icon {
-  width: 68px; height: 68px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, #0f1629, #1a2040);
-  border: 1px solid rgba(255,143,0,0.35);
-  box-shadow: 0 0 20px rgba(255,143,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+/* Brand */
+.brand { display: flex; align-items: center; gap: 1rem; padding: .5rem .25rem .75rem; }
+.app-icon {
+  width: 70px; height: 70px; border-radius: 22px; flex-shrink: 0;
+  background: linear-gradient(145deg, #131b30, #1c2540);
+  border: 1.5px solid rgba(255,143,0,.3);
+  box-shadow: 0 0 28px rgba(255,143,0,.15), inset 0 1px 0 rgba(255,255,255,.05);
   display: flex; align-items: center; justify-content: center;
   font-size: 2rem; color: #FF8F00;
-  position: relative; z-index: 1;
 }
-.sys-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; font-weight: 700;
-  color: #FF8F00; letter-spacing: 0.2em;
-  text-transform: uppercase; margin-bottom: 0.2rem;
-}
-.brand-name {
-  font-size: 2.1rem; font-weight: 900;
-  letter-spacing: -0.02em; line-height: 1;
-  margin-bottom: 0.25rem;
-}
-.name-woden { color: #f1f5f9; }
-.name-track  { color: #FF8F00; }
-.brand-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; color: rgba(255,255,255,0.25);
-  text-transform: uppercase; letter-spacing: 0.1em;
-}
+.brand-sys { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .2em; color: #FF8F00; margin-bottom: .2rem; }
+.brand-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -.03em; line-height: 1; color: #f1f5f9; margin-bottom: .25rem; }
+.brand-title span { color: #FF8F00; }
+.brand-desc { font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.25); }
 
-/* ─── HUD CARD ──────────────────────────────────── */
-.hud-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,143,0,0.15);
+/* Card base */
+.card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
   border-radius: 20px;
-  position: relative;
-  padding: 1.5rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0 40px rgba(255,143,0,0.04), inset 0 1px 0 rgba(255,255,255,0.04);
+  padding: 1.4rem;
 }
 
-/* Esquinas HUD */
-.corner {
-  position: absolute;
-  width: 14px; height: 14px;
-  border-color: #FF8F00;
-  border-style: solid;
-}
-.corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
-.corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
-.corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
-.corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+/* Main card */
+.main { display: flex; flex-direction: column; gap: 1rem; }
 
-/* ─── MAIN CARD ─────────────────────────────────── */
-.main-card { display: flex; flex-direction: column; gap: 1.1rem; }
-
-/* Meta bar */
-.meta-bar {
-  display: flex; align-items: center;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,143,0,0.1);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  gap: 1rem;
+/* Chips */
+.chips { display: flex; gap: .5rem; flex-wrap: wrap; }
+.chip {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .3rem .8rem;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 99px;
+  font-size: .68rem; font-weight: 700; color: #94a3b8;
 }
-.meta-tag { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; align-items: center; }
-.meta-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem; font-weight: 700;
-  color: rgba(255,255,255,0.25); letter-spacing: 0.15em;
-}
-.meta-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem; font-weight: 700; color: #f1f5f9;
-}
-.meta-ok { color: #4ade80; }
-.meta-divider { width: 1px; height: 28px; background: rgba(255,143,0,0.15); }
+.chip-green { color: #4ade80; border-color: rgba(74,222,128,.2); background: rgba(74,222,128,.06); }
 
 /* Download button */
-.btn-download {
-  width: 100%; border: none; cursor: pointer;
-  border-radius: 16px; padding: 0;
-  position: relative; overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.btn-dl {
+  width: 100%; border: none; border-radius: 16px; cursor: pointer;
+  background: linear-gradient(135deg, #FF8F00 0%, #e06600 100%);
+  padding: .95rem 1.15rem;
+  display: flex; align-items: center; gap: .85rem;
+  box-shadow: 0 8px 28px -4px rgba(255,143,0,.45);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-.btn-download:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -4px rgba(255,143,0,0.5); }
-.btn-download:active { transform: translateY(0); }
-
-.btn-download-bg {
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, #FF8F00 0%, #e06800 60%, #FF8F00 100%);
-  background-size: 200% 200%;
-  animation: shimmer 3s ease infinite;
-}
-@keyframes shimmer {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.btn-download-content {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 1rem 1.25rem; gap: 1rem;
-}
-.btn-dl-left { display: flex; align-items: center; gap: 0.85rem; }
+.btn-dl:hover { transform: translateY(-2px); box-shadow: 0 14px 36px -4px rgba(255,143,0,.55); }
+.btn-dl:active { transform: translateY(0); }
 .btn-dl-icon {
   width: 42px; height: 42px; border-radius: 12px;
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,.18);
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem; color: #fff; flex-shrink: 0;
 }
-.btn-dl-main {
-  display: block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem; font-weight: 700;
-  color: #000; letter-spacing: 0.05em;
-}
-.btn-dl-sub {
-  display: block;
-  font-size: 0.6rem; font-weight: 600;
-  color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.08em;
-  margin-top: 0.1rem;
-}
-.btn-dl-arrow { color: rgba(0,0,0,0.3); font-size: 0.8rem; }
+.btn-dl-text { display: flex; flex-direction: column; flex: 1; text-align: left; }
+.btn-dl-main { font-size: .88rem; font-weight: 800; color: #000; letter-spacing: .01em; }
+.btn-dl-sub  { font-size: .6rem; font-weight: 600; color: rgba(0,0,0,.45); text-transform: uppercase; letter-spacing: .07em; margin-top: .1rem; }
+.btn-dl-arrow { color: rgba(0,0,0,.3); font-size: .75rem; }
 
-/* Action row */
-.action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-.btn-action {
-  padding: 0.75rem 0.5rem;
+/* Secundarios */
+.sec-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.btn-sec {
+  padding: .75rem;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,143,0,0.12);
-  color: rgba(255,255,255,0.55);
-  font-size: 0.68rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  color: rgba(255,255,255,.5);
+  font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: .45rem;
+  transition: all .2s;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
-.btn-action:hover {
-  background: rgba(255,143,0,0.07);
-  border-color: rgba(255,143,0,0.3);
-  color: #FF8F00;
-}
-.btn-action i { font-size: 0.8rem; }
+.btn-sec:hover { background: rgba(255,143,0,.07); border-color: rgba(255,143,0,.2); color: #FF8F00; }
 
-/* ─── EMPTY CARD ────────────────────────────────── */
-.empty-card { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
-.empty-icon { font-size: 1.5rem; color: #FF8F00; animation: breathe 2s ease-in-out infinite alternate; }
-.empty-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem; font-weight: 700;
-  color: rgba(255,143,0,0.7); letter-spacing: 0.1em;
-}
-.empty-text { font-size: 0.75rem; color: #475569; line-height: 1.6; }
+/* Empty */
+.empty { display: flex; flex-direction: column; align-items: center; gap: .7rem; text-align: center; }
+.empty-title { font-size: .8rem; font-weight: 800; color: #FF8F00; text-transform: uppercase; letter-spacing: .08em; }
+.empty-sub   { font-size: .72rem; color: #475569; line-height: 1.6; }
 
-/* ─── PRIVACY CARD ──────────────────────────────── */
-.privacy-card { display: flex; flex-direction: column; gap: 1rem; }
-.priv-header { display: flex; align-items: center; gap: 0.85rem; }
-.priv-badges { display: flex; gap: 0.4rem; flex-shrink: 0; }
-.priv-badge {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: rgba(74,222,128,0.06);
-  border: 1px solid rgba(74,222,128,0.15);
+/* Privacy */
+.priv { display: flex; flex-direction: column; gap: .9rem; }
+.priv-top { display: flex; align-items: center; gap: .85rem; }
+.priv-icons { display: flex; gap: .4rem; flex-shrink: 0; }
+.priv-ico {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: rgba(74,222,128,.06);
+  border: 1px solid rgba(74,222,128,.15);
   display: flex; align-items: center; justify-content: center;
-  color: #4ade80; font-size: 0.65rem;
+  font-size: .65rem; color: #4ade80;
 }
-.priv-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem; font-weight: 700;
-  color: #4ade80; letter-spacing: 0.1em; margin-bottom: 0.2rem;
+.priv-title { font-size: .78rem; font-weight: 800; color: #f1f5f9; margin-bottom: .2rem; }
+.priv-sub   { font-size: .65rem; color: #475569; }
+.btn-priv {
+  width: 100%; padding: .72rem 1rem; border-radius: 12px;
+  background: rgba(74,222,128,.04);
+  border: 1px solid rgba(74,222,128,.12);
+  color: #4ade80; font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  cursor: pointer; display: flex; align-items: center; gap: .5rem;
+  transition: all .2s;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
-.priv-sub { font-size: 0.65rem; color: #475569; }
-.btn-privacy {
-  width: 100%; padding: 0.7rem 1rem;
-  border-radius: 12px;
-  background: rgba(74,222,128,0.04);
-  border: 1px solid rgba(74,222,128,0.12);
-  color: #4ade80;
-  font-size: 0.68rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 0.5rem;
-  transition: all 0.2s;
-}
-.btn-privacy:hover { background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.25); }
+.btn-priv:hover { background: rgba(74,222,128,.09); border-color: rgba(74,222,128,.25); }
 
-/* ─── BACK ──────────────────────────────────────── */
-.back-link {
-  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.2em;
-  color: rgba(255,255,255,0.12); text-decoration: none;
-  transition: color 0.2s; padding: 0.5rem;
+/* Back */
+.back-lnk {
+  display: flex; align-items: center; justify-content: center; gap: .4rem;
+  font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .15em;
+  color: rgba(255,255,255,.15); text-decoration: none; padding: .5rem;
+  transition: color .2s;
 }
-.back-link:hover { color: rgba(255,143,0,0.6); }
+.back-lnk:hover { color: rgba(255,143,0,.6); }
 
-/* ─── MODAL ─────────────────────────────────────── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 100;
+/* Modal */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 200;
   display: flex; align-items: flex-end; justify-content: center; padding: 1rem;
-  background: rgba(2,4,12,0.9);
-  backdrop-filter: blur(20px);
+  background: rgba(4,6,15,.88); backdrop-filter: blur(18px);
 }
-@media (min-width: 500px) { .modal-overlay { align-items: center; } }
+@media (min-width: 500px) { .modal-bg { align-items: center; } }
 
-.modal-box {
-  width: 100%; max-width: 400px;
-  background: #080d1e;
-  border: 1px solid rgba(255,143,0,0.2);
+.modal-card {
+  width: 100%; max-width: 390px;
+  background: #0d1325;
+  border: 1px solid rgba(255,143,0,.18);
   border-radius: 24px;
-  position: relative; overflow: hidden;
-  box-shadow: 0 0 60px rgba(255,143,0,0.1), 0 40px 80px rgba(0,0,0,0.6);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(255,143,0,.08), 0 30px 70px rgba(0,0,0,.6);
 }
-
-.modal-head {
-  display: flex; align-items: center; gap: 0.85rem;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255,143,0,0.1);
-  background: rgba(255,143,0,0.03);
+.modal-hd {
+  display: flex; align-items: center; gap: .85rem;
+  padding: 1.15rem 1.4rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
 }
-.modal-head-icon {
-  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+.modal-ico {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: .95rem;
 }
-.icon-green  { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2); color: #4ade80; }
-.icon-orange { background: rgba(255,143,0,0.1);  border: 1px solid rgba(255,143,0,0.2);  color: #FF8F00; }
-.icon-blue   { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: #60a5fa; }
-
-.modal-head-text { flex: 1; }
-.modal-sys-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.55rem; color: rgba(255,143,0,0.5); letter-spacing: 0.2em; display: block;
-}
-.modal-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem; font-weight: 700; color: #f1f5f9; letter-spacing: 0.05em;
-}
-.modal-close {
+.mico-green  { background: rgba(74,222,128,.1);  border: 1px solid rgba(74,222,128,.2);  color: #4ade80; }
+.mico-orange { background: rgba(255,143,0,.1);   border: 1px solid rgba(255,143,0,.2);   color: #FF8F00; }
+.mico-blue   { background: rgba(96,165,250,.1);  border: 1px solid rgba(96,165,250,.2);  color: #60a5fa; }
+.modal-title { flex: 1; font-size: .82rem; font-weight: 800; color: #f1f5f9; }
+.modal-cls {
   width: 30px; height: 30px; border-radius: 8px;
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-  color: #64748b; font-size: 0.75rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; flex-shrink: 0;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+  color: #64748b; font-size: .75rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .2s;
 }
-.modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.modal-cls:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.4rem;
   display: flex; flex-direction: column; align-items: center; gap: 1rem;
 }
-.modal-text { font-size: 0.78rem; color: #64748b; line-height: 1.7; text-align: center; }
-.modal-text strong { color: #f1f5f9; }
-.modal-highlight {
-  display: flex; align-items: flex-start; gap: 0.7rem;
-  padding: 0.9rem 1rem;
-  background: rgba(74,222,128,0.04);
+.modal-txt { font-size: .78rem; color: #64748b; line-height: 1.7; text-align: center; }
+.modal-txt strong { color: #f1f5f9; }
+.modal-hl {
+  display: flex; align-items: flex-start; gap: .65rem;
+  padding: .85rem 1rem;
+  background: rgba(74,222,128,.04);
   border-left: 2px solid #4ade80;
   border-radius: 0 10px 10px 0;
-  font-size: 0.73rem; color: #64748b; line-height: 1.6; width: 100%;
+  font-size: .73rem; color: #64748b; line-height: 1.6; width: 100%;
 }
-.modal-highlight em { color: #fff; font-style: normal; font-weight: 700; }
-.btn-modal-ok {
-  width: 100%; padding: 0.85rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #FF8F00, #e06800);
-  color: #000; font-size: 0.72rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.15em;
-  border: none; cursor: pointer; transition: all 0.2s;
-  font-family: 'JetBrains Mono', monospace;
+.modal-hl strong { color: #fff; }
+.btn-ok {
+  width: 100%; padding: .85rem; border-radius: 12px;
+  background: linear-gradient(135deg, #FF8F00, #e06600);
+  color: #000; font-size: .75rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .12em;
+  border: none; cursor: pointer; transition: all .2s;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
-.btn-modal-ok:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,143,0,0.4); }
+.btn-ok:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,143,0,.4); }
 
-.qr-frame {
-  padding: 0.85rem; background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 0 30px rgba(255,143,0,0.15);
-}
-.modal-hint {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.58rem; color: #334155;
-  text-transform: uppercase; letter-spacing: 0.15em; text-align: center;
-}
+.qr-box { padding: .85rem; background: #fff; border-radius: 16px; }
+.modal-hint { font-size: .6rem; font-weight: 600; color: #334155; text-transform: uppercase; letter-spacing: .14em; text-align: center; }
 
-.changelog-list {
-  width: 100%; display: flex; flex-direction: column; gap: 0.5rem;
-  list-style: none; padding: 0; margin: 0;
-  max-height: 280px; overflow-y: auto;
+.cl-list { width: 100%; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .5rem; max-height: 280px; overflow-y: auto; }
+.cl-item {
+  display: flex; align-items: flex-start; gap: .7rem;
+  padding: .7rem .9rem;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,143,0,.08);
+  border-radius: 10px; font-size: .73rem; color: #94a3b8; line-height: 1.5;
 }
-.changelog-item {
-  display: flex; align-items: flex-start; gap: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,143,0,0.08);
-  border-radius: 10px;
-}
-.cl-index {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; font-weight: 700;
-  color: #FF8F00; flex-shrink: 0; margin-top: 1px;
-}
-.cl-text { font-size: 0.73rem; color: #94a3b8; line-height: 1.5; }
+.cl-num { font-size: .6rem; font-weight: 800; color: #FF8F00; flex-shrink: 0; margin-top: 2px; font-family: monospace; }
 
-/* ─── TRANSITIONS ───────────────────────────────── */
-.modal-enter-active { transition: opacity 0.3s ease; }
-.modal-leave-active { transition: opacity 0.25s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
-.modal-enter-active .modal-box { animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+/* Transición modal */
+.mfade-enter-active { transition: opacity .3s ease; }
+.mfade-leave-active { transition: opacity .25s ease; }
+.mfade-enter-from, .mfade-leave-to { opacity: 0; }
+.mfade-enter-active .modal-card { animation: slideUp .35s cubic-bezier(.16,1,.3,1) both; }
 @keyframes slideUp {
-  from { transform: translateY(30px) scale(0.97); opacity: 0; }
+  from { transform: translateY(30px) scale(.97); opacity: 0; }
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 </style>

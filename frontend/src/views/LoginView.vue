@@ -106,6 +106,8 @@ const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme }
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
 
+/* NUNCA usar * { font-family } aquí — rompe los iconos FontAwesome */
+
 /* ─── Icono de app (esquina redondeada, tipo iOS) ─────── */
 .app-icon-box {
   width: 62px;
