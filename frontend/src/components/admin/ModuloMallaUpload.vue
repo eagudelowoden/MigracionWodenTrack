@@ -313,7 +313,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { watch } from 'vue';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
 import '../../assets/css/modulo-mallas.css';
 
@@ -359,15 +359,14 @@ const {
   totalRecords,
 } = useMallasGeneral();
 
-// ── Sincronizar company ───────────────────────────────────────────────────────
-watch(() => props.company, (v) => {
-  selectedCompany.value = v;
-  fetchMallasDesdeOdoo();
-});
-
-onMounted(() => {
-  if (props.company) selectedCompany.value = props.company;
-  fetchMallasDesdeOdoo();
-});
+// ── Sincronizar company y cargar mallas ──────────────────────────────────────
+watch(
+  () => props.company,
+  (v) => {
+    if (v) selectedCompany.value = v;
+    fetchMallasDesdeOdoo();
+  },
+  { immediate: true },
+);
 </script>
 <style></style>
