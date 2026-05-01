@@ -89,6 +89,15 @@
                     <div class="space-y-1.5">
                         <template v-for="slug in MODULOS" :key="slug">
 
+                            <!-- Separador antes de permisos de visibilidad de novedades -->
+                            <div v-if="slug === 'marcacion.novedad'" class="flex items-center gap-2 px-2 pt-2">
+                                <span class="text-[8px] font-black uppercase tracking-widest opacity-30"
+                                    :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                                    Novedades — visibilidad
+                                </span>
+                                <div class="h-px flex-1" :class="isDark ? 'bg-white/5' : 'bg-slate-200'"></div>
+                            </div>
+
                             <!-- Separador antes del primer sub-permiso de novedades -->
                             <div v-if="slug === 'admin.novedades.user'" class="flex items-center gap-2 px-2 pt-1">
                                 <div class="w-4 h-px" :class="isDark ? 'bg-transparent' : 'bg-transparent'"></div>
@@ -141,7 +150,7 @@
                     </div>
 
                     <!-- DEPARTAMENTOS VISIBLES -->
-                    <template v-if="hasPerm('admin.filtro_departamento')">
+                    <template v-if="hasPerm('admin.filtro_departamento') || hasPerm('novedades.director')">
                         <div class="flex items-center gap-3">
                             <div class="h-px flex-1 bg-blue-500/10"></div>
                             <span class="text-[9px] font-semibold uppercase tracking-widest opacity-30">Departamentos
@@ -237,6 +246,9 @@ const MODULOS = [
     'admin.novedades.admin',
     'admin.novedades.rrhh',
     'admin.filtro_departamento',
+    'marcacion.novedad',
+    'novedades.ver_area',
+    'novedades.director',
 ];
 
 const MODULO_LABELS = {
@@ -254,9 +266,13 @@ const MODULO_LABELS = {
     'admin.novedades.admin': { nombre: 'Novedades — Admin', desc: 'Gestión completa de novedades' },
     'admin.novedades.rrhh': { nombre: 'Novedades — RRHH', desc: 'Auditoría y revisión' },
     'admin.filtro_departamento': { nombre: 'Filtro Departamento', desc: 'Limitar vista por departamento' },
+    'marcacion.novedad': { nombre: 'Registrar Novedad', desc: 'Ver botón de novedad en marcación' },
+    'novedades.ver_area': { nombre: 'Novedades — Jefe Área', desc: 'Ver y aprobar novedades de su área asignada' },
+    'novedades.director': { nombre: 'Novedades — Director Depto', desc: 'Ver todas las novedades del departamento' },
 };
 const isSubNovedad = (slug) =>
-    ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh'].includes(slug);
+    ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh',
+     'novedades.ver_area', 'novedades.director'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,

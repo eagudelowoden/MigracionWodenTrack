@@ -13,8 +13,11 @@
                         :class="isDark ? 'text-white' : 'text-slate-800'">
                         Por <span class="text-[#FF8F00]">Aprobar</span>
                     </h2>
-                    <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
-                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">Novedades pendientes de mi personal</p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <i :class="modoIcon" class="text-[8px] text-[#FF8F00]"></i>
+                        <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ modoLabel }}</p>
+                    </div>
                 </div>
             </div>
             <button @click="$emit('volver')"
@@ -351,14 +354,26 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
+import axios from 'axios';
 
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['volver']);
 
-const { novedades, loading, fetchNovedades, aprobarJefe, getFileUrl } = useNovedades();
+const { novedades, loading, aprobarJefe, getFileUrl, fetchPorArea, fetchPorDepartamentos } = useNovedades();
 
+const API_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const miIdOdoo = session?.id_odoo;
+
+// ─── Nivel de acceso ──────────────────────────────────────────────────────
+const esDirector = session?.isSuperAdmin ||
+    session?.permisos?.['novedades.director'] === true;
+const esJefeArea = !esDirector &&
+    session?.permisos?.['novedades.ver_area'] === true;
+
+// Etiqueta del modo activo
+const modoLabel = esDirector ? 'Director — Todo el departamento' : 'Jefe — Mi área';
+const modoIcon  = esDirector ? 'fas fa-building' : 'fas fa-users';
 
 const verMotivos = (motivojefe) => {
     motivoModalRRHH.value = { open: true, texto: motivojefe };
@@ -385,16 +400,22 @@ const toggleMenu = (event, id) => {
 };
 
 onMounted(async () => {
-    await fetchNovedades();
-    console.log('📋 Total:', novedades.value.length);
-    console.log('🔑 miIdOdoo:', miIdOdoo);
-    console.log('✅ Pendientes:', pendientes.value.length);
+    if (esDirector) {
+        try {
+            const res = await axios.get(`${API_URL}/departamentos-permitidos/${miIdOdoo}`);
+            const deptos = Array.isArray(res.data) ? res.data : [];
+            await fetchPorDepartamentos(deptos);
+        } catch {
+            await fetchPorArea(miIdOdoo);
+        }
+    } else {
+        await fetchPorArea(miIdOdoo);
+    }
 });
 
 const pendientes = computed(() =>
     novedades.value.filter(n =>
-        Number(n.responsableIdOdoo) === Number(miIdOdoo) &&
-        (n.aprobadoJefe === null || n.aprobadoJefe === undefined)
+        n.aprobadoJefe === null || n.aprobadoJefe === undefined
     )
 );
 

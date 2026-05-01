@@ -51,6 +51,21 @@ export class NovedadesController {
     return this.novedadesService.findMias(+idOdoo, fechaDesde, fechaHasta, buscar);
   }
 
+  // GET /novedades/por-area?idOdoo=X  — novedades donde el usuario es responsable (jefe)
+  @Get('por-area')
+  findPorArea(@Query('idOdoo') idOdoo: string) {
+    return this.novedadesService.findPorResponsable(+idOdoo);
+  }
+
+  // GET /novedades/por-departamento?departamentos=A,B  — novedades del depto (director)
+  @Get('por-departamento')
+  findPorDepartamento(@Query('departamentos') departamentos: string) {
+    const list = departamentos
+      ? departamentos.split(',').map((d) => d.trim()).filter(Boolean)
+      : [];
+    return this.novedadesService.findPorDepartamentos(list);
+  }
+
   // GET /novedades/:id  — detalle + fileUrl
   @Get(':id')
   findOne(@Param('id') id: string) {

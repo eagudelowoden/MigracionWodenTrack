@@ -140,6 +140,37 @@ export function useNovedades() {
     }
   };
 
+  // ─── Novedades de mi área (jefe inmediato) ───────────────────────────────
+  const fetchPorArea = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-area`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por área:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── Novedades de mi departamento (director) ─────────────────────────────
+  const fetchPorDepartamentos = async (departamentos) => {
+    if (!departamentos?.length) { novedades.value = []; return; }
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-departamento`, {
+        params: { departamentos: departamentos.join(',') },
+      });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por departamento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     novedades,
     loading,
@@ -154,5 +185,7 @@ export function useNovedades() {
     aprobarRrhh,
     jefe,
     fetchJefeDeArea,
+    fetchPorArea,
+    fetchPorDepartamentos,
   };
 }

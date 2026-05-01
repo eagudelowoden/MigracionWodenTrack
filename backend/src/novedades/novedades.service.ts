@@ -155,6 +155,60 @@ export class NovedadesService {
     }));
   }
 
+  // ─── FIND POR RESPONSABLE (jefe inmediato: ve su área) ───────────────────
+  async findPorResponsable(idOdoo: number) {
+    const novedades = await this.novedadRepo.find({
+      where: { responsableIdOdoo: idOdoo },
+      order: { createdAt: 'DESC' },
+    });
+    if (!novedades.length) return [];
+
+    const nombres = [...new Set(novedades.map((n) => n.nombre).filter(Boolean))];
+    const escapedNames = nombres
+      .map((n) => `'${n.replace(/'/g, "''")}'`)
+      .join(', ');
+
+    const usuarios: Array<{ nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(
+        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
+      );
+    const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
+
+    return novedades.map((n) => ({
+      ...n,
+      departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
+      cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+    }));
+  }
+
+  // ─── FIND POR DEPARTAMENTOS (director: ve todo su depto) ─────────────────
+  async findPorDepartamentos(departamentos: string[]) {
+    if (!departamentos.length) return [];
+
+    const escapedDeptos = departamentos
+      .map((d) => `'${d.replace(/'/g, "''")}'`)
+      .join(', ');
+
+    const usuariosEnDepto: Array<{ nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(
+        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE departamento IN (${escapedDeptos})`,
+      );
+    if (!usuariosEnDepto.length) return [];
+
+    const nombresEnDepto = new Set(usuariosEnDepto.map((u) => u.nombre));
+    const usuarioMap = new Map(usuariosEnDepto.map((u) => [u.nombre, u]));
+
+    const novedades = await this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+
+    return novedades
+      .filter((n) => nombresEnDepto.has(n.nombre))
+      .map((n) => ({
+        ...n,
+        departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
+        cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+      }));
+  }
+
   // ─── FIND MIS NOVEDADES (historial del usuario) ───────────────────────────
   async findMias(
     idOdoo: number,
