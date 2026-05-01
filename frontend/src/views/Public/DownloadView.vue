@@ -1,5 +1,5 @@
 <template>
-  <div class="page-root">
+  <div class="page-root" :class="isDark ? 'theme-dark' : 'theme-light'">
     <div class="bg-glow bg-glow-1"></div>
     <div class="bg-glow bg-glow-2"></div>
 
@@ -164,12 +164,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 import { useApkRepo } from '../../composables/adminLogica/useApkRepo.js';
 
 const { apkData, loading, error, fetchApkInfo, descargarApk } = useApkRepo();
 const activeModal = ref(null);
+
+const isDark = ref(localStorage.getItem('theme') !== 'light');
+
 onMounted(fetchApkInfo);
 </script>
 
@@ -178,7 +181,6 @@ onMounted(fetchApkInfo);
 
 .page-root {
   min-height: 100dvh;
-  background: #0a0f1e;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,9 +188,15 @@ onMounted(fetchApkInfo);
   padding: 2rem 1.25rem;
   position: relative;
   overflow: hidden;
-  color: #e2e8f0;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  transition: background .4s, color .4s;
 }
+
+/* Tema oscuro */
+.theme-dark  { background: #0a0f1e; color: #e2e8f0; }
+
+/* Tema claro */
+.theme-light { background: #f1f5f9; color: #1e293b; }
 
 /* Glows de fondo */
 .bg-glow {
@@ -198,8 +206,12 @@ onMounted(fetchApkInfo);
   pointer-events: none;
   animation: breathe 8s ease-in-out infinite alternate;
 }
-.bg-glow-1 { width: 480px; height: 480px; background: rgba(255,143,0,0.09); top: -150px; left: -150px; }
-.bg-glow-2 { width: 380px; height: 380px; background: rgba(59,91,219,0.08); bottom: -120px; right: -120px; animation-delay: -4s; }
+.bg-glow-1 { width: 480px; height: 480px; top: -150px; left: -150px; }
+.bg-glow-2 { width: 380px; height: 380px; bottom: -120px; right: -120px; animation-delay: -4s; }
+.theme-dark  .bg-glow-1 { background: rgba(255,143,0,.09); }
+.theme-dark  .bg-glow-2 { background: rgba(59,91,219,.08); }
+.theme-light .bg-glow-1 { background: rgba(255,143,0,.12); }
+.theme-light .bg-glow-2 { background: rgba(59,91,219,.07); }
 @keyframes breathe {
   from { opacity: .6; transform: scale(1); }
   to   { opacity: 1;  transform: scale(1.12); }
@@ -230,17 +242,22 @@ onMounted(fetchApkInfo);
   font-size: 2rem; color: #FF8F00;
 }
 .brand-sys { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .2em; color: #FF8F00; margin-bottom: .2rem; }
-.brand-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -.03em; line-height: 1; color: #f1f5f9; margin-bottom: .25rem; }
+.brand-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -.03em; line-height: 1; margin-bottom: .25rem; }
+.theme-dark  .brand-title { color: #f1f5f9; }
+.theme-light .brand-title { color: #0f172a; }
 .brand-title span { color: #FF8F00; }
-.brand-desc { font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.25); }
+.theme-dark  .brand-desc { color: rgba(255,255,255,.25); }
+.theme-light .brand-desc { color: #94a3b8; }
+.brand-desc { font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
 
 /* Card base */
 .card {
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.07);
   border-radius: 20px;
   padding: 1.4rem;
+  transition: background .4s, border-color .4s;
 }
+.theme-dark  .card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); }
+.theme-light .card { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 2px 16px rgba(0,0,0,.06); }
 
 /* Main card */
 .main { display: flex; flex-direction: column; gap: 1rem; }
@@ -250,12 +267,12 @@ onMounted(fetchApkInfo);
 .chip {
   display: flex; align-items: center; gap: .35rem;
   padding: .3rem .8rem;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
   border-radius: 99px;
-  font-size: .68rem; font-weight: 700; color: #94a3b8;
+  font-size: .68rem; font-weight: 700;
 }
-.chip-green { color: #4ade80; border-color: rgba(74,222,128,.2); background: rgba(74,222,128,.06); }
+.theme-dark  .chip { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: #94a3b8; }
+.theme-light .chip { background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b; }
+.chip-green { color: #16a34a !important; border-color: rgba(22,163,74,.25) !important; background: rgba(22,163,74,.07) !important; }
 
 /* Download button */
 .btn-dl {
@@ -284,9 +301,6 @@ onMounted(fetchApkInfo);
 .btn-sec {
   padding: .75rem;
   border-radius: 12px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-  color: rgba(255,255,255,.5);
   font-size: .68rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: .07em;
   cursor: pointer;
@@ -294,6 +308,8 @@ onMounted(fetchApkInfo);
   transition: all .2s;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
+.theme-dark  .btn-sec { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); color: rgba(255,255,255,.5); }
+.theme-light .btn-sec { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; }
 .btn-sec:hover { background: rgba(255,143,0,.07); border-color: rgba(255,143,0,.2); color: #FF8F00; }
 
 /* Empty */
@@ -312,8 +328,10 @@ onMounted(fetchApkInfo);
   display: flex; align-items: center; justify-content: center;
   font-size: .65rem; color: #4ade80;
 }
-.priv-title { font-size: .78rem; font-weight: 800; color: #f1f5f9; margin-bottom: .2rem; }
-.priv-sub   { font-size: .65rem; color: #475569; }
+.priv-title { font-size: .78rem; font-weight: 800; margin-bottom: .2rem; }
+.theme-dark  .priv-title { color: #f1f5f9; }
+.theme-light .priv-title { color: #0f172a; }
+.priv-sub   { font-size: .65rem; color: #64748b; }
 .btn-priv {
   width: 100%; padding: .72rem 1rem; border-radius: 12px;
   background: rgba(74,222,128,.04);
@@ -345,17 +363,20 @@ onMounted(fetchApkInfo);
 
 .modal-card {
   width: 100%; max-width: 390px;
-  background: #0d1325;
   border: 1px solid rgba(255,143,0,.18);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 0 60px rgba(255,143,0,.08), 0 30px 70px rgba(0,0,0,.6);
+  box-shadow: 0 0 60px rgba(255,143,0,.08), 0 30px 70px rgba(0,0,0,.4);
 }
+.theme-dark  .modal-card { background: #0d1325; }
+.theme-light .modal-card { background: #ffffff; }
+
 .modal-hd {
   display: flex; align-items: center; gap: .85rem;
   padding: 1.15rem 1.4rem;
-  border-bottom: 1px solid rgba(255,255,255,.06);
 }
+.theme-dark  .modal-hd { border-bottom: 1px solid rgba(255,255,255,.06); }
+.theme-light .modal-hd { border-bottom: 1px solid #f1f5f9; }
 .modal-ico {
   width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: .95rem;
@@ -363,21 +384,25 @@ onMounted(fetchApkInfo);
 .mico-green  { background: rgba(74,222,128,.1);  border: 1px solid rgba(74,222,128,.2);  color: #4ade80; }
 .mico-orange { background: rgba(255,143,0,.1);   border: 1px solid rgba(255,143,0,.2);   color: #FF8F00; }
 .mico-blue   { background: rgba(96,165,250,.1);  border: 1px solid rgba(96,165,250,.2);  color: #60a5fa; }
-.modal-title { flex: 1; font-size: .82rem; font-weight: 800; color: #f1f5f9; }
+.modal-title { flex: 1; font-size: .82rem; font-weight: 800; }
+.theme-dark  .modal-title { color: #f1f5f9; }
+.theme-light .modal-title { color: #0f172a; }
 .modal-cls {
   width: 30px; height: 30px; border-radius: 8px;
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-  color: #64748b; font-size: .75rem; cursor: pointer;
+  font-size: .75rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: all .2s;
 }
-.modal-cls:hover { background: rgba(255,255,255,.1); color: #fff; }
+.theme-dark  .modal-cls { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: #64748b; }
+.theme-light .modal-cls { background: #f1f5f9; border: 1px solid #e2e8f0; color: #94a3b8; }
+.modal-cls:hover { background: rgba(255,143,0,.1); color: #FF8F00; }
 
 .modal-body {
   padding: 1.4rem;
   display: flex; flex-direction: column; align-items: center; gap: 1rem;
 }
 .modal-txt { font-size: .78rem; color: #64748b; line-height: 1.7; text-align: center; }
-.modal-txt strong { color: #f1f5f9; }
+.theme-dark  .modal-txt strong { color: #f1f5f9; }
+.theme-light .modal-txt strong { color: #0f172a; }
 .modal-hl {
   display: flex; align-items: flex-start; gap: .65rem;
   padding: .85rem 1rem;
