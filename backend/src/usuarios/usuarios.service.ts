@@ -67,7 +67,7 @@ export class UsuariosService {
     private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
-  ) {}
+  ) { }
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -537,20 +537,41 @@ export class UsuariosService {
     const dayOfWeekOdoo =
       nowColombia.getDay() === 0 ? 6 : nowColombia.getDay() - 1;
 
+    // 2. RESOLVER PERMISOS (Igual que en el reporte)
+    // Esta es la pieza clave que te faltaba
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    // Si el resolvedor dice que no tienes acceso a nadie, retornamos vacío
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    ) {
+      return [];
+    }
+
     // 1. Traer usuarios activos de DB local con filtros
+    // 3. TRAER USUARIOS CON LOS IDS RESUELTOS
     const usuarioQuery = this.usuarioRepo
       .createQueryBuilder('u')
       .where('u.is_active = :active', { active: true });
 
-    if (
-      departamentoName &&
-      departamentoName.trim() !== '' &&
-      departamentoName !== 'Todas'
-    ) {
+    // Si tenemos IDs específicos por estructura (permisos), filtramos por ellos
+    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      usuarioQuery.andWhere('u.id_odoo IN (:...ids)', { ids: employeeIdsPorEstructura });
+    }
+
+    // Filtros adicionales de búsqueda
+    if (departamentoName && departamentoName.trim() !== '' && departamentoName !== 'Todas') {
       usuarioQuery.andWhere('u.departamento LIKE :depto', {
         depto: `%${departamentoName}%`,
       });
     }
+    // if (companyName && companyName !== 'Todas') {
+    //   // Si tu entidad usuario tiene el campo company, asegúrate de filtrarlo
+    //   usuarioQuery.andWhere('u.company = :company', { company: companyName });
+    // }
     if (areaId) {
       usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
     }
@@ -597,18 +618,12 @@ export class UsuariosService {
         if (asigLocal.malla.detalles?.length) {
           const detalleHoy = asigLocal.malla.detalles
             .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
-            .sort(
-              (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
-            )[0];
+            .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
 
           if (detalleHoy) {
             horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
-            jornada =
-              detalleHoy.periodo === 'morning'
-                ? 'Diurna'
-                : detalleHoy.periodo === 'afternoon'
-                  ? 'Tarde'
-                  : 'Nocturna';
+            const jornadas = { morning: 'Diurna', afternoon: 'Tarde', night: 'Nocturna' };
+            jornada = jornadas[detalleHoy.periodo] || 'N/A';
           }
         }
       }
@@ -977,8 +992,8 @@ export class UsuariosService {
         });
         const ultimoConSalida = conSalida.length
           ? conSalida.reduce((best, cur) =>
-              new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
-            )
+            new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
+          )
           : null;
 
         const localIn = toLocal(primero.check_in);
@@ -1088,22 +1103,22 @@ export class UsuariosService {
 
           const cEntrada = empId
             ? this.clasificarPorMallaLocal(
-                empId,
-                checkInUTC as string,
-                true,
-                mallasLocalMap,
-                diaSemanaEntrada,
-              )
+              empId,
+              checkInUTC as string,
+              true,
+              mallasLocalMap,
+              diaSemanaEntrada,
+            )
             : 'No programado';
 
           const cSalida = checkOutUTC
             ? this.clasificarPorMallaLocal(
-                empId,
-                checkOutUTC,
-                false,
-                mallasLocalMap,
-                diaSemanaEntrada,
-              )
+              empId,
+              checkOutUTC,
+              false,
+              mallasLocalMap,
+              diaSemanaEntrada,
+            )
             : 'N/A';
 
           return {
@@ -1312,12 +1327,12 @@ export class UsuariosService {
           ),
           c_salida: f.punchOutUTC
             ? this.clasificarPorMallaLocal(
-                f.empId,
-                f.punchOutUTC,
-                false,
-                mallasLocalMap,
-                diaSemanaEntrada,
-              )
+              f.empId,
+              f.punchOutUTC,
+              false,
+              mallasLocalMap,
+              diaSemanaEntrada,
+            )
             : 'SIN SALIDA',
           fecha: f.fecha,
           tipo: 'LOG CRUDO',
