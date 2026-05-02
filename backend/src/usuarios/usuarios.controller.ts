@@ -31,8 +31,8 @@ export class UsuariosController {
   async getMallas(
     @Query('company') company: string,
     @Query('departamento') departamento: string,
-    @Query('areaId') areaId?: string,
-    @Query('segmentoId') segmentoId?: string,
+    @Query('area_id') areaId?: string,
+    @Query('segmento_id') segmentoId?: string,
   ) {
     return await this.usuariosService.getAllMallas(
       company,
