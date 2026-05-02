@@ -12,7 +12,8 @@
       "Bash(cp \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\.claude\\\\worktrees\\\\musing-shannon-4fbf2f\\\\frontend\\\\src\\\\views\\\\LoginView.vue\" \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\frontend\\\\src\\\\views\\\\LoginView.vue\")",
       "Bash(cp \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\.claude\\\\worktrees\\\\musing-shannon-4fbf2f\\\\frontend\\\\src\\\\views\\\\Public\\\\DownloadView.vue\" \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\frontend\\\\src\\\\views\\\\Public\\\\DownloadView.vue\")",
       "Read(//c/Users/Daniel/Documents/WodenTrack/MigracionWodenTrack/**)",
-      "Bash(cp \".claude/worktrees/musing-shannon-4fbf2f/frontend/src/composables/adminLogica/mallasGeneral.js\" \"frontend/src/composables/adminLogica/mallasGeneral.js\")"
+      "Bash(cp \".claude/worktrees/musing-shannon-4fbf2f/frontend/src/composables/adminLogica/mallasGeneral.js\" \"frontend/src/composables/adminLogica/mallasGeneral.js\")",
+      "Bash(git commit -m 'feat\\(mallas\\): conteos, detalle de exitos y reporte Excel descargable en modal resultado *)"
     ]
   }
 }
