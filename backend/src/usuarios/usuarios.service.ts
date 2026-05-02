@@ -580,7 +580,7 @@ export class UsuariosService {
     }
 
     const usuarios = await usuarioQuery
-      .select(['u.id_odoo', 'u.nombre', 'u.cargo', 'u.departamento'])
+      .select(['u.id_odoo', 'u.nombre', 'u.cargo', 'u.departamento', 'u.identificacion'])
       .orderBy('u.nombre', 'ASC')
       .getMany();
 
@@ -630,6 +630,7 @@ export class UsuariosService {
 
       return {
         nombre: u.nombre,
+        cc: u.identificacion || '',
         departamento: u.departamento || 'No asignado',
         malla: nombreMalla,
         cargo: u.cargo || 'No asignado',

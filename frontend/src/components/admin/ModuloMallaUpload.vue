@@ -80,6 +80,9 @@
               </th>
               <th
                 class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                Cédula</th>
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
                 Cargo</th>
               <th
                 class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
@@ -98,7 +101,7 @@
 
           <tbody class="divide-y-0">
             <tr v-if="isLoadingMallas" v-for="n in 8" :key="'loader-' + n">
-              <td colspan="6" class="px-4 py-4">
+              <td colspan="7" class="px-4 py-4">
                 <div class="h-4 w-full rounded animate-pulse bg-slate-500/10"></div>
               </td>
             </tr>
@@ -110,6 +113,10 @@
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span class="text-[11px] font-bold uppercase tracking-tight"
                   :class="isDark ? 'text-white' : 'text-slate-900'">{{ persona.nombre }}</span>
+              </td>
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                <span class="text-[11px] font-mono tracking-wide"
+                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ persona.cc || '—' }}</span>
               </td>
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border"
