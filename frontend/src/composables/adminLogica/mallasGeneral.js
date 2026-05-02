@@ -9,6 +9,7 @@ export function useMallasGeneral() {
   const isUploading = ref(false);
   const uploadErrors = ref([]);
   const uploadSuccessMessage = ref("");
+  const uploadProcesados = ref([]);   // detalle de los exitosos
   const showResultModal = ref(false);
   const selectedCompany = ref("");
   const selectedDepartment = ref("");
@@ -216,18 +217,47 @@ export function useMallasGeneral() {
       { headers: { "Content-Type": "multipart/form-data" } },
     );
 
-    if (response.data.success) {
+    // Siempre guardamos ambas listas (puede haber éxitos parciales)
+    uploadProcesados.value = response.data.procesados || [];
+    const rawErrors = response.data.errors || [];
+    uploadErrors.value = rawErrors.map((err) => ({
+      fila: err.fila || "?",
+      cedula: err.cedula || "",
+      error: err.error || err.message || "Error sin descripción",
+    }));
+
+    if (response.data.total_procesados > 0) {
       uploadSuccessMessage.value = response.data.message;
       fetchMallasDesdeOdoo();
-    } else {
-      const rawErrors = response.data.errors || [];
-      uploadErrors.value = rawErrors.map((err) => ({
-        fila: err.fila || err.row || err.linea || "?",
-        campo: err.campo || err.field || err.column || "General",
-        error: err.error || err.message || err.err || "Error sin descripción",
-        valor_enviado: err.valor_enviado || null,
-      }));
     }
+  };
+
+  // ── Reporte Excel del resultado de carga ────────────────────────────────
+  const descargarReporteCarga = async () => {
+    const XLSX = await import("xlsx");
+
+    const wb = XLSX.utils.book_new();
+
+    // ── Hoja 1: Exitosos ────────────────────────────────────────────────────
+    const exitososData = [
+      ["Fila", "Cédula", "Nombre", "Malla Asignada", "Fecha"],
+      ...uploadProcesados.value.map((p) => [p.fila, p.cedula, p.nombre, p.malla, p.fecha]),
+    ];
+    const wsExito = XLSX.utils.aoa_to_sheet(exitososData);
+    wsExito["!cols"] = [{ wch: 6 }, { wch: 15 }, { wch: 35 }, { wch: 45 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsExito, "Asignados");
+
+    // ── Hoja 2: Errores ─────────────────────────────────────────────────────
+    const erroresData = [
+      ["Fila", "Cédula", "Error"],
+      ...uploadErrors.value.map((e) => [e.fila, e.cedula || "", e.error]),
+    ];
+    const wsError = XLSX.utils.aoa_to_sheet(erroresData);
+    wsError["!cols"] = [{ wch: 6 }, { wch: 15 }, { wch: 55 }];
+    XLSX.utils.book_append_sheet(wb, wsError, "Errores");
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `reporte_carga_mallas_${fecha}.xlsx`);
   };
 
   // ── Punto de entrada único: seleccionar archivo ──────────────────────────
@@ -240,6 +270,7 @@ export function useMallasGeneral() {
     // Limpiar estado anterior
     uploadErrors.value = [];
     uploadSuccessMessage.value = "";
+    uploadProcesados.value = [];
     showResultModal.value = false;
 
     try {
@@ -350,6 +381,8 @@ export function useMallasGeneral() {
     isUploading,
     uploadErrors,
     uploadSuccessMessage,
+    uploadProcesados,
+    descargarReporteCarga,
     showResultModal,
     showChoiceModal,
     showPreviewModal,

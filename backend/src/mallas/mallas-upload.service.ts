@@ -24,8 +24,8 @@ export class MallasUploadService {
 
     if (!worksheet) throw new Error('No se encontró hoja de trabajo.');
 
-    const procesados: number[] = [];
-    const errores: { fila: number; error: string }[] = [];
+    const procesados: { fila: number; cedula: string; nombre: string; malla: string; fecha: string }[] = [];
+    const errores: { fila: number; cedula?: string; error: string }[] = [];
 
     const rows: any[] = [];
     worksheet.eachRow((row, rowNumber) => {
@@ -49,7 +49,7 @@ export class MallasUploadService {
           continue;
         }
         if (!nombreMalla) {
-          errores.push({ fila: rowNumber, error: `Cédula ${cedula}: no se indicó el nombre de la malla` });
+          errores.push({ fila: rowNumber, cedula, error: `Cédula ${cedula}: no se indicó el nombre de la malla` });
           continue;
         }
 
@@ -62,7 +62,8 @@ export class MallasUploadService {
         if (!usuario) {
           errores.push({
             fila: rowNumber,
-            error: `Empleado con cédula ${cedula} no encontrado`,
+            cedula,
+            error: `Cédula ${cedula} no encontrada en el sistema`,
           });
           continue;
         }
@@ -77,7 +78,8 @@ export class MallasUploadService {
         if (!mallas.length) {
           errores.push({
             fila: rowNumber,
-            error: `Malla "${nombreMalla}" no existe en la DB`,
+            cedula,
+            error: `Malla "${nombreMalla}" no existe en el sistema`,
           });
           continue;
         }
@@ -105,7 +107,7 @@ export class MallasUploadService {
           asignado_por: asignado_por || undefined,
         });
         await this.asignacionRepo.save(nueva);
-        procesados.push(usuario.id_odoo);
+        procesados.push({ fila: rowNumber, cedula, nombre: usuario.nombre, malla: malla.nombre, fecha: fechaInicio });
       } catch (e) {
         errores.push({ fila: rowNumber, error: e.message });
       }
@@ -113,8 +115,9 @@ export class MallasUploadService {
 
     return {
       success: errores.length === 0,
-      message: `${procesados.length} mallas asignadas correctamente`,
+      message: `${procesados.length} malla${procesados.length !== 1 ? 's' : ''} asignada${procesados.length !== 1 ? 's' : ''} correctamente`,
       total_procesados: procesados.length,
+      procesados,
       errors: errores,
     };
   }
