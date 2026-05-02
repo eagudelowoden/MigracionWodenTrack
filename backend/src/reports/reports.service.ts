@@ -2,7 +2,6 @@
 import {
   Injectable,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
@@ -22,183 +21,65 @@ export class ReportsService {
     companyName: string,
     departamento: string,
   ): Promise<Buffer> {
-    try {
-      const uid = await this.odoo.authenticate();
+    // Plantilla simple para carga masiva: cedula | nombre_malla
+    // El upload solo necesita estos dos campos para asignar mallas.
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Carga de Mallas');
 
-      // 0. MAPEO DE ESTADOS
-      const stateLabels: Record<string, string> = {
-        draft: 'Nuevo',
-        open: 'En proceso',
-        close: 'Vencido',
-        cancel: 'Cancelado(a)',
-      };
+    worksheet.columns = [
+      { header: 'cedula', key: 'cedula', width: 20 },
+      { header: 'nombre_malla', key: 'nombre_malla', width: 45 },
+    ];
 
-      // 1. CONSTRUIR EL DOMINIO DINÁMICO
-      const domain: any[] = [];
-      if (companyName && companyName !== 'Todas') {
-        domain.push(['company_id.name', '=', companyName]);
-      }
-      if (departamento && departamento !== '' && departamento !== 'Todas') {
-        domain.push(['employee_id.department_id.name', 'ilike', departamento]);
-      }
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFF8F00' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // 2. TRAER LOS CONTRATOS FILTRADOS
-      const contratos = await this.odoo.executeKw<any[]>(
-        'hr.contract',
-        'search_read',
-        [domain],
-        {
-          fields: [
-            'name',
-            'company_id',
-            'employee_id',
-            'job_id',
-            'resource_calendar_id',
-            'date_start',
-            'date_end',
-            'state',
-            'department_id',
-          ],
-        },
-        uid,
-      );
+    // Traer empleados de la DB local filtrando por compañía/departamento
+    const conditions: string[] = ['u.is_active = 1'];
+    const params: any[] = [];
 
-      if (!contratos || contratos.length === 0) {
-        throw new NotFoundException(
-          `No se encontraron contratos para la compañía ${companyName} en el departamento ${departamento}`,
-        );
-      }
-
-      // --- REFUERZO: Traer info de Empleados ---
-      const employeeIds = [...new Set(contratos.map((c) => c.employee_id[0]))];
-      const employeesDetail = await this.odoo.executeKw<any[]>(
-        'hr.employee',
-        'search_read',
-        [[['id', 'in', employeeIds]]],
-        { fields: ['id', 'job_title', 'department_id'] },
-        uid,
-      );
-
-      const idMap = new Map();
-
-      // 3. OBTENER IDs EXTERNOS (Metadatos)
-      const contractIds = contratos.map((c) => c.id);
-      const externalIds = await this.odoo.executeKw<any[]>(
-        'ir.model.data',
-        'search_read',
-        [
-          [
-            ['model', '=', 'hr.contract'],
-            ['res_id', 'in', contractIds],
-          ],
-        ],
-        { fields: ['res_id', 'module', 'name'] },
-        uid,
-      );
-
-      externalIds.forEach((item) => {
-        idMap.set(item.res_id, `${item.module}.${item.name}`);
-      });
-
-      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE (Para que Odoo lo acepte al importar) ---
-      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE ---
-      for (const con of contratos) {
-        if (!idMap.has(con.id)) {
-          try {
-            // Creamos un nombre único para el ID externo
-            const nuevoNombre = `hr_contract_${con.id}_${Math.random().toString(36).substring(7)}`;
-
-            // AQUÍ ESTABA EL ERROR: Agregamos 'uid' como 5to argumento
-            await this.odoo.executeKw(
-              'ir.model.data',
-              'create',
-              [
-                [
-                  {
-                    name: nuevoNombre,
-                    model: 'hr.contract',
-                    module: '__export__',
-                    res_id: con.id,
-                  },
-                ],
-              ],
-              {}, // El cuarto argumento son las 'options' (vació en este caso)
-              uid, // El quinto argumento es el 'uid' (EL QUE FALTABA)
-            );
-
-            idMap.set(con.id, `__export__.${nuevoNombre}`);
-          } catch (e) {
-            console.warn(
-              `No se pudo crear ID externo para contrato ${con.id}, se usará ID numérico.`,
-            );
-          }
-        }
-      }
-
-      // 4. GENERACIÓN DEL EXCEL
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Carga de Mallas');
-
-      worksheet.columns = [
-        { header: 'id', key: 'id', width: 35 },
-        { header: 'Compañía', key: 'company', width: 25 },
-        { header: 'Empleado', key: 'employee', width: 30 },
-        { header: 'Estado', key: 'state', width: 12 },
-        { header: 'Fecha de finalización', key: 'date_end', width: 15 },
-        { header: 'Fecha de inicio', key: 'date_start', width: 15 },
-        { header: 'Horario de trabajo', key: 'calendar', width: 30 },
-        { header: 'Puesto de trabajo', key: 'job', width: 25 },
-        { header: 'Referencia de contrato', key: 'name', width: 25 },
-        { header: 'Departamento', key: 'department', width: 25 },
-      ];
-
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFF8F00' },
-      };
-
-      // 5. LLENAR DATOS
-      contratos.forEach((con) => {
-        const empInfo = employeesDetail.find(
-          (e) => e.id === con.employee_id[0],
-        );
-        const estadoVisible = stateLabels[con.state] || con.state || '';
-
-        worksheet.addRow({
-          // Ahora idMap siempre debería tener el formato __export__.xxxx
-          id: idMap.get(con.id) || con.id,
-          company: Array.isArray(con.company_id) ? con.company_id[1] : '',
-          employee: Array.isArray(con.employee_id) ? con.employee_id[1] : '',
-          state: estadoVisible,
-          date_end: con.date_end || '',
-          date_start: con.date_start || '',
-          calendar: Array.isArray(con.resource_calendar_id)
-            ? con.resource_calendar_id[1]
-            : '',
-          job: Array.isArray(con.job_id)
-            ? con.job_id[1]
-            : empInfo && empInfo.job_title
-              ? empInfo.job_title
-              : 'No asignado',
-          name: con.name || '',
-          department: Array.isArray(con.department_id)
-            ? con.department_id[1]
-            : empInfo && Array.isArray(empInfo.department_id)
-              ? empInfo.department_id[1]
-              : 'No asignado',
-        });
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      return Buffer.from(buffer as ArrayBuffer);
-    } catch (error) {
-      console.error('Error en reporte:', error.message);
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException(`Error de Odoo: ${error.message}`);
+    if (companyName && companyName !== 'Todas') {
+      conditions.push('u.company LIKE @0');
+      params.push(`%${companyName}%`);
     }
+    if (departamento && departamento !== '' && departamento !== 'Todas') {
+      conditions.push(`u.departamento LIKE @${params.length}`);
+      params.push(`%${departamento}%`);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Query con join para traer la malla actual de cada empleado
+    const query = `
+      SELECT
+        u.identificacion AS cedula,
+        u.nombre,
+        h.nombre AS nombre_malla
+      FROM usuarios_registrados u
+      LEFT JOIN mallas_asignaciones a ON a.usuario_id_odoo = u.id_odoo AND a.actual = 1
+      LEFT JOIN mallas_horarias h ON h.id = a.malla_id
+      WHERE ${whereClause}
+      ORDER BY u.nombre ASC
+    `;
+
+    const empleados: Array<{ cedula: string; nombre: string; nombre_malla: string | null }> =
+      await this.dataSource.query(query, params);
+
+    empleados.forEach((emp) => {
+      worksheet.addRow({
+        cedula: emp.cedula || '',
+        nombre_malla: emp.nombre_malla || '',
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer as ArrayBuffer);
   }
 
   // ─────────────────────────────────────────────
