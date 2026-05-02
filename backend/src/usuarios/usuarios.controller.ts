@@ -14,7 +14,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(private readonly usuariosService: UsuariosService) { }
 
   @Post('login')
   async login(@Body() body: any) {
@@ -29,16 +29,16 @@ export class UsuariosController {
 
   @Get('mallas')
   async getMallas(
-    @Query('company') company?: string,
-    @Query('departamento') departamento?: string,
-    @Query('area_id') area_id?: string,
-    @Query('segmento_id') segmento_id?: string,
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('areaId') areaId?: string,
+    @Query('segmentoId') segmentoId?: string,
   ) {
     return await this.usuariosService.getAllMallas(
       company,
       departamento,
-      area_id ? Number(area_id) : undefined,
-      segmento_id ? Number(segmento_id) : undefined,
+      areaId ? Number(areaId) : undefined,
+      segmentoId ? +segmentoId : undefined,
     );
   }
 
