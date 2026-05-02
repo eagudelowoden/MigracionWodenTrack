@@ -289,58 +289,61 @@
 
         <div class="px-5 py-5">
 
-          <!-- ÉXITO -->
-          <div v-if="uploadSuccessMessage && !uploadErrors?.length" class="flex flex-col items-center text-center py-2">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20"
-              :style="{ background: 'linear-gradient(135deg, #10b981, #059669)' }">
-              <i class="fas fa-check text-white text-2xl"></i>
+          <!-- ── Resumen de conteos ───────────────────────────────────────── -->
+          <div class="flex gap-3 mb-5">
+            <!-- Exitosos -->
+            <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1"
+              :class="isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'">
+              <span class="text-2xl font-black" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                {{ uploadProcesados?.length ?? 0 }}
+              </span>
+              <span class="text-[9px] font-black uppercase tracking-widest text-center"
+                :class="isDark ? 'text-emerald-500' : 'text-emerald-700'">
+                <i class="fas fa-check mr-1"></i>Asignadas
+              </span>
             </div>
-            <p class="text-[15px] font-bold mb-1" :class="isDark ? 'text-white' : 'text-slate-800'">
-              ¡Carga exitosa!
-            </p>
-            <p class="text-[11px] font-medium" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+            <!-- Errores -->
+            <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1"
+              :class="uploadErrors?.length
+                ? (isDark ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-rose-50 border border-rose-200')
+                : (isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200')">
+              <span class="text-2xl font-black"
+                :class="uploadErrors?.length ? (isDark ? 'text-rose-400' : 'text-rose-500') : (isDark ? 'text-slate-500' : 'text-slate-400')">
+                {{ uploadErrors?.length ?? 0 }}
+              </span>
+              <span class="text-[9px] font-black uppercase tracking-widest text-center"
+                :class="uploadErrors?.length ? (isDark ? 'text-rose-500' : 'text-rose-600') : (isDark ? 'text-slate-500' : 'text-slate-400')">
+                <i class="fas fa-triangle-exclamation mr-1"></i>Errores
+              </span>
+            </div>
+          </div>
+
+          <!-- ── Mensaje de estado ───────────────────────────────────────── -->
+          <div v-if="uploadSuccessMessage" class="flex items-center gap-2 mb-4 px-1">
+            <i class="fas fa-circle-check text-emerald-500 text-sm flex-shrink-0"></i>
+            <p class="text-[11px] font-semibold" :class="isDark ? 'text-emerald-300' : 'text-emerald-700'">
               {{ uploadSuccessMessage }}
             </p>
           </div>
-
-          <!-- ÉXITO PARCIAL (con algunos errores) -->
-          <div v-else-if="uploadSuccessMessage && uploadErrors?.length">
-            <div class="flex items-center gap-3 p-3 rounded-xl mb-4"
-              :class="isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'">
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-500">
-                <i class="fas fa-check text-white text-xs"></i>
-              </div>
-              <p class="text-[11px] font-bold" :class="isDark ? 'text-emerald-300' : 'text-emerald-700'">
-                {{ uploadSuccessMessage }}
-              </p>
-            </div>
-          </div>
-
-          <!-- SOLO ERRORES -->
-          <div v-if="!uploadSuccessMessage && uploadErrors?.length" class="flex flex-col items-center text-center mb-4">
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-              :class="isDark ? 'bg-rose-500/15' : 'bg-rose-50'">
-              <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
-            </div>
-            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
-              No se procesaron registros
+          <div v-else-if="!uploadProcesados?.length" class="flex items-center gap-2 mb-4 px-1">
+            <i class="fas fa-triangle-exclamation text-rose-400 text-sm flex-shrink-0"></i>
+            <p class="text-[11px] font-semibold" :class="isDark ? 'text-rose-300' : 'text-rose-600'">
+              No se pudo asignar ninguna malla
             </p>
           </div>
 
-          <!-- Lista de errores -->
-          <div v-if="uploadErrors?.length > 0">
-            <div class="flex items-center gap-2 mb-2">
-              <i class="fas fa-circle-exclamation text-rose-400 text-[10px]"></i>
-              <p class="text-[10px] font-black uppercase tracking-widest text-rose-400">
-                {{ uploadErrors.length }} incidencia{{ uploadErrors.length !== 1 ? 's' : '' }}
-              </p>
-            </div>
-            <div class="max-h-44 overflow-y-auto rounded-xl border custom-scrollbar"
-              :class="isDark ? 'border-white/8 bg-white/4' : 'border-slate-100 bg-slate-50'">
+          <!-- ── Lista de errores ────────────────────────────────────────── -->
+          <div v-if="uploadErrors?.length > 0" class="mb-4">
+            <p class="text-[9px] font-black uppercase tracking-widest mb-2 px-1"
+              :class="isDark ? 'text-rose-400' : 'text-rose-500'">
+              Detalle de errores
+            </p>
+            <div class="max-h-40 overflow-y-auto rounded-xl border custom-scrollbar"
+              :class="isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-100 bg-slate-50'">
               <div v-for="(err, i) in uploadErrors" :key="i"
-                class="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0"
+                class="flex items-start gap-3 px-3 py-2 border-b last:border-b-0"
                 :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span class="text-[9px] font-mono font-bold mt-0.5 px-1.5 py-0.5 rounded"
+                <span class="text-[9px] font-mono font-bold mt-0.5 px-1.5 py-0.5 rounded flex-shrink-0"
                   :class="isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-500'">
                   F{{ err.fila }}
                 </span>
@@ -351,13 +354,24 @@
             </div>
           </div>
 
-          <!-- Botón cerrar -->
+          <!-- ── Acciones ────────────────────────────────────────────────── -->
+          <!-- Botón descarga reporte (opcional) -->
+          <button v-if="uploadProcesados?.length || uploadErrors?.length"
+            @click="descargarReporteCarga"
+            class="w-full mb-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            :class="isDark
+              ? 'border-white/15 text-slate-300 hover:bg-white/8'
+              : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
+            <i class="fas fa-file-arrow-down text-xs"></i>
+            Descargar reporte Excel
+          </button>
+
           <button @click="showResultModal = false"
-            class="w-full mt-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98]"
-            :class="(!uploadErrors?.length)
+            class="w-full py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98]"
+            :class="(!uploadErrors?.length && uploadProcesados?.length)
               ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20'
               : (isDark ? 'bg-white/8 text-slate-200 hover:bg-white/12' : 'bg-slate-900 text-white hover:opacity-90')">
-            {{ !uploadErrors?.length ? '¡Listo!' : 'Cerrar' }}
+            {{ (!uploadErrors?.length && uploadProcesados?.length) ? '¡Listo!' : 'Cerrar' }}
           </button>
         </div>
       </div>
@@ -391,6 +405,8 @@ const {
   isUploading,
   uploadErrors,
   uploadSuccessMessage,
+  uploadProcesados,
+  descargarReporteCarga,
   showResultModal,
   showChoiceModal,
   showPreviewModal,
