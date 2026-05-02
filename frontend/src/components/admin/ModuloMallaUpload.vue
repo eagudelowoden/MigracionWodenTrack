@@ -169,7 +169,7 @@
 
     <!-- Modal elección -->
     <div v-show="showChoiceModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
         :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
         <div class="px-6 pt-6 pb-4">
@@ -220,7 +220,7 @@
 
     <!-- Modal preview -->
     <div v-show="showPreviewModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[80vh]"
         :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between px-5 py-4 border-b"
@@ -271,7 +271,7 @@
 
     <!-- Modal resultado -->
     <div v-show="showResultModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
         :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
 

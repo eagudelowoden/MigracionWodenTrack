@@ -40,11 +40,16 @@ export class MallasUploadService {
         const fechaInicio = row.getCell(3).text?.trim() ||
           new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
 
-        if (!cedula || !nombreMalla) {
-          errores.push({
-            fila: rowNumber,
-            error: 'Cédula o nombre de malla vacío',
-          });
+        // Fila completamente vacía → ignorar silenciosamente
+        if (!cedula && !nombreMalla) continue;
+
+        // Solo un campo vacío → error específico
+        if (!cedula) {
+          errores.push({ fila: rowNumber, error: 'La cédula está vacía' });
+          continue;
+        }
+        if (!nombreMalla) {
+          errores.push({ fila: rowNumber, error: `Cédula ${cedula}: no se indicó el nombre de la malla` });
           continue;
         }
 
