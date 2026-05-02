@@ -40,17 +40,12 @@ export class ReportsService {
     };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Traer empleados de la DB local filtrando por compañía/departamento
-    const conditions: string[] = ['u.is_active = 1'];
-    const params: any[] = [];
+    // Traer empleados de la DB local filtrando por departamento
+    const conditions: string[] = [`u.is_active = 1`];
 
-    if (companyName && companyName !== 'Todas') {
-      conditions.push('u.company LIKE @0');
-      params.push(`%${companyName}%`);
-    }
     if (departamento && departamento !== '' && departamento !== 'Todas') {
-      conditions.push(`u.departamento LIKE @${params.length}`);
-      params.push(`%${departamento}%`);
+      const deptoEscaped = departamento.replace(/'/g, "''");
+      conditions.push(`u.departamento LIKE '%${deptoEscaped}%'`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -69,7 +64,7 @@ export class ReportsService {
     `;
 
     const empleados: Array<{ cedula: string; nombre: string; nombre_malla: string | null }> =
-      await this.dataSource.query(query, params);
+      await this.dataSource.query(query);
 
     empleados.forEach((emp) => {
       worksheet.addRow({
