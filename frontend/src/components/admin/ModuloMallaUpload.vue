@@ -271,35 +271,93 @@
 
     <!-- Modal resultado -->
     <div v-show="showResultModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-      <div
-        class="bg-white dark:bg-slate-950 max-w-sm w-full rounded-2xl shadow-xl border border-slate-200/60 dark:border-white/5 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4">
-          <h3 class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Estado de Carga</h3>
-          <button @click="showResultModal = false" class="text-slate-300 hover:text-slate-600 transition-colors">
-            <i class="fas fa-times text-xs"></i>
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+      <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
+        :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b"
+          :class="isDark ? 'border-white/8' : 'border-slate-100'">
+          <span class="text-[10px] font-black uppercase tracking-[0.2em]"
+            :class="isDark ? 'text-slate-400' : 'text-slate-400'">Resultado de Carga</span>
+          <button @click="showResultModal = false"
+            class="w-6 h-6 flex items-center justify-center rounded-lg transition-colors"
+            :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'">
+            <i class="fas fa-times text-[10px]"></i>
           </button>
         </div>
-        <div class="px-5 pb-6">
-          <div v-if="uploadSuccessMessage" class="mb-4 flex items-center gap-3 text-emerald-600">
-            <div class="h-1.5 w-1.5 rounded-full bg-current"></div>
-            <p class="text-sm font-medium">{{ uploadSuccessMessage }}</p>
+
+        <div class="px-5 py-5">
+
+          <!-- ÉXITO -->
+          <div v-if="uploadSuccessMessage && !uploadErrors?.length" class="flex flex-col items-center text-center py-2">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20"
+              :style="{ background: 'linear-gradient(135deg, #10b981, #059669)' }">
+              <i class="fas fa-check text-white text-2xl"></i>
+            </div>
+            <p class="text-[15px] font-bold mb-1" :class="isDark ? 'text-white' : 'text-slate-800'">
+              ¡Carga exitosa!
+            </p>
+            <p class="text-[11px] font-medium" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+              {{ uploadSuccessMessage }}
+            </p>
           </div>
-          <div v-if="uploadErrors?.length > 0" class="space-y-1">
-            <p class="text-[10px] font-semibold text-rose-500/80 mb-2 px-1">INCIDENCIAS DETECTADAS</p>
-            <div class="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+
+          <!-- ÉXITO PARCIAL (con algunos errores) -->
+          <div v-else-if="uploadSuccessMessage && uploadErrors?.length">
+            <div class="flex items-center gap-3 p-3 rounded-xl mb-4"
+              :class="isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'">
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-500">
+                <i class="fas fa-check text-white text-xs"></i>
+              </div>
+              <p class="text-[11px] font-bold" :class="isDark ? 'text-emerald-300' : 'text-emerald-700'">
+                {{ uploadSuccessMessage }}
+              </p>
+            </div>
+          </div>
+
+          <!-- SOLO ERRORES -->
+          <div v-if="!uploadSuccessMessage && uploadErrors?.length" class="flex flex-col items-center text-center mb-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+              :class="isDark ? 'bg-rose-500/15' : 'bg-rose-50'">
+              <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
+            </div>
+            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+              No se procesaron registros
+            </p>
+          </div>
+
+          <!-- Lista de errores -->
+          <div v-if="uploadErrors?.length > 0">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="fas fa-circle-exclamation text-rose-400 text-[10px]"></i>
+              <p class="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                {{ uploadErrors.length }} incidencia{{ uploadErrors.length !== 1 ? 's' : '' }}
+              </p>
+            </div>
+            <div class="max-h-44 overflow-y-auto rounded-xl border custom-scrollbar"
+              :class="isDark ? 'border-white/8 bg-white/4' : 'border-slate-100 bg-slate-50'">
               <div v-for="(err, i) in uploadErrors" :key="i"
-                class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                <span class="text-[9px] font-mono text-slate-400 mt-0.5">#{{ err.fila }}</span>
-                <p class="text-[11px] font-medium text-slate-700 leading-tight">
-                  <span class="text-slate-400 font-normal">{{ err.campo }}:</span> {{ err.error }}
+                class="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0"
+                :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                <span class="text-[9px] font-mono font-bold mt-0.5 px-1.5 py-0.5 rounded"
+                  :class="isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-500'">
+                  F{{ err.fila }}
+                </span>
+                <p class="text-[10px] leading-snug" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                  {{ err.error }}
                 </p>
               </div>
             </div>
           </div>
+
+          <!-- Botón cerrar -->
           <button @click="showResultModal = false"
-            class="w-full mt-6 py-2.5 bg-slate-900 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:opacity-90 transition-all">
-            Continuar
+            class="w-full mt-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98]"
+            :class="(!uploadErrors?.length)
+              ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20'
+              : (isDark ? 'bg-white/8 text-slate-200 hover:bg-white/12' : 'bg-slate-900 text-white hover:opacity-90')">
+            {{ !uploadErrors?.length ? '¡Listo!' : 'Cerrar' }}
           </button>
         </div>
       </div>
