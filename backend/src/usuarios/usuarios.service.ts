@@ -1056,7 +1056,7 @@ export class UsuariosService {
           if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
             const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
             if (hPrevIn >= hi - 1) {
-              prevFila.localOut    = fila.localIn;    // check_in matutino = salida del día anterior
+              prevFila.localOut = fila.localIn;    // check_in matutino = salida del día anterior
               prevFila.checkOutUTC = fila.checkInUTC;
             }
           }
@@ -1098,7 +1098,7 @@ export class UsuariosService {
           const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
           // La entrada del día anterior es nocturna (≥ hi - 1h) → esta marca matutina es su salida
           if (hPrevIn >= hi - 1) {
-            prevFila.localOut    = fila.localIn;
+            prevFila.localOut = fila.localIn;
             prevFila.checkOutUTC = fila.checkInUTC;
           }
         }
@@ -1307,7 +1307,7 @@ export class UsuariosService {
       const { hi, hf } = nocturno;
       const hIn = horaDecimalDeLocal(fila.localIn);
 
-      if (hIn <= hf + 2) {
+      if (hIn <= hf + 5) {
         if (fila.localOut && horaDecimalDeLocal(fila.localOut) >= hi - 2) {
           // CASO INVERTIDO: el grupo tiene punch matutino (~06h) Y punch nocturno (~22h).
           // El punch matutino es la SALIDA del turno del día anterior.
@@ -1532,17 +1532,22 @@ export class UsuariosService {
       return timeB - timeA;
     });
 
-    // Filtrar por fecha de entrada dentro del rango solicitado.
-    // attendance.log consulta un día extra para capturar salidas de turno nocturno;
-    // aquí descartamos los registros cuya fecha de ENTRADA quede fuera del rango.
+    // FILTRO REPARADO:
     const resultado = (startDay || endDay)
       ? todosSinFiltrar.filter((r) => {
-          const f = r.fecha;
-          if (!f || f === 'N/A') return true; // no filtrar si no hay fecha
-          if (startDay && f < startDay) return false;
-          if (endDay && f > endDay) return false;
-          return true;
-        })
+        // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha 
+        // sea el día que empezó el turno (incluso para salidas nocturnas)
+        const f = r.fecha;
+
+        if (!f || f === 'N/A') return true;
+
+        // Si pediste hasta el 29, esto eliminará cualquier bloque que 
+        // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
+        if (startDay && f < startDay) return false;
+        if (endDay && f > endDay) return false;
+
+        return true;
+      })
       : todosSinFiltrar;
 
     const tiempoTotal = (Date.now() - inicioTotal) / 1000;
@@ -1614,12 +1619,14 @@ export class UsuariosService {
       // finUTCLog para attendance.log: extiende 1 día Colombia extra para capturar
       // las salidas de turno nocturno que ocurren entre las 00:00 y las ~07:00
       // del día siguiente (ej. 06:00 Colombia = 11:00 UTC)
+      // Cambia esto en calcularRangoUTC para finUTCLog
       const fechaFinLog = new Date(anio, mes - 1, dia);
-      fechaFinLog.setDate(fechaFinLog.getDate() + 2);
+      fechaFinLog.setDate(fechaFinLog.getDate() + 1); // Solo un día extra
       const al = fechaFinLog.getFullYear();
       const ml = String(fechaFinLog.getMonth() + 1).padStart(2, '0');
       const dl = String(fechaFinLog.getDate()).padStart(2, '0');
-      finUTCLog = `${al}-${ml}-${dl} 04:59:59`;
+      // 12:00:00 UTC son las 07:00 AM Colombia. Suficiente para turnos que acaban a las 6 AM.
+      finUTCLog = `${al}-${ml}-${dl} 12:00:00`;
     }
 
     return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
