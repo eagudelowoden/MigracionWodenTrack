@@ -37,14 +37,34 @@ export function useMallasGeneral() {
     fetchMallasDesdeOdoo();
   });
 
+  // Perfil del usuario con su segmento y área
+  const perfilUsuario = ref(null);
+
+  const _cargarPerfil = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const idOdoo = session.employee_id || session.id_odoo;
+      if (!idOdoo) return;
+      const resp = await axios.get(`${API_BASE_URL}/perfil-completo/${idOdoo}`);
+      perfilUsuario.value = resp.data;
+    } catch (e) {
+      console.error("Error cargando perfil para mallas:", e);
+    }
+  };
+
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
 
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const deptoUsuario = session.department || "";
       const permisos = session.permisos || session.permissions || {};
       const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+      const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+
+      // Cargar perfil si aún no se tiene y el usuario no es admin con filtro libre
+      if (!tieneFiltroDepto && !perfilUsuario.value) {
+        await _cargarPerfil();
+      }
 
       const params = new URLSearchParams();
       params.append("t", Date.now().toString());
@@ -54,9 +74,22 @@ export function useMallasGeneral() {
       }
 
       if (tieneFiltroDepto) {
+        // Admin con filtro libre
         if (selectedDepartment.value) params.append("departamento", selectedDepartment.value);
       } else {
-        if (deptoUsuario) params.append("departamento", deptoUsuario);
+        // Usuario con permisos de estructura (responsable de segmento o área)
+        const perfil = perfilUsuario.value;
+        if (esResponsableSegmento && perfil?.segmento?.id) {
+          // Responsable de segmento: ve todos en su segmento
+          params.append("segmento_id", perfil.segmento.id);
+        } else if (perfil?.area?.id) {
+          // Responsable de área: ve solo su área
+          params.append("area_id", perfil.area.id);
+        } else {
+          // Usuario normal: filtrar por departamento de sesión
+          const deptoUsuario = session.department || "";
+          if (deptoUsuario) params.append("departamento", deptoUsuario);
+        }
       }
 
       const response = await axios.get(`${API_BASE_URL}/mallas?${params.toString()}`);
@@ -337,5 +370,6 @@ export function useMallasGeneral() {
     totalRecords: computed(() => filteredMallas.value.length),
     selectedDepartment,
     departments,
+    perfilUsuario,
   };
 }
