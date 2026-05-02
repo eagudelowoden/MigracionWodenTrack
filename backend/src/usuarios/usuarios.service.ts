@@ -937,6 +937,11 @@ export class UsuariosService {
       const hf = Number(t.hora_fin);
       return hf < hi ? { hi, hf } : null; // solo devuelve si es nocturno
     };
+    const subOneDayFromDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d - 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
     // ─────────────────────────────────────────────────────────────────────────
 
     // Paso 1: agrupar por empId + fecha del check_in Colombia
@@ -1070,9 +1075,21 @@ export class UsuariosService {
         }
       }
 
-      // Solo check_in matutino sin check_out = salida huérfana del turno anterior → eliminar
+      // Check_in matutino (≤ hf+1h) sin check_out:
+      // puede ser salida del turno nocturno del día anterior, no un huérfano.
       if (!fila.localOut && hIn <= hf + 1) {
-        fila.eliminado = true;
+        const prevKey = `${fila.empId}_${subOneDayFromDate(fila.fecha)}`;
+        const prevFila = filaIdx.get(prevKey);
+
+        if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+          // La entrada del día anterior es nocturna (≥ hi - 1h) → esta marca matutina es su salida
+          if (hPrevIn >= hi - 1) {
+            prevFila.localOut    = fila.localIn;
+            prevFila.checkOutUTC = fila.checkInUTC;
+          }
+        }
+        fila.eliminado = true; // la marca matutina queda consumida como salida o se descarta
       }
     }
 
