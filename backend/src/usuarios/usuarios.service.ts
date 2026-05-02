@@ -1413,7 +1413,7 @@ export class UsuariosService {
       return [];
 
     // 2. Calcular fechas UTC
-    const { inicioUTC, finUTC } = this.calcularRangoUTC(
+    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } = this.calcularRangoUTC(
       soloHoy,
       hoyFechaCorta,
       startDate,
@@ -1427,6 +1427,7 @@ export class UsuariosService {
       companyName,
       departamentoName,
       employeeIdsPorEstructura,
+      finUTCLog,
     );
 
     // 4. Consultar Odoo
@@ -1494,7 +1495,7 @@ export class UsuariosService {
     console.timeEnd('⏱ mapLogs');
 
     // 7. Unir y ordenar
-    const resultado = [...resAttendances, ...resLogs].sort((a, b) => {
+    const todosSinFiltrar = [...resAttendances, ...resLogs].sort((a, b) => {
       const timeA = new Date(
         (a.check_in || a.check_out || '0').replace(' ', 'T'),
       ).getTime();
@@ -1503,6 +1504,19 @@ export class UsuariosService {
       ).getTime();
       return timeB - timeA;
     });
+
+    // Filtrar por fecha de entrada dentro del rango solicitado.
+    // attendance.log consulta un día extra para capturar salidas de turno nocturno;
+    // aquí descartamos los registros cuya fecha de ENTRADA quede fuera del rango.
+    const resultado = (startDay || endDay)
+      ? todosSinFiltrar.filter((r) => {
+          const f = r.fecha;
+          if (!f || f === 'N/A') return true; // no filtrar si no hay fecha
+          if (startDay && f < startDay) return false;
+          if (endDay && f > endDay) return false;
+          return true;
+        })
+      : todosSinFiltrar;
 
     const tiempoTotal = (Date.now() - inicioTotal) / 1000;
     console.timeEnd('⏱ TOTAL reporte');
@@ -1551,24 +1565,37 @@ export class UsuariosService {
     hoyFechaCorta: string,
     startDate?: string,
     endDate?: string,
-  ): { inicioUTC: string | null; finUTC: string | null } {
-    const startDay = soloHoy ? hoyFechaCorta : startDate;
-    const endDay = soloHoy ? hoyFechaCorta : endDate;
+  ): { inicioUTC: string | null; finUTC: string | null; finUTCLog: string | null; startDay: string | null; endDay: string | null } {
+    const startDay = soloHoy ? hoyFechaCorta : (startDate ?? null);
+    const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
     let finUTC: string | null = null;
+    let finUTCLog: string | null = null;
+
     if (endDay) {
       const [anio, mes, dia] = endDay.split('-').map(Number);
+
+      // finUTC para hr.attendance (filtra por check_in; check_out viene incluido en el registro)
       const fechaFin = new Date(anio, mes - 1, dia);
       fechaFin.setDate(fechaFin.getDate() + 1);
-
       const a = fechaFin.getFullYear();
       const m = String(fechaFin.getMonth() + 1).padStart(2, '0');
       const d = String(fechaFin.getDate()).padStart(2, '0');
       finUTC = `${a}-${m}-${d} 04:59:59`;
+
+      // finUTCLog para attendance.log: extiende 1 día Colombia extra para capturar
+      // las salidas de turno nocturno que ocurren entre las 00:00 y las ~07:00
+      // del día siguiente (ej. 06:00 Colombia = 11:00 UTC)
+      const fechaFinLog = new Date(anio, mes - 1, dia);
+      fechaFinLog.setDate(fechaFinLog.getDate() + 2);
+      const al = fechaFinLog.getFullYear();
+      const ml = String(fechaFinLog.getMonth() + 1).padStart(2, '0');
+      const dl = String(fechaFinLog.getDate()).padStart(2, '0');
+      finUTCLog = `${al}-${ml}-${dl} 04:59:59`;
     }
 
-    return { inicioUTC, finUTC };
+    return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
   }
 
   private construirDominios(
@@ -1577,6 +1604,7 @@ export class UsuariosService {
     companyName?: string,
     departamentoName?: string,
     employeeIds?: number[] | null,
+    finUTCLog?: string | null,
   ): { domainAtt: any[]; domainLog: any[] } {
     const domainAtt: any[] = [];
     const domainLog: any[] = [];
@@ -1587,7 +1615,11 @@ export class UsuariosService {
     }
     if (finUTC) {
       domainAtt.push(['check_in', '<=', finUTC]);
-      domainLog.push(['punching_time', '<=', finUTC]);
+    }
+    // attendance.log usa un rango extendido para capturar salidas de turno nocturno
+    const finLog = finUTCLog ?? finUTC;
+    if (finLog) {
+      domainLog.push(['punching_time', '<=', finLog]);
     }
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
