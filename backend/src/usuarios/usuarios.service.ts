@@ -751,6 +751,8 @@ export class UsuariosService {
       .leftJoinAndSelect('malla.detalles', 'detalles')
       .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
       .orderBy('a.fecha_inicio', 'DESC')
+      .addOrderBy('a.actual', 'DESC') // si hay dos filas con igual fecha_inicio, la activa (actual=1) primero
+      .addOrderBy('a.id', 'DESC')     // luego por más reciente
       .getMany();
 
     const mallaMap = new Map<number, any[]>();
