@@ -1180,6 +1180,12 @@ export class UsuariosService {
       return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
     };
 
+    const subOneDayFromDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d - 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+
     const getTurnoNocturno = (
       empId: number,
       fecha: string,
@@ -1316,6 +1322,17 @@ export class UsuariosService {
           fila.localOut = salidaRealLocal;
           fila.punchOutUTC = salidaRealUTC;
         } else if (!fila.localOut) {
+          // Puede ser la salida de un turno nocturno del día anterior.
+          // Buscar la fila anterior sin salida cuya entrada sea nocturna.
+          const prevKey = `${fila.empId}_${subOneDayFromDate(fila.fecha)}`;
+          const prevFila = filaIdx.get(prevKey);
+          if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1) {
+              prevFila.localOut = fila.localIn;
+              prevFila.punchOutUTC = fila.punchInUTC;
+            }
+          }
           fila.eliminado = true;
         }
       }
