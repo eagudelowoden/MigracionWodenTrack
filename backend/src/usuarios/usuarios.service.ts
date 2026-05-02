@@ -1047,12 +1047,24 @@ export class UsuariosService {
       if (fila.localOut && hIn <= hf + 1) {
         const hOut = horaDecimalDeLocal(fila.localOut);
         if (hOut >= hi - 1) {
-          // check_out (noche) = entrada real al turno actual
-          // check_in (mañana) = salida del turno anterior → la descartamos (no tenemos la entrada)
-          const entradaReal = fila.localOut; // local Colombia noche
-          const entradaRealUTC = fila.checkOutUTC; // UTC Odoo correspondiente
+          // CASO INVERTIDO: check_in matutino es salida del turno anterior;
+          // check_out nocturno es la entrada del turno de este día.
 
-          // Buscar la salida real en la fila del día siguiente (su check_in matutino)
+          // 1. Enlazar el check_in matutino como salida del día anterior
+          const prevKey = `${fila.empId}_${subOneDayFromDate(fila.fecha)}`;
+          const prevFila = filaIdx.get(prevKey);
+          if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1) {
+              prevFila.localOut    = fila.localIn;    // check_in matutino = salida del día anterior
+              prevFila.checkOutUTC = fila.checkInUTC;
+            }
+          }
+
+          // 2. Convertir esta fila: entrada = check_out nocturno, salida = mañana del día siguiente
+          const entradaReal = fila.localOut;
+          const entradaRealUTC = fila.checkOutUTC;
+
           const nextKey = `${fila.empId}_${addOneDayToDate(fila.fecha)}`;
           const nextFila = filaIdx.get(nextKey);
 
@@ -1062,10 +1074,9 @@ export class UsuariosService {
           if (nextFila && nextFila.localIn && !nextFila.eliminado) {
             const hNextIn = horaDecimalDeLocal(nextFila.localIn);
             if (hNextIn <= hf + 1) {
-              // El check_in del día siguiente en la mañana = salida del turno nocturno
               salidaReal = nextFila.localIn;
               salidaRealUTC = nextFila.checkInUTC;
-              nextFila.eliminado = true; // consumido como salida del turno actual
+              nextFila.eliminado = true;
             }
           }
 
@@ -1298,6 +1309,22 @@ export class UsuariosService {
 
       if (hIn <= hf + 2) {
         if (fila.localOut && horaDecimalDeLocal(fila.localOut) >= hi - 2) {
+          // CASO INVERTIDO: el grupo tiene punch matutino (~06h) Y punch nocturno (~22h).
+          // El punch matutino es la SALIDA del turno del día anterior.
+          // El punch nocturno es la ENTRADA del turno de este día.
+
+          // 1. Enlazar el punch matutino como salida del día anterior
+          const prevKey = `${fila.empId}_${subOneDayFromDate(fila.fecha)}`;
+          const prevFila = filaIdx.get(prevKey);
+          if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1) {
+              prevFila.localOut = fila.localIn;       // punch matutino = salida del día anterior
+              prevFila.punchOutUTC = fila.punchInUTC;
+            }
+          }
+
+          // 2. Convertir esta fila: entrada = punch nocturno, salida = punch del día siguiente
           const entradaRealLocal = fila.localOut;
           const entradaRealUTC = fila.punchOutUTC;
 
@@ -1322,8 +1349,8 @@ export class UsuariosService {
           fila.localOut = salidaRealLocal;
           fila.punchOutUTC = salidaRealUTC;
         } else if (!fila.localOut) {
-          // Puede ser la salida de un turno nocturno del día anterior.
-          // Buscar la fila anterior sin salida cuya entrada sea nocturna.
+          // Punch matutino sin par en el mismo día:
+          // puede ser la salida de un turno nocturno del día anterior.
           const prevKey = `${fila.empId}_${subOneDayFromDate(fila.fecha)}`;
           const prevFila = filaIdx.get(prevKey);
           if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
