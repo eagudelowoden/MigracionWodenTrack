@@ -1303,10 +1303,15 @@ export class UsuariosService {
     filas.sort((a, b) => a.fecha.localeCompare(b.fecha));
 
     // --- PASO 3: REPARACIÓN DE TURNOS NOCTURNOS (CRUCE DE MEDIANOCHE) ---
-    // Regla: si el PRIMER punch de un grupo es matutino (< 08:00), es candidato
-    // a ser la SALIDA del turno nocturno del día anterior. Se valida contra la
-    // malla del DÍA ANTERIOR para evitar fallos cuando el horario de inicio
-    // difiere entre días consecutivos (bug original: usaba hi del día actual).
+    // Hay dos situaciones para logs biométricos con primer punch matutino (< 08:00):
+    //
+    // CASO INVERTIDO: la fila tiene punch matutino (salida del turno anterior)
+    //   Y punch nocturno (≥ 18h, entrada del turno actual) en el mismo grupo.
+    //   El día anterior puede o no estar en el rango — no importa para la
+    //   corrección de ESTA fila; solo intentamos enlazarlo si está disponible.
+    //
+    // Sub-caso A (orphan): solo punch matutino sin nocturno. El día anterior
+    //   debe estar abierto (sin salida) para asignarle este punch como exit.
     for (const fila of filas) {
       if (!fila.localIn || fila.eliminado) continue;
 
@@ -1314,43 +1319,56 @@ export class UsuariosService {
       if (hIn >= 8) continue; // solo filas cuyo primer punch sea matutino
 
       const prevFecha = subOneDayFromDate(fila.fecha);
-      const prevKey = `${fila.empId}_${prevFecha}`;
-      const prevFila = filaIdx.get(prevKey);
 
-      // El día anterior debe existir, tener entrada y aún no tener salida
-      if (!prevFila || prevFila.eliminado || !prevFila.localIn || prevFila.localOut) continue;
-
-      // Validar contra la malla del DÍA ANTERIOR (no del actual)
-      const nocturno = getTurnoNocturno(fila.empId, prevFecha);
-      if (!nocturno) continue;
-
-      const { hi, hf } = nocturno;
-      const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-
-      // Ventanas de tolerancia: entrada previa en inicio nocturno (±1 h), mañana en fin (±2 h)
-      if (hPrevIn < hi - 1 || hIn > hf + 2) continue;
-
-      // El punch matutino es la SALIDA del turno nocturno del día anterior
-      prevFila.localOut    = fila.localIn;
-      prevFila.punchOutUTC = fila.punchInUTC;
-
-      if (!fila.localOut) {
-        // Sub-caso A: solo punch matutino → ya fue consumido, eliminar esta fila
-        fila.eliminado = true;
-      } else {
-        // Sub-caso B (CASO INVERTIDO): hay además punch vespertino/nocturno en el mismo día.
-        // La mañana cerró el turno anterior; la tarde/noche abre el turno del día actual.
-        fila.localIn    = fila.localOut;
-        fila.punchInUTC = fila.punchOutUTC;
-        fila.localOut    = null;
-        fila.punchOutUTC = null;
-        // Si el nuevo localIn cayó en un día distinto, actualizar fecha e índice
-        const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
-        if (nuevaFecha !== fila.fecha) {
-          filaIdx.delete(`${fila.empId}_${fila.fecha}`);
-          fila.fecha = nuevaFecha;
-          filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+      // ── CASO INVERTIDO ──────────────────────────────────────────────────
+      // Condición: punch matutino (localIn) + punch nocturno (localOut ≥ 18h).
+      if (fila.localOut) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= 18) {
+          // Intentar enlazar el punch matutino al día anterior si está abierto
+          const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+          if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+            if (nocturnoAnterior) {
+              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+              const { hi, hf } = nocturnoAnterior;
+              if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+                prevFila.localOut    = fila.localIn;
+                prevFila.punchOutUTC = fila.punchInUTC;
+              }
+            }
+          }
+          // Corregir esta fila: el punch nocturno pasa a ser la nueva entrada
+          fila.localIn    = fila.localOut;
+          fila.punchInUTC = fila.punchOutUTC;
+          fila.localOut    = null;
+          fila.punchOutUTC = null;
+          const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
+          if (nuevaFecha !== fila.fecha) {
+            filaIdx.delete(`${fila.empId}_${fila.fecha}`);
+            fila.fecha = nuevaFecha;
+            filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+          }
+          continue;
         }
+      }
+
+      // ── Sub-caso A: punch matutino orphan ────────────────────────────────
+      // Solo punch matutino sin nocturno: puede ser la salida del turno del día anterior.
+      if (!fila.localOut) {
+        const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+        if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+          const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+          if (nocturnoAnterior) {
+            const { hi, hf } = nocturnoAnterior;
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+              prevFila.localOut    = fila.localIn;
+              prevFila.punchOutUTC = fila.punchInUTC;
+            }
+          }
+        }
+        fila.eliminado = true;
       }
     }
 
