@@ -743,7 +743,42 @@ export class UsuariosService {
       uid,
     );
 
-    // --- AGRUPAR POR EMPLEADO + DÍA ---
+    // Hora decimal desde timestamp local "YYYY-MM-DD HH:mm:ss"
+    const horaDecimal = (local: string): number => {
+      const [, t] = local.split(' ');
+      const [h, m] = (t || '').split(':').map(Number);
+      return h + (m || 0) / 60;
+    };
+
+    // Desplazar una fecha N días
+    const shiftDate = (fecha: string, n: number): string => {
+      const [y, mo, d] = fecha.split('-').map(Number);
+      const dt = new Date(y, mo - 1, d + n);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
+
+    // Turno nocturno según malla para una fecha local dada (null si no es nocturno)
+    const getNightShift = (
+      empId: number,
+      fecha: string,
+    ): { hi: number; hf: number } | null => {
+      const cal = calendarMap[empId];
+      if (!cal) return null;
+      const mallas = mallasMap[cal.calId];
+      if (!mallas?.length) return null;
+      const [y, mo, d] = fecha.split('-').map(Number);
+      const jsDay = new Date(y, mo - 1, d).getDay();
+      const diaSemana = (jsDay === 0 ? 6 : jsDay - 1).toString();
+      const mallasDelDia = mallas
+        .filter((m) => m.dayofweek === diaSemana)
+        .sort((a: any, b: any) => a.hour_from - b.hour_from);
+      if (!mallasDelDia.length) return null;
+      const t = mallasDelDia[0];
+      // Solo es nocturno si hour_to < hour_from (cruza medianoche)
+      return t.hour_to < t.hour_from ? { hi: t.hour_from, hf: t.hour_to } : null;
+    };
+
+    // --- PASO 1: AGRUPAR POR EMPLEADO + DÍA ---
     const grupos: Record<
       string,
       { empId: number; nombre: string; dept: string; registros: any[] }
@@ -769,103 +804,105 @@ export class UsuariosService {
       grupos[key].registros.push(log);
     });
 
-    // --- MAPEAR UN REGISTRO POR GRUPO (MIN y MAX) ---
-    return Object.entries(grupos).flatMap(([key, grupo]) => {
-      const { empId, nombre, dept, registros } = grupo;
+    // --- PASO 2: CONSOLIDAR A 1 FILA POR GRUPO (primera marca = entrada, última = salida) ---
+    type Fila = {
+      empId: number;
+      nombre: string;
+      dept: string;
+      fecha: string;
+      localIn: string | null;
+      localOut: string | null;
+      punchInUTC: string | null;
+      punchOutUTC: string | null;
+      eliminado: boolean;
+    };
 
-      const ordenados = registros.sort(
-        (a, b) =>
-          new Date(a.punching_time).getTime() -
-          new Date(b.punching_time).getTime(),
-      );
+    const filas: Fila[] = Object.values(grupos).map(
+      ({ empId, nombre, dept, registros }) => {
+        const ordenados = [...registros].sort(
+          (a, b) =>
+            new Date(a.punching_time).getTime() -
+            new Date(b.punching_time).getTime(),
+        );
+        const primero = ordenados[0];
+        const ultimo = ordenados[ordenados.length - 1];
+        const diffMs =
+          new Date(ultimo.punching_time).getTime() -
+          new Date(primero.punching_time).getTime();
+        const haySalida = ordenados.length > 1 && diffMs >= 60_000;
 
-      const primero = ordenados[0];
-      const ultimo = ordenados[ordenados.length - 1];
+        const localIn = toLocal(primero.punching_time);
+        return {
+          empId,
+          nombre,
+          dept,
+          fecha: localIn ? localIn.split(' ')[0] : 'N/A',
+          localIn,
+          localOut: haySalida ? toLocal(ultimo.punching_time) : null,
+          punchInUTC: primero.punching_time,
+          punchOutUTC: haySalida ? ultimo.punching_time : null,
+          eliminado: false,
+        };
+      },
+    );
 
-      // Verificar si el último ya superó hour_to
-      let jornadadFinalizada = false;
-      if (empId && ordenados.length > 1) {
-        const cal = calendarMap[empId];
-        if (cal) {
-          const mallasDelCal = mallasMap[cal.calId] || [];
-          const fechaUTC = new Date(
-            ultimo.punching_time.replace(' ', 'T') + 'Z',
-          );
-          const horaLocal = new Date(
-            fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
-          );
-          const dayOfWeekOdoo = (
-            horaLocal.getDay() === 0 ? 6 : horaLocal.getDay() - 1
-          ).toString();
-          const horaDecimalUltimo =
-            horaLocal.getHours() + horaLocal.getMinutes() / 60;
-          const mallasDelDia = mallasDelCal
-            .filter((m) => m.dayofweek === dayOfWeekOdoo)
-            .sort((a, b) => a.hour_from - b.hour_from);
+    const filaIdx = new Map(filas.map((f) => [`${f.empId}_${f.fecha}`, f]));
 
-          if (mallasDelDia.length > 0) {
-            jornadadFinalizada = horaDecimalUltimo >= mallasDelDia[0].hour_to;
-          }
-        }
+    // --- PASO 3: REPARAR TURNOS NOCTURNOS QUE CRUZAN MEDIANOCHE ---
+    // Una marca matutina orphan (sin salida, antes de las 08:00) en el Día N
+    // puede ser la SALIDA del turno nocturno del Día N-1.
+    // Se verifica contra la malla del día anterior (no del actual).
+    for (const fila of filas) {
+      if (!fila.localIn || fila.eliminado || fila.localOut) continue;
+
+      const hIn = horaDecimal(fila.localIn);
+      if (hIn >= 8) continue; // solo punches matutinos sin pareja
+
+      const prevFecha = shiftDate(fila.fecha, -1);
+      const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+      if (!prevFila || prevFila.eliminado || !prevFila.localIn || prevFila.localOut)
+        continue;
+
+      // Comprobar malla del DÍA ANTERIOR (no del actual)
+      const nocturno = getNightShift(fila.empId, prevFecha);
+      if (!nocturno) continue;
+
+      const hPrevIn = horaDecimal(prevFila.localIn);
+      // Tolerancia ±1 h para la entrada nocturna y ±2 h para la salida matutina
+      if (hPrevIn >= nocturno.hi - 1 && hIn <= nocturno.hf + 2) {
+        prevFila.localOut = fila.localIn;
+        prevFila.punchOutUTC = fila.punchInUTC;
+        fila.eliminado = true;
       }
+    }
 
-      return ordenados.map((log, index) => {
-        const localTime = toLocal(log.punching_time);
-        const esPrimero = index === 0;
+    // --- PASO 4: RESULTADO FINAL ---
+    return filas
+      .filter((f) => !f.eliminado && f.localIn && f.punchInUTC)
+      .map((f) => {
+        const cEntrada = f.empId
+          ? `${this.clasificarPorMalla(f.empId, f.punchInUTC!, true, calendarMap, mallasMap)} | BIOMÉTRICO`
+          : 'SIN MALLA | BIOMÉTRICO';
 
-        let cEntrada = 'N/A';
-        let cSalida = 'N/A';
-        let estado = 'En curso';
-        let checkOut: string | null = null;
-
-        if (esPrimero) {
-          // Clasificar entrada con el primero
-          const clasificacionEntrada = empId
-            ? this.clasificarPorMalla(
-                empId,
-                log.punching_time,
-                true,
-                calendarMap,
-                mallasMap,
-              )
-            : 'SIN MALLA';
-          cEntrada = `${clasificacionEntrada} | BIOMÉTRICO`;
-
-          // Si jornada finalizada, poner salida también en el primero
-          if (jornadadFinalizada) {
-            const clasificacionSalida = empId
-              ? this.clasificarPorMalla(
-                  empId,
-                  ultimo.punching_time,
-                  false,
-                  calendarMap,
-                  mallasMap,
-                )
-              : 'SIN MALLA';
-            cSalida = `${clasificacionSalida} | BIOMÉTRICO`;
-            checkOut = toLocal(ultimo.punching_time); // hora real del último
-            estado = 'Finalizado';
-          }
-        } else {
-          // Los del medio solo BIOMÉTRICO
-          cEntrada = 'BIOMÉTRICO';
-        }
+        const cSalida =
+          f.punchOutUTC && f.empId
+            ? `${this.clasificarPorMalla(f.empId, f.punchOutUTC, false, calendarMap, mallasMap)} | BIOMÉTRICO`
+            : 'SIN SALIDA';
 
         return {
-          id: `log_${empId}_${log.punching_time}`,
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A',
-          department_id: dept,
-          check_in: localTime,
-          check_out: checkOut,
+          id: `log_${f.empId}_${f.fecha}`,
+          empleado: f.nombre,
+          cc: partnerMap[f.nombre] || 'N/A',
+          department_id: f.dept,
+          check_in: f.localIn,
+          check_out: f.localOut,
           c_entrada: cEntrada,
           c_salida: cSalida,
-          fecha: localTime ? localTime.split(' ')[0] : 'N/A',
+          fecha: f.fecha,
           tipo: 'LOG CRUDO',
-          estado,
+          estado: f.localOut ? 'Finalizado' : 'En curso',
         };
       });
-    });
   }
 
   async getReporteNovedades(
@@ -908,6 +945,10 @@ export class UsuariosService {
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
     let finUTC: string | null = null;
+    // finUTCLog extiende 1 día más que finUTC para capturar salidas de turno
+    // nocturno que cruzan medianoche (ej. salida 06:00 AM = 11:00 UTC del día siguiente).
+    // 12:00 UTC del día endDay+1 cubre hasta las 07:00 AM Colombia.
+    let finUTCLog: string | null = null;
     if (endDay) {
       const partes = endDay.split('-');
       const fechaFin = new Date(
@@ -922,8 +963,10 @@ export class UsuariosService {
       const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
       const dia = String(fechaFin.getDate()).padStart(2, '0');
 
-      // Hasta las 04:59:59 UTC (que son las 23:59:59 del día de consulta en Colombia)
+      // hr.attendance: hasta las 04:59:59 UTC (= 23:59:59 Colombia del día de consulta)
       finUTC = `${anio}-${mes}-${dia} 04:59:59`;
+      // attendance.log: hasta las 12:00:00 UTC del día endDay+1 (= 07:00 AM Colombia)
+      finUTCLog = `${anio}-${mes}-${dia} 12:00:00`;
     }
 
     // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
@@ -936,7 +979,9 @@ export class UsuariosService {
     }
     if (finUTC) {
       domainAtt.push(['check_in', '<=', finUTC]);
-      domainLog.push(['punching_time', '<=', finUTC]);
+    }
+    if (finUTCLog) {
+      domainLog.push(['punching_time', '<=', finUTCLog]);
     }
 
     if (companyName && companyName !== 'Todas' && companyName !== '') {

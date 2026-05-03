@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -E \"\\\\.\\(vue|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(vue|js\\)$\")",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npm run *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\.claude\\\\worktrees\\\\pedantic-murdock-0b02fa\\\\backend\"; .\\\\node_modules\\\\.bin\\\\tsc --noEmit 2>&1 | Where-Object { $_ -match \"usuarios\" })"
     ]
   }
 }
