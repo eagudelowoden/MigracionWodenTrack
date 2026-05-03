@@ -1035,8 +1035,16 @@ export class UsuariosService {
     filas.sort((a, b) => a.fecha.localeCompare(b.fecha));
 
     // Paso 3: detectar y corregir registros nocturnos que cruzan medianoche.
-    // Valida contra la malla del DÍA ANTERIOR para evitar fallos cuando el
-    // horario de inicio difiere entre días consecutivos.
+    // Hay dos situaciones distintas en hr.attendance:
+    //
+    // CASO INVERTIDO: Odoo grabó check_in=mañana + check_out=noche en un solo
+    //   registro (el biométrico no distingue IN/OUT y Odoo los empató al revés).
+    //   El check_in matutino es la SALIDA del turno anterior; el check_out
+    //   nocturno es la ENTRADA del turno actual. Se corrige SIEMPRE, incluso
+    //   cuando el día anterior ya tiene su check_out propio.
+    //
+    // Sub-caso A: solo check_in matutino sin check_out → podría ser la salida
+    //   de un turno nocturno del día anterior que quedó abierto en Odoo.
     for (const fila of filas) {
       if (!fila.localIn || fila.eliminado) continue;
 
@@ -1044,40 +1052,58 @@ export class UsuariosService {
       if (hIn >= 8) continue; // solo registros con check_in matutino
 
       const prevFecha = subOneDayFromDate(fila.fecha);
-      const prevKey = `${fila.empId}_${prevFecha}`;
-      const prevFila = filaIdx.get(prevKey);
 
-      if (!prevFila || prevFila.eliminado || !prevFila.localIn || prevFila.localOut) continue;
-
-      // Malla del DÍA ANTERIOR (no del actual)
-      const nocturno = getTurnoNocturno(fila.empId, prevFecha);
-      if (!nocturno) continue;
-
-      const { hi, hf } = nocturno;
-      const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-
-      if (hPrevIn < hi - 1 || hIn > hf + 2) continue;
-
-      // El check_in matutino es la salida del turno nocturno del día anterior
-      prevFila.localOut    = fila.localIn;
-      prevFila.checkOutUTC = fila.checkInUTC;
-
-      if (!fila.localOut) {
-        // Sub-caso A: solo check_in matutino → consumido, eliminar
-        fila.eliminado = true;
-      } else {
-        // Sub-caso B (CASO INVERTIDO): hay también check_out nocturno en el mismo día.
-        // La mañana cerró el turno anterior; la noche abre el turno del día actual.
-        fila.localIn     = fila.localOut;
-        fila.checkInUTC  = fila.checkOutUTC;
-        fila.localOut    = null;
-        fila.checkOutUTC = null;
-        const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
-        if (nuevaFecha !== fila.fecha) {
-          filaIdx.delete(`${fila.empId}_${fila.fecha}`);
-          fila.fecha = nuevaFecha;
-          filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+      // ── CASO INVERTIDO ──────────────────────────────────────────────────
+      // Condición: check_in matutino Y check_out nocturno (≥ 18 h) en la misma fila.
+      if (fila.localOut) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= 18) {
+          // Intentar asignar el check_in matutino como salida del día anterior
+          // solo si ese día aún no tiene check_out (evita sobrescribir).
+          const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+          if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+            if (nocturnoAnterior) {
+              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+              const { hi, hf } = nocturnoAnterior;
+              if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+                prevFila.localOut    = fila.localIn;
+                prevFila.checkOutUTC = fila.checkInUTC;
+              }
+            }
+          }
+          // Corregir esta fila: la noche pasa a ser la nueva entrada
+          fila.localIn     = fila.localOut;
+          fila.checkInUTC  = fila.checkOutUTC;
+          fila.localOut    = null;
+          fila.checkOutUTC = null;
+          const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
+          if (nuevaFecha !== fila.fecha) {
+            filaIdx.delete(`${fila.empId}_${fila.fecha}`);
+            fila.fecha = nuevaFecha;
+            filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+          }
+          continue;
         }
+      }
+
+      // ── Sub-caso A: orphan matutino ──────────────────────────────────────
+      // Solo check_in matutino sin check_out: puede ser la salida de un turno
+      // nocturno que quedó abierto en Odoo el día anterior.
+      if (!fila.localOut) {
+        const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+        if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+          const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+          if (nocturnoAnterior) {
+            const { hi, hf } = nocturnoAnterior;
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+              prevFila.localOut    = fila.localIn;
+              prevFila.checkOutUTC = fila.checkInUTC;
+            }
+          }
+        }
+        fila.eliminado = true;
       }
     }
 
