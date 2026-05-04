@@ -1045,6 +1045,10 @@ export class UsuariosService {
     //
     // Sub-caso A: solo check_in matutino sin check_out → podría ser la salida
     //   de un turno nocturno del día anterior que quedó abierto en Odoo.
+    //
+    // GUARDIA: solo se repara si el empleado tiene turno nocturno en prevFecha.
+    // Esto evita que entradas matutinas de mallas diurnas (ej. 06:59 para malla
+    // 07:00-17:00) sean mal clasificadas como salida del turno anterior.
     for (const fila of filas) {
       if (!fila.localIn || fila.eliminado) continue;
 
@@ -1052,6 +1056,16 @@ export class UsuariosService {
       if (hIn >= 8) continue; // solo registros con check_in matutino
 
       const prevFecha = subOneDayFromDate(fila.fecha);
+
+      // Guardia nocturna: si el empleado no tiene turno nocturno en prevFecha,
+      // el check_in matutino ES una entrada legítima de malla diurna → no tocar.
+      const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+      if (!nocturnoAnterior) continue;
+
+      const { hi, hf } = nocturnoAnterior;
+
+      // El check_in matutino debe caer dentro de la ventana de salida del turno.
+      if (hIn > hf + 2) continue;
 
       // ── CASO INVERTIDO ──────────────────────────────────────────────────
       // Condición: check_in matutino Y check_out nocturno (≥ 18 h) en la misma fila.
@@ -1062,14 +1076,10 @@ export class UsuariosService {
           // solo si ese día aún no tiene check_out (evita sobrescribir).
           const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
           if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
-            const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
-            if (nocturnoAnterior) {
-              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-              const { hi, hf } = nocturnoAnterior;
-              if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
-                prevFila.localOut    = fila.localIn;
-                prevFila.checkOutUTC = fila.checkInUTC;
-              }
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+              prevFila.localOut    = fila.localIn;
+              prevFila.checkOutUTC = fila.checkInUTC;
             }
           }
           // Corregir esta fila: la noche pasa a ser la nueva entrada
@@ -1093,14 +1103,10 @@ export class UsuariosService {
       if (!fila.localOut) {
         const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
         if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
-          const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
-          if (nocturnoAnterior) {
-            const { hi, hf } = nocturnoAnterior;
-            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
-              prevFila.localOut    = fila.localIn;
-              prevFila.checkOutUTC = fila.checkInUTC;
-            }
+          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+          if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+            prevFila.localOut    = fila.localIn;
+            prevFila.checkOutUTC = fila.checkInUTC;
           }
         }
         fila.eliminado = true;
@@ -1312,6 +1318,10 @@ export class UsuariosService {
     //
     // Sub-caso A (orphan): solo punch matutino sin nocturno. El día anterior
     //   debe estar abierto (sin salida) para asignarle este punch como exit.
+    //
+    // GUARDIA: solo se repara si el empleado tiene turno nocturno en prevFecha.
+    // Esto evita que entradas matutinas de mallas diurnas (ej. 06:59 para malla
+    // 07:00-17:00) sean mal clasificadas como salida del turno anterior.
     for (const fila of filas) {
       if (!fila.localIn || fila.eliminado) continue;
 
@@ -1319,6 +1329,16 @@ export class UsuariosService {
       if (hIn >= 8) continue; // solo filas cuyo primer punch sea matutino
 
       const prevFecha = subOneDayFromDate(fila.fecha);
+
+      // Guardia nocturna: si el empleado no tiene turno nocturno en prevFecha,
+      // el punch matutino ES una entrada legítima de malla diurna → no tocar.
+      const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+      if (!nocturnoAnterior) continue;
+
+      const { hi, hf } = nocturnoAnterior;
+
+      // El punch matutino debe caer dentro de la ventana de salida del turno.
+      if (hIn > hf + 2) continue;
 
       // ── CASO INVERTIDO ──────────────────────────────────────────────────
       // Condición: punch matutino (localIn) + punch nocturno (localOut ≥ 18h).
@@ -1328,14 +1348,10 @@ export class UsuariosService {
           // Intentar enlazar el punch matutino al día anterior si está abierto
           const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
           if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
-            const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
-            if (nocturnoAnterior) {
-              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-              const { hi, hf } = nocturnoAnterior;
-              if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
-                prevFila.localOut    = fila.localIn;
-                prevFila.punchOutUTC = fila.punchInUTC;
-              }
+            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+              prevFila.localOut    = fila.localIn;
+              prevFila.punchOutUTC = fila.punchInUTC;
             }
           }
           // Corregir esta fila: el punch nocturno pasa a ser la nueva entrada
@@ -1358,14 +1374,10 @@ export class UsuariosService {
       if (!fila.localOut) {
         const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
         if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
-          const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
-          if (nocturnoAnterior) {
-            const { hi, hf } = nocturnoAnterior;
-            const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-            if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
-              prevFila.localOut    = fila.localIn;
-              prevFila.punchOutUTC = fila.punchInUTC;
-            }
+          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+          if (hPrevIn >= hi - 1 && hIn <= hf + 2) {
+            prevFila.localOut    = fila.localIn;
+            prevFila.punchOutUTC = fila.punchInUTC;
           }
         }
         fila.eliminado = true;
