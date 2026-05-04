@@ -4,7 +4,6 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 import { Usuario } from './usuario.entity';
 
@@ -21,9 +20,6 @@ export class PermisoDepartamento {
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   asignado_por: string | null;
-
-  @UpdateDateColumn()
-  fecha_modificacion: Date;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.permisosDepartamento, {
     nullable: true,
