@@ -185,23 +185,23 @@
             </button>
 
             <!-- Colectiva -->
-            <button @click="openColectiva"
-              class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all group" :class="isDark
+            <!-- <button @click="openColectiva"
+              class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all group"
+              :class="isDark
                 ? 'border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/15 hover:border-violet-500/60'
                 : 'border-violet-400/30 bg-violet-50 hover:bg-violet-100 hover:border-violet-400/60'">
-              <div
-                class="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/30 group-hover:scale-105 transition-transform">
+              <div class="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center shrink-0 shadow-md shadow-violet-500/30 group-hover:scale-105 transition-transform">
                 <i class="fas fa-users text-white text-sm"></i>
               </div>
-              <!-- <div class="text-left">
+              <div class="text-left">
                 <p class="text-[12px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">Novedad Colectiva</p>
                 <p class="text-[10px] font-medium opacity-60" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   Aplicar a uno o varios empleados
                 </p>
-              </div> -->
+              </div>
               <i class="fas fa-chevron-right text-[10px] ml-auto opacity-30 group-hover:opacity-70 group-hover:translate-x-0.5 transition-all"
                 :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
-            </button>
+            </button> -->
 
           </div>
         </div>
