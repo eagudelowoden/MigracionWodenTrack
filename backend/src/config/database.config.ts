@@ -15,9 +15,13 @@ import { SistemaConfig } from '../sistema-config/entities/sistema-config.entity'
 
 export const getDatabaseConfig = (
   configService: ConfigService,
-): TypeOrmModuleOptions => ({
+): TypeOrmModuleOptions => {
+  const host = configService.get<string>('DB_HOST');
+  const db = configService.get<string>('DB_NAME');
+  console.log(`🔌 DB conectando a: ${host} / base: ${db}`);
+  return {
   type: 'mssql',
-  host: configService.get<string>('DB_HOST'),
+  host,
   port: Number(configService.get<string>('DB_PORT', '1433')),
   username: configService.get<string>('DB_USER'),
   password: configService.get<string>('DB_PASS'),
@@ -43,4 +47,5 @@ export const getDatabaseConfig = (
     encrypt: false,
     trustServerCertificate: true,
   },
-});
+  };
+};
