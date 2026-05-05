@@ -136,4 +136,26 @@ export class Novedad {
     nullable: true,
   })
   fechaAprobacionRrhh: Date | null;
+
+  // ─── Carpeta Capital Humano ───────────────────────────
+  // Asignada exclusivamente desde el módulo de Capital Humano
+  @Column({
+    name: 'estado_ch',
+    type: 'nvarchar',
+    length: 100,
+    nullable: true,
+    default: null,
+  })
+  estadoCh: string | null;
+
+  // ─── Carpeta Coordinador / Jefe ───────────────────────
+  // Asignada exclusivamente desde el módulo de Jefe/Coordinador
+  @Column({
+    name: 'estado_ch_coord',
+    type: 'nvarchar',
+    length: 100,
+    nullable: true,
+    default: null,
+  })
+  estadoChCoord: string | null;
 }
