@@ -19,6 +19,13 @@ import { NovedadesService } from './novedades.service';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
 import { UpdateAprobacionDto } from './dto/update-aprobacion.dto';
 
+// DTO inline para crear estado CH
+class CreateEstadoChDto {
+  nombre: string;
+  icono?: string;
+  color?: string;
+}
+
 @Controller('usuarios/novedades')
 export class NovedadesController {
   constructor(private readonly novedadesService: NovedadesService) {}
@@ -106,5 +113,41 @@ export class NovedadesController {
   @Post(':id/aprobar-rrhh')
   aprobarRrhh(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
     return this.novedadesService.aprobarRrhh(+id, dto.aprobado, dto.motivo);
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // ESTADOS PERSONALIZADOS — CAPITAL HUMANO
+  // ──────────────────────────────────────────────────────────────────
+
+  /** GET /novedades/estados-ch  → lista todos los estados CH */
+  @Get('estados-ch')
+  findEstadosCh() {
+    return this.novedadesService.findEstadosCh();
+  }
+
+  /** POST /novedades/estados-ch  → crea un nuevo estado CH */
+  @Post('estados-ch')
+  @HttpCode(HttpStatus.CREATED)
+  crearEstadoCh(@Body() dto: CreateEstadoChDto) {
+    return this.novedadesService.crearEstadoCh(
+      dto.nombre,
+      dto.icono ?? 'fas fa-folder',
+      dto.color ?? '#6b7280',
+    );
+  }
+
+  /** DELETE /novedades/estados-ch/:id  → elimina un estado CH */
+  @Delete('estados-ch/:id')
+  eliminarEstadoCh(@Param('id') id: string) {
+    return this.novedadesService.eliminarEstadoCh(+id);
+  }
+
+  /** POST /novedades/:id/estado-ch  → asigna estado CH a una novedad */
+  @Post(':id/estado-ch')
+  cambiarEstadoCh(
+    @Param('id') id: string,
+    @Body('estadoCh') estadoCh: string | null,
+  ) {
+    return this.novedadesService.cambiarEstadoCh(+id, estadoCh ?? null);
   }
 }

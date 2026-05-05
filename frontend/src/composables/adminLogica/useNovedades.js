@@ -2,10 +2,41 @@
 import { ref } from "vue";
 import axios from "axios";
 
+// ─── Helper de estado visual (folder-style) ───────────────────────────────
+// Devuelve { icon, color, bg, label } para renderizar el estado de una novedad
+export function getEstadoVisual(nov) {
+  if (!nov) return { icon: 'fas fa-folder-open', color: '#FF8F00', bg: 'bg-[#FF8F00]/10 border-[#FF8F00]/20', label: 'Nueva' };
+
+  // Aprobada por ambos
+  if (nov.aprobado === 1)
+    return { icon: 'fas fa-folder', color: '#22c55e', bg: 'bg-emerald-500/10 border-emerald-500/20', label: 'Aprobada' };
+
+  // Rechazada por alguno
+  if (nov.aprobado === 0)
+    return { icon: 'fas fa-folder', color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20', label: 'No aprobada' };
+
+  // Nueva = nadie ha actuado aún
+  if ((nov.aprobadoJefe === null || nov.aprobadoJefe === undefined) &&
+    (nov.aprobadoRrhh === null || nov.aprobadoRrhh === undefined))
+    return { icon: 'fas fa-folder-open', color: '#FF8F00', bg: 'bg-[#FF8F00]/10 border-[#FF8F00]/20', label: 'Nueva' };
+
+  // Pendiente jefe únicamente
+  if ((nov.aprobadoJefe === null || nov.aprobadoJefe === undefined) && nov.aprobadoRrhh === 1)
+    return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'Pend. Jefe' };
+
+  // Pendiente RRHH únicamente (jefe ya aprobó)
+  if (nov.aprobadoJefe === 1 && (nov.aprobadoRrhh === null || nov.aprobadoRrhh === undefined))
+    return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'Pend. Capital' };
+
+  // En revisión (cualquier otro caso parcial)
+  return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'En revisión' };
+}
+
 export function useNovedades() {
   const novedades = ref([]);
   const loading = ref(false);
   const error = ref(null);
+  const estadosCh = ref([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -185,6 +216,60 @@ export function useNovedades() {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════════
+  // ESTADOS PERSONALIZADOS — CAPITAL HUMANO
+  // ══════════════════════════════════════════════════════════════════
+
+  /** Carga la lista de estados CH personalizados */
+  const fetchEstadosCh = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/novedades/estados-ch`);
+      estadosCh.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando estados CH:", e);
+      estadosCh.value = [];
+    }
+  };
+
+  /** Crea un nuevo estado CH */
+  const crearEstadoCh = async ({ nombre, icono = 'fas fa-folder', color = '#6b7280' }) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/estados-ch`, { nombre, icono, color });
+      await fetchEstadosCh();
+      return res.data;
+    } catch (e) {
+      console.error("Error creando estado CH:", e);
+      throw e;
+    }
+  };
+
+  /** Elimina un estado CH */
+  const eliminarEstadoCh = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/novedades/estados-ch/${id}`);
+      await fetchEstadosCh();
+    } catch (e) {
+      console.error("Error eliminando estado CH:", e);
+      throw e;
+    }
+  };
+
+  /** Cambia el estado CH de una novedad (null = quitar estado) */
+  const cambiarEstadoCh = async (novedadId, estadoCh) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${novedadId}/estado-ch`, {
+        estadoCh: estadoCh ?? null,
+      });
+      // Actualizar en la lista local sin recargar todo
+      const idx = novedades.value.findIndex((n) => n.id === novedadId);
+      if (idx !== -1) novedades.value[idx] = { ...novedades.value[idx], estadoCh: estadoCh ?? null };
+      return res.data;
+    } catch (e) {
+      console.error("Error cambiando estado CH:", e);
+      throw e;
+    }
+  };
+
   return {
     novedades,
     loading,
@@ -202,5 +287,11 @@ export function useNovedades() {
     fetchPorArea,
     fetchPorSegmento,
     fetchPorDepartamentos,
+    // Estados CH
+    estadosCh,
+    fetchEstadosCh,
+    crearEstadoCh,
+    eliminarEstadoCh,
+    cambiarEstadoCh,
   };
 }

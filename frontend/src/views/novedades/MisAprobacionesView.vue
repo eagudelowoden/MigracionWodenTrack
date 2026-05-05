@@ -6,12 +6,12 @@
             :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
             <div class="flex items-center gap-2 ml-1">
                 <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#FF8F00] text-white shadow-sm">
-                    <i class="fas fa-clock text-xs"></i>
+                    <i class="fas fa-folder-open text-xs"></i>
                 </div>
                 <div>
                     <h2 class="text-base font-black uppercase tracking-tighter"
                         :class="isDark ? 'text-white' : 'text-slate-800'">
-                        Por <span class="text-[#FF8F00]">Aprobar</span>
+                        Novedades <span class="text-[#FF8F00]">Mi Equipo</span>
                     </h2>
                     <div class="flex items-center gap-1.5 mt-0.5">
                         <i :class="modoIcon" class="text-[8px] text-[#FF8F00]"></i>
@@ -20,11 +20,40 @@
                     </div>
                 </div>
             </div>
-            <button @click="$emit('volver')"
-                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase italic tracking-widest border transition-all hover:scale-105"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
-                <i class="fas fa-arrow-left text-[9px]"></i> Volver
-            </button>
+
+            <div class="flex items-center gap-2">
+                <!-- Tabs Por Aprobar / Historial -->
+                <div class="flex items-center rounded-xl border overflow-hidden"
+                    :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+                    <button @click="activeTab = 'pendientes'"
+                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        :class="activeTab === 'pendientes'
+                            ? 'bg-[#FF8F00] text-black'
+                            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+                        <i class="fas fa-folder-open text-[9px]"></i>
+                        Por Aprobar
+                        <span v-if="pendientes.length > 0"
+                            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-black"
+                            :class="activeTab === 'pendientes' ? 'bg-black/20 text-black' : 'bg-[#FF8F00]/20 text-[#FF8F00]'">
+                            {{ pendientes.length }}
+                        </span>
+                    </button>
+                    <button @click="activeTab = 'historial'"
+                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        :class="activeTab === 'historial'
+                            ? 'bg-[#FF8F00] text-black'
+                            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+                        <i class="fas fa-clock-rotate-left text-[9px]"></i>
+                        Historial
+                    </button>
+                </div>
+
+                <button @click="$emit('volver')"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase italic tracking-widest border transition-all hover:scale-105"
+                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
+                    <i class="fas fa-arrow-left text-[9px]"></i> Volver
+                </button>
+            </div>
         </div>
 
         <!-- Contenido -->
@@ -37,144 +66,215 @@
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando...</span>
             </div>
 
-            <div v-else-if="pendientes.length === 0" class="flex-1 flex items-center justify-center">
-                <div class="flex flex-col items-center gap-2 opacity-40">
-                    <i class="fas fa-check-circle text-3xl text-emerald-500"></i>
-                    <p class="text-[11px] font-black uppercase tracking-widest"
-                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">Sin novedades pendientes</p>
+            <!-- TAB: POR APROBAR -->
+            <template v-else-if="activeTab === 'pendientes'">
+                <div v-if="pendientes.length === 0" class="flex-1 flex items-center justify-center">
+                    <div class="flex flex-col items-center gap-2 opacity-40">
+                        <i class="fas fa-check-circle text-3xl text-emerald-500"></i>
+                        <p class="text-[11px] font-black uppercase tracking-widest"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Sin novedades pendientes</p>
+                    </div>
                 </div>
-            </div>
 
-            <div v-else class="flex-1 overflow-y-auto">
-                <table class="w-full border-separate border-spacing-0">
-                    <thead class="sticky top-0 z-10">
-                        <tr class="bg-[#334155]">
-                            <th
-                                class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Colaborador</th>
-                            <th
-                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Inicio</th>
-                            <th
-                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Fin</th>
-                            <th
-                                class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Descripción</th>
-                            <th
-                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Capital Humano</th>
-                            <th
-                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Motivo Capital Humano
-                            </th>
-                            <th
-                                class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Motivo Jefe Directo
-                            </th>
-                            <th
-                                class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                                Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(item, idx) in pendientes" :key="item.id" :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                        isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50']">
+                <div v-else class="flex-1 overflow-y-auto">
+                    <table class="w-full border-separate border-spacing-0">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-[#334155]">
+                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Inicio</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital Humano</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Motivo Capital</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Motivo Jefe</th>
+                                <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in pendientes" :key="item.id"
+                                :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50']">
 
-                            <!-- Colaborador -->
-                            <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
-                                        {{ item.nombre?.charAt(0) ?? '?' }}
+                                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
+                                            {{ item.nombre?.charAt(0) ?? '?' }}
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
+                                            <p class="text-[10px] opacity-50">CC: {{ item.cedula }}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-[10px] font-black uppercase"
-                                            :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
-                                        <p class="text-[11px] opacity-50">CC: {{ item.cedula }}</p>
+                                </td>
+
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
+                                </td>
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
+                                </td>
+
+                                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <p class="text-[12px] font-medium line-clamp-1 max-w-[180px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                </td>
+
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <EstadoBadge :valor="item.aprobadoRrhh" />
+                                </td>
+
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh, 'Motivo Capital Humano')"
+                                        class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
+                                        <i class="fas fa-comment-alt mr-1"></i>Ver
+                                    </span>
+                                    <span v-else class="text-[11px] opacity-30">—</span>
+                                </td>
+
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
+                                        class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
+                                        <i class="fas fa-comment-alt mr-1"></i>Ver
+                                    </span>
+                                    <span v-else class="text-[11px] opacity-30">—</span>
+                                </td>
+
+                                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <div class="flex items-center justify-end">
+                                        <button @click.stop="toggleMenu($event, item.id)"
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95"
+                                            :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
+                                            <i class="fas fa-ellipsis-vertical text-[10px]"></i>
+                                        </button>
                                     </div>
-                                </div>
-                            </td>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                            <!-- Fechas -->
-                            <td class="px-4 py-2.5 text-center border-b"
-                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span class="text-[11px] font-bold"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
-                                        formatFecha(item.fechaInicio) }}</span>
-                            </td>
-                            <td class="px-4 py-2.5 text-center border-b"
-                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span class="text-[11px] font-bold"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin)
-                                    }}</span>
-                            </td>
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        Por aprobar: <span class="text-[#FF8F00]">{{ pendientes.length }}</span>
+                    </p>
+                </div>
+            </template>
 
-                            <!-- Descripción -->
-                            <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <p class="text-[12px] font-medium line-clamp-1 max-w-[180px]"
-                                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
-                            </td>
+            <!-- TAB: HISTORIAL -->
+            <template v-else>
+                <!-- Filtros historial -->
+                <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b shrink-0"
+                    :class="isDark ? 'border-[#2d3548] bg-[#1a2035]' : 'border-slate-100 bg-slate-50'">
 
+                    <!-- Búsqueda -->
+                    <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 flex-1 min-w-[160px]"
+                        :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
+                        <i class="fas fa-search text-[#FF8F00] text-[9px]"></i>
+                        <input v-model="histBuscar" type="text" placeholder="Buscar colaborador..."
+                            class="bg-transparent text-[10px] font-bold outline-none w-full placeholder:font-normal placeholder:text-slate-500"
+                            :class="isDark ? 'text-white' : 'text-slate-700'" />
+                    </div>
 
+                    <!-- Filtro estado -->
+                    <select v-model="histEstado"
+                        class="px-2.5 py-1.5 rounded-lg border text-[10px] font-bold outline-none"
+                        :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
+                        <option value="">Todos los estados</option>
+                        <option value="nueva">🟠 Nuevas</option>
+                        <option value="pendiente">🟡 En revisión</option>
+                        <option value="aprobada">🟢 Aprobadas</option>
+                        <option value="rechazada">🔴 No aprobadas</option>
+                    </select>
 
-                            <!-- Estado RRHH -->
-                            <td class="px-4 py-2.5 text-center border-b"
-                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span v-if="item.aprobadoRrhh === 1"
-                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                    <i class="fas fa-check mr-1"></i>Aprobado
-                                </span>
-                                <span v-else-if="item.aprobadoRrhh === 0"
-                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20">
-                                    <i class="fas fa-xmark mr-1"></i>Rechazado
-                                </span>
-                                <span v-else
-                                    class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                                    <i class="fas fa-clock mr-1"></i>Pendiente
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-center border-b"
-                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh)"
-                                    class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
-                                    <i class="fas fa-comment-alt mr-1"></i>Ver
-                                </span>
-                                <span v-else class="text-[11px] opacity-30">—</span>
-                            </td>
+                    <button v-if="histBuscar || histEstado" @click="histBuscar=''; histEstado=''"
+                        class="p-1.5 rounded-lg border text-[10px] transition-colors"
+                        :class="isDark ? 'border-[#2d3548] bg-[#273045] text-slate-400 hover:text-[#FF8F00]' : 'border-slate-200 bg-white text-slate-500 hover:text-[#FF8F00]'">
+                        <i class="fas fa-rotate-left"></i>
+                    </button>
+                </div>
 
-                            <td class="px-4 py-2.5 text-center border-b"
-                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <span v-if="item.motivoJefe" @click="verMotivos(item.motivoJefe)"
-                                    class="cursor-pointer text-[12px] font-bold text-[#FF8F00] hover:underline">
-                                    <i class="fas fa-comment-alt mr-1"></i>Ver
-                                </span>
-                                <span v-else class="text-[11px] opacity-30">—</span>
-                            </td>
+                <div v-if="historialFiltrado.length === 0" class="flex-1 flex items-center justify-center">
+                    <div class="flex flex-col items-center gap-2 opacity-40">
+                        <i class="fas fa-inbox text-3xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                        <p class="text-[11px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin novedades</p>
+                    </div>
+                </div>
 
-                            <!-- Acciones -->
-                            <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                <div class="flex items-center justify-end">
-                                    <button @click.stop="toggleMenu($event, item.id)"
-                                        class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95"
-                                        :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
-                                        <i class="fas fa-ellipsis-vertical text-[10px]"></i>
+                <div v-else class="flex-1 overflow-y-auto overflow-x-auto">
+                    <table class="w-full border-separate border-spacing-0">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-[#334155]">
+                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Inicio</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Estado</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Jefe</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital</th>
+                                <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Soporte</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in historialFiltrado" :key="'h-'+item.id"
+                                :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50']">
+
+                                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
+                                            {{ item.nombre?.charAt(0) ?? '?' }}
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
+                                            <p class="text-[9px] opacity-50">CC: {{ item.cedula }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
+                                </td>
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
+                                </td>
+
+                                <td class="px-4 py-2.5 border-b max-w-[200px]" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <p class="text-[11px] font-medium line-clamp-2" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                </td>
+
+                                <!-- Estado visual tipo carpeta -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <FolderEstado :nov="item" />
+                                </td>
+
+                                <!-- Jefe badge -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <EstadoBadge :valor="item.aprobadoJefe" mini />
+                                </td>
+
+                                <!-- RRHH badge -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <EstadoBadge :valor="item.aprobadoRrhh" mini />
+                                </td>
+
+                                <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <button @click="verSoporte(item)"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
+                                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                                        <i class="fas fa-eye text-[#FF8F00]"></i> Ver
                                     </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Footer -->
-            <div class="px-4 py-1.5 border-t shrink-0"
-                :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                <p class="text-[9px] font-black uppercase tracking-widest"
-                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                    Pendientes: <span class="text-[#FF8F00]">{{ pendientes.length }}</span>
-                </p>
-            </div>
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        Total historial: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ historialFiltrado.length }}</span>
+                        / {{ novedades.length }}
+                    </p>
+                </div>
+            </template>
         </div>
 
         <!-- Modal soporte -->
@@ -215,69 +315,7 @@
             </div>
         </teleport>
 
-        <teleport to="body">
-            <div v-if="motivoModalRRHH.open"
-                class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-                @mousedown.self="motivoModalRRHH.open = false">
-                <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-comment-alt text-[#FF8F00]"></i>
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-black uppercase tracking-widest"
-                                :class="isDark ? 'text-white' : 'text-slate-800'">
-                                Motivo Jefe Directo
-                            </h3>
-                        </div>
-                    </div>
-                    <p class="text-[15px] font-medium leading-relaxed"
-                        :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                        {{ motivoModalRRHH.texto }}
-                    </p>
-                    <button @click="motivoModalRRHH.open = false"
-                        class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
-                        :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </teleport>
-
-        <teleport to="body">
-            <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
-
-            <transition name="fade-msg">
-                <div v-if="menuAbierto !== null" class="fixed z-50 w-44 rounded-xl border shadow-2xl overflow-hidden"
-                    :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-
-                    <!-- Ver soporte -->
-                    <button @click="verSoporte(itemMenuActual); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
-                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                        <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
-                    </button>
-
-                    <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
-
-                    <!-- Aprobar -->
-                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
-                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
-                        <i class="fas fa-check w-3"></i> Aprobar
-                    </button>
-
-                    <!-- Rechazar -->
-                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
-                        :class="isDark ? 'text-red-400' : 'text-red-500'">
-                        <i class="fas fa-xmark w-3"></i> Rechazar
-                    </button>
-
-                </div>
-            </transition>
-        </teleport>
-
+        <!-- Modal motivo genérico -->
         <teleport to="body">
             <div v-if="motivoModal.open"
                 class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -288,7 +326,7 @@
                         <i class="fas fa-comment-alt text-[#FF8F00]"></i>
                         <h3 class="text-sm font-black uppercase tracking-widest"
                             :class="isDark ? 'text-white' : 'text-slate-800'">
-                            Motivo Capital Humano
+                            {{ motivoModal.titulo }}
                         </h3>
                     </div>
                     <p class="text-[15px] font-medium leading-relaxed"
@@ -302,6 +340,38 @@
                     </button>
                 </div>
             </div>
+        </teleport>
+
+        <!-- Menú contextual (tab pendientes) -->
+        <teleport to="body">
+            <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
+
+            <transition name="fade-msg">
+                <div v-if="menuAbierto !== null" class="fixed z-50 w-44 rounded-xl border shadow-2xl overflow-hidden"
+                    :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+                    <button @click="verSoporte(itemMenuActual); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
+                    </button>
+
+                    <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
+
+                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
+                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                        <i class="fas fa-check w-3"></i> Aprobar
+                    </button>
+
+                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
+                        :class="isDark ? 'text-red-400' : 'text-red-500'">
+                        <i class="fas fa-xmark w-3"></i> Rechazar
+                    </button>
+                </div>
+            </transition>
         </teleport>
 
         <!-- Modal aprobar/rechazar -->
@@ -352,8 +422,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useNovedades } from '../../composables/adminLogica/useNovedades';
+import { ref, computed, onMounted, defineComponent, h } from 'vue';
+import { useNovedades, getEstadoVisual } from '../../composables/adminLogica/useNovedades';
 import axios from 'axios';
 
 const props = defineProps({ isDark: Boolean });
@@ -365,49 +435,59 @@ const API_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const miIdOdoo = session?.id_odoo;
 
-// ─── Nivel de acceso (prioridad: director > segmento > área) ─────────────
-const esDirector  = session?.isSuperAdmin ||
-    session?.permisos?.['novedades.director'] === true;
-const esSegmento  = !esDirector &&
-    session?.permisos?.['novedades.ver_segmento'] === true;
-// esArea: sin permiso especial también puede caer aquí como fallback
-const esArea = !esDirector && !esSegmento;
+const activeTab = ref('pendientes');
+const histBuscar = ref('');
+const histEstado = ref('');
+
+// ─── Nivel de acceso ──────────────────────────────────────────────
+const esDirector = session?.isSuperAdmin || session?.permisos?.['novedades.director'] === true;
+const esSegmento = !esDirector && session?.permisos?.['novedades.ver_segmento'] === true;
 
 const modoLabel = esDirector
     ? 'Director — Todo el departamento'
     : esSegmento
         ? 'Jefe — Todo el segmento'
         : 'Jefe — Solo mi área';
-const modoIcon = esDirector
-    ? 'fas fa-building'
-    : esSegmento
-        ? 'fas fa-sitemap'
-        : 'fas fa-users';
+const modoIcon = esDirector ? 'fas fa-building' : esSegmento ? 'fas fa-sitemap' : 'fas fa-users';
 
-const verMotivos = (motivojefe) => {
-    motivoModalRRHH.value = { open: true, texto: motivojefe };
-};
+// ─── Componentes internos reutilizables ──────────────────────────
 
-const motivoModalRRHH = ref({ open: false, texto: '', titulo: '' });
-
-const menuAbierto = ref(null);
-const itemMenuActual = ref(null);
-const menuPos = ref({ x: 0, y: 0 });
-
-const toggleMenu = (event, id) => {
-    if (menuAbierto.value === id) {
-        menuAbierto.value = null;
-        return;
+/** Badge sencillo para aprobadoJefe / aprobadoRrhh */
+const EstadoBadge = defineComponent({
+    props: { valor: { default: null }, mini: Boolean },
+    setup(p) {
+        return () => {
+            const v = p.valor;
+            if (v === 1) return h('span', {
+                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+            }, [h('i', { class: 'fas fa-check' }), !p.mini && ' Aprobado'].filter(Boolean));
+            if (v === 0) return h('span', {
+                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20'
+            }, [h('i', { class: 'fas fa-xmark' }), !p.mini && ' Rechazado'].filter(Boolean));
+            return h('span', {
+                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20'
+            }, [h('i', { class: 'fas fa-clock' }), !p.mini && ' Pendiente'].filter(Boolean));
+        };
     }
-    const btn = event.currentTarget.getBoundingClientRect();
-    menuPos.value = {
-        x: btn.right - 176,
-        y: btn.bottom + 6,
-    };
-    itemMenuActual.value = pendientes.value.find(n => n.id === id);
-    menuAbierto.value = id;
-};
+});
 
+/** Folder badge — icono carpeta con color según estado */
+const FolderEstado = defineComponent({
+    props: { nov: Object },
+    setup(p) {
+        return () => {
+            const cfg = getEstadoVisual(p.nov);
+            return h('span', {
+                class: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${cfg.bg}`
+            }, [
+                h('i', { class: cfg.icon, style: { color: cfg.color } }),
+                h('span', { style: { color: cfg.color } }, cfg.label)
+            ]);
+        };
+    }
+});
+
+// ─── Datos ────────────────────────────────────────────────────────
 onMounted(async () => {
     if (esDirector) {
         try {
@@ -424,12 +504,41 @@ onMounted(async () => {
     }
 });
 
+// ─── Computadas ───────────────────────────────────────────────────
+/** Solo las que aún esperan mi aprobación como jefe */
 const pendientes = computed(() =>
-    novedades.value.filter(n =>
-        n.aprobadoJefe === null || n.aprobadoJefe === undefined
-    )
+    novedades.value.filter(n => n.aprobadoJefe === null || n.aprobadoJefe === undefined)
 );
 
+/** Historial completo con filtros opcionales */
+const historialFiltrado = computed(() => {
+    let lista = novedades.value;
+
+    if (histBuscar.value) {
+        const q = histBuscar.value.toLowerCase();
+        lista = lista.filter(n =>
+            (n.nombre ?? '').toLowerCase().includes(q) ||
+            (n.descripcion ?? '').toLowerCase().includes(q)
+        );
+    }
+
+    if (histEstado.value) {
+        lista = lista.filter(n => {
+            const cfg = getEstadoVisual(n);
+            const label = cfg.label.toLowerCase();
+            const filtro = histEstado.value;
+            if (filtro === 'nueva') return label === 'nueva';
+            if (filtro === 'pendiente') return label.includes('revisión') || label.includes('pend.');
+            if (filtro === 'aprobada') return label === 'aprobada';
+            if (filtro === 'rechazada') return label === 'no aprobada';
+            return true;
+        });
+    }
+
+    return lista;
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────
 const formatFecha = (f) => {
     if (!f) return '—';
     return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', {
@@ -437,7 +546,7 @@ const formatFecha = (f) => {
     });
 };
 
-// ─── Modal soporte ────────────────────────────────────
+// ─── Modal soporte ────────────────────────────────────────────────
 const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false, loading: false });
 
 const verSoporte = (novedad) => {
@@ -452,13 +561,26 @@ const verSoporte = (novedad) => {
     };
 };
 
-const motivoModal = ref({ open: false, texto: '' });
-
-const verMotivo = (motivo) => {
-    motivoModal.value = { open: true, texto: motivo };
+// ─── Modal motivo ─────────────────────────────────────────────────
+const motivoModal = ref({ open: false, titulo: '', texto: '' });
+const verMotivo = (texto, titulo = 'Motivo') => {
+    motivoModal.value = { open: true, titulo, texto };
 };
 
-// ─── Modal aprobar/rechazar ───────────────────────────
+// ─── Menú contextual ──────────────────────────────────────────────
+const menuAbierto = ref(null);
+const itemMenuActual = ref(null);
+const menuPos = ref({ x: 0, y: 0 });
+
+const toggleMenu = (event, id) => {
+    if (menuAbierto.value === id) { menuAbierto.value = null; return; }
+    const btn = event.currentTarget.getBoundingClientRect();
+    menuPos.value = { x: btn.right - 176, y: btn.bottom + 6 };
+    itemMenuActual.value = pendientes.value.find(n => n.id === id);
+    menuAbierto.value = id;
+};
+
+// ─── Modal aprobar/rechazar ───────────────────────────────────────
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
 
 const abrirAccion = (item, tipo) => {
@@ -482,14 +604,12 @@ const confirmarAccion = async () => {
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
+
+.fade-msg-enter-active,
+.fade-msg-leave-active { transition: all 0.2s ease; }
+.fade-msg-enter-from,
+.fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

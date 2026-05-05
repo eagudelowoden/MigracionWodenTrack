@@ -1,5 +1,5 @@
 // src/novedades/novedades.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -16,6 +16,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Novedad } from './entities/novedad.entity';
+import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
 import { SistemaConfigService } from '../sistema-config/sistema-config.service';
 
@@ -28,6 +29,8 @@ export class NovedadesService {
   constructor(
     @InjectRepository(Novedad)
     private readonly novedadRepo: Repository<Novedad>,
+    @InjectRepository(NovedadEstadoCh)
+    private readonly estadoChRepo: Repository<NovedadEstadoCh>,
     private readonly config: ConfigService,
     private readonly sistemaConfig: SistemaConfigService,
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -356,5 +359,58 @@ export class NovedadesService {
     } else {
       novedad.aprobado = null; // aún pendiente
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // ESTADOS PERSONALIZADOS — CAPITAL HUMANO
+  // ══════════════════════════════════════════════════════════════════
+
+  /** Devuelve todos los estados CH ordenados */
+  async findEstadosCh(): Promise<NovedadEstadoCh[]> {
+    return this.estadoChRepo.find({ order: { orden: 'ASC', createdAt: 'ASC' } });
+  }
+
+  /** Crea un nuevo estado CH */
+  async crearEstadoCh(
+    nombre: string,
+    icono: string,
+    color: string,
+  ): Promise<NovedadEstadoCh> {
+    const existe = await this.estadoChRepo.findOneBy({ nombre });
+    if (existe) throw new ConflictException(`El estado "${nombre}" ya existe.`);
+    const totalActual = await this.estadoChRepo.count();
+    const estado = this.estadoChRepo.create({
+      nombre,
+      icono: icono || 'fas fa-folder',
+      color: color || '#6b7280',
+      orden: totalActual,
+    });
+    return this.estadoChRepo.save(estado);
+  }
+
+  /** Elimina un estado CH */
+  async eliminarEstadoCh(id: number): Promise<{ success: boolean }> {
+    const estado = await this.estadoChRepo.findOneBy({ id });
+    if (!estado) throw new NotFoundException('Estado no encontrado.');
+    // Limpiar ese estado en novedades que lo tengan asignado
+    await this.novedadRepo
+      .createQueryBuilder()
+      .update(Novedad)
+      .set({ estadoCh: null })
+      .where('estado_ch = :nombre', { nombre: estado.nombre })
+      .execute();
+    await this.estadoChRepo.remove(estado);
+    return { success: true };
+  }
+
+  /** Asigna (o limpia) el estado CH en una novedad */
+  async cambiarEstadoCh(
+    novedadId: number,
+    estadoCh: string | null,
+  ): Promise<Novedad> {
+    const novedad = await this.novedadRepo.findOneBy({ id: novedadId });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+    novedad.estadoCh = estadoCh ?? null;
+    return this.novedadRepo.save(novedad);
   }
 }

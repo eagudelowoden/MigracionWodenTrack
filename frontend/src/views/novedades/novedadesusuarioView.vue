@@ -565,6 +565,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedadesUsuario';
+import { getEstadoVisual } from '../../composables/adminLogica/useNovedades';
 
 const props = defineProps({
   isDark: Boolean,
@@ -608,8 +609,9 @@ const fileIcon = computed(() => {
   return 'fas fa-file text-slate-400';
 });
 
+// ─── Badges simples para Jefe / RRHH (aprobado parcial) ──────────
 const estadoLabel = (v) => v === 1 ? 'Aprobado' : v === 0 ? 'Rechazado' : 'Pendiente';
-const estadoIcon = (v) => v === 1 ? 'fas fa-check' : v === 0 ? 'fas fa-times' : 'fas fa-clock';
+const estadoIcon = (v) => v === 1 ? 'fas fa-check' : v === 0 ? 'fas fa-xmark' : 'fas fa-clock';
 const estadoBadge = (v) => {
   if (v === 1) return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
   if (v === 0) return 'bg-red-500/10 text-red-400 border-red-500/20';

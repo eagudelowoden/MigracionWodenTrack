@@ -136,4 +136,15 @@ export class Novedad {
     nullable: true,
   })
   fechaAprobacionRrhh: Date | null;
+
+  // ─── Estado personalizado Capital Humano ──────────────
+  // Valor libre que el equipo de CH asigna internamente (ej: "Enviada a nómina", "Archivada", etc.)
+  @Column({
+    name: 'estado_ch',
+    type: 'nvarchar',
+    length: 100,
+    nullable: true,
+    default: null,
+  })
+  estadoCh: string | null;
 }
