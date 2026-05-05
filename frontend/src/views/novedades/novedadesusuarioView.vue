@@ -449,12 +449,12 @@
                     </span>
                   </td>
 
-                  <!-- Estado general -->
+                  <!-- Estado general tipo carpeta -->
                   <td class="px-4 py-2.5 text-center">
-                    <span :class="estadoBadge(nov.aprobado)"
-                      class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border">
-                      <i :class="estadoIcon(nov.aprobado)" class="mr-0.5"></i>
-                      {{ estadoLabel(nov.aprobado) }}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border"
+                      :class="getEstadoVisual(nov).bg">
+                      <i :class="getEstadoVisual(nov).icon" :style="{ color: getEstadoVisual(nov).color }"></i>
+                      <span :style="{ color: getEstadoVisual(nov).color }">{{ getEstadoVisual(nov).label }}</span>
                     </span>
                   </td>
 
