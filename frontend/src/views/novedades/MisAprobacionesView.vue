@@ -22,6 +22,13 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- Botón gestionar mis carpetas -->
+                <button @click="modalCarpetas.open = true"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110"
+                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-[#FF8F00]' : 'bg-[#FF8F00]/10 border-[#FF8F00]/30 text-[#FF8F00]'">
+                    <i class="fas fa-folder-plus text-[9px]"></i> Mis Carpetas
+                </button>
+
                 <!-- Tabs Por Aprobar / Historial -->
                 <div class="flex items-center rounded-xl border overflow-hidden"
                     :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
@@ -76,7 +83,7 @@
                     </div>
                 </div>
 
-                <div v-else class="flex-1 overflow-y-auto">
+                <div v-else class="flex-1 overflow-y-auto overflow-x-auto">
                     <table class="w-full border-separate border-spacing-0">
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#334155]">
@@ -85,8 +92,9 @@
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
                                 <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital Humano</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Motivo Capital</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Motivo Jefe</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mot. Capital</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mot. Jefe</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
                                 <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Acciones</th>
                             </tr>
                         </thead>
@@ -106,22 +114,18 @@
                                         </div>
                                     </div>
                                 </td>
-
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
                                 </td>
-
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <p class="text-[12px] font-medium line-clamp-1 max-w-[180px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                                 </td>
-
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <EstadoBadge :valor="item.aprobadoRrhh" />
                                 </td>
-
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh, 'Motivo Capital Humano')"
                                         class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
@@ -129,7 +133,6 @@
                                     </span>
                                     <span v-else class="text-[11px] opacity-30">—</span>
                                 </td>
-
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
                                         class="cursor-pointer text-[11px] font-bold text-[#FF8F00] hover:underline">
@@ -137,7 +140,10 @@
                                     </span>
                                     <span v-else class="text-[11px] opacity-30">—</span>
                                 </td>
-
+                                <!-- Mi Carpeta (coordinador) -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <CarpetaBadge :nombre="item.estadoChCoord" :estados="estadosCh" @click="abrirCarpeta(item)" />
+                                </td>
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <div class="flex items-center justify-end">
                                         <button @click.stop="toggleMenu($event, item.id)"
@@ -164,8 +170,6 @@
                 <!-- Filtros historial -->
                 <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b shrink-0"
                     :class="isDark ? 'border-[#2d3548] bg-[#1a2035]' : 'border-slate-100 bg-slate-50'">
-
-                    <!-- Búsqueda -->
                     <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 flex-1 min-w-[160px]"
                         :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
                         <i class="fas fa-search text-[#FF8F00] text-[9px]"></i>
@@ -173,8 +177,6 @@
                             class="bg-transparent text-[10px] font-bold outline-none w-full placeholder:font-normal placeholder:text-slate-500"
                             :class="isDark ? 'text-white' : 'text-slate-700'" />
                     </div>
-
-                    <!-- Filtro estado -->
                     <select v-model="histEstado"
                         class="px-2.5 py-1.5 rounded-lg border text-[10px] font-bold outline-none"
                         :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
@@ -184,7 +186,6 @@
                         <option value="aprobada">🟢 Aprobadas</option>
                         <option value="rechazada">🔴 No aprobadas</option>
                     </select>
-
                     <button v-if="histBuscar || histEstado" @click="histBuscar=''; histEstado=''"
                         class="p-1.5 rounded-lg border text-[10px] transition-colors"
                         :class="isDark ? 'border-[#2d3548] bg-[#273045] text-slate-400 hover:text-[#FF8F00]' : 'border-slate-200 bg-white text-slate-500 hover:text-[#FF8F00]'">
@@ -210,6 +211,7 @@
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Estado</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Jefe</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
                                 <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Soporte</th>
                             </tr>
                         </thead>
@@ -229,33 +231,28 @@
                                         </div>
                                     </div>
                                 </td>
-
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
                                 </td>
-
                                 <td class="px-4 py-2.5 border-b max-w-[200px]" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <p class="text-[11px] font-medium line-clamp-2" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                                 </td>
-
-                                <!-- Estado visual tipo carpeta -->
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <FolderEstado :nov="item" />
                                 </td>
-
-                                <!-- Jefe badge -->
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <EstadoBadge :valor="item.aprobadoJefe" mini />
                                 </td>
-
-                                <!-- RRHH badge -->
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <EstadoBadge :valor="item.aprobadoRrhh" mini />
                                 </td>
-
+                                <!-- Mi Carpeta (coordinador) -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                    <CarpetaBadge :nombre="item.estadoChCoord" :estados="estadosCh" @click="abrirCarpeta(item)" />
+                                </td>
                                 <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <button @click="verSoporte(item)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
@@ -270,12 +267,203 @@
 
                 <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
                     <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                        Total historial: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ historialFiltrado.length }}</span>
+                        Historial: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ historialFiltrado.length }}</span>
                         / {{ novedades.length }}
                     </p>
                 </div>
             </template>
         </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             MODAL: Gestión de Mis Carpetas (tipo coordinador)
+        ══════════════════════════════════════════════════════════ -->
+        <teleport to="body">
+            <transition name="modal">
+                <div v-if="modalCarpetas.open"
+                    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style="background:rgba(0,0,0,0.7)" @click.self="modalCarpetas.open = false">
+
+                    <div class="w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden"
+                        :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-5 py-3.5 border-b"
+                            :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-folder-plus text-[#FF8F00]"></i>
+                                <h3 class="text-sm font-black uppercase tracking-widest"
+                                    :class="isDark ? 'text-white' : 'text-slate-800'">Mis Carpetas</h3>
+                            </div>
+                            <button @click="modalCarpetas.open = false"
+                                class="w-7 h-7 rounded-lg flex items-center justify-center border"
+                                :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                                <i class="fas fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- Formulario crear / editar -->
+                        <div class="px-5 py-4 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                            <p class="text-[9px] font-black uppercase tracking-widest mb-3"
+                                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                {{ editandoCarpeta ? '✏️ Editando carpeta' : 'Nueva carpeta' }}
+                            </p>
+                            <div class="flex gap-2">
+                                <input v-model="nuevaCarpeta.nombre" type="text" placeholder="Nombre..."
+                                    class="flex-1 px-3 py-2 rounded-lg border text-[11px] font-bold outline-none focus:ring-1 focus:ring-[#FF8F00]/40"
+                                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'"
+                                    @keyup.enter="guardarCarpeta" />
+                                <input type="color" v-model="nuevaCarpeta.color"
+                                    class="w-9 h-9 rounded-lg border cursor-pointer p-0.5 shrink-0"
+                                    :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'" />
+                                <select v-model="nuevaCarpeta.icono"
+                                    class="px-2 py-2 rounded-lg border text-[10px] font-bold outline-none shrink-0"
+                                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
+                                    <option value="fas fa-folder">📁 Carpeta</option>
+                                    <option value="fas fa-box-archive">📦 Archivo</option>
+                                    <option value="fas fa-clock">⏰ Espera</option>
+                                    <option value="fas fa-paper-plane">✉️ Enviado</option>
+                                    <option value="fas fa-check-circle">✅ Check</option>
+                                    <option value="fas fa-times-circle">❌ X</option>
+                                    <option value="fas fa-bookmark">🔖 Marca</option>
+                                    <option value="fas fa-star">⭐ Estrella</option>
+                                    <option value="fas fa-flag">🚩 Bandera</option>
+                                    <option value="fas fa-tag">🏷️ Etiqueta</option>
+                                </select>
+                                <button @click="guardarCarpeta" :disabled="!nuevaCarpeta.nombre.trim() || loadingCarpeta"
+                                    class="px-3 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 flex items-center gap-1"
+                                    :class="editandoCarpeta ? 'bg-emerald-500 text-white' : 'bg-[#FF8F00] text-black'">
+                                    <i v-if="loadingCarpeta" class="fas fa-circle-notch fa-spin text-[9px]"></i>
+                                    <i v-else :class="editandoCarpeta ? 'fas fa-check' : 'fas fa-plus'" class="text-[9px]"></i>
+                                </button>
+                                <button v-if="editandoCarpeta" @click="cancelarEdicionCarpeta"
+                                    class="px-2 py-2 rounded-lg border text-[10px] font-black"
+                                    :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
+                                    <i class="fas fa-xmark text-[9px]"></i>
+                                </button>
+                            </div>
+
+                            <!-- Preview -->
+                            <div v-if="nuevaCarpeta.nombre.trim()" class="mt-2 flex items-center gap-1.5">
+                                <span class="text-[9px] opacity-50" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Vista previa:</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-current/20 bg-current/10"
+                                    :style="{ color: nuevaCarpeta.color }">
+                                    <i :class="nuevaCarpeta.icono"></i>
+                                    {{ nuevaCarpeta.nombre }}
+                                </span>
+                            </div>
+
+                            <p v-if="errorCarpeta" class="mt-2 text-[10px] text-red-400 font-bold">
+                                <i class="fas fa-exclamation-circle mr-1"></i>{{ errorCarpeta }}
+                            </p>
+                        </div>
+
+                        <!-- Lista de mis carpetas -->
+                        <div class="px-5 py-3 max-h-64 overflow-y-auto">
+                            <p class="text-[9px] font-black uppercase tracking-widest mb-2"
+                                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                Mis Carpetas ({{ estadosCh.length }})
+                            </p>
+                            <div v-if="!estadosCh.length" class="text-[11px] opacity-40 text-center py-4"
+                                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                No hay carpetas aún.
+                            </div>
+                            <div v-else class="flex flex-col gap-1.5">
+                                <div v-for="est in estadosCh" :key="est.id"
+                                    class="flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
+                                    :class="[isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200',
+                                        editandoCarpeta?.id === est.id ? 'ring-1 ring-[#FF8F00]' : '']">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-current/20 bg-current/10"
+                                            :style="{ color: est.color }">
+                                            <i :class="est.icono"></i>
+                                            {{ est.nombre }}
+                                        </span>
+                                        <span class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                            {{ novedades.filter(n => n.estadoChCoord === est.nombre).length }} nov.
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button @click="iniciarEdicionCarpeta(est)"
+                                            class="w-6 h-6 rounded-lg flex items-center justify-center border text-[9px] transition-all hover:bg-[#FF8F00]/10 hover:text-[#FF8F00]"
+                                            :class="isDark ? 'border-[#3d4558] text-slate-500' : 'border-slate-200 text-slate-400'">
+                                            <i class="fas fa-pen-to-square"></i>
+                                        </button>
+                                        <button @click="confirmarEliminarCarpeta(est)"
+                                            class="w-6 h-6 rounded-lg flex items-center justify-center border text-[9px] transition-all hover:bg-red-500/10 hover:text-red-400"
+                                            :class="isDark ? 'border-[#3d4558] text-slate-500' : 'border-slate-200 text-slate-400'">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+        </teleport>
+
+        <!-- ══════════════════════════════════════════════════════════
+             MODAL: Asignar carpeta a una novedad
+        ══════════════════════════════════════════════════════════ -->
+        <teleport to="body">
+            <div v-if="carpetaModal.open"
+                class="fixed inset-0 z-[65] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                @mousedown.self="carpetaModal.open = false">
+                <div class="w-full max-w-xs rounded-2xl border shadow-2xl overflow-hidden"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+                    <div class="flex items-center justify-between px-4 py-3 border-b"
+                        :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-folder-open text-[#FF8F00]"></i>
+                            <h3 class="text-[11px] font-black uppercase tracking-widest"
+                                :class="isDark ? 'text-white' : 'text-slate-800'">Mi Carpeta</h3>
+                        </div>
+                        <button @click="carpetaModal.open = false"
+                            class="w-6 h-6 rounded-lg flex items-center justify-center border"
+                            :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                            <i class="fas fa-xmark text-[10px]"></i>
+                        </button>
+                    </div>
+                    <div class="px-4 pt-3 pb-1">
+                        <p class="text-[10px] font-black uppercase opacity-50"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                            {{ carpetaModal.nombreColaborador }}
+                        </p>
+                    </div>
+
+                    <div class="px-4 pb-1">
+                        <button @click="asignarCarpeta(null)"
+                            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold transition-all hover:bg-[#FF8F00]/10"
+                            :class="[isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500',
+                                carpetaModal.estadoActual === null ? 'ring-1 ring-[#FF8F00]' : '']">
+                            <i class="fas fa-folder-open opacity-40 w-4"></i>
+                            <span>Sin carpeta</span>
+                            <i v-if="carpetaModal.estadoActual === null" class="fas fa-check ml-auto text-[#FF8F00] text-[9px]"></i>
+                        </button>
+                    </div>
+
+                    <div class="px-4 pb-4 flex flex-col gap-1 max-h-52 overflow-y-auto">
+                        <div v-if="estadosCh.length === 0" class="text-center py-4 opacity-40">
+                            <i class="fas fa-folder text-2xl mb-1" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                            <p class="text-[10px] font-bold" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                                Sin carpetas — créalas con "Mis Carpetas"
+                            </p>
+                        </div>
+                        <button v-for="est in estadosCh" :key="est.id"
+                            @click="asignarCarpeta(est.nombre)"
+                            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold transition-all hover:opacity-80"
+                            :class="[isDark ? 'border-[#2d3548]' : 'border-slate-200',
+                                carpetaModal.estadoActual === est.nombre ? 'ring-1 ring-[#FF8F00]' : '']"
+                            :style="{ borderLeftColor: est.color, borderLeftWidth: '3px' }">
+                            <i :class="est.icono" :style="{ color: est.color }" class="w-4 text-center shrink-0"></i>
+                            <span :class="isDark ? 'text-white' : 'text-slate-700'">{{ est.nombre }}</span>
+                            <i v-if="carpetaModal.estadoActual === est.nombre" class="fas fa-check ml-auto text-[#FF8F00] text-[9px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </teleport>
 
         <!-- Modal soporte -->
         <teleport to="body">
@@ -298,11 +486,7 @@
                     </div>
                     <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
                         :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
-                        <div v-if="soporteModal.loading" class="flex items-center gap-2 opacity-50">
-                            <i class="fas fa-circle-notch fa-spin text-[#FF8F00]"></i>
-                            <span class="text-[11px] font-black uppercase">Cargando...</span>
-                        </div>
-                        <img v-else-if="soporteModal.isImage" :src="soporteModal.url"
+                        <img v-if="soporteModal.isImage" :src="soporteModal.url"
                             class="max-w-full max-h-full object-contain rounded-lg shadow-xl" />
                         <iframe v-else-if="soporteModal.isPdf" :src="soporteModal.url"
                             class="w-full h-full rounded-lg border-0" />
@@ -315,7 +499,7 @@
             </div>
         </teleport>
 
-        <!-- Modal motivo genérico -->
+        <!-- Modal motivo -->
         <teleport to="body">
             <div v-if="motivoModal.open"
                 class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -325,19 +509,13 @@
                     <div class="flex items-center gap-2">
                         <i class="fas fa-comment-alt text-[#FF8F00]"></i>
                         <h3 class="text-sm font-black uppercase tracking-widest"
-                            :class="isDark ? 'text-white' : 'text-slate-800'">
-                            {{ motivoModal.titulo }}
-                        </h3>
+                            :class="isDark ? 'text-white' : 'text-slate-800'">{{ motivoModal.titulo }}</h3>
                     </div>
                     <p class="text-[15px] font-medium leading-relaxed"
-                        :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                        {{ motivoModal.texto }}
-                    </p>
+                        :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ motivoModal.texto }}</p>
                     <button @click="motivoModal.open = false"
                         class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
-                        :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
-                        Cerrar
-                    </button>
+                        :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">Cerrar</button>
                 </div>
             </div>
         </teleport>
@@ -345,9 +523,8 @@
         <!-- Menú contextual (tab pendientes) -->
         <teleport to="body">
             <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
-
             <transition name="fade-msg">
-                <div v-if="menuAbierto !== null" class="fixed z-50 w-44 rounded-xl border shadow-2xl overflow-hidden"
+                <div v-if="menuAbierto !== null" class="fixed z-50 w-48 rounded-xl border shadow-2xl overflow-hidden"
                     :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
                     :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
@@ -355,6 +532,12 @@
                         class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
                         :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                         <i class="fas fa-eye text-[#FF8F00] w-3"></i> Ver soporte
+                    </button>
+
+                    <button @click="abrirCarpeta(itemMenuActual); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#FF8F00]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-folder-open text-[#FF8F00] w-3"></i> Enviar a carpeta
                     </button>
 
                     <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
@@ -404,12 +587,12 @@
                         </textarea>
                     </div>
                     <div class="flex gap-2 pt-1">
-                        <button type="button" @click="accionModal.open = false"
+                        <button @click="accionModal.open = false"
                             class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border"
                             :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
                             Cancelar
                         </button>
-                        <button type="button" @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
+                        <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
                             class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40"
                             :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'">
                             Confirmar
@@ -429,7 +612,16 @@ import axios from 'axios';
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['volver']);
 
-const { novedades, loading, aprobarJefe, getFileUrl, fetchPorArea, fetchPorSegmento, fetchPorDepartamentos } = useNovedades();
+const {
+    novedades, loading,
+    aprobarJefe, getFileUrl,
+    fetchPorArea, fetchPorSegmento, fetchPorDepartamentos,
+    // Carpetas (tipo = 'coordinador')
+    estadosCh, fetchEstadosCh, crearEstadoCh, editarEstadoCh, eliminarEstadoCh, cambiarEstadoCh,
+} = useNovedades();
+
+// Este módulo siempre opera con tipo='coordinador'
+const TIPO_CARPETA = 'coordinador';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
@@ -442,44 +634,29 @@ const histEstado = ref('');
 // ─── Nivel de acceso ──────────────────────────────────────────────
 const esDirector = session?.isSuperAdmin || session?.permisos?.['novedades.director'] === true;
 const esSegmento = !esDirector && session?.permisos?.['novedades.ver_segmento'] === true;
-
-const modoLabel = esDirector
-    ? 'Director — Todo el departamento'
-    : esSegmento
-        ? 'Jefe — Todo el segmento'
-        : 'Jefe — Solo mi área';
+const modoLabel = esDirector ? 'Director — Todo el departamento' : esSegmento ? 'Jefe — Todo el segmento' : 'Jefe — Solo mi área';
 const modoIcon = esDirector ? 'fas fa-building' : esSegmento ? 'fas fa-sitemap' : 'fas fa-users';
 
-// ─── Componentes internos reutilizables ──────────────────────────
+// ─── Componentes internos ─────────────────────────────────────────
 
-/** Badge sencillo para aprobadoJefe / aprobadoRrhh */
 const EstadoBadge = defineComponent({
     props: { valor: { default: null }, mini: Boolean },
     setup(p) {
         return () => {
             const v = p.valor;
-            if (v === 1) return h('span', {
-                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-            }, [h('i', { class: 'fas fa-check' }), !p.mini && ' Aprobado'].filter(Boolean));
-            if (v === 0) return h('span', {
-                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20'
-            }, [h('i', { class: 'fas fa-xmark' }), !p.mini && ' Rechazado'].filter(Boolean));
-            return h('span', {
-                class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20'
-            }, [h('i', { class: 'fas fa-clock' }), !p.mini && ' Pendiente'].filter(Boolean));
+            if (v === 1) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' }, [h('i', { class: 'fas fa-check' }), !p.mini && ' Aprobado'].filter(Boolean));
+            if (v === 0) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20' }, [h('i', { class: 'fas fa-xmark' }), !p.mini && ' Rechazado'].filter(Boolean));
+            return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20' }, [h('i', { class: 'fas fa-clock' }), !p.mini && ' Pendiente'].filter(Boolean));
         };
     }
 });
 
-/** Folder badge — icono carpeta con color según estado */
 const FolderEstado = defineComponent({
     props: { nov: Object },
     setup(p) {
         return () => {
             const cfg = getEstadoVisual(p.nov);
-            return h('span', {
-                class: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${cfg.bg}`
-            }, [
+            return h('span', { class: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${cfg.bg}` }, [
                 h('i', { class: cfg.icon, style: { color: cfg.color } }),
                 h('span', { style: { color: cfg.color } }, cfg.label)
             ]);
@@ -487,8 +664,36 @@ const FolderEstado = defineComponent({
     }
 });
 
-// ─── Datos ────────────────────────────────────────────────────────
+/** Badge para carpeta del coordinador (estadoChCoord) */
+const CarpetaBadge = defineComponent({
+    props: { nombre: { default: null }, estados: { default: () => [] } },
+    emits: ['click'],
+    setup(p, { emit: emitBadge }) {
+        return () => {
+            const est = p.estados.find(e => e.nombre === p.nombre);
+            if (est) {
+                return h('button', {
+                    onClick: () => emitBadge('click'),
+                    class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border cursor-pointer hover:opacity-80 transition-opacity',
+                    style: { borderColor: est.color + '33', background: est.color + '15' }
+                }, [
+                    h('i', { class: est.icono, style: { color: est.color } }),
+                    h('span', { style: { color: est.color } }, est.nombre)
+                ]);
+            }
+            return h('button', {
+                onClick: () => emitBadge('click'),
+                class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-dashed transition-all hover:border-[#FF8F00]/50 hover:text-[#FF8F00] text-slate-400 border-slate-300/30'
+            }, [h('i', { class: 'fas fa-folder-plus text-[9px]' }), h('span', 'Asignar')]);
+        };
+    }
+});
+
+// ─── Montaje ──────────────────────────────────────────────────────
 onMounted(async () => {
+    // Cargar las carpetas del tipo 'coordinador'
+    await fetchEstadosCh(TIPO_CARPETA);
+
     if (esDirector) {
         try {
             const res = await axios.get(`${API_URL}/departamentos-permitidos/${miIdOdoo}`);
@@ -505,88 +710,149 @@ onMounted(async () => {
 });
 
 // ─── Computadas ───────────────────────────────────────────────────
-/** Solo las que aún esperan mi aprobación como jefe */
 const pendientes = computed(() =>
     novedades.value.filter(n => n.aprobadoJefe === null || n.aprobadoJefe === undefined)
 );
 
-/** Historial completo con filtros opcionales */
 const historialFiltrado = computed(() => {
     let lista = novedades.value;
-
     if (histBuscar.value) {
         const q = histBuscar.value.toLowerCase();
-        lista = lista.filter(n =>
-            (n.nombre ?? '').toLowerCase().includes(q) ||
-            (n.descripcion ?? '').toLowerCase().includes(q)
-        );
+        lista = lista.filter(n => (n.nombre ?? '').toLowerCase().includes(q) || (n.descripcion ?? '').toLowerCase().includes(q));
     }
-
     if (histEstado.value) {
         lista = lista.filter(n => {
-            const cfg = getEstadoVisual(n);
-            const label = cfg.label.toLowerCase();
-            const filtro = histEstado.value;
-            if (filtro === 'nueva') return label === 'nueva';
-            if (filtro === 'pendiente') return label.includes('revisión') || label.includes('pend.');
-            if (filtro === 'aprobada') return label === 'aprobada';
-            if (filtro === 'rechazada') return label === 'no aprobada';
+            const label = getEstadoVisual(n).label.toLowerCase();
+            if (histEstado.value === 'nueva') return label === 'nueva';
+            if (histEstado.value === 'pendiente') return label.includes('revisión') || label.includes('pend.');
+            if (histEstado.value === 'aprobada') return label === 'aprobada';
+            if (histEstado.value === 'rechazada') return label === 'no aprobada';
             return true;
         });
     }
-
     return lista;
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────
 const formatFecha = (f) => {
     if (!f) return '—';
-    return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', {
-        day: '2-digit', month: 'short', year: 'numeric'
-    });
+    return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 // ─── Modal soporte ────────────────────────────────────────────────
-const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false, loading: false });
-
+const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false });
 const verSoporte = (novedad) => {
+    if (!novedad) return;
     const url = getFileUrl(novedad.id);
     const mime = novedad.soporteMime ?? '';
-    soporteModal.value = {
-        open: true,
-        url,
-        isImage: mime.startsWith('image/'),
-        isPdf: mime === 'application/pdf',
-        loading: false,
-    };
+    soporteModal.value = { open: true, url, isImage: mime.startsWith('image/'), isPdf: mime === 'application/pdf' };
 };
 
 // ─── Modal motivo ─────────────────────────────────────────────────
 const motivoModal = ref({ open: false, titulo: '', texto: '' });
-const verMotivo = (texto, titulo = 'Motivo') => {
-    motivoModal.value = { open: true, titulo, texto };
-};
+const verMotivo = (texto, titulo = 'Motivo') => { motivoModal.value = { open: true, titulo, texto }; };
 
 // ─── Menú contextual ──────────────────────────────────────────────
 const menuAbierto = ref(null);
 const itemMenuActual = ref(null);
 const menuPos = ref({ x: 0, y: 0 });
-
 const toggleMenu = (event, id) => {
     if (menuAbierto.value === id) { menuAbierto.value = null; return; }
     const btn = event.currentTarget.getBoundingClientRect();
-    menuPos.value = { x: btn.right - 176, y: btn.bottom + 6 };
+    menuPos.value = { x: btn.right - 192, y: btn.bottom + 6 };
     itemMenuActual.value = pendientes.value.find(n => n.id === id);
     menuAbierto.value = id;
 };
 
+// ─── Gestión Mis Carpetas (tipo='coordinador') ────────────────────
+const modalCarpetas = ref({ open: false });
+const nuevaCarpeta = ref({ nombre: '', icono: 'fas fa-folder', color: '#FF8F00' });
+const editandoCarpeta = ref(null);
+const loadingCarpeta = ref(false);
+const errorCarpeta = ref('');
+
+const guardarCarpeta = async () => {
+    if (!nuevaCarpeta.value.nombre.trim()) return;
+    loadingCarpeta.value = true;
+    errorCarpeta.value = '';
+    try {
+        if (editandoCarpeta.value) {
+            await editarEstadoCh(
+                editandoCarpeta.value.id,
+                { nombre: nuevaCarpeta.value.nombre.trim(), icono: nuevaCarpeta.value.icono, color: nuevaCarpeta.value.color },
+                TIPO_CARPETA,
+            );
+            editandoCarpeta.value = null;
+        } else {
+            await crearEstadoCh({
+                nombre: nuevaCarpeta.value.nombre.trim(),
+                icono: nuevaCarpeta.value.icono,
+                color: nuevaCarpeta.value.color,
+                tipo: TIPO_CARPETA,
+            });
+        }
+        nuevaCarpeta.value = { nombre: '', icono: 'fas fa-folder', color: '#FF8F00' };
+    } catch (e) {
+        errorCarpeta.value = e?.response?.data?.message || 'Error al guardar la carpeta.';
+    } finally {
+        loadingCarpeta.value = false;
+    }
+};
+
+const iniciarEdicionCarpeta = (est) => {
+    editandoCarpeta.value = { id: est.id };
+    nuevaCarpeta.value = { nombre: est.nombre, icono: est.icono, color: est.color };
+    errorCarpeta.value = '';
+};
+
+const cancelarEdicionCarpeta = () => {
+    editandoCarpeta.value = null;
+    nuevaCarpeta.value = { nombre: '', icono: 'fas fa-folder', color: '#FF8F00' };
+    errorCarpeta.value = '';
+};
+
+const confirmarEliminarCarpeta = async (est) => {
+    if (!confirm(`¿Eliminar la carpeta "${est.nombre}"? Las novedades con esa carpeta quedarán sin asignar.`)) return;
+    try {
+        await eliminarEstadoCh(est.id, TIPO_CARPETA);
+    } catch {
+        alert('Error al eliminar la carpeta.');
+    }
+};
+
+// ─── Modal asignar carpeta ────────────────────────────────────────
+const carpetaModal = ref({ open: false, novedadId: null, nombreColaborador: '', estadoActual: null });
+const carpetaGuardando = ref(false);
+
+const abrirCarpeta = (item) => {
+    if (!item) return;
+    carpetaModal.value = {
+        open: true,
+        novedadId: item.id,
+        nombreColaborador: item.nombre ?? '',
+        estadoActual: item.estadoChCoord ?? null,
+    };
+};
+
+const asignarCarpeta = async (nombreEstado) => {
+    if (carpetaGuardando.value) return;
+    carpetaGuardando.value = true;
+    try {
+        await cambiarEstadoCh(carpetaModal.value.novedadId, nombreEstado, TIPO_CARPETA);
+        carpetaModal.value.estadoActual = nombreEstado;
+        carpetaModal.value.open = false;
+    } catch (e) {
+        console.error('Error al asignar carpeta:', e);
+    } finally {
+        carpetaGuardando.value = false;
+    }
+};
+
 // ─── Modal aprobar/rechazar ───────────────────────────────────────
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
-
 const abrirAccion = (item, tipo) => {
     accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '' };
 };
-
 const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
     try {
@@ -599,17 +865,10 @@ const confirmarAccion = async () => {
 </script>
 
 <style scoped>
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-msg-enter-active,
-.fade-msg-leave-active { transition: all 0.2s ease; }
-.fade-msg-enter-from,
-.fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.fade-msg-enter-active, .fade-msg-leave-active { transition: all 0.2s ease; }
+.fade-msg-enter-from, .fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

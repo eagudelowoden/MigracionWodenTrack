@@ -137,8 +137,8 @@ export class Novedad {
   })
   fechaAprobacionRrhh: Date | null;
 
-  // ─── Estado personalizado Capital Humano ──────────────
-  // Valor libre que el equipo de CH asigna internamente (ej: "Enviada a nómina", "Archivada", etc.)
+  // ─── Carpeta Capital Humano ───────────────────────────
+  // Asignada exclusivamente desde el módulo de Capital Humano
   @Column({
     name: 'estado_ch',
     type: 'nvarchar',
@@ -147,4 +147,15 @@ export class Novedad {
     default: null,
   })
   estadoCh: string | null;
+
+  // ─── Carpeta Coordinador / Jefe ───────────────────────
+  // Asignada exclusivamente desde el módulo de Jefe/Coordinador
+  @Column({
+    name: 'estado_ch_coord',
+    type: 'nvarchar',
+    length: 100,
+    nullable: true,
+    default: null,
+  })
+  estadoChCoord: string | null;
 }

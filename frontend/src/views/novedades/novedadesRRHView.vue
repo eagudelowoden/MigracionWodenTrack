@@ -419,27 +419,25 @@
               </button>
             </div>
 
-            <!-- Formulario crear estado -->
+            <!-- Formulario crear / editar carpeta -->
             <div class="px-5 py-4 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
               <p class="text-[9px] font-black uppercase tracking-widest mb-3" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Nuevo estado
+                {{ editandoEstado ? '✏️ Editando carpeta' : 'Nueva carpeta' }}
               </p>
               <div class="flex gap-2">
                 <!-- Nombre -->
-                <input v-model="nuevoEstado.nombre" type="text" placeholder="Nombre del estado..."
+                <input v-model="nuevoEstado.nombre" type="text" placeholder="Nombre de la carpeta..."
                   class="flex-1 px-3 py-2 rounded-lg border text-[11px] font-bold outline-none transition-all focus:ring-1 focus:ring-[#FF8F00]/40"
                   :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'"
                   @keyup.enter="guardarEstadoCh" />
                 <!-- Color -->
-                <div class="relative">
-                  <input type="color" v-model="nuevoEstado.color"
-                    class="w-9 h-9 rounded-lg border cursor-pointer p-0.5"
-                    :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'"
-                    title="Color del estado" />
-                </div>
-                <!-- Selector icono simplificado -->
+                <input type="color" v-model="nuevoEstado.color"
+                  class="w-9 h-9 rounded-lg border cursor-pointer p-0.5 shrink-0"
+                  :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'"
+                  title="Color" />
+                <!-- Icono -->
                 <select v-model="nuevoEstado.icono"
-                  class="px-2 py-2 rounded-lg border text-[10px] font-bold outline-none"
+                  class="px-2 py-2 rounded-lg border text-[10px] font-bold outline-none shrink-0"
                   :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
                   <option value="fas fa-folder">📁 Carpeta</option>
                   <option value="fas fa-box-archive">📦 Archivo</option>
@@ -452,11 +450,18 @@
                   <option value="fas fa-flag">🚩 Bandera</option>
                   <option value="fas fa-tag">🏷️ Etiqueta</option>
                 </select>
-                <!-- Botón agregar -->
+                <!-- Guardar -->
                 <button @click="guardarEstadoCh" :disabled="!nuevoEstado.nombre.trim() || loadingEstado"
-                  class="px-3 py-2 rounded-lg bg-[#FF8F00] text-black text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1">
+                  class="px-3 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                  :class="editandoEstado ? 'bg-emerald-500 text-white' : 'bg-[#FF8F00] text-black'">
                   <i v-if="loadingEstado" class="fas fa-circle-notch fa-spin text-[9px]"></i>
-                  <i v-else class="fas fa-plus text-[9px]"></i>
+                  <i v-else :class="editandoEstado ? 'fas fa-check' : 'fas fa-plus'" class="text-[9px]"></i>
+                </button>
+                <!-- Cancelar edición -->
+                <button v-if="editandoEstado" @click="cancelarEdicion"
+                  class="px-2 py-2 rounded-lg border text-[10px] font-black transition-all"
+                  :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+                  <i class="fas fa-xmark text-[9px]"></i>
                 </button>
               </div>
 
@@ -475,18 +480,19 @@
               </p>
             </div>
 
-            <!-- Lista de estados existentes -->
+            <!-- Lista de carpetas existentes -->
             <div class="px-5 py-3 max-h-64 overflow-y-auto">
               <p class="text-[9px] font-black uppercase tracking-widest mb-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Estados creados ({{ estadosCh.length }})
+                Carpetas Capital Humano ({{ estadosCh.length }})
               </p>
               <div v-if="!estadosCh.length" class="text-[11px] opacity-40 text-center py-4" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                No hay estados personalizados aún.
+                No hay carpetas aún.
               </div>
               <div v-else class="flex flex-col gap-1.5">
                 <div v-for="est in estadosCh" :key="est.id"
-                  class="flex items-center justify-between px-3 py-2 rounded-lg border"
-                  :class="isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200'">
+                  class="flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
+                  :class="[isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200',
+                    editandoEstado?.id === est.id ? 'ring-1 ring-[#FF8F00]' : '']">
                   <div class="flex items-center gap-2">
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-current/20 bg-current/10"
                       :style="{ color: est.color }">
@@ -494,14 +500,23 @@
                       {{ est.nombre }}
                     </span>
                     <span class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                      {{ novedades.filter(n => n.estadoCh === est.nombre).length }} novedades
+                      {{ novedades.filter(n => n.estadoCh === est.nombre).length }} nov.
                     </span>
                   </div>
-                  <button @click="confirmarEliminarEstado(est)"
-                    class="w-6 h-6 rounded-lg flex items-center justify-center border text-[9px] transition-all hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
-                    :class="isDark ? 'border-[#3d4558] text-slate-500' : 'border-slate-200 text-slate-400'">
-                    <i class="fas fa-trash-can"></i>
-                  </button>
+                  <div class="flex items-center gap-1">
+                    <!-- Editar -->
+                    <button @click="iniciarEdicionEstado(est)"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center border text-[9px] transition-all hover:bg-[#FF8F00]/10 hover:text-[#FF8F00] hover:border-[#FF8F00]/30"
+                      :class="isDark ? 'border-[#3d4558] text-slate-500' : 'border-slate-200 text-slate-400'">
+                      <i class="fas fa-pen-to-square"></i>
+                    </button>
+                    <!-- Eliminar -->
+                    <button @click="confirmarEliminarEstado(est)"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center border text-[9px] transition-all hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+                      :class="isDark ? 'border-[#3d4558] text-slate-500' : 'border-slate-200 text-slate-400'">
+                      <i class="fas fa-trash-can"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -711,13 +726,17 @@ const {
   aprobarRrhh,
   eliminarNovedad,
   getFileUrl,
-  // Estados CH
+  // Carpetas CH (tipo = 'rrhh')
   estadosCh,
   fetchEstadosCh,
   crearEstadoCh,
+  editarEstadoCh,
   eliminarEstadoCh,
   cambiarEstadoCh,
 } = useNovedades();
+
+// Este módulo siempre usa tipo = 'rrhh'
+const TIPO_CH = 'rrhh';
 
 // ─── Filtros de búsqueda ──────────────────────────────────────────
 const filters = ref({ nombre: '', departamento: '', cargo: '', fechaInicio: '', fechaFin: '' });
@@ -748,7 +767,7 @@ const selectorCh = ref({ open: false, novedad: null });
 
 // ─── Montaje ──────────────────────────────────────────────────────
 onMounted(async () => {
-  await Promise.all([fetchNovedades(), fetchEstadosCh()]);
+  await Promise.all([fetchNovedades(), fetchEstadosCh(TIPO_CH)]);
 });
 
 // ─── Helpers estado CH ────────────────────────────────────────────
@@ -862,35 +881,61 @@ const resetFilters = () => {
   fetchNovedades();
 };
 
-// ─── Gestión estados CH ───────────────────────────────────────────
+// ─── Gestión carpetas CH (tipo='rrhh') ────────────────────────────
+const editandoEstado = ref(null); // { id, nombre, icono, color } cuando se edita
+
 const guardarEstadoCh = async () => {
   if (!nuevoEstado.value.nombre.trim()) return;
   loadingEstado.value = true;
   errorEstado.value = '';
   try {
-    await crearEstadoCh({
-      nombre: nuevoEstado.value.nombre.trim(),
-      icono: nuevoEstado.value.icono,
-      color: nuevoEstado.value.color,
-    });
-    nuevoEstado.value.nombre = '';
+    if (editandoEstado.value) {
+      // Editar existente
+      await editarEstadoCh(
+        editandoEstado.value.id,
+        { nombre: nuevoEstado.value.nombre.trim(), icono: nuevoEstado.value.icono, color: nuevoEstado.value.color },
+        TIPO_CH,
+      );
+      editandoEstado.value = null;
+    } else {
+      // Crear nuevo
+      await crearEstadoCh({
+        nombre: nuevoEstado.value.nombre.trim(),
+        icono: nuevoEstado.value.icono,
+        color: nuevoEstado.value.color,
+        tipo: TIPO_CH,
+      });
+    }
+    nuevoEstado.value = { nombre: '', icono: 'fas fa-folder', color: '#FF8F00' };
   } catch (e) {
-    errorEstado.value = e?.response?.data?.message || 'Error al crear el estado.';
+    errorEstado.value = e?.response?.data?.message || 'Error al guardar la carpeta.';
   } finally {
     loadingEstado.value = false;
   }
 };
 
+const iniciarEdicionEstado = (est) => {
+  editandoEstado.value = { id: est.id };
+  nuevoEstado.value = { nombre: est.nombre, icono: est.icono, color: est.color };
+  errorEstado.value = '';
+};
+
+const cancelarEdicion = () => {
+  editandoEstado.value = null;
+  nuevoEstado.value = { nombre: '', icono: 'fas fa-folder', color: '#FF8F00' };
+  errorEstado.value = '';
+};
+
 const confirmarEliminarEstado = async (est) => {
-  if (!confirm(`¿Eliminar el estado "${est.nombre}"? Las novedades con ese estado quedarán sin estado.`)) return;
+  if (!confirm(`¿Eliminar la carpeta "${est.nombre}"? Las novedades con esa carpeta quedarán sin asignar.`)) return;
   try {
-    await eliminarEstadoCh(est.id);
+    await eliminarEstadoCh(est.id, TIPO_CH);
   } catch (e) {
-    alert('Error al eliminar el estado.');
+    alert('Error al eliminar la carpeta.');
   }
 };
 
-// ─── Selector estado CH en una novedad ───────────────────────────
+// ─── Selector carpeta CH en una novedad ──────────────────────────
 const abrirSelectorCh = (novedad) => {
   selectorCh.value = { open: true, novedad };
 };
@@ -898,10 +943,10 @@ const abrirSelectorCh = (novedad) => {
 const asignarEstadoCh = async (novedad, estadoCh) => {
   if (!novedad) return;
   try {
-    await cambiarEstadoCh(novedad.id, estadoCh);
+    await cambiarEstadoCh(novedad.id, estadoCh, TIPO_CH);
     selectorCh.value.open = false;
   } catch (e) {
-    console.error('Error asignando estado CH:', e);
+    console.error('Error asignando carpeta CH:', e);
   }
 };
 

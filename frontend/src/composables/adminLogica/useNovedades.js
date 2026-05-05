@@ -217,55 +217,80 @@ export function useNovedades() {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  // ESTADOS PERSONALIZADOS — CAPITAL HUMANO
+  // CARPETAS PERSONALIZADAS (independientes por módulo)
+  //   tipo = 'rrhh'         → Capital Humano   → campo estadoCh
+  //   tipo = 'coordinador'  → Jefe/Coordinador → campo estadoChCoord
   // ══════════════════════════════════════════════════════════════════
 
-  /** Carga la lista de estados CH personalizados */
-  const fetchEstadosCh = async () => {
+  /**
+   * Carga las carpetas del tipo indicado.
+   * Cada módulo pasa su propio tipo para obtener solo las suyas.
+   */
+  const fetchEstadosCh = async (tipo = 'rrhh') => {
     try {
-      const res = await axios.get(`${API_URL}/novedades/estados-ch`);
+      const res = await axios.get(`${API_URL}/novedades/estados-ch`, { params: { tipo } });
       estadosCh.value = Array.isArray(res.data) ? res.data : [];
     } catch (e) {
-      console.error("Error cargando estados CH:", e);
+      console.error("Error cargando carpetas:", e);
       estadosCh.value = [];
     }
   };
 
-  /** Crea un nuevo estado CH */
-  const crearEstadoCh = async ({ nombre, icono = 'fas fa-folder', color = '#6b7280' }) => {
+  /** Crea una nueva carpeta para el tipo indicado */
+  const crearEstadoCh = async ({ nombre, icono = 'fas fa-folder', color = '#6b7280', tipo = 'rrhh' }) => {
     try {
-      const res = await axios.post(`${API_URL}/novedades/estados-ch`, { nombre, icono, color });
-      await fetchEstadosCh();
+      const res = await axios.post(`${API_URL}/novedades/estados-ch`, { nombre, icono, color, tipo });
+      await fetchEstadosCh(tipo);
       return res.data;
     } catch (e) {
-      console.error("Error creando estado CH:", e);
+      console.error("Error creando carpeta:", e);
       throw e;
     }
   };
 
-  /** Elimina un estado CH */
-  const eliminarEstadoCh = async (id) => {
+  /** Edita nombre/icono/color de una carpeta (tipo para refrescar la lista) */
+  const editarEstadoCh = async (id, { nombre, icono = 'fas fa-folder', color = '#6b7280' }, tipo = 'rrhh') => {
+    try {
+      const res = await axios.put(`${API_URL}/novedades/estados-ch/${id}`, { nombre, icono, color });
+      await fetchEstadosCh(tipo);
+      return res.data;
+    } catch (e) {
+      console.error("Error editando carpeta:", e);
+      throw e;
+    }
+  };
+
+  /** Elimina una carpeta (tipo para refrescar la lista correcta) */
+  const eliminarEstadoCh = async (id, tipo = 'rrhh') => {
     try {
       await axios.delete(`${API_URL}/novedades/estados-ch/${id}`);
-      await fetchEstadosCh();
+      await fetchEstadosCh(tipo);
     } catch (e) {
-      console.error("Error eliminando estado CH:", e);
+      console.error("Error eliminando carpeta:", e);
       throw e;
     }
   };
 
-  /** Cambia el estado CH de una novedad (null = quitar estado) */
-  const cambiarEstadoCh = async (novedadId, estadoCh) => {
+  /**
+   * Asigna (o limpia) la carpeta en una novedad.
+   *   tipo = 'rrhh'        → actualiza novedades[idx].estadoCh
+   *   tipo = 'coordinador' → actualiza novedades[idx].estadoChCoord
+   */
+  const cambiarEstadoCh = async (novedadId, estadoCh, tipo = 'rrhh') => {
     try {
       const res = await axios.post(`${API_URL}/novedades/${novedadId}/estado-ch`, {
         estadoCh: estadoCh ?? null,
+        tipo,
       });
-      // Actualizar en la lista local sin recargar todo
+      // Actualizar campo correcto en la lista local
       const idx = novedades.value.findIndex((n) => n.id === novedadId);
-      if (idx !== -1) novedades.value[idx] = { ...novedades.value[idx], estadoCh: estadoCh ?? null };
+      if (idx !== -1) {
+        const field = tipo === 'coordinador' ? 'estadoChCoord' : 'estadoCh';
+        novedades.value[idx] = { ...novedades.value[idx], [field]: estadoCh ?? null };
+      }
       return res.data;
     } catch (e) {
-      console.error("Error cambiando estado CH:", e);
+      console.error("Error asignando carpeta:", e);
       throw e;
     }
   };
@@ -287,10 +312,11 @@ export function useNovedades() {
     fetchPorArea,
     fetchPorSegmento,
     fetchPorDepartamentos,
-    // Estados CH
+    // Carpetas personalizadas
     estadosCh,
     fetchEstadosCh,
     crearEstadoCh,
+    editarEstadoCh,
     eliminarEstadoCh,
     cambiarEstadoCh,
   };
