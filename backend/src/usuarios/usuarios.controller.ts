@@ -14,7 +14,7 @@ import { UsuariosService } from './usuarios.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) { }
+  constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post('login')
   async login(@Body() body: any) {
@@ -176,13 +176,23 @@ export class UsuariosController {
         adminName,
       );
     } else {
-      return await this.usuariosService.removerModuloPermiso(idOdoo, modulo, adminName);
+      return await this.usuariosService.removerModuloPermiso(
+        idOdoo,
+        modulo,
+        adminName,
+      );
     }
   }
 
   @Post('actualizar-estructura')
   async actualizarEstructura(
-    @Body() body: { idOdoo: number; campo: string; valor: any; adminName?: string },
+    @Body()
+    body: {
+      idOdoo: number;
+      campo: string;
+      valor: any;
+      adminName?: string;
+    },
   ) {
     const { idOdoo, campo, valor, adminName } = body;
 
@@ -203,8 +213,6 @@ export class UsuariosController {
       Number(idOdoo),
     );
   }
-
-  // Busca estas dos líneas en tu controller y agrégalas si no existen
 
   @Get('departamentos-permitidos/:idOdoo')
   async getDeptosPermitidos(@Param('idOdoo') idOdoo: number) {
