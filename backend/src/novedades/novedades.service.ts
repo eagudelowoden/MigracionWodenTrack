@@ -222,6 +222,11 @@ export class NovedadesService {
         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
         WHERE  r.id_odoo = ${idOdoo}
           AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
       `);
     return this.novedadesPorCedulas(empleados);
   }
@@ -236,6 +241,11 @@ export class NovedadesService {
         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
         WHERE  r.id_odoo = ${idOdoo}
           AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
       `);
     return this.novedadesPorCedulas(empleados);
   }
