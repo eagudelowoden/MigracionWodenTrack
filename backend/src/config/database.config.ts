@@ -38,6 +38,7 @@ export const getDatabaseConfig = (
   ],
   autoLoadEntities: true,
   synchronize: true,
+  logging: true,
   options: {
     encrypt: false,
     trustServerCertificate: true,
