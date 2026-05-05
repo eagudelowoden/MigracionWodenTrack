@@ -1,7 +1,7 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   OneToMany,
   JoinColumn,
   ManyToOne,
@@ -13,7 +13,7 @@ import { PermisoDepartamento } from './permiso-departamento.entity';
 
 @Entity('usuarios_registrados') // <--- Debe ser igual al nombre en SQL Server
 export class Usuario {
-  @PrimaryGeneratedColumn()
+  @PrimaryColumn()
   id: number;
 
   @Column({ unique: true })

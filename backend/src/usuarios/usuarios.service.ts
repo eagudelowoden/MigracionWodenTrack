@@ -2104,6 +2104,7 @@ export class UsuariosService {
 
         // Solo insertar si es completamente nuevo
         await this.usuarioRepo.save({
+          id: emp.id,
           id_odoo: emp.id,
           nombre: emp.name,
           identificacion: emp.identification_id || 'N/A',
