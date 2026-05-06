@@ -1,6 +1,28 @@
 <template>
   <div class="h-full animate-fade-in flex flex-col gap-2">
 
+    <!-- ── Tabs de módulo ──────────────────────────────────────────────────── -->
+    <div class="flex items-center gap-1"
+      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')">
+      <button @click="activeTab = 'calculos'"
+        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+        :class="activeTab === 'calculos'
+          ? 'bg-[#FF8F00] text-white shadow-md shadow-orange-500/20'
+          : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100')">
+        <i class="fas fa-calculator mr-1.5 text-[9px]"></i>Cálculos
+      </button>
+      <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
+        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+        :class="activeTab === 'cargue'
+          ? 'bg-[#FF8F00] text-white shadow-md shadow-orange-500/20'
+          : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100')">
+        <i class="fas fa-file-arrow-up mr-1.5 text-[9px]"></i>Cargue Horas
+      </button>
+    </div>
+
+    <!-- ══ TAB CÁLCULOS ══════════════════════════════════════════════════════ -->
+    <template v-if="activeTab === 'calculos'">
+
     <!-- ── Barra de controles ──────────────────────────────────────────────── -->
     <div class="flex flex-wrap items-end gap-2 p-2 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
       :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
@@ -340,12 +362,93 @@
       </div>
     </div>
 
+    </template>
+    <!-- ══ FIN TAB CÁLCULOS ══════════════════════════════════════════════════ -->
+
+    <!-- ══ TAB CARGUE HORAS ══════════════════════════════════════════════════ -->
+    <template v-else-if="activeTab === 'cargue'">
+      <div class="flex flex-col gap-3 flex-1">
+
+        <!-- Acciones superiores -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 border"
+            :class="isDark
+              ? 'border-white/10 text-slate-300 hover:bg-white/5'
+              : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
+            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-emerald-500"></i>
+            Descargar Plantilla
+          </button>
+
+          <div class="flex-1 text-[9px] font-medium px-3 py-1.5 rounded-lg border"
+            :class="isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'">
+            <i class="fas fa-circle-info mr-1"></i>
+            Descarga la plantilla, llénala y súbela aquí. El sistema guardará los registros automáticamente con tu área.
+          </div>
+        </div>
+
+        <!-- Zona de cargue -->
+        <div class="rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 p-8 cursor-pointer transition-all"
+          :class="[
+            isDragOver ? 'border-[#FF8F00] bg-[#FF8F00]/5' : (isDark ? 'border-white/10 hover:border-[#FF8F00]/40' : 'border-slate-200 hover:border-[#FF8F00]/40'),
+          ]"
+          @dragover.prevent="isDragOver = true"
+          @dragleave="isDragOver = false"
+          @drop.prevent="handleDrop"
+          @click="$refs.fileInput.click()">
+
+          <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
+
+          <div class="w-14 h-14 rounded-xl flex items-center justify-center"
+            :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+            <i class="fas fa-file-arrow-up text-2xl text-[#FF8F00]"></i>
+          </div>
+
+          <div class="text-center">
+            <p class="text-[11px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+              {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel aquí o haz clic para seleccionar' }}
+            </p>
+            <p class="text-[9px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              Formatos aceptados: .xlsx, .xls
+            </p>
+          </div>
+
+          <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
+            class="text-[9px] font-bold text-rose-500 hover:text-rose-400 transition-colors">
+            <i class="fas fa-times mr-1"></i>Quitar archivo
+          </button>
+        </div>
+
+        <!-- Mensajes de estado -->
+        <div v-if="cargueSuccessMsg" class="px-4 py-2 rounded-lg text-[10px] font-bold border"
+          :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
+          {{ cargueSuccessMsg }}
+        </div>
+        <div v-if="cargueErrorMsg" class="px-4 py-2 rounded-lg text-[10px] font-bold border"
+          :class="isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'">
+          {{ cargueErrorMsg }}
+        </div>
+
+        <!-- Botón guardar -->
+        <div class="flex justify-end">
+          <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-xs"></i>
+            {{ isUploading ? 'Guardando...' : 'Guardar Cargue' }}
+          </button>
+        </div>
+
+      </div>
+    </template>
+    <!-- ══ FIN TAB CARGUE HORAS ══════════════════════════════════════════════ -->
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
+import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
 const props = defineProps({
   isDark: Boolean,
@@ -355,6 +458,10 @@ const props = defineProps({
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const isSuperAdmin = session.isSuperAdmin || false;
 
+// Tab activo
+const activeTab = ref('calculos');
+
+// ── Composable Cálculos ──────────────────────────────────────────────────────
 const {
   registros,
   isLoading,
@@ -384,6 +491,40 @@ const {
   hasPerm,
 } = useReporteMallas();
 
+// ── Composable Cargue ────────────────────────────────────────────────────────
+const {
+  isUploading,
+  isExportingPlantilla,
+  errorMsg: cargueErrorMsg,
+  successMsg: cargueSuccessMsg,
+  subirExcel,
+  descargarPlantilla,
+} = useCargueHoras();
+
+const archivoSeleccionado = ref(null);
+const isDragOver = ref(false);
+
+function handleFileSelect(event) {
+  const f = event.target.files?.[0];
+  if (f) archivoSeleccionado.value = f;
+}
+function handleDrop(event) {
+  isDragOver.value = false;
+  const f = event.dataTransfer.files?.[0];
+  if (f) archivoSeleccionado.value = f;
+}
+async function handleSubirExcel() {
+  if (!archivoSeleccionado.value) return;
+  try {
+    await subirExcel(archivoSeleccionado.value, { company: props.company });
+    archivoSeleccionado.value = null;
+  } catch { /* el composable ya maneja el error */ }
+}
+async function handleDescargarPlantilla() {
+  await descargarPlantilla();
+}
+
+// ── Handlers cálculos ────────────────────────────────────────────────────────
 async function handleCargar() {
   await cargarHistorial(props.company);
 }

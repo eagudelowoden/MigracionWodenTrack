@@ -7,6 +7,7 @@ const getFirstAdminRoute = (session) => {
   if (isSA || p["admin.asistencias"]) return "/admin/asistencias";
   if (p["admin.mallas"]) return "/admin/mallas";
   if (p["admin.calculos"]) return "/admin/horas-extra";
+  if (p["horas.ver_cargue_ch"]) return "/admin/cargue-horas-ch";
   if (p["admin.novedades"]) return "/admin/novedades";
   return "/marcacion";
 };
@@ -62,6 +63,12 @@ const routes = [
         name: "AdminNovedades",
         meta: { permiso: "admin.novedades" },
         component: () => import("../views/novedades/NovedadesPanelView.vue"),
+      },
+      {
+        path: "cargue-horas-ch",
+        name: "CargueHorasCH",
+        meta: { permiso: "horas.ver_cargue_ch" },
+        component: () => import("../components/admin/ModuloCargueHorasCH.vue"),
       },
     ],
   },
