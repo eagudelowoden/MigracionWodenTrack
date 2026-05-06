@@ -53,6 +53,19 @@
                         <i class="fas fa-clock-rotate-left text-[9px]"></i>
                         Historial
                     </button>
+                    <button @click="activeTab = 'carpetas'"
+                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        :class="activeTab === 'carpetas'
+                            ? 'bg-[#FF8F00] text-black'
+                            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+                        <i class="fas fa-folder-open text-[9px]"></i>
+                        Carpetas
+                        <span v-if="novedadesEnCarpeta > 0"
+                            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-black"
+                            :class="activeTab === 'carpetas' ? 'bg-black/20 text-black' : 'bg-[#FF8F00]/20 text-[#FF8F00]'">
+                            {{ novedadesEnCarpeta }}
+                        </span>
+                    </button>
                 </div>
 
                 <button @click="$emit('volver')"
@@ -121,7 +134,13 @@
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                    <p class="text-[12px] font-medium line-clamp-1 max-w-[180px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                    <div class="flex items-center gap-2 max-w-[200px]">
+                                        <p class="text-[12px] font-medium line-clamp-1 flex-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                        <span v-if="item.descripcion" @click="verMotivo(item.descripcion, 'Descripción')"
+                                            class="cursor-pointer text-[#FF8F00] hover:text-[#FF8F00]/70 shrink-0">
+                                            <i class="fas fa-eye text-[12px]"></i>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <EstadoBadge :valor="item.aprobadoRrhh" />
@@ -165,8 +184,7 @@
                 </div>
             </template>
 
-            <!-- TAB: HISTORIAL -->
-            <template v-else>
+            <template v-else-if="activeTab === 'historial'">
                 <!-- Filtros historial -->
                 <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b shrink-0"
                     :class="isDark ? 'border-[#2d3548] bg-[#1a2035]' : 'border-slate-100 bg-slate-50'">
@@ -238,7 +256,13 @@
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 border-b max-w-[200px]" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                    <p class="text-[11px] font-medium line-clamp-2" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-[11px] font-medium line-clamp-1 flex-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
+                                        <span v-if="item.descripcion" @click="verMotivo(item.descripcion, 'Descripción')"
+                                            class="cursor-pointer text-[#FF8F00] hover:text-[#FF8F00]/70 shrink-0">
+                                            <i class="fas fa-eye text-[12px]"></i>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <FolderEstado :nov="item" />
@@ -269,6 +293,116 @@
                     <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                         Historial: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ historialFiltrado.length }}</span>
                         / {{ novedades.length }}
+                    </p>
+                </div>
+            </template>
+            <template v-else-if="activeTab === 'carpetas'">
+                <div v-if="!estadosCh.length" class="flex-1 flex items-center justify-center">
+                    <div class="flex flex-col items-center gap-3 opacity-40">
+                        <i class="fas fa-folder-plus text-3xl text-[#FF8F00]"></i>
+                        <p class="text-[11px] font-black uppercase tracking-widest text-center"
+                            :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                            No tienes carpetas creadas.<br>
+                            <span class="font-normal normal-case tracking-normal">Usa "Mis Carpetas" para crear una.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div v-else class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+                    <div v-for="carpeta in novedadesPorCarpeta" :key="carpeta.id"
+                        class="rounded-xl border overflow-hidden"
+                        :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+
+                        <!-- Cabecera clicable para desplegar -->
+                        <button @click="toggleCarpeta(carpeta.id)"
+                            class="w-full flex items-center justify-between px-4 py-3 transition-colors"
+                            :class="isDark ? 'bg-[#273045] hover:bg-[#2d3a50]' : 'bg-slate-50 hover:bg-slate-100'">
+                            <div class="flex items-center gap-2.5">
+                                <i :class="carpeta.icono" :style="{ color: carpeta.color }" class="text-sm w-4 text-center"></i>
+                                <span class="text-[11px] font-black uppercase tracking-widest"
+                                    :style="{ color: carpeta.color }">{{ carpeta.nombre }}</span>
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-black"
+                                    :style="{ color: carpeta.color, background: carpeta.color + '20' }">
+                                    {{ carpeta.items.length }}
+                                </span>
+                            </div>
+                            <i class="fas text-[10px] transition-transform duration-200"
+                                :class="[carpetasAbiertas.has(carpeta.id) ? 'fa-chevron-up' : 'fa-chevron-down',
+                                isDark ? 'text-slate-500' : 'text-slate-400']"></i>
+                        </button>
+
+                        <!-- Contenido desplegable -->
+                        <div v-if="carpetasAbiertas.has(carpeta.id)">
+                            <div v-if="!carpeta.items.length" class="px-4 py-4 text-center border-t"
+                                :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                <p class="text-[10px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                                    Sin novedades en esta carpeta
+                                </p>
+                            </div>
+                            <div v-else class="overflow-x-auto border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                <table class="w-full border-separate border-spacing-0">
+                                    <thead>
+                                        <tr :class="isDark ? 'bg-[#1a2035]' : 'bg-white'">
+                                            <th class="px-4 py-2 text-left text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Colaborador</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Inicio</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Fin</th>
+                                            <th class="px-4 py-2 text-left text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Descripción</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Estado</th>
+                                            <th class="px-4 py-2 text-right text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Mover</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(nov, idx) in carpeta.items" :key="'c-'+nov.id"
+                                            :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : 'bg-transparent',
+                                            isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-orange-50/60']">
+                                            <td class="px-4 py-2.5 border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-6 h-6 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[9px] font-black text-[#FF8F00] shrink-0">
+                                                        {{ nov.nombre?.charAt(0) ?? '?' }}
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ nov.nombre }}</p>
+                                                        <p class="text-[9px] opacity-50">CC: {{ nov.cedula }}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-center border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <span class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(nov.fechaInicio) }}</span>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-center border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <span class="text-[10px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(nov.fechaFin) }}</span>
+                                            </td>
+                                            <td class="px-4 py-2.5 border-t max-w-[200px]" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <div class="flex items-center gap-2">
+                                                    <p class="text-[10px] font-medium line-clamp-1 flex-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ nov.descripcion }}</p>
+                                                    <span v-if="nov.descripcion" @click="verMotivo(nov.descripcion, 'Descripción')"
+                                                        class="cursor-pointer text-[#FF8F00] hover:text-[#FF8F00]/70 shrink-0">
+                                                        <i class="fas fa-eye text-[11px]"></i>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-center border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <FolderEstado :nov="nov" />
+                                            </td>
+                                            <td class="px-4 py-2.5 text-right border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+                                                <button @click="abrirCarpeta(nov)"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                                    :class="isDark ? 'bg-[#273045] text-[#FF8F00] border-[#3d4558]' : 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'">
+                                                    <i class="fas fa-folder-open text-[8px]"></i> Mover
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        Carpetas: <span class="text-[#FF8F00]">{{ estadosCh.length }}</span>
+                        &nbsp;·&nbsp; Novedades asignadas: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesEnCarpeta }}</span>
                     </p>
                 </div>
             </template>
@@ -712,6 +846,26 @@ onMounted(async () => {
 // ─── Computadas ───────────────────────────────────────────────────
 const pendientes = computed(() =>
     novedades.value.filter(n => n.aprobadoJefe === null || n.aprobadoJefe === undefined)
+);
+
+// Acordeón de carpetas
+const carpetasAbiertas = ref(new Set());
+const toggleCarpeta = (id) => {
+    const s = new Set(carpetasAbiertas.value);
+    s.has(id) ? s.delete(id) : s.add(id);
+    carpetasAbiertas.value = s;
+};
+
+// Novedades agrupadas por carpeta del coordinador
+const novedadesPorCarpeta = computed(() =>
+    estadosCh.value.map(carpeta => ({
+        ...carpeta,
+        items: novedades.value.filter(n => n.estadoChCoord === carpeta.nombre),
+    }))
+);
+
+const novedadesEnCarpeta = computed(() =>
+    novedades.value.filter(n => n.estadoChCoord).length
 );
 
 const historialFiltrado = computed(() => {
