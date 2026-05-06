@@ -1435,8 +1435,20 @@ export class UsuariosService {
     departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
-    agruparLogs: boolean = true, // 👈 NUEVO
+    agruparLogs: boolean = true,
   ) {
+    // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
+    if (!soloHoy && startDate && endDate) {
+      const dias = Math.round(
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
+      );
+      if (dias > 62) {
+        throw new (require('@nestjs/common').BadRequestException)(
+          `El rango máximo permitido es 62 días. Seleccionaste ${dias} días.`,
+        );
+      }
+    }
+
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
     const uid = await this.odoo.authenticate();
@@ -1707,7 +1719,16 @@ export class UsuariosService {
     domainLog: any[],
     uid: number,
   ): Promise<[any[], any[]]> {
-    return Promise.all([
+    // Timeout de 3 minutos — si Odoo no responde, devuelve error manejable
+    const TIMEOUT_MS = 180_000;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('⏰ Timeout: Odoo tardó más de 3 min. Reduce el rango de fechas.')),
+        TIMEOUT_MS,
+      ),
+    );
+
+    const consulta = Promise.all([
       this.odoo.executeKw<any[]>(
         'hr.attendance',
         'search_read',
@@ -1722,7 +1743,7 @@ export class UsuariosService {
             'x_studio_tipo_salida',
           ],
           order: 'check_in desc',
-          limit: 30000000,
+          limit: 100000,
         },
         uid,
       ),
@@ -1739,11 +1760,13 @@ export class UsuariosService {
             'device',
           ],
           order: 'punching_time desc',
-          limit: 30000000,
+          limit: 100000,
         },
         uid,
       ),
     ]);
+
+    return Promise.race([consulta, timeout]);
   }
 
   private async obtenerPartnerMap(
