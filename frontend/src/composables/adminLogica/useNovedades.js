@@ -2,10 +2,41 @@
 import { ref } from "vue";
 import axios from "axios";
 
+// ─── Helper de estado visual (folder-style) ───────────────────────────────
+// Devuelve { icon, color, bg, label } para renderizar el estado de una novedad
+export function getEstadoVisual(nov) {
+  if (!nov) return { icon: 'fas fa-folder-open', color: '#FF8F00', bg: 'bg-[#FF8F00]/10 border-[#FF8F00]/20', label: 'Nueva' };
+
+  // Aprobada por ambos
+  if (nov.aprobado === 1)
+    return { icon: 'fas fa-folder', color: '#22c55e', bg: 'bg-emerald-500/10 border-emerald-500/20', label: 'Aprobada' };
+
+  // Rechazada por alguno
+  if (nov.aprobado === 0)
+    return { icon: 'fas fa-folder', color: '#ef4444', bg: 'bg-red-500/10 border-red-500/20', label: 'No aprobada' };
+
+  // Nueva = nadie ha actuado aún
+  if ((nov.aprobadoJefe === null || nov.aprobadoJefe === undefined) &&
+    (nov.aprobadoRrhh === null || nov.aprobadoRrhh === undefined))
+    return { icon: 'fas fa-folder-open', color: '#FF8F00', bg: 'bg-[#FF8F00]/10 border-[#FF8F00]/20', label: 'Nueva' };
+
+  // Pendiente jefe únicamente
+  if ((nov.aprobadoJefe === null || nov.aprobadoJefe === undefined) && nov.aprobadoRrhh === 1)
+    return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'Pend. Jefe' };
+
+  // Pendiente RRHH únicamente (jefe ya aprobó)
+  if (nov.aprobadoJefe === 1 && (nov.aprobadoRrhh === null || nov.aprobadoRrhh === undefined))
+    return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'Pend. Capital' };
+
+  // En revisión (cualquier otro caso parcial)
+  return { icon: 'fas fa-folder', color: '#f59e0b', bg: 'bg-amber-500/10 border-amber-500/20', label: 'En revisión' };
+}
+
 export function useNovedades() {
   const novedades = ref([]);
   const loading = ref(false);
   const error = ref(null);
+  const estadosCh = ref([]);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -140,6 +171,130 @@ export function useNovedades() {
     }
   };
 
+  // ─── Nivel ÁREA: solo los empleados del área asignada ───────────────────
+  const fetchPorArea = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-area`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por área:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── Nivel SEGMENTO: todos los empleados del segmento (con o sin área) ───
+  const fetchPorSegmento = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-segmento`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por segmento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── Nivel DEPARTAMENTO: todos en los deptos configurados ────────────────
+  const fetchPorDepartamentos = async (departamentos) => {
+    if (!departamentos?.length) { novedades.value = []; return; }
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-departamento`, {
+        params: { departamentos: departamentos.join(',') },
+      });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por departamento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // CARPETAS PERSONALIZADAS (independientes por módulo)
+  //   tipo = 'rrhh'         → Capital Humano   → campo estadoCh
+  //   tipo = 'coordinador'  → Jefe/Coordinador → campo estadoChCoord
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Carga las carpetas del tipo indicado.
+   * Cada módulo pasa su propio tipo para obtener solo las suyas.
+   */
+  const fetchEstadosCh = async (tipo = 'rrhh') => {
+    try {
+      const res = await axios.get(`${API_URL}/novedades/estados-ch`, { params: { tipo } });
+      estadosCh.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando carpetas:", e);
+      estadosCh.value = [];
+    }
+  };
+
+  /** Crea una nueva carpeta para el tipo indicado */
+  const crearEstadoCh = async ({ nombre, icono = 'fas fa-folder', color = '#6b7280', tipo = 'rrhh' }) => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/estados-ch`, { nombre, icono, color, tipo });
+      await fetchEstadosCh(tipo);
+      return res.data;
+    } catch (e) {
+      console.error("Error creando carpeta:", e);
+      throw e;
+    }
+  };
+
+  /** Edita nombre/icono/color de una carpeta (tipo para refrescar la lista) */
+  const editarEstadoCh = async (id, { nombre, icono = 'fas fa-folder', color = '#6b7280' }, tipo = 'rrhh') => {
+    try {
+      const res = await axios.put(`${API_URL}/novedades/estados-ch/${id}`, { nombre, icono, color });
+      await fetchEstadosCh(tipo);
+      return res.data;
+    } catch (e) {
+      console.error("Error editando carpeta:", e);
+      throw e;
+    }
+  };
+
+  /** Elimina una carpeta (tipo para refrescar la lista correcta) */
+  const eliminarEstadoCh = async (id, tipo = 'rrhh') => {
+    try {
+      await axios.delete(`${API_URL}/novedades/estados-ch/${id}`);
+      await fetchEstadosCh(tipo);
+    } catch (e) {
+      console.error("Error eliminando carpeta:", e);
+      throw e;
+    }
+  };
+
+  /**
+   * Asigna (o limpia) la carpeta en una novedad.
+   *   tipo = 'rrhh'        → actualiza novedades[idx].estadoCh
+   *   tipo = 'coordinador' → actualiza novedades[idx].estadoChCoord
+   */
+  const cambiarEstadoCh = async (novedadId, estadoCh, tipo = 'rrhh') => {
+    try {
+      const res = await axios.post(`${API_URL}/novedades/${novedadId}/estado-ch`, {
+        estadoCh: estadoCh ?? null,
+        tipo,
+      });
+      // Actualizar campo correcto en la lista local
+      const idx = novedades.value.findIndex((n) => n.id === novedadId);
+      if (idx !== -1) {
+        const field = tipo === 'coordinador' ? 'estadoChCoord' : 'estadoCh';
+        novedades.value[idx] = { ...novedades.value[idx], [field]: estadoCh ?? null };
+      }
+      return res.data;
+    } catch (e) {
+      console.error("Error asignando carpeta:", e);
+      throw e;
+    }
+  };
+
   return {
     novedades,
     loading,
@@ -154,5 +309,15 @@ export function useNovedades() {
     aprobarRrhh,
     jefe,
     fetchJefeDeArea,
+    fetchPorArea,
+    fetchPorSegmento,
+    fetchPorDepartamentos,
+    // Carpetas personalizadas
+    estadosCh,
+    fetchEstadosCh,
+    crearEstadoCh,
+    editarEstadoCh,
+    eliminarEstadoCh,
+    cambiarEstadoCh,
   };
 }

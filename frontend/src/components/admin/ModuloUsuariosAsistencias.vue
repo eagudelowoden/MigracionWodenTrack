@@ -158,17 +158,29 @@
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="getStatusClass(item.c_entrada)"
-                  class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
-                  {{ item.c_entrada || 'OK' }}
-                </span>
+                <div class="flex items-center justify-end gap-1 flex-wrap">
+                  <span :class="getStatusClass(item.c_entrada)"
+                    class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
+                    {{ item.c_entrada || 'OK' }}
+                  </span>
+                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+                    class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase border tracking-widest">
+                    {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
+                  </span>
+                </div>
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span :class="getStatusClass(item.c_salida)"
-                  class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
-                  {{ item.c_salida || 'OK' }}
-                </span>
+                <div class="flex items-center justify-end gap-1 flex-wrap">
+                  <span :class="getStatusClass(item.c_salida)"
+                    class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
+                    {{ item.c_salida || 'OK' }}
+                  </span>
+                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+                    class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase border tracking-widest">
+                    {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
+                  </span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -230,8 +242,8 @@ const {
   filterHoy,
   downloadReport,
   clearFilters,
-  selectedArea,      // <--- Extraer aquí
-  selectedSegmento,  // <--- Extraer aquí
+  selectedArea,
+  selectedSegmento,
   selectedCompany
 } = useCargarAsistencias();
 
@@ -263,13 +275,12 @@ const paginatedData = computed(() => {
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
-  // 1. Sincronizar compañía de las props primero
+  // 1. Sincronizar compañía SIN disparar el watch todavía
   if (props.company) {
     selectedCompany.value = props.company;
   }
 
-  // 2. Cargar perfil si NO es superAdmin (para coordinadores/líderes)
-  // Nota: Usa el rol o una bandera que indique que necesita filtro de área
+  // 2. Cargar perfil
   if (!session.isSuperAdmin) {
     try {
       const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
@@ -277,26 +288,31 @@ onMounted(async () => {
         const perfil = await resp.json();
         userProfile.value = perfil;
 
-        // ASIGNACIÓN CLAVE: Esto dispara el watch en el composable
-        if (perfil.area?.id) {
+        // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
+        // Responsable de área → filtrar solo por área.
+        // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
+        const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
+        if (esResponsableSegmento && perfil.segmento?.id) {
+          selectedSegmento.value = perfil.segmento.id;
+        } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;
         }
-        // if (perfil.segmento?.id) {
-        //   selectedSegmento.value = perfil.segmento.id;
-        // }
-
-        // // Si el usuario tiene un departamento asignado en Odoo/Local
-        // if (perfil.departamento) {
-        //   selectedDepartment.value = perfil.departamento;
-        // }
       }
     } catch (e) {
       console.error("Error cargando perfil:", e);
     }
   }
 
-  // 3. Ejecutar carga inicial
+  // 3. UNA SOLA llamada al final
   fetchReporte();
+});
+
+
+watch(() => props.company, (newCompany) => {
+  if (newCompany && newCompany !== selectedCompany.value) {
+    selectedCompany.value = newCompany;
+    fetchReporte();
+  }
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length / itemsPerPage.value)));
@@ -305,13 +321,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(reportData.value.length 
 watch([reportData, search, selectedDepartment, filterHoy, startDate, endDate], () => {
   currentPage.value = 1;
 });
-
-// Sincronizar compañía del header con la lógica
-watch(() => props.company, (newCompany) => {
-  if (newCompany) {
-    selectedCompany.value = newCompany;
-  }
-}, { immediate: true });
 
 
 const formatSoloHora = (value) => {
@@ -346,6 +355,13 @@ const getStatusClass = (status) => {
     return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
 
   return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+};
+
+const getFuenteClass = (fuente) => {
+  if (!fuente) return '';
+  return fuente === 'BIOMÉTRICO'
+    ? 'bg-violet-500/10 text-violet-500 border-violet-500/20'
+    : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
 };
 </script>
 

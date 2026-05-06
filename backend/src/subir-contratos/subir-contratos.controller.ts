@@ -20,8 +20,7 @@ export class SubirContratosController {
       throw new BadRequestException('No se ha recibido ningún archivo Excel.');
     }
 
-    // CORRECCIÓN: Realizamos un cast explícito a Buffer de Node.js
-    // Esto resuelve la incompatibilidad de firmas de [Symbol.toStringTag]
+
     return await this.uploadService.processExcel(file.buffer as Buffer);
   }
 }

@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { MallaHoraria } from './malla-horaria.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
@@ -15,7 +16,7 @@ export class MallaAsignacion {
   id: number;
 
   @Column()
-  usuario_id_odoo: number;
+  usuario_id_odoo: number; // FK a hr.employee id_odoo
 
   @ManyToOne(() => Usuario, { nullable: true })
   @JoinColumn({ name: 'usuario_id_odoo', referencedColumnName: 'id_odoo' })
@@ -29,14 +30,20 @@ export class MallaAsignacion {
   malla: MallaHoraria;
 
   @Column({ type: 'date' })
-  fecha_inicio: string;
+  fecha_inicio: string; // desde cuándo aplica esta malla
 
   @Column({ type: 'date', nullable: true })
-  fecha_fin: string;
+  fecha_fin: string | null;
 
-  @Column({ nullable: true })
-  asignado_por: string;
+  @Column({ type: 'bit', default: false })
+  actual: boolean;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  asignado_por: string | null;
 
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

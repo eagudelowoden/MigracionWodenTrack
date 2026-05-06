@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
@@ -10,6 +11,9 @@ import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vu
 import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
 import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
+import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
+import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
+import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -18,29 +22,42 @@ import '../assets/css/SuperAdmin.css';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const props = defineProps({ isDark: Boolean });
-const { logout, isDark, toggleTheme } = useAttendance();
+const router = useRouter();
+const { logout, isDark, toggleTheme, employee } = useAttendance();
 const { departamentosUnicos } = useUsuariosSync();
 
 // 2. Extraer los métodos y estados
 const {
   areas,
   segmentos,
+  areasAgrupadas,
+  departamentos,
   fetchDatos: fetchOrganizacion,
   crearArea,
-  crearSegmento
+  crearSegmento,
+  updateArea,
 } = useOrganizacion();
 
 // 3. Crear la función puente para el evento @save del componente
 const handleSaveEstructura = async (data) => {
   try {
     if (data.tipo === 'area') {
-      await crearArea({ nombre: data.nombre, responsableId: data.responsableId });
+      await crearArea({ nombre: data.nombre, responsableId: data.responsableId, departamento: data.departamento });
     } else {
       await crearSegmento({ nombre: data.nombre, responsableId: data.responsableId });
     }
     showNotification(`${data.tipo.toUpperCase()} guardado con éxito`);
   } catch (e) {
     showNotification("Error al guardar la estructura", "error");
+  }
+};
+
+const handleUpdateArea = async ({ id, departamento, responsableId, nombre }) => {
+  try {
+    await updateArea(id, { departamento, responsableId, nombre });
+    showNotification("Área actualizada correctamente");
+  } catch (e) {
+    showNotification("Error al actualizar el área", "error");
   }
 };
 
@@ -94,6 +111,7 @@ const showNotification = (msg, type = 'success') => {
 const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
   try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     const res = await fetch(`${API_URL}/asignar-permiso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,7 +119,7 @@ const togglePermisoLocal = async (user, slug) => {
         idOdoo: user.id_odoo,
         modulo: slug,
         activo: activo,
-        adminName: 'Admin'
+        adminName: session.name || 'Desconocido'
       })
     });
     if (!res.ok) throw new Error();
@@ -127,7 +145,8 @@ const updateUserStructure = async (user, field) => {
       body: JSON.stringify({
         idOdoo: user.id_odoo,
         campo: field,
-        valor: user[field]
+        valor: user[field],
+        adminName: employee.value?.name || 'Desconocido',
       })
     });
     if (!res.ok) throw new Error();
@@ -202,7 +221,10 @@ onMounted(async () => {
             companies: ['fas fa-building', 'Empresas'],
             users: ['fas fa-users-cog', 'Personal'],
             notifications: ['fas fa-bullhorn', 'Avisos'],
-            estructura: ['fas fa-sitemap', 'Organización']
+            estructura: ['fas fa-sitemap', 'Organización'],
+            mallas: ['fas fa-calendar-alt', 'Mallas'],
+            config: ['fas fa-sliders', 'Configuraciones'],
+            api: ['fas fa-plug', 'API Externa']
           }" :key="key" @click="currentTab = key" :class="[
             'w-full flex items-center rounded-lg transition-all duration-200 p-2.5 text-[10px] font-bold uppercase',
             currentTab === key ? 'bg-[#FF8F00] text-black shadow-md' : 'hover:bg-slate-500/10',
@@ -212,6 +234,32 @@ onMounted(async () => {
             <span v-if="isSidebarOpen" class="truncate">{{ item[1] }}</span>
           </button>
         </nav>
+
+        <!-- Navegación rápida: solo visible para DESARROLLADOR -->
+        <div v-if="employee?.isSuperAdmin" class="pt-3 pb-1 space-y-1 border-t border-white/5">
+          <p v-if="isSidebarOpen" class="px-2 text-[8px] font-black uppercase opacity-40 tracking-widest mb-1">Dev Nav</p>
+          <button @click="router.push('/super-admin')"
+            :title="'Super Admin'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-shield-halved text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Super Admin</span>
+          </button>
+          <button @click="router.push('/admin')"
+            :title="'Admin'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-user-shield text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Admin</span>
+          </button>
+          <button @click="router.push('/marcacion')"
+            :title="'Marcación'"
+            class="w-full flex items-center p-2 rounded-lg text-[9px] font-bold uppercase hover:bg-[#FF8F00]/20 transition-all"
+            :class="!isSidebarOpen && 'lg:justify-center'">
+            <i class="fas fa-fingerprint text-[#FF8F00]" :class="isSidebarOpen && 'mr-3'"></i>
+            <span v-if="isSidebarOpen">Marcación</span>
+          </button>
+        </div>
 
         <div class="mt-auto pt-4 space-y-1 border-t border-white/5">
           <button @click="toggleTheme"
@@ -243,7 +291,7 @@ onMounted(async () => {
         </div>
       </header>
 
-      <div class="flex-1 p-4 lg:p-4 overflow-y-auto">
+      <div class="flex-1 p-4 lg:p-4 overflow-y-auto flex flex-col">
 
         <!-- TEMPLATE DASHBOARD -->
         <div v-if="currentTab === 'stats'" class="animate-fade-in p-2">
@@ -283,7 +331,29 @@ onMounted(async () => {
         <!-- TEMPLATE AREAS Y SEGMENTOS -->
         <div v-if="currentTab === 'estructura'" class="animate-fade-in p-2">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
-            :segmentos="segmentos" @save="handleSaveEstructura" />
+            :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
+            :departamentosDisponibles="segmentos.map(s => s.nombre)"
+            @save="handleSaveEstructura"
+            @update-area="handleUpdateArea"
+            @refresh="fetchOrganizacion" />
+        </div>
+
+        <!-- TEMPLATE MALLAS -->
+        <div v-if="currentTab === 'mallas'" class="animate-fade-in p-2 flex-1 min-h-0 flex flex-col">
+          <GestionMallas :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
+        </div>
+
+        <!-- TEMPLATE CONFIGURACIONES -->
+        <div v-if="currentTab === 'config'" class="animate-fade-in p-2">
+          <GestionConfiguraciones :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
+        </div>
+
+        <!-- TEMPLATE API EXTERNA -->
+        <div v-if="currentTab === 'api'" class="animate-fade-in p-2">
+          <GestionApiExterna :isDark="isDark" @success="showNotification($event)"
+            @error="showNotification($event, 'error')" />
         </div>
       </div>
     </main>

@@ -2,7 +2,6 @@
 import {
   Injectable,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { OdooService } from '../odoo/odoo.service';
@@ -21,184 +20,105 @@ export class ReportsService {
   async generarPlantillaMallas(
     companyName: string,
     departamento: string,
+    areaId?: number,
+    segmentoId?: number,
   ): Promise<Buffer> {
-    try {
-      const uid = await this.odoo.authenticate();
+    // Plantilla simple para carga masiva: cedula | nombre_malla
+    // El upload solo necesita estos dos campos para asignar mallas.
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'WodenTrack';
+    workbook.lastModifiedBy = 'WodenTrack';
+    workbook.created = new Date();
 
-      // 0. MAPEO DE ESTADOS
-      const stateLabels: Record<string, string> = {
-        draft: 'Nuevo',
-        open: 'En proceso',
-        close: 'Vencido',
-        cancel: 'Cancelado(a)',
+    const worksheet = workbook.addWorksheet('Carga de Mallas', {
+      views: [{ state: 'frozen', ySplit: 1 }], // Congelar fila de cabecera
+    });
+
+    worksheet.columns = [
+      { header: 'cedula', key: 'cedula', width: 22 },
+      { header: 'nombre_malla', key: 'nombre_malla', width: 50 },
+    ];
+
+    // ── Estilo cabecera ───────────────────────────────────────────────────────
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 24;
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.eachCell((cell) => {
+      cell.border = {
+        top:    { style: 'thin', color: { argb: 'FFE07B00' } },
+        left:   { style: 'thin', color: { argb: 'FFE07B00' } },
+        bottom: { style: 'thin', color: { argb: 'FFE07B00' } },
+        right:  { style: 'thin', color: { argb: 'FFE07B00' } },
       };
+    });
 
-      // 1. CONSTRUIR EL DOMINIO DINÁMICO
-      const domain: any[] = [];
-      if (companyName && companyName !== 'Todas') {
-        domain.push(['company_id.name', '=', companyName]);
-      }
-      if (departamento && departamento !== '' && departamento !== 'Todas') {
-        domain.push(['employee_id.department_id.name', 'ilike', departamento]);
-      }
+    // ── Traer empleados filtrando por área, segmento o departamento ──────────
+    const conditions: string[] = [`u.is_active = 1`];
+    const queryParams: (string | number)[] = [];
 
-      // 2. TRAER LOS CONTRATOS FILTRADOS
-      const contratos = await this.odoo.executeKw<any[]>(
-        'hr.contract',
-        'search_read',
-        [domain],
-        {
-          fields: [
-            'name',
-            'company_id',
-            'employee_id',
-            'job_id',
-            'resource_calendar_id',
-            'date_start',
-            'date_end',
-            'state',
-            'department_id',
-          ],
-        },
-        uid,
-      );
-
-      if (!contratos || contratos.length === 0) {
-        throw new NotFoundException(
-          `No se encontraron contratos para la compañía ${companyName} en el departamento ${departamento}`,
-        );
-      }
-
-      // --- REFUERZO: Traer info de Empleados ---
-      const employeeIds = [...new Set(contratos.map((c) => c.employee_id[0]))];
-      const employeesDetail = await this.odoo.executeKw<any[]>(
-        'hr.employee',
-        'search_read',
-        [[['id', 'in', employeeIds]]],
-        { fields: ['id', 'job_title', 'department_id'] },
-        uid,
-      );
-
-      const idMap = new Map();
-
-      // 3. OBTENER IDs EXTERNOS (Metadatos)
-      const contractIds = contratos.map((c) => c.id);
-      const externalIds = await this.odoo.executeKw<any[]>(
-        'ir.model.data',
-        'search_read',
-        [
-          [
-            ['model', '=', 'hr.contract'],
-            ['res_id', 'in', contractIds],
-          ],
-        ],
-        { fields: ['res_id', 'module', 'name'] },
-        uid,
-      );
-
-      externalIds.forEach((item) => {
-        idMap.set(item.res_id, `${item.module}.${item.name}`);
-      });
-
-      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE (Para que Odoo lo acepte al importar) ---
-      // --- NUEVO: CREAR ID EXTERNO SI NO EXISTE ---
-      for (const con of contratos) {
-        if (!idMap.has(con.id)) {
-          try {
-            // Creamos un nombre único para el ID externo
-            const nuevoNombre = `hr_contract_${con.id}_${Math.random().toString(36).substring(7)}`;
-
-            // AQUÍ ESTABA EL ERROR: Agregamos 'uid' como 5to argumento
-            await this.odoo.executeKw(
-              'ir.model.data',
-              'create',
-              [
-                [
-                  {
-                    name: nuevoNombre,
-                    model: 'hr.contract',
-                    module: '__export__',
-                    res_id: con.id,
-                  },
-                ],
-              ],
-              {}, // El cuarto argumento son las 'options' (vació en este caso)
-              uid, // El quinto argumento es el 'uid' (EL QUE FALTABA)
-            );
-
-            idMap.set(con.id, `__export__.${nuevoNombre}`);
-          } catch (e) {
-            console.warn(
-              `No se pudo crear ID externo para contrato ${con.id}, se usará ID numérico.`,
-            );
-          }
-        }
-      }
-
-      // 4. GENERACIÓN DEL EXCEL
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Carga de Mallas');
-
-      worksheet.columns = [
-        { header: 'id', key: 'id', width: 35 },
-        { header: 'Compañía', key: 'company', width: 25 },
-        { header: 'Empleado', key: 'employee', width: 30 },
-        { header: 'Estado', key: 'state', width: 12 },
-        { header: 'Fecha de finalización', key: 'date_end', width: 15 },
-        { header: 'Fecha de inicio', key: 'date_start', width: 15 },
-        { header: 'Horario de trabajo', key: 'calendar', width: 30 },
-        { header: 'Puesto de trabajo', key: 'job', width: 25 },
-        { header: 'Referencia de contrato', key: 'name', width: 25 },
-        { header: 'Departamento', key: 'department', width: 25 },
-      ];
-
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFF8F00' },
-      };
-
-      // 5. LLENAR DATOS
-      contratos.forEach((con) => {
-        const empInfo = employeesDetail.find(
-          (e) => e.id === con.employee_id[0],
-        );
-        const estadoVisible = stateLabels[con.state] || con.state || '';
-
-        worksheet.addRow({
-          // Ahora idMap siempre debería tener el formato __export__.xxxx
-          id: idMap.get(con.id) || con.id,
-          company: Array.isArray(con.company_id) ? con.company_id[1] : '',
-          employee: Array.isArray(con.employee_id) ? con.employee_id[1] : '',
-          state: estadoVisible,
-          date_end: con.date_end || '',
-          date_start: con.date_start || '',
-          calendar: Array.isArray(con.resource_calendar_id)
-            ? con.resource_calendar_id[1]
-            : '',
-          job: Array.isArray(con.job_id)
-            ? con.job_id[1]
-            : empInfo && empInfo.job_title
-              ? empInfo.job_title
-              : 'No asignado',
-          name: con.name || '',
-          department: Array.isArray(con.department_id)
-            ? con.department_id[1]
-            : empInfo && Array.isArray(empInfo.department_id)
-              ? empInfo.department_id[1]
-              : 'No asignado',
-        });
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      return Buffer.from(buffer as ArrayBuffer);
-    } catch (error) {
-      console.error('Error en reporte:', error.message);
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException(`Error de Odoo: ${error.message}`);
+    if (segmentoId) {
+      conditions.push(`u.segmento_id = @${queryParams.length}`);
+      queryParams.push(segmentoId);
+    } else if (areaId) {
+      conditions.push(`u.area_id = @${queryParams.length}`);
+      queryParams.push(areaId);
+    } else if (departamento && departamento !== '' && departamento !== 'Todas') {
+      conditions.push(`u.departamento LIKE @${queryParams.length}`);
+      queryParams.push(`%${departamento}%`);
     }
+
+    const whereClause = conditions.join(' AND ');
+
+    const query = `
+      SELECT
+        u.identificacion AS cedula,
+        u.nombre,
+        h.nombre AS nombre_malla
+      FROM usuarios_registrados u
+      LEFT JOIN mallas_asignaciones a ON a.usuario_id_odoo = u.id_odoo AND a.actual = 1
+      LEFT JOIN mallas_horarias h ON h.id = a.malla_id
+      WHERE ${whereClause}
+      ORDER BY u.nombre ASC
+    `;
+
+    const empleados: Array<{ cedula: string; nombre: string; nombre_malla: string | null }> =
+      await this.dataSource.query(query, queryParams);
+
+    // ── Filas de datos con formato alternado ─────────────────────────────────
+    const COLOR_PAR   = 'FFFFF8F0'; // naranja muy suave (filas pares)
+    const COLOR_IMPAR = 'FFFFFFFF'; // blanco (filas impares)
+    const BORDER_COLOR = 'FFE2E8F0';
+
+    empleados.forEach((emp, idx) => {
+      const row = worksheet.addRow({
+        cedula:      emp.cedula || '',
+        nombre_malla: emp.nombre_malla || '',
+      });
+
+      row.height = 18;
+      const bgColor = idx % 2 === 0 ? COLOR_IMPAR : COLOR_PAR;
+
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        cell.font   = { size: 10, name: 'Calibri', color: { argb: 'FF1E293B' } };
+        cell.border = {
+          top:    { style: 'hair', color: { argb: BORDER_COLOR } },
+          left:   { style: 'hair', color: { argb: BORDER_COLOR } },
+          bottom: { style: 'hair', color: { argb: BORDER_COLOR } },
+          right:  { style: 'hair', color: { argb: BORDER_COLOR } },
+        };
+        // Cédula centrada, malla alineada a la izquierda
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: colNumber === 1 ? 'center' : 'left',
+        };
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer as ArrayBuffer);
   }
 
   // ─────────────────────────────────────────────

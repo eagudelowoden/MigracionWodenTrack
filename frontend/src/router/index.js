@@ -1,44 +1,89 @@
 import { createRouter, createWebHistory } from "vue-router";
-import LoginView from "../views/LoginView.vue";
-import MarcacionView from "../views/MarcacionView.vue";
-import AdminView from "../views/AdminView.vue";
-import SuperAdminView from "../views/SuperAdmin.vue";
-import DownloadView from "../views/Public/DownloadView.vue";
-// 1. Importa la nueva vista de selección
-import SelectorPerfilView from "../views/Public/SelectorPerfil.vue";
+
+// Retorna la primera ruta admin a la que el usuario tiene acceso
+const getFirstAdminRoute = (session) => {
+  const p = session?.permisos || {};
+  const isSA = session?.isSuperAdmin;
+  if (isSA || p["admin.asistencias"]) return "/admin/asistencias";
+  if (p["admin.mallas"]) return "/admin/mallas";
+  if (p["admin.calculos"]) return "/admin/horas-extra";
+  if (p["admin.novedades"]) return "/admin/novedades";
+  return "/marcacion";
+};
 
 const routes = [
   { path: "/", redirect: "/login" },
+
   {
     path: "/login",
     name: "Login",
     component: () => import("../views/LoginView.vue"),
   },
+
   {
     path: "/marcacion",
     name: "Marcacion",
     component: () => import("../views/MarcacionView.vue"),
   },
+
+  // ── Panel Admin con sub-rutas ──────────────────────────────────────────────
   {
     path: "/admin",
-    name: "Admin",
     component: () => import("../views/AdminView.vue"),
+    children: [
+      {
+        // /admin solo → redirige al primer módulo con permiso
+        path: "",
+        redirect: () => {
+          const session = JSON.parse(localStorage.getItem("user_session") || "null");
+          return getFirstAdminRoute(session);
+        },
+      },
+      {
+        path: "asistencias",
+        name: "AdminAsistencias",
+        meta: { permiso: "admin.asistencias" },
+        component: () => import("../components/admin/ModuloUsuariosAsistencias.vue"),
+      },
+      {
+        path: "mallas",
+        name: "AdminMallas",
+        meta: { permiso: "admin.mallas" },
+        component: () => import("../components/admin/ModuloMallaUpload.vue"),
+      },
+      {
+        path: "horas-extra",
+        name: "AdminHorasExtra",
+        meta: { permiso: "admin.calculos" },
+        component: () => import("../components/admin/ModuloCalculos.vue"),
+      },
+      {
+        path: "novedades",
+        name: "AdminNovedades",
+        meta: { permiso: "admin.novedades" },
+        component: () => import("../views/novedades/NovedadesPanelView.vue"),
+      },
+    ],
   },
+
   {
     path: "/super-admin",
     name: "SuperAdmin",
     component: () => import("../views/SuperAdmin.vue"),
   },
+
   {
     path: "/novedad",
     name: "Novedad",
     component: () => import("../views/novedades/NovedadPublicaView.vue"),
   },
+
   {
     path: "/selector-perfil",
     name: "SelectorPerfil",
     component: () => import("../views/Public/SelectorPerfil.vue"),
   },
+
   {
     path: "/download",
     name: "Download",
@@ -53,51 +98,55 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const session = JSON.parse(localStorage.getItem("user_session"));
+  const session = JSON.parse(localStorage.getItem("user_session") || "null");
 
-  // A. RUTAS PÚBLICAS
+  // ── Rutas públicas ─────────────────────────────────────────────────────────
   if (to.meta.isPublic) return next();
 
-  // B. SIN SESIÓN: Solo al Login
+  // ── Sin sesión → solo al Login ─────────────────────────────────────────────
   if (!session && to.path !== "/login") return next("/login");
 
-  // C. CON SESIÓN INTENTANDO IR AL LOGIN: Redirigir según su "llave"
+  // ── Con sesión intentando ir al Login → redirigir según rol ───────────────
   if (session && to.path === "/login") {
     if (session.isSuperAdmin || session.permisos?.["super.superadmin"])
       return next("/selector-perfil");
     if (session.role === "admin" || session.permisos?.["admin.admin"])
-      return next("/admin");
+      return next(getFirstAdminRoute(session));
     return next("/marcacion");
   }
 
-  // D. PROTECCIÓN DE RUTAS POR PERMISO (LA MAGIA)
+  const isSuperAdmin = session?.isSuperAdmin;
 
-  // 1. Acceso a Selector de Perfil o SuperAdmin
-  // Entra si es SuperAdmin O si tiene el permiso explícito de usuarios
+  // ── Protección de SuperAdmin / Selector Perfil ─────────────────────────────
   const tienePermisoUsuarios = session?.permisos?.["super.superadmin"];
   if (
     (to.path === "/super-admin" || to.path === "/selector-perfil") &&
-    !session?.isSuperAdmin &&
+    !isSuperAdmin &&
     !tienePermisoUsuarios
   ) {
-    // Si no tiene permiso, lo mandamos a su siguiente nivel (Admin o Marcación)
     const fallback =
       session?.role === "admin" || session?.permisos?.["admin.admin"]
-        ? "/admin"
+        ? getFirstAdminRoute(session)
         : "/marcacion";
     return next(fallback);
   }
 
-  // 2. Acceso a Panel Admin (Mallas/Novedades)
-  // Entra si es Admin, SuperAdmin, o tiene el permiso de admin
-  const tienePermisoAdmin = session?.permisos?.["admin.admin"];
-  if (
-    to.path === "/admin" &&
-    !session?.isSuperAdmin &&
-    session?.role !== "admin" &&
-    !tienePermisoAdmin
-  ) {
-    return next("/marcacion");
+  // ── Protección de rutas /admin/* ───────────────────────────────────────────
+  if (to.path.startsWith("/admin")) {
+    const tienePermisoAdmin = session?.permisos?.["admin.admin"];
+
+    // Debe tener acceso general al panel admin
+    if (!isSuperAdmin && session?.role !== "admin" && !tienePermisoAdmin) {
+      return next("/marcacion");
+    }
+
+    // Verifica permiso específico del módulo (sólo para rutas hijas)
+    if (to.meta?.permiso && !isSuperAdmin) {
+      if (!session?.permisos?.[to.meta.permiso]) {
+        // No tiene permiso para ese módulo → primer módulo disponible
+        return next(getFirstAdminRoute(session));
+      }
+    }
   }
 
   next();

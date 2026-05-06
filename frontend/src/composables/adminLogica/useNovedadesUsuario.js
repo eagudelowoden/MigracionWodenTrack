@@ -41,6 +41,7 @@ export function useNovedades() {
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
       fd.append("responsableCargo", payload.responsableCargo ?? "");
+      if (payload.creadoPor != null) fd.append("creadoPor", payload.creadoPor);
 
       const res = await axios.post(`${API_URL}/novedades`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -51,6 +52,26 @@ export function useNovedades() {
     } catch (e) {
       console.error("Error al crear novedad:", e);
       throw e;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── GET mis novedades (historial del usuario) ────────────────────────────
+  const misNovedades = ref([]);
+  const fetchMisNovedades = async ({ idOdoo, fechaDesde, fechaHasta, buscar } = {}) => {
+    if (!idOdoo) return;
+    try {
+      loading.value = true;
+      const params = { idOdoo };
+      if (fechaDesde) params.fechaDesde = fechaDesde;
+      if (fechaHasta) params.fechaHasta = fechaHasta;
+      if (buscar) params.buscar = buscar;
+      const res = await axios.get(`${API_URL}/novedades/mis-novedades`, { params });
+      misNovedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando mis novedades:", e);
+      misNovedades.value = [];
     } finally {
       loading.value = false;
     }
@@ -105,6 +126,19 @@ export function useNovedades() {
     }
   };
 
+  // ─── DELETE desde historial usuario (con auditoría) ───────────────────────
+  const eliminarMiNovedad = async (id, eliminadoPor, eliminadoPorNombre) => {
+    try {
+      await axios.delete(`${API_URL}/novedades/${id}`, {
+        params: { eliminadoPor, eliminadoPorNombre },
+      });
+      misNovedades.value = misNovedades.value.filter((n) => n.id !== id);
+    } catch (e) {
+      console.error("Error al eliminar novedad:", e);
+      throw e;
+    }
+  };
+
   // ─── Aprobación Jefe ──────────────────────────────────────────────────────
   const aprobarJefe = async (id, aprobado, motivo) => {
     try {
@@ -144,9 +178,12 @@ export function useNovedades() {
     fetchNovedad,
     getFileUrl,
     eliminarNovedad,
-    aprobarJefe, // ← reemplaza aprobarNovedad
-    aprobarRrhh, // ← nuevo
+    aprobarJefe,
+    aprobarRrhh,
     jefe,
     fetchJefeDeArea,
+    misNovedades,
+    fetchMisNovedades,
+    eliminarMiNovedad,
   };
 }

@@ -14,13 +14,13 @@ export class MallaHoraria {
   id: number;
 
   @Column()
-  nombre: string;
+  nombre: string; // "ADM-001 Colombia L-V 7-17"
 
   @Column({ nullable: true })
   descripcion: string;
 
   @Column({ nullable: true })
-  compania: string;
+  compania: string; // "(CO) WODEN COLOMBIA SAS"
 
   @Column({ default: true })
   activa: boolean;

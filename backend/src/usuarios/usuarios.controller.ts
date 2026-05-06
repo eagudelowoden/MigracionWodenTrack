@@ -29,37 +29,42 @@ export class UsuariosController {
 
   @Get('mallas')
   async getMallas(
-    @Query('company') company?: string,
-    @Query('departamento') departamento?: string, // <--- CAPTURAR EL DEPARTAMENTO
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('area_id') areaId?: string,
+    @Query('segmento_id') segmentoId?: string,
   ) {
-    // Pasamos ambos parámetros al servicio en el orden correcto
-    return await this.usuariosService.getAllMallas(company, departamento);
-  }
-
-  @Get('reporte-novedades')
-  async getReporte(
-    @Query('hoy') hoy?: string,
-    @Query('company') company?: string,
-    // @Query('departamento') departamento?: string,
-    @Query('area_id') area_id?: string,
-    @Query('segmento_id') segmento_id?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const soloHoy = hoy === 'true';
-
-    return await this.usuariosService.getReporteNovedades(
-      soloHoy,
+    return await this.usuariosService.getAllMallas(
       company,
-      startDate,
-      endDate,
-      // departamento,
-      // Cambiamos 'null' por 'undefined' para que TS no se queje
-      area_id ? Number(area_id) : undefined,
-      segmento_id ? Number(segmento_id) : undefined,
+      departamento,
+      areaId ? Number(areaId) : undefined,
+      segmentoId ? +segmentoId : undefined,
     );
   }
 
+  // En el controlador
+  @Get('reporte-novedades')
+  async getReporteNovedades(
+    @Query('hoy') hoy: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('area_id') areaId: string,
+    @Query('segmento_id') segmentoId: string,
+    @Query('agrupar') agrupar: string = 'true',
+  ) {
+    return this.usuariosService.getReporteNovedades(
+      hoy === 'true',
+      company,
+      startDate,
+      endDate,
+      departamento,
+      areaId ? +areaId : undefined,
+      segmentoId ? +segmentoId : undefined,
+      agrupar !== 'false', // 👈 pasa true por defecto, false solo para Excel
+    );
+  }
   /**
    * NUEVO: Consulta el estado actual del empleado antes de mostrar los botones.
    * Esto evitará que aparezca el botón "ENTRADA" si ya tiene una sesión abierta.
@@ -171,16 +176,25 @@ export class UsuariosController {
         adminName,
       );
     } else {
-      // Método para eliminar el permiso si se desmarca el switch
-      return await this.usuariosService.removerModuloPermiso(idOdoo, modulo);
+      return await this.usuariosService.removerModuloPermiso(
+        idOdoo,
+        modulo,
+        adminName,
+      );
     }
   }
 
-  @Post('actualizar-estructura') // <--- Cambiado de Patch a Post
+  @Post('actualizar-estructura')
   async actualizarEstructura(
-    @Body() body: { idOdoo: number; campo: string; valor: any },
+    @Body()
+    body: {
+      idOdoo: number;
+      campo: string;
+      valor: any;
+      adminName?: string;
+    },
   ) {
-    const { idOdoo, campo, valor } = body;
+    const { idOdoo, campo, valor, adminName } = body;
 
     if (!['area_id', 'segmento_id'].includes(campo)) {
       throw new BadRequestException('Campo no permitido');
@@ -190,6 +204,7 @@ export class UsuariosController {
       idOdoo,
       campo,
       valor,
+      adminName,
     );
   }
   @Get('perfil-completo/:idOdoo')
@@ -199,8 +214,6 @@ export class UsuariosController {
     );
   }
 
-  // Busca estas dos líneas en tu controller y agrégalas si no existen
-
   @Get('departamentos-permitidos/:idOdoo')
   async getDeptosPermitidos(@Param('idOdoo') idOdoo: number) {
     return this.usuariosService.getDeptosPermitidos(Number(idOdoo));
@@ -209,11 +222,12 @@ export class UsuariosController {
   @Post('departamentos-permitidos/:idOdoo')
   async setDeptosPermitidos(
     @Param('idOdoo') idOdoo: number,
-    @Body() body: { departamentos: string[] },
+    @Body() body: { departamentos: string[]; adminName?: string },
   ) {
     return this.usuariosService.setDeptosPermitidos(
       Number(idOdoo),
       body.departamentos,
+      body.adminName,
     );
   }
 

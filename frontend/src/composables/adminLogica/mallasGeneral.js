@@ -9,13 +9,14 @@ export function useMallasGeneral() {
   const isUploading = ref(false);
   const uploadErrors = ref([]);
   const uploadSuccessMessage = ref("");
+  const uploadProcesados = ref([]); // detalle de los exitosos
   const showResultModal = ref(false);
   const selectedCompany = ref("");
   const selectedDepartment = ref("");
 
   // Modales
-  const showChoiceModal = ref(false);   // "¿Vista previa o subir directo?"
-  const showPreviewModal = ref(false);  // Tabla de datos del Excel
+  const showChoiceModal = ref(false); // "¿Vista previa o subir directo?"
+  const showPreviewModal = ref(false); // Tabla de datos del Excel
   const previewRows = ref([]);
   const previewHeaders = ref([]);
   const pendingCleanBlob = ref(null);
@@ -28,7 +29,9 @@ export function useMallasGeneral() {
 
   const departments = computed(() => {
     if (!mallasData.value || mallasData.value.length === 0) return [];
-    const allDeps = mallasData.value.map((item) => item.departamento).filter(Boolean);
+    const allDeps = mallasData.value
+      .map((item) => item.departamento)
+      .filter(Boolean);
     return [...new Set(allDeps)].sort();
   });
 
@@ -37,14 +40,34 @@ export function useMallasGeneral() {
     fetchMallasDesdeOdoo();
   });
 
+  // Perfil del usuario con su segmento y área
+  const perfilUsuario = ref(null);
+
+  const _cargarPerfil = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const idOdoo = session.employee_id || session.id_odoo;
+      if (!idOdoo) return;
+      const resp = await axios.get(`${API_BASE_URL}/perfil-completo/${idOdoo}`);
+      perfilUsuario.value = resp.data;
+    } catch (e) {
+      console.error("Error cargando perfil para mallas:", e);
+    }
+  };
+
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
 
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const deptoUsuario = session.department || "";
       const permisos = session.permisos || session.permissions || {};
       const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+      const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+
+      // Cargar perfil si aún no se tiene y el usuario no es admin con filtro libre
+      if (!tieneFiltroDepto && !perfilUsuario.value) {
+        await _cargarPerfil();
+      }
 
       const params = new URLSearchParams();
       params.append("t", Date.now().toString());
@@ -54,12 +77,28 @@ export function useMallasGeneral() {
       }
 
       if (tieneFiltroDepto) {
-        if (selectedDepartment.value) params.append("departamento", selectedDepartment.value);
+        // Admin con filtro libre
+        if (selectedDepartment.value)
+          params.append("departamento", selectedDepartment.value);
       } else {
-        if (deptoUsuario) params.append("departamento", deptoUsuario);
+        // Usuario con permisos de estructura (responsable de segmento o área)
+        const perfil = perfilUsuario.value;
+        if (esResponsableSegmento && perfil?.segmento?.id) {
+          // Responsable de segmento: ve todos en su segmento
+          params.append("segmento_id", perfil.segmento.id);
+        } else if (perfil?.area?.id) {
+          // Responsable de área: ve solo su área
+          params.append("area_id", perfil.area.id);
+        } else {
+          // Usuario normal: filtrar por departamento de sesión
+          const deptoUsuario = session.department || "";
+          if (deptoUsuario) params.append("departamento", deptoUsuario);
+        }
       }
 
-      const response = await axios.get(`${API_BASE_URL}/mallas?${params.toString()}`);
+      const response = await axios.get(
+        `${API_BASE_URL}/mallas?${params.toString()}`,
+      );
       mallasData.value = response.data;
       currentPage.value = 1;
     } catch (error) {
@@ -74,28 +113,62 @@ export function useMallasGeneral() {
       isLoadingDownload.value = true;
 
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const deptoUsuario = session.department || "";
-      const esAdmin = session.role === "admin";
-      const deptoAplicar = esAdmin ? selectedDepartment.value || "" : deptoUsuario;
+      const permisos = session.permisos || session.permissions || {};
+      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+      const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
 
-      const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
-        params: { company: selectedCompany.value, departamento: deptoAplicar },
-        responseType: "blob",
-      });
+      // Asegurar que el perfil esté cargado (igual que fetchMallasDesdeOdoo)
+      if (!tieneFiltroDepto && !perfilUsuario.value) {
+        await _cargarPerfil();
+      }
+
+      const params = {};
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        params.company = selectedCompany.value;
+      }
+
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value)
+          params.departamento = selectedDepartment.value;
+      } else {
+        const perfil = perfilUsuario.value;
+        if (esResponsableSegmento && perfil?.segmento?.id) {
+          params.segmento_id = perfil.segmento.id;
+        } else if (perfil?.area?.id) {
+          params.area_id = perfil.area.id;
+        } else {
+          const deptoUsuario = session.department || "";
+          if (deptoUsuario) params.departamento = deptoUsuario;
+        }
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/reports/mallas/template`,
+        {
+          params,
+          responseType: "blob",
+        },
+      );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      const deptoClean = deptoAplicar.replace(/\s+/g, "_") || "general";
       const fecha = new Date().toISOString().slice(0, 10);
-      link.setAttribute("download", `plantilla_${selectedCompany.value}_${deptoClean}_${fecha}.xlsx`);
+      const sufijo = params.segmento_id
+        ? `seg${params.segmento_id}`
+        : params.area_id
+          ? `area${params.area_id}`
+          : (params.departamento || "general").replace(/\s+/g, "_");
+      link.setAttribute("download", `plantilla_mallas_${sufijo}_${fecha}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error al descargar plantilla:", error);
-      alert("Error al descargar la plantilla. Verifica que existan empleados en tu departamento.");
+      alert(
+        "Error al descargar la plantilla. Verifica que existan empleados en tu área.",
+      );
     } finally {
       isLoadingDownload.value = false;
     }
@@ -125,7 +198,10 @@ export function useMallasGeneral() {
     });
 
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-    const cleanBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const cleanBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
     const cleanBlob = new Blob([cleanBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
@@ -139,11 +215,14 @@ export function useMallasGeneral() {
       { label: "Horario de trabajo", keys: ["horario de trabajo"] },
       { label: "Estado", keys: ["estado"] },
       { label: "Fecha de inicio", keys: ["fecha de inicio"] },
-      { label: "Fecha de finalizacion", keys: ["fecha de finalizacion", "fecha de fin"] },
+      {
+        label: "Fecha de finalizacion",
+        keys: ["fecha de finalizacion", "fecha de fin"],
+      },
     ];
 
     const rawHeaders = (jsonData[0] || []).map((h) =>
-      String(h).trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+      String(h).trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(),
     );
 
     const matched = WANTED_COLS.map((col) => ({
@@ -162,7 +241,9 @@ export function useMallasGeneral() {
       finalIndices = matched.map((c) => c.idx);
     }
 
-    const dataRows = jsonData.slice(1).filter((row) => row.some((c) => c !== ""));
+    const dataRows = jsonData
+      .slice(1)
+      .filter((row) => row.some((c) => c !== ""));
 
     return {
       headers: finalHeaders,
@@ -172,27 +253,70 @@ export function useMallasGeneral() {
   };
 
   const _doUpload = async (blob, fileName) => {
+    const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const formData = new FormData();
     formData.append("file", blob, fileName);
+    formData.append("asignado_por", session.name || "Desconocido");
 
     const response = await axios.post(
-      `${API_BASE_URL}/contracts-upload/import`,
+      `${API_BASE_URL}/mallas-upload/import`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } },
     );
 
-    if (response.data.success) {
+    // Siempre guardamos ambas listas (puede haber éxitos parciales)
+    uploadProcesados.value = response.data.procesados || [];
+    const rawErrors = response.data.errors || [];
+    uploadErrors.value = rawErrors.map((err) => ({
+      fila: err.fila || "?",
+      cedula: err.cedula || "",
+      error: err.error || err.message || "Error sin descripción",
+    }));
+
+    if (response.data.total_procesados > 0) {
       uploadSuccessMessage.value = response.data.message;
       fetchMallasDesdeOdoo();
-    } else {
-      const rawErrors = response.data.errors || [];
-      uploadErrors.value = rawErrors.map((err) => ({
-        fila: err.fila || err.row || err.linea || "?",
-        campo: err.campo || err.field || err.column || "General",
-        error: err.error || err.message || err.err || "Error sin descripcion",
-        valor_enviado: err.valor_enviado || null,
-      }));
     }
+  };
+
+  // ── Reporte Excel del resultado de carga ────────────────────────────────
+  const descargarReporteCarga = async () => {
+    const XLSX = await import("xlsx");
+
+    const wb = XLSX.utils.book_new();
+
+    // ── Hoja 1: Exitosos ────────────────────────────────────────────────────
+    const exitososData = [
+      ["Fila", "Cédula", "Nombre", "Malla Asignada", "Fecha"],
+      ...uploadProcesados.value.map((p) => [
+        p.fila,
+        p.cedula,
+        p.nombre,
+        p.malla,
+        p.fecha,
+      ]),
+    ];
+    const wsExito = XLSX.utils.aoa_to_sheet(exitososData);
+    wsExito["!cols"] = [
+      { wch: 6 },
+      { wch: 15 },
+      { wch: 35 },
+      { wch: 45 },
+      { wch: 12 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsExito, "Asignados");
+
+    // ── Hoja 2: Errores ─────────────────────────────────────────────────────
+    const erroresData = [
+      ["Fila", "Cédula", "Error"],
+      ...uploadErrors.value.map((e) => [e.fila, e.cedula || "", e.error]),
+    ];
+    const wsError = XLSX.utils.aoa_to_sheet(erroresData);
+    wsError["!cols"] = [{ wch: 6 }, { wch: 15 }, { wch: 55 }];
+    XLSX.utils.book_append_sheet(wb, wsError, "Errores");
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `reporte_carga_mallas_${fecha}.xlsx`);
   };
 
   // ── Punto de entrada único: seleccionar archivo ──────────────────────────
@@ -205,6 +329,7 @@ export function useMallasGeneral() {
     // Limpiar estado anterior
     uploadErrors.value = [];
     uploadSuccessMessage.value = "";
+    uploadProcesados.value = [];
     showResultModal.value = false;
 
     try {
@@ -221,7 +346,11 @@ export function useMallasGeneral() {
     } catch (err) {
       console.error("Error leyendo archivo:", err);
       uploadErrors.value = [
-        { fila: "!", campo: "Archivo", error: "No se pudo leer el archivo Excel." },
+        {
+          fila: "!",
+          campo: "Archivo",
+          error: "No se pudo leer el archivo Excel.",
+        },
       ];
       showResultModal.value = true;
     }
@@ -243,7 +372,11 @@ export function useMallasGeneral() {
       await _doUpload(pendingCleanBlob.value, pendingFileName.value);
     } catch (error) {
       uploadErrors.value = [
-        { fila: "!", campo: "RED", error: error.response?.data?.message || "Error de conexion" },
+        {
+          fila: "!",
+          campo: "RED",
+          error: error.response?.data?.message || "Error de conexion",
+        },
       ];
     } finally {
       isUploading.value = false;
@@ -264,7 +397,11 @@ export function useMallasGeneral() {
       await _doUpload(pendingCleanBlob.value, pendingFileName.value);
     } catch (error) {
       uploadErrors.value = [
-        { fila: "!", campo: "RED", error: error.response?.data?.message || "Error de conexion" },
+        {
+          fila: "!",
+          campo: "RED",
+          error: error.response?.data?.message || "Error de conexion",
+        },
       ];
     } finally {
       isUploading.value = false;
@@ -315,6 +452,8 @@ export function useMallasGeneral() {
     isUploading,
     uploadErrors,
     uploadSuccessMessage,
+    uploadProcesados,
+    descargarReporteCarga,
     showResultModal,
     showChoiceModal,
     showPreviewModal,
@@ -335,5 +474,6 @@ export function useMallasGeneral() {
     totalRecords: computed(() => filteredMallas.value.length),
     selectedDepartment,
     departments,
+    perfilUsuario,
   };
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Area } from '../usuarios/entities/area.entity';
 import { Segmento } from '.././usuarios/entities/segmento.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
 
 @Injectable()
 export class OrganizacionService {
@@ -12,38 +13,98 @@ export class OrganizacionService {
 
     @InjectRepository(Segmento)
     private readonly segmentoRepo: Repository<Segmento>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
   ) {}
+
+  async getDepartamentos(): Promise<string[]> {
+    const rows = await this.usuarioRepo
+      .createQueryBuilder('u')
+      .select('DISTINCT u.departamento', 'departamento')
+      .where('u.departamento IS NOT NULL')
+      .andWhere("u.departamento != ''")
+      .andWhere('u.is_active = :active', { active: true })
+      .getRawMany();
+
+    return rows
+      .map((r) => r.departamento as string)
+      .filter(Boolean)
+      .sort();
+  }
 
   // --- LÓGICA PARA ÁREAS ---
 
   async getAreas() {
     // Traemos las áreas con la información del jefe (responsable)
-    return await this.areaRepo.find({ 
-      relations: ['responsable'] 
+    return await this.areaRepo.find({
+      relations: ['responsable'],
     });
   }
 
-  async createArea(data: { nombre: string; responsableId: number }) {
-    // Creamos la instancia y guardamos
+  async createArea(data: {
+    nombre: string;
+    responsableId: number;
+    departamento?: string;
+    creadoPor?: string;
+  }) {
     const nuevaArea = this.areaRepo.create({
       nombre: data.nombre,
-      responsable: { id: data.responsableId } as any // Relacionamos por ID
+      departamento: data.departamento?.trim() || null,
+      responsable: { id: data.responsableId } as any,
+      creado_por: data.creadoPor ?? null,
     });
     return await this.areaRepo.save(nuevaArea);
+  }
+
+  async getAreasAgrupadas(): Promise<Record<string, any[]>> {
+    const areas = await this.areaRepo.find({ relations: ['responsable'] });
+    const grupos: Record<string, any[]> = {};
+    for (const area of areas) {
+      const key = area.departamento?.trim() || 'Sin departamento';
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(area);
+    }
+    return grupos;
+  }
+
+  async updateArea(
+    id: number,
+    data: { departamento?: string; responsableId?: number; nombre?: string },
+  ) {
+    const area = await this.areaRepo.findOne({
+      where: { id },
+      relations: ['responsable'],
+    });
+    if (!area) throw new Error(`Área con id ${id} no encontrada`);
+
+    if (data.nombre !== undefined) area.nombre = data.nombre.trim();
+    if (data.departamento !== undefined)
+      area.departamento = data.departamento?.trim() || null;
+    if (data.responsableId !== undefined) {
+      area.responsable = { id: data.responsableId } as any;
+    }
+
+    return await this.areaRepo.save(area);
   }
 
   // --- LÓGICA PARA SEGMENTOS ---
 
   async getSegmentos() {
-    return await this.segmentoRepo.find({ 
-      relations: ['responsable'] 
+    return await this.segmentoRepo.find({
+      relations: ['responsable'],
     });
   }
 
-  async createSegmento(data: { nombre: string; responsableId: number }) {
+  async createSegmento(data: {
+    nombre: string;
+    responsableId: number;
+    creadoPor?: string;
+  }) {
     const nuevoSegmento = this.segmentoRepo.create({
       nombre: data.nombre,
-      responsable: { id: data.responsableId } as any
+      responsable: { id: data.responsableId } as any,
+      creado_por: data.creadoPor ?? null,
     });
     return await this.segmentoRepo.save(nuevoSegmento);
   }

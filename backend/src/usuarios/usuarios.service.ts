@@ -20,6 +20,12 @@ import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Area } from './entities/area.entity';
+import { MailModule } from '../logsEmail/mail.module';
+import { MailService } from '../logsEmail/mail.service';
+import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
+import { MallasLocalService } from '../mallas/mallas-local.service';
+import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
+import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -29,6 +35,8 @@ export class UsuariosService {
     isCancelled: false,
     status: 'idle',
   };
+  // Prevents duplicate markings from concurrent requests for the same employee
+  private markingInProgress = new Set<number>();
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -50,10 +58,14 @@ export class UsuariosService {
 
     private dataSource: DataSource,
     private configService: ConfigService,
+    private readonly mailService: MailService,
+
+    @InjectRepository(MallaAsignacion)
+    private readonly asignacionRepo: Repository<MallaAsignacion>,
 
     @InjectRepository(Area)
     private readonly areaRepo: Repository<Area>,
-    @InjectRepository(PermisoDepartamento) // 👈 agrega
+    @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
   ) {}
 
@@ -164,6 +176,33 @@ export class UsuariosService {
       return acc;
     }, {});
 
+    // Auto-detectar si es responsable de segmento o área en la estructura local.
+    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
+    // para que un override manual (nivel_acceso='user') siempre prevalezca.
+    const [respSegmento, respArea] = await Promise.all([
+      this.dataSource.query(`
+        SELECT TOP 1 1 AS es
+        FROM   maestro_segmentos s
+        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+        WHERE  r.id_odoo = ${emp.id}
+      `),
+      this.dataSource.query(`
+        SELECT TOP 1 1 AS es
+        FROM   maestro_areas a
+        INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+        WHERE  r.id_odoo = ${emp.id}
+      `),
+    ]);
+
+    // Responsable de segmento → puede ver todas las novedades del segmento
+    if (
+      respSegmento.length > 0 &&
+      mapaPermisos['novedades.ver_segmento'] === undefined
+    ) {
+      mapaPermisos['novedades.ver_segmento'] = true;
+    }
+    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
     const openAttendances = await this.odoo.executeKw<any[]>(
@@ -264,6 +303,16 @@ export class UsuariosService {
   }
 
   async attendance(employee_id: number) {
+    // Race condition guard: reject concurrent markings for the same employee
+    if (this.markingInProgress.has(employee_id)) {
+      return {
+        status: 'error',
+        type: 'in_progress',
+        message: 'Marcación en proceso, intente en un momento',
+      };
+    }
+    this.markingInProgress.add(employee_id);
+
     try {
       // 1. OBTENER FECHAS REALES
       // ahoraStr = Local Colombia | fechaHoraISO = UTC para Odoo
@@ -299,21 +348,22 @@ export class UsuariosService {
       if (!activeSession) {
         // Usamos el inicio del día local para filtrar
         // Odoo comparará este string con sus registros en UTC
+        // Colombia is UTC-5: Colombia midnight (00:00) = UTC 05:00
+        // Using '05:00:00' avoids matching yesterday-evening UTC entries
         const registroHoy = await this.odoo.executeKw<any[]>(
           'hr.attendance',
           'search_read',
           [
             [
               ['employee_id', '=', employee_id],
-              // Buscamos desde las 00:00:00 de hoy en Colombia
-              ['check_in', '>=', `${hoyFechaCorta} 00:00:00`],
+              ['check_in', '>=', `${hoyFechaCorta} 05:00:00`],
               ['check_out', '!=', false],
             ],
           ],
           {
             fields: ['id', 'check_in', 'check_out'],
             limit: 1,
-            order: 'check_in desc', // Traer el más reciente
+            order: 'check_in desc',
           },
           uid,
         );
@@ -342,10 +392,13 @@ export class UsuariosService {
           .split(',')[0];
 
         if (checkInLocal !== hoyFechaCorta) {
-          // Si el registro es de otro día, cerramos a las 04:59:59 UTC
-          // (Que son las 23:59:59 de ese día en Colombia)
-          const diaEntrada = lastAtt[0].check_in.split(' ')[0];
-          const cierreCompensado = `${diaEntrada} 23:59:59`; // Se guarda como texto UTC
+          // Colombia 23:59:59 of checkInLocal day = UTC next-day 04:59:59
+          const nextDay = new Date(
+            new Date(checkInLocal).getTime() + 86_400_000,
+          )
+            .toISOString()
+            .split('T')[0];
+          const cierreCompensado = `${nextDay} 04:59:59`;
 
           await this.odoo.executeKw(
             'hr.attendance',
@@ -469,144 +522,144 @@ export class UsuariosService {
         message: 'Error interno',
         type: 'server_error',
       };
+    } finally {
+      this.markingInProgress.delete(employee_id);
     }
   }
-  // Agrega esto dentro de la clase UsuariosService
-  async getAllMallas(companyName?: string, departamentoName?: string) {
-    const uid = await this.odoo.authenticate();
-    const now = new Date();
-    const dayOfWeekOdoo = (
-      now.getDay() === 0 ? 6 : now.getDay() - 1
-    ).toString();
 
-    const domain: any[] = [
-      ['state', 'in', ['open', 'draft']],
-      ['employee_id.active', '=', true],
-    ];
+  async getAllMallas(
+    companyName?: string,
+    departamentoName?: string,
+    areaId?: number,
+    segmentoId?: number,
+  ) {
+    // Día de semana en hora Colombia (Lun=0 … Dom=6)
+    const nowColombia = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+    const dayOfWeekOdoo =
+      nowColombia.getDay() === 0 ? 6 : nowColombia.getDay() - 1;
 
-    if (companyName && companyName.trim() !== '') {
-      domain.push(['employee_id.company_id.name', '=', companyName]);
+    // 2. RESOLVER PERMISOS (Igual que en el reporte)
+    // Esta es la pieza clave que te faltaba
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    // Si el resolvedor dice que no tienes acceso a nadie, retornamos vacío
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    ) {
+      return [];
     }
+
+    // 1. Traer usuarios activos de DB local con filtros
+    // 3. TRAER USUARIOS CON LOS IDS RESUELTOS
+    const usuarioQuery = this.usuarioRepo
+      .createQueryBuilder('u')
+      .where('u.is_active = :active', { active: true });
+
+    // Si tenemos IDs específicos por estructura (permisos), filtramos por ellos
+    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      usuarioQuery.andWhere('u.id_odoo IN (:...ids)', {
+        ids: employeeIdsPorEstructura,
+      });
+    }
+
+    // Filtros adicionales de búsqueda
     if (
       departamentoName &&
       departamentoName.trim() !== '' &&
       departamentoName !== 'Todas'
     ) {
-      domain.push([
-        'employee_id.department_id.name',
-        'ilike',
-        departamentoName,
-      ]);
+      usuarioQuery.andWhere('u.departamento LIKE :depto', {
+        depto: `%${departamentoName}%`,
+      });
+    }
+    // if (companyName && companyName !== 'Todas') {
+    //   // Si tu entidad usuario tiene el campo company, asegúrate de filtrarlo
+    //   usuarioQuery.andWhere('u.company = :company', { company: companyName });
+    // }
+    if (areaId) {
+      usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
+    }
+    if (segmentoId) {
+      usuarioQuery.andWhere('u.segmento_id = :segmentoId', { segmentoId });
     }
 
-    // 2. EJECUTAR LA BÚSQUEDA
-    const contracts = await this.odoo.executeKw<any[]>(
-      'hr.contract',
-      'search_read',
-      [domain],
-      {
-        fields: [
-          'employee_id',
-          'resource_calendar_id',
-          'job_id',
-          'department_id', // Departamento del contrato
-        ],
-        order: 'employee_id asc',
-      },
-      uid,
-    );
+    const usuarios = await usuarioQuery
+      .select([
+        'u.id_odoo',
+        'u.nombre',
+        'u.cargo',
+        'u.departamento',
+        'u.identificacion',
+      ])
+      .orderBy('u.nombre', 'ASC')
+      .getMany();
 
-    if (!contracts || contracts.length === 0) return [];
+    if (!usuarios.length) return [];
 
-    // --- NUEVA LÓGICA: Obtener detalles de los Empleados ---
-    // Extraemos los IDs de los empleados de los contratos
-    const employeeIds = [...new Set(contracts.map((c) => c.employee_id[0]))];
+    const idOdoos = usuarios.map((u) => u.id_odoo).filter(Boolean);
+    if (!idOdoos.length) return [];
 
-    const employeesDetail = await this.odoo.executeKw<any[]>(
-      'hr.employee',
-      'search_read',
-      [[['id', 'in', employeeIds]]],
-      {
-        fields: ['id', 'job_title', 'department_id'],
-      },
-      uid,
-    );
+    // 2. Obtener asignaciones vigentes con malla y detalles
+    const asignaciones = await this.asignacionRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.malla', 'malla')
+      .leftJoinAndSelect('malla.detalles', 'detalles')
+      .where('a.usuario_id_odoo IN (:...ids)', { ids: idOdoos })
+      .andWhere('a.actual = 1')
+      .getMany();
 
-    // 3. OBTENER LAS MALLAS (Se mantiene igual)
-    const calendarIds = [
-      ...new Set(
-        contracts.map((c) => c.resource_calendar_id?.[0]).filter((id) => !!id),
-      ),
-    ];
-    let allMallas: any[] = [];
-    if (calendarIds.length > 0) {
-      allMallas = await this.odoo.executeKw<any[]>(
-        'resource.calendar.attendance',
-        'search_read',
-        [
-          [
-            ['calendar_id', 'in', calendarIds],
-            ['dayofweek', '=', dayOfWeekOdoo],
-          ],
-        ],
-        { fields: ['calendar_id', 'hour_from', 'hour_to', 'day_period'] },
-        uid,
-      );
+    // 3. Mapa id_odoo → asignacion vigente
+    const mallaLocalPorEmpleado = new Map<number, any>();
+    for (const asig of asignaciones) {
+      if (!mallaLocalPorEmpleado.has(asig.usuario_id_odoo)) {
+        mallaLocalPorEmpleado.set(asig.usuario_id_odoo, asig);
+      }
     }
 
-    // 4. MAPEO FINAL MEJORADO
-    return contracts.map((con) => {
-      // Buscamos el detalle del empleado para rescatar cargo/depto si el contrato no los tiene
-      const empInfo = employeesDetail.find((e) => e.id === con.employee_id[0]);
-
-      const mallaEmp = allMallas.find(
-        (m) => m.calendar_id[0] === con.resource_calendar_id?.[0],
-      );
-      // console.log('resource_calendar_id:', con.resource_calendar_id);
-      // console.log('allMallas[0]:', allMallas[0]); // ver estructura real
-
+    // 4. Construir resultado
+    return usuarios.map((u) => {
+      const asigLocal = mallaLocalPorEmpleado.get(u.id_odoo);
       let horario = 'No programado';
       let jornada = 'N/A';
-      if (mallaEmp) {
-        horario = `${this.formatDecimal(mallaEmp.hour_from)} - ${this.formatDecimal(mallaEmp.hour_to)}`;
-        const period = mallaEmp.day_period;
-        jornada =
-          period === 'morning'
-            ? 'Diurna'
-            : period === 'afternoon'
-              ? 'Tarde'
-              : 'Nocturna';
+      let nombreMalla = 'Sin Malla';
+
+      if (asigLocal?.malla) {
+        nombreMalla = asigLocal.malla.nombre;
+        if (asigLocal.malla.detalles?.length) {
+          const detalleHoy = asigLocal.malla.detalles
+            .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
+            .sort(
+              (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+            )[0];
+
+          if (detalleHoy) {
+            horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
+            const jornadas = {
+              morning: 'Diurna',
+              afternoon: 'Tarde',
+              night: 'Nocturna',
+            };
+            jornada = jornadas[detalleHoy.periodo] || 'N/A';
+          }
+        }
       }
 
       return {
-        nombre: con.employee_id ? con.employee_id[1] : 'Sin Nombre',
-
-        // PRIORIDAD: 1. Depto Contrato -> 2. Depto Empleado -> 3. "No asignado"
-        departamento: Array.isArray(con.department_id)
-          ? con.department_id[1]
-          : empInfo && Array.isArray(empInfo.department_id)
-            ? empInfo.department_id[1]
-            : 'No asignado',
-
-        malla: con.resource_calendar_id
-          ? con.resource_calendar_id[1]
-          : 'Sin Malla',
-
-        // PRIORIDAD: 1. Cargo Contrato -> 2. Job Title de Empleado -> 3. "No asignado"
-        cargo: Array.isArray(con.job_id)
-          ? con.job_id[1]
-          : empInfo && empInfo.job_title
-            ? empInfo.job_title
-            : 'No asignado',
-
-        jornada: jornada,
-        horario: horario,
+        nombre: u.nombre,
+        cc: u.identificacion || '',
+        departamento: u.departamento || 'No asignado',
+        malla: nombreMalla,
+        cargo: u.cargo || 'No asignado',
+        jornada,
+        horario,
       };
     });
   }
-  // ==========================================
-  // MÉTODOS PRIVADOS
-  // ==========================================
 
   private async getMallasMap(
     employeeIds: number[],
@@ -703,30 +756,456 @@ export class UsuariosService {
     }
   }
 
+  /**
+   * Trae TODO el historial de asignaciones de malla para los empleados dados.
+   * Retorna Map<idOdoo, MallaAsignacion[]> ordenado por fecha_inicio DESC
+   * para que resolverDetallesParaFecha encuentre la vigente primero.
+   */
+  private async getMallasMapLocal(
+    employeeIds: number[],
+  ): Promise<Map<number, any[]>> {
+    if (!employeeIds.length) return new Map();
+
+    const asignaciones = await this.asignacionRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.malla', 'malla')
+      .leftJoinAndSelect('malla.detalles', 'detalles')
+      .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
+      .orderBy('a.fecha_inicio', 'DESC')
+      .addOrderBy('a.actual', 'DESC') // si hay dos filas con igual fecha_inicio, la activa (actual=1) primero
+      .addOrderBy('a.id', 'DESC') // luego por más reciente
+      .getMany();
+
+    const mallaMap = new Map<number, any[]>();
+    for (const asig of asignaciones) {
+      const lista = mallaMap.get(asig.usuario_id_odoo) ?? [];
+      lista.push(asig);
+      mallaMap.set(asig.usuario_id_odoo, lista);
+    }
+    return mallaMap;
+  }
+
+  /**
+   * Dado el historial de asignaciones de un empleado y una fecha YYYY-MM-DD (Colombia),
+   * devuelve los detalles (días/horas) de la malla que estaba vigente ese día.
+   * Lógica: fecha_inicio <= fecha AND (fecha_fin IS NULL OR fecha_fin >= fecha)
+   * Fallback: la asignación más reciente anterior a la fecha (para cubrir gaps).
+   */
+  private resolverDetallesParaFecha(
+    asignaciones: any[],
+    fechaLocal: string,
+  ): any[] {
+    if (!asignaciones?.length) return [];
+
+    const toDateStr = (v: any): string => {
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).slice(0, 10);
+    };
+
+    // Buscar la asignación cuyo rango cubre la fecha
+    const vigente = asignaciones.find((a) => {
+      const inicio = toDateStr(a.fecha_inicio);
+      const fin = a.fecha_fin ? toDateStr(a.fecha_fin) : null;
+      return inicio <= fechaLocal && (fin === null || fin >= fechaLocal);
+    });
+
+    if (vigente?.malla?.detalles?.length) return vigente.malla.detalles;
+
+    // Fallback: asignación más reciente anterior a la fecha (lista ya viene DESC)
+    const anterior = asignaciones.find(
+      (a) => toDateStr(a.fecha_inicio) <= fechaLocal,
+    );
+    return anterior?.malla?.detalles ?? [];
+  }
+
+  private clasificarPorMallaLocal(
+    empId: number,
+    punchingTime: string,
+    esEntrada: boolean,
+    mallasLocalMap: Map<number, any[]>, // Map<idOdoo, MallaAsignacion[]>
+    diaSemanaOverride?: number, // día de la ENTRADA — fijo para validar salida también
+  ): string {
+    const asignaciones = mallasLocalMap.get(empId);
+    if (!asignaciones?.length) return 'No programado';
+
+    // Convertir punch a hora Colombia
+    const fechaUTC = new Date(punchingTime.replace(' ', 'T') + 'Z');
+    const horaLocal = new Date(
+      fechaUTC.toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+    );
+
+    // Fecha Colombia del punch (YYYY-MM-DD) para buscar malla vigente ese día
+    const fechaLocalStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(fechaUTC);
+
+    // Resolver detalles según el historial de asignaciones para esa fecha
+    const detalles = this.resolverDetallesParaFecha(
+      asignaciones,
+      fechaLocalStr,
+    );
+    if (!detalles?.length) return 'No programado';
+
+    const diaSemana =
+      diaSemanaOverride !== undefined
+        ? diaSemanaOverride
+        : horaLocal.getDay() === 0
+          ? 6
+          : horaLocal.getDay() - 1;
+    const diaSemanaAnterior = diaSemana === 0 ? 6 : diaSemana - 1;
+    const horaDecimal = horaLocal.getHours() + horaLocal.getMinutes() / 60;
+    const tolerancia = 6 / 60;
+
+    // Buscar turno del día
+    const detallesDia = detalles
+      .filter((d: any) => Number(d.dia_semana) === diaSemana)
+      .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
+
+    if (detallesDia.length) {
+      const turno = detallesDia[0];
+      const horaInicio = Number(turno.hora_inicio);
+      const horaFin = Number(turno.hora_fin);
+
+      // Turno nocturno: horaFin < horaInicio (ej. 22:00-06:00 cruza medianoche)
+      const esNocturno = horaFin < horaInicio;
+
+      if (esEntrada) {
+        if (esNocturno && horaDecimal < horaFin + 0.5) {
+          // La "entrada" registrada en Odoo está en la madrugada (franja de fin del turno
+          // nocturno). En realidad es la salida del turno anterior grabada como check_in.
+          return horaDecimal <= horaFin + tolerancia
+            ? 'A TIEMPO'
+            : 'SALIDA ANTICIPADA';
+        }
+        return horaDecimal > horaInicio + tolerancia
+          ? 'ENTRADA TARDE'
+          : 'A TIEMPO';
+      } else {
+        if (esNocturno && horaDecimal >= horaInicio - 0.5) {
+          // La "salida" registrada en Odoo está en la noche (franja de inicio del turno).
+          // En realidad es la entrada al siguiente turno grabada como check_out.
+          return horaDecimal > horaInicio + tolerancia
+            ? 'ENTRADA TARDE'
+            : 'A TIEMPO';
+        }
+        return horaDecimal < horaFin ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+      }
+    }
+
+    // No hay turno hoy — verificar si es salida de turno nocturno del día anterior
+    const turnosNocturnos = detalles.filter(
+      (d: any) =>
+        Number(d.dia_semana) === diaSemanaAnterior &&
+        Number(d.hora_fin) < Number(d.hora_inicio),
+    );
+
+    if (turnosNocturnos.length) {
+      const turnoNoche = turnosNocturnos.sort(
+        (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+      )[0];
+      const horaFinNoche = Number(turnoNoche.hora_fin);
+
+      if (horaDecimal <= horaFinNoche) {
+        if (!esEntrada) {
+          return horaDecimal < horaFinNoche ? 'SALIDA ANTICIPADA' : 'A TIEMPO';
+        }
+        return 'A TIEMPO';
+      }
+    }
+
+    return 'No programado';
+  }
+
   private mapAttendances(
     attendances: any[],
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
+    mallasLocalMap: Map<number, any[]>,
   ): any[] {
-    return attendances.map((att) => {
-      const localIn = toLocal(att.check_in);
-      const localOut = toLocal(att.check_out);
-      const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
+    // ── helpers ──────────────────────────────────────────────────────────────
+    const horaDecimalDeLocal = (local: string): number => {
+      const t = local.split(' ')[1] || '';
+      const [h, m] = t.split(':').map(Number);
+      return h + (m || 0) / 60;
+    };
 
-      return {
-        id: `att_${att.id}`,
-        empleado: nombre,
-        cc: partnerMap[nombre] || 'N/A',
-        department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-        c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-        c_salida: att.x_studio_tipo_salida || 'N/A',
-        check_in: localIn,
-        check_out: localOut,
-        fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-        tipo: 'ASISTENCIA',
-        estado: att.check_out ? 'Finalizado' : 'En curso',
-      };
-    });
+    const addOneDayToDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d + 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+
+    const getTurnoNocturno = (
+      empId: number,
+      fecha: string,
+    ): { hi: number; hf: number } | null => {
+      const asignaciones = mallasLocalMap.get(empId);
+      if (!asignaciones?.length) return null;
+      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+      const [a, m, d] = fecha.split('-').map(Number);
+      const jsDay = new Date(a, m - 1, d).getDay();
+      const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+      const turnosDia = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort(
+          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+        );
+      if (!turnosDia.length) return null;
+      const t = turnosDia[0];
+      const hi = Number(t.hora_inicio);
+      const hf = Number(t.hora_fin);
+      return hf < hi ? { hi, hf } : null; // solo devuelve si es nocturno
+    };
+    const subOneDayFromDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d - 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Paso 1: agrupar por empId + fecha del check_in Colombia
+    const grupos: Record<
+      string,
+      { empId: number; nombre: string; dept: string; registros: any[] }
+    > = {};
+
+    for (const att of attendances) {
+      const empId = att.employee_id?.[0];
+      const nombre = att.employee_id?.[1] || 'Desconocido';
+      const localIn = toLocal(att.check_in);
+      const fecha = localIn ? localIn.split(' ')[0] : 'SIN_FECHA';
+      const key = `${empId}_${fecha}`;
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+          registros: [],
+        };
+      }
+      grupos[key].registros.push(att);
+    }
+
+    // Paso 2: para cada grupo calcular primero/ultimoConSalida y detectar nocturno invertido
+    type Fila = {
+      key: string;
+      empId: number;
+      nombre: string;
+      dept: string;
+      fecha: string;
+      localIn: string | null;
+      localOut: string | null;
+      checkInUTC: string | null; // UTC Odoo del check_in efectivo (para clasificar)
+      checkOutUTC: string | null; // UTC Odoo del check_out efectivo (para clasificar)
+      primeraId: number;
+      eliminado: boolean;
+    };
+
+    const filas: Fila[] = Object.entries(grupos).map(
+      ([key, { empId, nombre, dept, registros }]) => {
+        const ordenados = registros.sort(
+          (a, b) =>
+            new Date(a.check_in).getTime() - new Date(b.check_in).getTime(),
+        );
+        const primero = ordenados[0];
+        const conSalida = registros.filter((r) => {
+          if (!r.check_out) return false;
+          return (
+            new Date(r.check_out).getTime() - new Date(r.check_in).getTime() >=
+            60_000
+          );
+        });
+        const ultimoConSalida = conSalida.length
+          ? conSalida.reduce((best, cur) =>
+              new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
+            )
+          : null;
+
+        const localIn = toLocal(primero.check_in);
+        const localOut = ultimoConSalida
+          ? toLocal(ultimoConSalida.check_out)
+          : null;
+        const fecha = localIn ? localIn.split(' ')[0] : 'N/A';
+
+        return {
+          key,
+          empId,
+          nombre,
+          dept,
+          fecha,
+          localIn,
+          localOut,
+          checkInUTC: primero.check_in,
+          checkOutUTC: ultimoConSalida?.check_out ?? null,
+          primeraId: primero.id,
+          eliminado: false,
+        };
+      },
+    );
+
+    // Índice por empId_fecha para acceso rápido en el segundo paso
+    const filaIdx = new Map<string, Fila>();
+    for (const f of filas) filaIdx.set(`${f.empId}_${f.fecha}`, f);
+
+    // Ordenar cronológicamente: garantiza que cuando procesamos el Día N,
+    // el Día N-1 ya fue corregido y prevFila refleja su estado definitivo.
+    filas.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    // Paso 3: detectar y corregir registros nocturnos que cruzan medianoche.
+    // Hay dos situaciones distintas en hr.attendance:
+    //
+    // CASO INVERTIDO: Odoo grabó check_in=mañana + check_out=noche en un solo
+    //   registro (el biométrico no distingue IN/OUT y Odoo los empató al revés).
+    //   El check_in matutino es la SALIDA del turno anterior; el check_out
+    //   nocturno es la ENTRADA del turno actual. Se corrige SIEMPRE, incluso
+    //   cuando el día anterior ya tiene su check_out propio.
+    //
+    // Sub-caso A: solo check_in matutino sin check_out → podría ser la salida
+    //   de un turno nocturno del día anterior que quedó abierto en Odoo.
+    //
+    // GUARDIA: solo se repara si el empleado tiene turno nocturno en prevFecha.
+    // Esto evita que entradas matutinas de mallas diurnas (ej. 06:59 para malla
+    // 07:00-17:00) sean mal clasificadas como salida del turno anterior.
+    for (const fila of filas) {
+      if (!fila.localIn || fila.eliminado) continue;
+
+      const hIn = horaDecimalDeLocal(fila.localIn);
+      if (hIn >= 8) continue; // solo registros con check_in matutino
+
+      const prevFecha = subOneDayFromDate(fila.fecha);
+
+      const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
+
+      // ── CASO INVERTIDO ──────────────────────────────────────────────────
+      // Requiere malla nocturna en prevFecha: evita invertir entradas matutinas
+      // de mallas diurnas (ej. 06:59 AM con malla 07:00-17:00 → no tocar).
+      if (fila.localOut) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= 18 && nocturnoAnterior) {
+          const { hi, hf } = nocturnoAnterior;
+          if (hIn <= hf + 2) {
+            const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+            if (
+              prevFila &&
+              !prevFila.eliminado &&
+              prevFila.localIn &&
+              !prevFila.localOut
+            ) {
+              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+              if (hPrevIn >= hi - 1) {
+                prevFila.localOut = fila.localIn;
+                prevFila.checkOutUTC = fila.checkInUTC;
+              }
+            }
+            fila.localIn = fila.localOut;
+            fila.checkInUTC = fila.checkOutUTC;
+            fila.localOut = null;
+            fila.checkOutUTC = null;
+            const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
+            if (nuevaFecha !== fila.fecha) {
+              filaIdx.delete(`${fila.empId}_${fila.fecha}`);
+              fila.fecha = nuevaFecha;
+              filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+            }
+            continue;
+          }
+        }
+      }
+
+      // ── Sub-caso A: orphan matutino ──────────────────────────────────────
+      // Aplica si: (1) malla nocturna con horas compatibles, o (2) prevFila
+      // entró en horario nocturno (≥ 18 h) — cubre empleados sin malla asignada.
+      if (!fila.localOut) {
+        const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+        if (
+          prevFila &&
+          !prevFila.eliminado &&
+          prevFila.localIn &&
+          !prevFila.localOut
+        ) {
+          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+
+          const matchMalla = nocturnoAnterior
+            ? hPrevIn >= nocturnoAnterior.hi - 1 &&
+              hIn <= nocturnoAnterior.hf + 2
+            : false;
+          const matchHeuristica = !nocturnoAnterior && hPrevIn >= 18;
+
+          if (matchMalla || matchHeuristica) {
+            prevFila.localOut = fila.localIn;
+            prevFila.checkOutUTC = fila.checkInUTC;
+            fila.eliminado = true;
+          }
+        }
+      }
+    }
+
+    // Paso 4: construir las filas de resultado
+    return filas
+      .filter((f) => !f.eliminado && f.localIn && f.checkInUTC)
+      .map(
+        ({
+          empId,
+          nombre,
+          dept,
+          fecha,
+          localIn,
+          localOut,
+          checkInUTC,
+          checkOutUTC,
+          primeraId,
+        }) => {
+          const fechaEntradaUTC = new Date(
+            (checkInUTC as string).replace(' ', 'T') + 'Z',
+          );
+          const horaEntradaLocal = new Date(
+            fechaEntradaUTC.toLocaleString('en-US', {
+              timeZone: 'America/Bogota',
+            }),
+          );
+          const diaSemanaEntrada =
+            horaEntradaLocal.getDay() === 0 ? 6 : horaEntradaLocal.getDay() - 1;
+
+          const cEntrada = empId
+            ? this.clasificarPorMallaLocal(
+                empId,
+                checkInUTC as string,
+                true,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
+            : 'No programado';
+
+          const cSalida = checkOutUTC
+            ? this.clasificarPorMallaLocal(
+                empId,
+                checkOutUTC,
+                false,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
+            : 'N/A';
+
+          return {
+            id: `att_${primeraId}`,
+            empleado: nombre,
+            cc: partnerMap[nombre] || 'N/A',
+            department_id: dept,
+            c_entrada: cEntrada,
+            c_salida: cSalida,
+            check_in: localIn,
+            check_out: localOut,
+            fecha,
+            tipo: 'ASISTENCIA',
+            fuente: 'APLICATIVO',
+            estado: localOut ? 'Finalizado' : 'En curso',
+          };
+        },
+      );
   }
 
   private async mapLogs(
@@ -734,51 +1213,51 @@ export class UsuariosService {
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
     uid: number,
+    agruparLogs: boolean = true,
+    mallasLocalMap: Map<number, any[]> = new Map(),
   ): Promise<any[]> {
-    const employeeIdsLogs = [
-      ...new Set(logs.map((l) => l.employee_id?.[0]).filter(Boolean)),
-    ];
-    const { calendarMap, mallasMap } = await this.getMallasMap(
-      employeeIdsLogs,
-      uid,
-    );
-
-    // Hora decimal desde timestamp local "YYYY-MM-DD HH:mm:ss"
-    const horaDecimal = (local: string): number => {
-      const [, t] = local.split(' ');
-      const [h, m] = (t || '').split(':').map(Number);
+    // --- HELPERS INTERNOS ---
+    const horaDecimalDeLocal = (local: string): number => {
+      const t = local.split(' ')[1] || '';
+      const [h, m] = t.split(':').map(Number);
       return h + (m || 0) / 60;
     };
 
-    // Desplazar una fecha N días
-    const shiftDate = (fecha: string, n: number): string => {
-      const [y, mo, d] = fecha.split('-').map(Number);
-      const dt = new Date(y, mo - 1, d + n);
-      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const addOneDayToDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d + 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
     };
 
-    // Turno nocturno según malla para una fecha local dada (null si no es nocturno)
-    const getNightShift = (
+    const subOneDayFromDate = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const nd = new Date(a, m - 1, d - 1);
+      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+    };
+
+    const getTurnoNocturno = (
       empId: number,
       fecha: string,
     ): { hi: number; hf: number } | null => {
-      const cal = calendarMap[empId];
-      if (!cal) return null;
-      const mallas = mallasMap[cal.calId];
-      if (!mallas?.length) return null;
-      const [y, mo, d] = fecha.split('-').map(Number);
-      const jsDay = new Date(y, mo - 1, d).getDay();
-      const diaSemana = (jsDay === 0 ? 6 : jsDay - 1).toString();
-      const mallasDelDia = mallas
-        .filter((m) => m.dayofweek === diaSemana)
-        .sort((a: any, b: any) => a.hour_from - b.hour_from);
-      if (!mallasDelDia.length) return null;
-      const t = mallasDelDia[0];
-      // Solo es nocturno si hour_to < hour_from (cruza medianoche)
-      return t.hour_to < t.hour_from ? { hi: t.hour_from, hf: t.hour_to } : null;
+      const asignaciones = mallasLocalMap.get(empId);
+      if (!asignaciones?.length) return null;
+      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+      const [a, m, d] = fecha.split('-').map(Number);
+      const jsDay = new Date(a, m - 1, d).getDay();
+      const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+      const turnosDia = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort(
+          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+        );
+      if (!turnosDia.length) return null;
+      const t = turnosDia[0];
+      const hi = Number(t.hora_inicio);
+      const hf = Number(t.hora_fin);
+      return hf < hi ? { hi, hf } : null;
     };
 
-    // --- PASO 1: AGRUPAR POR EMPLEADO + DÍA ---
+    // --- PASO 1: AGRUPAR POR EMPLEADO Y DÍA ---
     const grupos: Record<
       string,
       { empId: number; nombre: string; dept: string; registros: any[] }
@@ -790,7 +1269,6 @@ export class UsuariosService {
       const localTime = toLocal(log.punching_time);
       const fecha = localTime ? localTime.split(' ')[0] : 'SIN_FECHA';
       const key = `${empId}_${fecha}`;
-
       if (!grupos[key]) {
         grupos[key] = {
           empId,
@@ -804,8 +1282,8 @@ export class UsuariosService {
       grupos[key].registros.push(log);
     });
 
-    // --- PASO 2: CONSOLIDAR A 1 FILA POR GRUPO (primera marca = entrada, última = salida) ---
-    type Fila = {
+    // --- PASO 2: ESTRUCTURA INICIAL DE FILAS ---
+    type FilaLog = {
       empId: number;
       nombre: string;
       dept: string;
@@ -814,12 +1292,13 @@ export class UsuariosService {
       localOut: string | null;
       punchInUTC: string | null;
       punchOutUTC: string | null;
+      fuente: string; // <--- AGREGADO
       eliminado: boolean;
     };
 
-    const filas: Fila[] = Object.values(grupos).map(
-      ({ empId, nombre, dept, registros }) => {
-        const ordenados = [...registros].sort(
+    const filas: FilaLog[] = Object.entries(grupos).map(
+      ([, { empId, nombre, dept, registros }]) => {
+        const ordenados = registros.sort(
           (a, b) =>
             new Date(a.punching_time).getTime() -
             new Date(b.punching_time).getTime(),
@@ -831,48 +1310,120 @@ export class UsuariosService {
           new Date(primero.punching_time).getTime();
         const haySalida = ordenados.length > 1 && diffMs >= 60_000;
 
-        const localIn = toLocal(primero.punching_time);
+        // Detectar fuente: Si algún registro del grupo viene de la App, marcamos como App
+        // Odoo suele usar campos como 'in_mode' o 'check_in_mode'.
+        // Ajusta 'log.in_mode' al nombre técnico real de tu campo.
+        const esApp = registros.some(
+          (r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP',
+        );
+
         return {
           empId,
           nombre,
           dept,
-          fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-          localIn,
+          fecha: toLocal(primero.punching_time)?.split(' ')[0] || 'N/A',
+          localIn: toLocal(primero.punching_time),
           localOut: haySalida ? toLocal(ultimo.punching_time) : null,
           punchInUTC: primero.punching_time,
           punchOutUTC: haySalida ? ultimo.punching_time : null,
+          fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
           eliminado: false,
         };
       },
     );
 
-    const filaIdx = new Map(filas.map((f) => [`${f.empId}_${f.fecha}`, f]));
+    const filaIdx = new Map<string, FilaLog>();
+    for (const f of filas) filaIdx.set(`${f.empId}_${f.fecha}`, f);
 
-    // --- PASO 3: REPARAR TURNOS NOCTURNOS QUE CRUZAN MEDIANOCHE ---
-    // Una marca matutina orphan (sin salida, antes de las 08:00) en el Día N
-    // puede ser la SALIDA del turno nocturno del Día N-1.
-    // Se verifica contra la malla del día anterior (no del actual).
+    // Ordenar cronológicamente: garantiza que cuando procesamos el Día N,
+    // el Día N-1 ya fue corregido y prevFila refleja su estado definitivo.
+    filas.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    // --- PASO 3: REPARACIÓN DE TURNOS NOCTURNOS (CRUCE DE MEDIANOCHE) ---
+    // Hay dos situaciones para logs biométricos con primer punch matutino (< 08:00):
+    //
+    // CASO INVERTIDO: la fila tiene punch matutino (salida del turno anterior)
+    //   Y punch nocturno (≥ 18h, entrada del turno actual) en el mismo grupo.
+    //   El día anterior puede o no estar en el rango — no importa para la
+    //   corrección de ESTA fila; solo intentamos enlazarlo si está disponible.
+    //
+    // Sub-caso A (orphan): solo punch matutino sin nocturno. El día anterior
+    //   debe estar abierto (sin salida) para asignarle este punch como exit.
+    //
+    // GUARDIA: solo se repara si el empleado tiene turno nocturno en prevFecha.
+    // Esto evita que entradas matutinas de mallas diurnas (ej. 06:59 para malla
+    // 07:00-17:00) sean mal clasificadas como salida del turno anterior.
     for (const fila of filas) {
-      if (!fila.localIn || fila.eliminado || fila.localOut) continue;
+      if (!fila.localIn || fila.eliminado) continue;
 
-      const hIn = horaDecimal(fila.localIn);
-      if (hIn >= 8) continue; // solo punches matutinos sin pareja
+      const hIn = horaDecimalDeLocal(fila.localIn);
+      if (hIn >= 8) continue; // solo filas cuyo primer punch sea matutino
 
-      const prevFecha = shiftDate(fila.fecha, -1);
-      const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-      if (!prevFila || prevFila.eliminado || !prevFila.localIn || prevFila.localOut)
-        continue;
+      const prevFecha = subOneDayFromDate(fila.fecha);
 
-      // Comprobar malla del DÍA ANTERIOR (no del actual)
-      const nocturno = getNightShift(fila.empId, prevFecha);
-      if (!nocturno) continue;
+      const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
 
-      const hPrevIn = horaDecimal(prevFila.localIn);
-      // Tolerancia ±1 h para la entrada nocturna y ±2 h para la salida matutina
-      if (hPrevIn >= nocturno.hi - 1 && hIn <= nocturno.hf + 2) {
-        prevFila.localOut = fila.localIn;
-        prevFila.punchOutUTC = fila.punchInUTC;
-        fila.eliminado = true;
+      // ── CASO INVERTIDO ──────────────────────────────────────────────────
+      // Requiere malla nocturna en prevFecha: evita invertir entradas matutinas
+      // de mallas diurnas (ej. 06:59 AM con malla 07:00-17:00 → no tocar).
+      if (fila.localOut) {
+        const hOut = horaDecimalDeLocal(fila.localOut);
+        if (hOut >= 18 && nocturnoAnterior) {
+          const { hi, hf } = nocturnoAnterior;
+          if (hIn <= hf + 2) {
+            const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+            if (
+              prevFila &&
+              !prevFila.eliminado &&
+              prevFila.localIn &&
+              !prevFila.localOut
+            ) {
+              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+              if (hPrevIn >= hi - 1) {
+                prevFila.localOut = fila.localIn;
+                prevFila.punchOutUTC = fila.punchInUTC;
+              }
+            }
+            fila.localIn = fila.localOut;
+            fila.punchInUTC = fila.punchOutUTC;
+            fila.localOut = null;
+            fila.punchOutUTC = null;
+            const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
+            if (nuevaFecha !== fila.fecha) {
+              filaIdx.delete(`${fila.empId}_${fila.fecha}`);
+              fila.fecha = nuevaFecha;
+              filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
+            }
+            continue;
+          }
+        }
+      }
+
+      // ── Sub-caso A: punch matutino orphan ────────────────────────────────
+      // Aplica si: (1) malla nocturna con horas compatibles, o (2) prevFila
+      // entró en horario nocturno (≥ 18 h) — cubre empleados sin malla asignada.
+      if (!fila.localOut) {
+        const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+        if (
+          prevFila &&
+          !prevFila.eliminado &&
+          prevFila.localIn &&
+          !prevFila.localOut
+        ) {
+          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
+
+          const matchMalla = nocturnoAnterior
+            ? hPrevIn >= nocturnoAnterior.hi - 1 &&
+              hIn <= nocturnoAnterior.hf + 2
+            : false;
+          const matchHeuristica = !nocturnoAnterior && hPrevIn >= 18;
+
+          if (matchMalla || matchHeuristica) {
+            prevFila.localOut = fila.localIn;
+            prevFila.punchOutUTC = fila.punchInUTC;
+            fila.eliminado = true;
+          }
+        }
       }
     }
 
@@ -880,14 +1431,11 @@ export class UsuariosService {
     return filas
       .filter((f) => !f.eliminado && f.localIn && f.punchInUTC)
       .map((f) => {
-        const cEntrada = f.empId
-          ? `${this.clasificarPorMalla(f.empId, f.punchInUTC!, true, calendarMap, mallasMap)} | BIOMÉTRICO`
-          : 'SIN MALLA | BIOMÉTRICO';
-
-        const cSalida =
-          f.punchOutUTC && f.empId
-            ? `${this.clasificarPorMalla(f.empId, f.punchOutUTC, false, calendarMap, mallasMap)} | BIOMÉTRICO`
-            : 'SIN SALIDA';
+        const [a, m, d] = f.fecha.split('-').map(Number);
+        const diaSemanaEntrada =
+          new Date(a, m - 1, d).getDay() === 0
+            ? 6
+            : new Date(a, m - 1, d).getDay() - 1;
 
         return {
           id: `log_${f.empId}_${f.fecha}`,
@@ -896,82 +1444,282 @@ export class UsuariosService {
           department_id: f.dept,
           check_in: f.localIn,
           check_out: f.localOut,
-          c_entrada: cEntrada,
-          c_salida: cSalida,
+          c_entrada: this.clasificarPorMallaLocal(
+            f.empId,
+            f.punchInUTC!,
+            true,
+            mallasLocalMap,
+            diaSemanaEntrada,
+          ),
+          c_salida: f.punchOutUTC
+            ? this.clasificarPorMallaLocal(
+                f.empId,
+                f.punchOutUTC,
+                false,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
+            : 'SIN SALIDA',
           fecha: f.fecha,
           tipo: 'LOG CRUDO',
+          fuente: f.fuente, // <--- DINÁMICO: APP o BIOMÉTRICO
           estado: f.localOut ? 'Finalizado' : 'En curso',
         };
       });
   }
-
+  // ==========================================
+  // MÉTODO PRINCIPAL - Solo orquesta
+  // ==========================================
   async getReporteNovedades(
     soloHoy?: boolean,
     companyName?: string,
     startDate?: string,
     endDate?: string,
-    // departamentoName?: string,
+    departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
+    agruparLogs: boolean = true,
   ) {
+    // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
+    if (!soloHoy && startDate && endDate) {
+      const dias = Math.round(
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+          86400000,
+      );
+      if (dias > 62) {
+        throw new (require('@nestjs/common').BadRequestException)(
+          `El rango máximo permitido es 62 días. Seleccionaste ${dias} días.`,
+        );
+      }
+    }
+
+    console.time('⏱ TOTAL reporte');
+    const inicioTotal = Date.now();
     const uid = await this.odoo.authenticate();
     const { hoyFechaCorta } = getFechaColombia();
 
-    // --- 1. LÓGICA DE FILTRADO LOCAL POR ESTRUCTURA ---
-    let employeeIdsPorEstructura: number[] | null = null;
-    if (areaId || segmentoId) {
-      const where: any = {};
-      if (areaId) where.area_id = areaId;
-      if (segmentoId) where.segmento_id = segmentoId;
+    const rangoTexto = soloHoy
+      ? 'Hoy'
+      : `${startDate || '?'} → ${endDate || '?'}`;
+    const deptoTexto = departamentoName || 'Todos los departamentos';
 
-      const usuariosLocales = await this.usuarioRepo.find({
-        where,
-        select: ['id_odoo'],
-      });
+    // 1. Filtro por estructura local (área/segmento)
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    )
+      return [];
 
-      employeeIdsPorEstructura = usuariosLocales
-        .map((u) => u.id_odoo)
-        .filter((id) => id != null);
+    // 2. Calcular fechas UTC
+    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } =
+      this.calcularRangoUTC(soloHoy, hoyFechaCorta, startDate, endDate);
 
-      if (employeeIdsPorEstructura.length === 0) return [];
+    // 3. Construir dominios
+    const { domainAtt, domainLog } = this.construirDominios(
+      inicioUTC,
+      finUTC,
+      companyName,
+      departamentoName,
+      employeeIdsPorEstructura,
+      finUTCLog,
+    );
+
+    // 4. Consultar Odoo
+    console.time('⏱ query-odoo');
+    let attendances: any[];
+    let logs: any[];
+
+    try {
+      [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid);
+    } catch (error) {
+      // Enviar correo si la consulta falla (ej: demasiados registros)
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'error',
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje: error.message,
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+      throw error;
     }
 
-    // --- 2. CONFIGURACIÓN DE FECHAS (Ajuste preciso UTC-5) ---
-    const startDay = soloHoy ? hoyFechaCorta : startDate;
-    const endDay = soloHoy ? hoyFechaCorta : endDate;
+    console.timeEnd('⏱ query-odoo');
+    const total = attendances.length + logs.length;
+    console.log(`📊 Attendances: ${attendances.length} | Logs: ${logs.length}`);
 
-    // IMPORTANTE: Para capturar registros desde las 00:00:00 Colombia,
-    // pedimos a Odoo desde las 05:00:00 UTC del mismo día.
+    // Alerta si la consulta trajo muchos registros
+    if (total > 15000) {
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'grande',
+          registros: total,
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje:
+            'La consulta fue exitosa pero es muy pesada. Considera agregar más filtros.',
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+    }
+
+    // 5. Obtener cédulas
+    console.time('⏱ partners');
+    const partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
+    console.timeEnd('⏱ partners');
+
+    // 6. Mapear resultados
+    const toLocal = this.crearConvertidorLocal();
+
+    // Construir malla local para TODOS los empleados (attendance + logs)
+    const todosLosEmpIds = [
+      ...new Set([
+        ...attendances.map((a) => a.employee_id?.[0]).filter(Boolean),
+        ...logs.map((l) => l.employee_id?.[0]).filter(Boolean),
+      ]),
+    ];
+    const mallasLocalMap = await this.getMallasMapLocal(todosLosEmpIds);
+
+    console.time('⏱ mapLogs');
+    const [resAttendances, resLogs] = await Promise.all([
+      Promise.resolve(
+        this.mapAttendances(attendances, partnerMap, toLocal, mallasLocalMap),
+      ),
+      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs, mallasLocalMap),
+    ]);
+    console.timeEnd('⏱ mapLogs');
+
+    // 7. Unir y ordenar
+    const todosSinFiltrar = [...resAttendances, ...resLogs].sort((a, b) => {
+      const timeA = new Date(
+        (a.check_in || a.check_out || '0').replace(' ', 'T'),
+      ).getTime();
+      const timeB = new Date(
+        (b.check_in || b.check_out || '0').replace(' ', 'T'),
+      ).getTime();
+      return timeB - timeA;
+    });
+
+    // FILTRO REPARADO:
+    const resultado =
+      startDay || endDay
+        ? todosSinFiltrar.filter((r) => {
+            // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha
+            // sea el día que empezó el turno (incluso para salidas nocturnas)
+            const f = r.fecha;
+
+            if (!f || f === 'N/A') return true;
+
+            // Si pediste hasta el 29, esto eliminará cualquier bloque que
+            // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
+            if (startDay && f < startDay) return false;
+            if (endDay && f > endDay) return false;
+
+            return true;
+          })
+        : todosSinFiltrar;
+
+    const tiempoTotal = (Date.now() - inicioTotal) / 1000;
+    console.timeEnd('⏱ TOTAL reporte');
+    console.log(`✅ Total registros devueltos: ${resultado.length}`);
+
+    // Correo si tardó más de 20 segundos
+    if (tiempoTotal > 60) {
+      this.mailService
+        .enviarAlertaConsulta({
+          tipo: 'grande',
+          registros: resultado.length,
+          tiempo: tiempoTotal,
+          departamento: deptoTexto,
+          rango: rangoTexto,
+          mensaje: `La consulta tardó ${tiempoTotal.toFixed(1)}s. Rendimiento degradado.`,
+        })
+        .catch((e) => console.error('Error enviando alerta correo:', e));
+    }
+
+    return resultado;
+  }
+
+  // ==========================================
+  // MÉTODOS AUXILIARES DEL REPORTE
+  // ==========================================
+
+  private async resolverIdsPorEstructura(
+    areaId?: number,
+    segmentoId?: number,
+  ): Promise<number[] | null> {
+    if (!areaId && !segmentoId) return null;
+
+    const where: any = {};
+    if (areaId) where.area_id = areaId;
+    if (segmentoId) where.segmento_id = segmentoId;
+
+    const usuarios = await this.usuarioRepo.find({
+      where,
+      select: ['id_odoo'],
+    });
+    return usuarios.map((u) => u.id_odoo).filter((id) => id != null);
+  }
+
+  private calcularRangoUTC(
+    soloHoy: boolean | undefined,
+    hoyFechaCorta: string,
+    startDate?: string,
+    endDate?: string,
+  ): {
+    inicioUTC: string | null;
+    finUTC: string | null;
+    finUTCLog: string | null;
+    startDay: string | null;
+    endDay: string | null;
+  } {
+    const startDay = soloHoy ? hoyFechaCorta : (startDate ?? null);
+    const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
     let finUTC: string | null = null;
-    // finUTCLog extiende 1 día más que finUTC para capturar salidas de turno
-    // nocturno que cruzan medianoche (ej. salida 06:00 AM = 11:00 UTC del día siguiente).
-    // 12:00 UTC del día endDay+1 cubre hasta las 07:00 AM Colombia.
     let finUTCLog: string | null = null;
+
     if (endDay) {
-      const partes = endDay.split('-');
-      const fechaFin = new Date(
-        Number(partes[0]),
-        Number(partes[1]) - 1,
-        Number(partes[2]),
-      );
-      // Sumamos 1 día para llegar al amanecer del día siguiente en UTC
+      const [anio, mes, dia] = endDay.split('-').map(Number);
+
+      // finUTC para hr.attendance (filtra por check_in; check_out viene incluido en el registro)
+      const fechaFin = new Date(anio, mes - 1, dia);
       fechaFin.setDate(fechaFin.getDate() + 1);
+      const a = fechaFin.getFullYear();
+      const m = String(fechaFin.getMonth() + 1).padStart(2, '0');
+      const d = String(fechaFin.getDate()).padStart(2, '0');
+      finUTC = `${a}-${m}-${d} 04:59:59`;
 
-      const anio = fechaFin.getFullYear();
-      const mes = String(fechaFin.getMonth() + 1).padStart(2, '0');
-      const dia = String(fechaFin.getDate()).padStart(2, '0');
-
-      // hr.attendance: hasta las 04:59:59 UTC (= 23:59:59 Colombia del día de consulta)
-      finUTC = `${anio}-${mes}-${dia} 04:59:59`;
-      // attendance.log: hasta las 12:00:00 UTC del día endDay+1 (= 07:00 AM Colombia)
-      finUTCLog = `${anio}-${mes}-${dia} 12:00:00`;
+      // finUTCLog para attendance.log: extiende 1 día Colombia extra para capturar
+      // las salidas de turno nocturno que ocurren entre las 00:00 y las ~07:00
+      // del día siguiente (ej. 06:00 Colombia = 11:00 UTC)
+      // Cambia esto en calcularRangoUTC para finUTCLog
+      const fechaFinLog = new Date(anio, mes - 1, dia);
+      fechaFinLog.setDate(fechaFinLog.getDate() + 1); // Solo un día extra
+      const al = fechaFinLog.getFullYear();
+      const ml = String(fechaFinLog.getMonth() + 1).padStart(2, '0');
+      const dl = String(fechaFinLog.getDate()).padStart(2, '0');
+      // 12:00:00 UTC son las 07:00 AM Colombia. Suficiente para turnos que acaban a las 6 AM.
+      finUTCLog = `${al}-${ml}-${dl} 12:00:00`;
     }
 
-    // --- 3. CONSTRUCCIÓN DE DOMINIOS ---
-    let domainAtt: any[] = [];
-    let domainLog: any[] = [];
+    return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
+  }
+
+  private construirDominios(
+    inicioUTC: string | null,
+    finUTC: string | null,
+    companyName?: string,
+    departamentoName?: string,
+    employeeIds?: number[] | null,
+    finUTCLog?: string | null,
+  ): { domainAtt: any[]; domainLog: any[] } {
+    const domainAtt: any[] = [];
+    const domainLog: any[] = [];
 
     if (inicioUTC) {
       domainAtt.push(['check_in', '>=', inicioUTC]);
@@ -980,193 +1728,197 @@ export class UsuariosService {
     if (finUTC) {
       domainAtt.push(['check_in', '<=', finUTC]);
     }
-    if (finUTCLog) {
-      domainLog.push(['punching_time', '<=', finUTCLog]);
+    // attendance.log usa un rango extendido para capturar salidas de turno nocturno
+    const finLog = finUTCLog ?? finUTC;
+    if (finLog) {
+      domainLog.push(['punching_time', '<=', finLog]);
     }
-
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
       domainLog.push(['company_id.name', '=', companyName]);
     }
-
-    // if (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '') {
-    //   domainAtt.push(['employee_id.department_id.name', 'ilike', departamentoName]);
-    //   domainLog.push(['x_studio_related_field_j40wn.name', 'ilike', departamentoName]);
-    // }
-
-    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-      domainAtt.push(['employee_id', 'in', employeeIdsPorEstructura]);
-      domainLog.push(['employee_id', 'in', employeeIdsPorEstructura]);
+    if (
+      departamentoName &&
+      departamentoName !== 'DEPARTAMENTOS' &&
+      departamentoName !== ''
+    ) {
+      domainAtt.push([
+        'employee_id.department_id.name',
+        'ilike',
+        departamentoName,
+      ]);
+      domainLog.push([
+        'x_studio_related_field_j40wn.name',
+        'ilike',
+        departamentoName,
+      ]);
+    }
+    if (employeeIds && employeeIds.length > 0) {
+      domainAtt.push(['employee_id', 'in', employeeIds]);
+      domainLog.push(['employee_id', 'in', employeeIds]);
     }
 
-    try {
-      const [attendances, logs] = await Promise.all([
-        this.odoo.executeKw<any[]>(
-          'hr.attendance',
-          'search_read',
-          [domainAtt],
-          {
-            fields: [
-              'employee_id',
-              'check_in',
-              'check_out',
-              'department_id',
-              'x_studio_tipo_entrada',
-              'x_studio_tipo_salida',
-            ],
-            order: 'check_in desc',
-            limit: 30000000,
-          },
-          uid,
-        ),
-        this.odoo.executeKw<any[]>(
-          'attendance.log',
-          'search_read',
-          [domainLog],
-          {
-            fields: [
-              'employee_id',
-              'punching_time',
-              'status',
-              'x_studio_related_field_j40wn',
-              'device',
-            ],
-            order: 'punching_time desc',
-            limit: 30000000,
-          },
-          uid,
-        ),
-      ]);
-      const nombresAsistencias = attendances.map((a) => a.employee_id?.[1]);
-      const nombresLogs = logs.map((l) => l.employee_id?.[1]);
-      const nombresUnicos = [
-        ...new Set([...nombresAsistencias, ...nombresLogs]),
-      ].filter(Boolean);
-
-      let partnerMap: Record<string, string> = {};
-      if (nombresUnicos.length > 0) {
-        const partners = await this.odoo.executeKw<any[]>(
-          'res.partner',
-          'search_read',
-          [[['name', 'in', nombresUnicos]]],
-          { fields: ['name', 'doc_number'] },
-          uid,
-        );
-        partnerMap = Object.fromEntries(
-          partners.map((p) => [p.name, p.doc_number]),
-        );
-      }
-
-      // --- 4. FUNCIÓN CONVERSORA A LOCAL ---
-      // const toLocal = (utcDate: string) => {
-      //   if (!utcDate) return null;
-
-      //   // Odoo devuelve "YYYY-MM-DD HH:mm:ss"
-      //   // Reemplazamos espacio por T y añadimos Z para indicar que es UTC puro
-      //   const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-
-      //   // Usamos Intl para asegurar que siempre sea formato Colombia, sin importar el servidor
-      //   return new Intl.DateTimeFormat('sv-SE', {
-      //     // 'sv-SE' da formato YYYY-MM-DD HH:mm:ss
-      //     timeZone: 'America/Bogota',
-      //     year: 'numeric',
-      //     month: '2-digit',
-      //     day: '2-digit',
-      //     hour: '2-digit',
-      //     minute: '2-digit',
-      //     second: '2-digit',
-      //   })
-      //     .format(fechaUTC)
-      //     .replace('T', ' ');
-      // };
-
-      const toLocal = (utcDate: string) => {
-        if (!utcDate) return null;
-        const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
-        return new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'America/Bogota',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-          .format(fechaUTC)
-          .replace('T', ' ');
-      };
-      const [resAttendances, resLogs] = await Promise.all([
-        Promise.resolve(this.mapAttendances(attendances, partnerMap, toLocal)),
-        this.mapLogs(logs, partnerMap, toLocal, uid),
-      ]);
-
-      // // --- 5. MAPEO FINAL ---
-      // const resAttendances = attendances.map((att) => {
-      //   // 1. Convertimos las fechas a local una sola vez por cada registro
-      //   const localIn = toLocal(att.check_in);
-      //   const localOut = toLocal(att.check_out);
-
-      //   // 2. Obtenemos el nombre para buscar en el mapa de partners
-      //   const nombre = att.employee_id ? att.employee_id[1] : 'Desconocido';
-
-      //   // 3. Retornamos el objeto organizado
-      //   return {
-      //     id: `att_${att.id}`,
-      //     empleado: nombre,
-      //     cc: partnerMap[nombre] || 'N/A', // Aquí asignamos el documento (Cédula/CC)
-      //     department_id: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-      //     c_entrada: att.x_studio_tipo_entrada || 'A TIEMPO',
-      //     c_salida: att.x_studio_tipo_salida || 'N/A',
-      //     check_in: localIn,
-      //     check_out: localOut,
-      //     fecha: localIn ? localIn.split(' ')[0] : 'N/A',
-      //     tipo: 'ASISTENCIA',
-      //     estado: att.check_out ? 'Finalizado' : 'En curso',
-      //   };
-      // });
-
-      // const resLogs = logs.map((log) => {
-      //   const localTime = toLocal(log.punching_time);
-      //   const esEntrada = log.status === '0' || log.status === '2';
-
-      //   // 1. Extraemos el nombre del empleado del log
-      //   const nombre = log.employee_id ? log.employee_id[1] : 'Desconocido';
-
-      //   return {
-      //     id: `log_${log.id}`,
-
-      //     // 2. Asignamos el nombre y buscamos el documento en el mapa
-      //     empleado: nombre,
-      //     cc: partnerMap[nombre] || 'N/A', // <-- Aquí queda el doc_number para los logs
-
-      //     department_id: log.x_studio_related_field_j40wn
-      //       ? log.x_studio_related_field_j40wn[1]
-      //       : 'SIN DEPTO',
-      //     check_in: esEntrada ? localTime : null,
-      //     check_out: !esEntrada ? localTime : null,
-      //     c_entrada: esEntrada ? 'BIOMÉTRICO' : 'N/A',
-      //     c_salida: !esEntrada ? 'BIOMÉTRICO' : 'N/A',
-      //     fecha: localTime ? localTime.split(' ')[0] : 'N/A',
-      //     tipo: 'LOG CRUDO',
-      //     estado: 'Biométrico',
-      //   };
-      // });
-
-      // --- 6. UNIÓN Y ORDENAMIENTO ---
-      return [...resAttendances, ...resLogs].sort((a, b) => {
-        const timeA = new Date(
-          (a.check_in || a.check_out || '0').replace(' ', 'T'),
-        ).getTime();
-        const timeB = new Date(
-          (b.check_in || b.check_out || '0').replace(' ', 'T'),
-        ).getTime();
-        return timeB - timeA;
-      });
-    } catch (error) {
-      console.error('Error en reporte:', error);
-      throw error;
-    }
+    return { domainAtt, domainLog };
   }
+
+  private async consultarOdoo(
+    domainAtt: any[],
+    domainLog: any[],
+    uid: number,
+  ): Promise<[any[], any[]]> {
+    // Timeout de 3 minutos — si Odoo no responde, devuelve error manejable
+    const TIMEOUT_MS = 180_000;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              '⏰ Timeout: Odoo tardó más de 3 min. Reduce el rango de fechas.',
+            ),
+          ),
+        TIMEOUT_MS,
+      ),
+    );
+
+    const consulta = Promise.all([
+      this.odoo.executeKw<any[]>(
+        'hr.attendance',
+        'search_read',
+        [domainAtt],
+        {
+          fields: [
+            'employee_id',
+            'check_in',
+            'check_out',
+            'department_id',
+            'x_studio_tipo_entrada',
+            'x_studio_tipo_salida',
+          ],
+          order: 'check_in desc',
+          limit: 100000,
+        },
+        uid,
+      ),
+      this.odoo.executeKw<any[]>(
+        'attendance.log',
+        'search_read',
+        [domainLog],
+        {
+          fields: [
+            'employee_id',
+            'punching_time',
+            'status',
+            'x_studio_related_field_j40wn',
+            'device',
+          ],
+          order: 'punching_time desc',
+          limit: 100000,
+        },
+        uid,
+      ),
+    ]);
+
+    return Promise.race([consulta, timeout]);
+  }
+
+  private async obtenerPartnerMap(
+    attendances: any[],
+    logs: any[],
+    uid: number,
+  ): Promise<Record<string, string>> {
+    // 1. Obtener IDs únicos de empleados
+    const employeeIds = [
+      ...new Set([
+        ...attendances.map((a) => a.employee_id?.[0]),
+        ...logs.map((l) => l.employee_id?.[0]),
+      ]),
+    ].filter(Boolean) as number[];
+
+    if (employeeIds.length === 0) return {};
+
+    // 2. Buscar empleados por ID — más confiable que por nombre
+    const empleados = await this.odoo.executeKw<any[]>(
+      'hr.employee',
+      'search_read',
+      [[['id', 'in', employeeIds]]],
+      {
+        fields: [
+          'id',
+          'name',
+          'identification_id',
+          'barcode',
+          'address_home_id',
+        ],
+      },
+      uid,
+    );
+
+    const partnerMap: Record<string, string> = {};
+    const sinCedula: any[] = [];
+
+    // 3. Primero intentar con identification_id o barcode directo
+    empleados.forEach((e) => {
+      const cedula = e.identification_id || e.barcode;
+      if (cedula && cedula.trim() !== '') {
+        partnerMap[e.name] = cedula;
+      } else {
+        sinCedula.push(e);
+      }
+    });
+
+    // 4. Para los que no tienen, buscar en res.partner por address_home_id
+    const partnerIds = sinCedula
+      .map((e) => e.address_home_id?.[0])
+      .filter(Boolean) as number[];
+
+    if (partnerIds.length > 0) {
+      const partners = await this.odoo.executeKw<any[]>(
+        'res.partner',
+        'search_read',
+        [[['id', 'in', [...new Set(partnerIds)]]]],
+        { fields: ['id', 'doc_number'] },
+        uid,
+      );
+
+      const docPorPartnerId = new Map(
+        partners.map((p) => [p.id, p.doc_number]),
+      );
+
+      sinCedula.forEach((e) => {
+        const partnerId = e.address_home_id?.[0];
+        if (partnerId) {
+          const doc = docPorPartnerId.get(partnerId);
+          if (doc && doc.trim() !== '' && doc !== 'false') {
+            partnerMap[e.name] = doc;
+          }
+        }
+      });
+    }
+
+    console.log(
+      `✅ Cédulas resueltas: ${Object.keys(partnerMap).length} / ${empleados.length}`,
+    );
+    return partnerMap;
+  }
+
+  private crearConvertidorLocal(): (utcDate: string) => string | null {
+    return (utcDate: string) => {
+      if (!utcDate) return null;
+      const fechaUTC = new Date(utcDate.replace(' ', 'T') + 'Z');
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+        .format(fechaUTC)
+        .replace('T', ' ');
+    };
+  }
+
   async getAttendanceStatus(employee_id: number) {
     try {
       const { hoyFechaCorta } = getFechaColombia();
@@ -1404,7 +2156,6 @@ export class UsuariosService {
       // Total = upserts + eliminaciones
       this.syncProgress.total = odooEmployees.length + toDelete.length;
       let nuevos = 0;
-      let actualizados = 0;
       let eliminados = 0;
 
       // ── FASE 1: UPSERT ───────────────────────────────────────────────────
@@ -1420,7 +2171,15 @@ export class UsuariosService {
           where: { id_odoo: emp.id },
         });
 
-        const data = {
+        if (existing) {
+          // Ya existe en la DB → no tocar nada
+          this.syncProgress.current = index + 1;
+          continue;
+        }
+
+        // Solo insertar si es completamente nuevo
+        await this.usuarioRepo.save({
+          id: emp.id,
           id_odoo: emp.id,
           nombre: emp.name,
           identificacion: emp.identification_id || 'N/A',
@@ -1429,15 +2188,8 @@ export class UsuariosService {
             ? emp.department_id[1]
             : 'Sin Departamento',
           pais: paisSeleccionado,
-        };
-
-        if (!existing) {
-          await this.usuarioRepo.save({ ...data, id: emp.id });
-          nuevos++;
-        } else {
-          await this.usuarioRepo.update(existing.id, data);
-          actualizados++;
-        }
+        });
+        nuevos++;
 
         this.syncProgress.current = index + 1;
       }
@@ -1460,7 +2212,7 @@ export class UsuariosService {
       this.syncProgress.status = 'completed';
       return {
         status: 'success',
-        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos, ${actualizados} actualizados, ${eliminados} eliminados.`,
+        message: `Sync (${deptoSeleccionado || 'General'}): ${nuevos} nuevos insertados, ${eliminados} eliminados.`,
       };
     } catch (error) {
       this.syncProgress.status = 'error';
@@ -1513,7 +2265,14 @@ export class UsuariosService {
     return await this.usuarioRepo.find(queryOptions);
   }
 
-  async removerModuloPermiso(idOdoo: number, modulo: string) {
+  async removerModuloPermiso(
+    idOdoo: number,
+    modulo: string,
+    adminName?: string,
+  ) {
+    console.log(
+      `[PERMISO REMOVIDO] módulo "${modulo}" de usuario ${idOdoo} por: ${adminName ?? 'Desconocido'}`,
+    );
     return await this.permisoRepo.delete({
       usuario_id_odoo: idOdoo,
       modulos: modulo,
@@ -1549,7 +2308,12 @@ export class UsuariosService {
     };
   }
 
-  async actualizarEstructuraLocal(idOdoo: number, campo: string, valor: any) {
+  async actualizarEstructuraLocal(
+    idOdoo: number,
+    campo: string,
+    valor: any,
+    adminName?: string,
+  ) {
     try {
       const usuario = await this.usuarioRepo.findOne({
         where: { id_odoo: idOdoo },
@@ -1561,14 +2325,18 @@ export class UsuariosService {
         );
       }
 
-      // Al haber agregado las columnas en la entidad, esto ahora funcionará:
       usuario[campo] = valor === null ? null : valor;
 
       await this.usuarioRepo.save(usuario);
 
+      console.log(
+        `[ESTRUCTURA] ${campo} de usuario ${idOdoo} actualizado por: ${adminName ?? 'Desconocido'}`,
+      );
+
       return {
         status: 'success',
         message: `Asignación de ${campo} exitosa`,
+        modificado_por: adminName ?? null,
       };
     } catch (error) {
       console.error('Error al actualizar estructura:', error);
@@ -1582,7 +2350,7 @@ export class UsuariosService {
     const todos = await this.usuarioRepo.find({ take: 5 });
     console.log('--- DEBUG DB ---');
     console.log('ID Odoo que busco:', idOdoo);
-    console.log('Contenido actual de la tabla (5 primeros):', todos);
+
     // ------------------------------------
 
     const usuario = await this.usuarioRepo.findOne({
@@ -1609,15 +2377,22 @@ export class UsuariosService {
   async setDeptosPermitidos(
     idOdoo: number,
     departamentos: string[],
+    adminName?: string,
   ): Promise<{ success: boolean }> {
-    // Borra los anteriores y guarda los nuevos
     await this.permisoDeptRepo.delete({ id_odoo: idOdoo });
     if (departamentos.length) {
       const nuevos = departamentos.map((d) =>
-        this.permisoDeptRepo.create({ id_odoo: idOdoo, departamento: d }),
+        this.permisoDeptRepo.create({
+          id_odoo: idOdoo,
+          departamento: d,
+          asignado_por: adminName ?? null,
+        }),
       );
       await this.permisoDeptRepo.save(nuevos);
     }
+    console.log(
+      `[DEPTOS] departamentos de usuario ${idOdoo} actualizados por: ${adminName ?? 'Desconocido'}`,
+    );
     return { success: true };
   }
 

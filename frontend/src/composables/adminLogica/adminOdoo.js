@@ -1,5 +1,6 @@
-import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useAttendance } from "../UserLogica/useAttendance.js";
+import { useCargarAsistencias } from "../UserLogica/cargarAsistencias.js";
 import { useRouter } from "vue-router";
 import * as XLSX from "xlsx";
 
@@ -7,84 +8,68 @@ export function adminOdoo() {
   const router = useRouter();
   const att = useAttendance();
 
-  const currentModule = ref("asistencias");
+  const {
+    fetchReporte,
+    selectedCompany,
+    selectedArea,
+    selectedSegmento,
+    rawData,
+    filteredReport, // 👈 del composable directamente
+    search,
+    selectedDepartment,
+    startDate,
+    endDate,
+    filterHoy,
+    loading,
+    downloadReport,
+    clearFilters,
+    departments,
+    reportData,
+  } = useCargarAsistencias();
 
+  const currentModule = ref("asistencias");
   const isSidebarOpen = ref(true);
-  const report = ref([]);
   const searchQuery = ref("");
   const isExporting = ref(false);
-  const selectedArea = ref(null);
-  const selectedSegmento = ref(null);
-
-  // --- NUEVAS VARIABLES PARA COMPAÑÍAS ---
   const allCompanies = ref([]);
-  const selectedCompany = ref("");
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
-  let intervalId = null;
 
-  // Cargar lista de compañías desde el nuevo endpoint
-  // adminOdoo.js
+  // Inicialización sincrónica: leer company desde la sesión guardada para que
+  // los componentes hijos ya reciban el prop correcto cuando montan.
+  const _session = JSON.parse(localStorage.getItem("user_session") || "{}");
+  if (_session.company && !selectedCompany.value) {
+    selectedCompany.value = _session.company;
+  }
+
   const fetchCompanies = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
-      allCompanies.value = data.filter((c) => c.is_active);
+      const active = data.filter((c) => c.is_active);
 
-      // Usar directamente la compañía del empleado logueado
-      const companyDelEmpleado = att.employee.value?.company;
+      const companyDelEmpleado =
+        _session.company || att.employee.value?.company;
+      const isSuperAdmin =
+        _session.isSuperAdmin || att.employee.value?.isSuperAdmin;
 
-      if (companyDelEmpleado) {
-        const match = allCompanies.value.find(
-          (c) => c.name === companyDelEmpleado,
-        );
-        selectedCompany.value =
-          match?.name ?? allCompanies.value[0]?.name ?? "";
+      if (isSuperAdmin) {
+        // SuperAdmin ve todas las compañías y puede cambiar libremente
+        allCompanies.value = active;
+        if (!selectedCompany.value) {
+          selectedCompany.value = active[0]?.name ?? "";
+        }
+      } else if (companyDelEmpleado) {
+        const match = active.find((c) => c.name === companyDelEmpleado);
+        // Admin normal solo ve su propia compañía
+        allCompanies.value = match ? [match] : active;
+        selectedCompany.value = match?.name ?? active[0]?.name ?? "";
       } else {
-        selectedCompany.value = allCompanies.value[0]?.name ?? "";
+        allCompanies.value = active;
+        selectedCompany.value = active[0]?.name ?? "";
       }
     } catch (err) {
       console.error("Error cargando compañías:", err);
-    }
-  };
-  const fetchReport = async () => {
-    try {
-      // 1. Obtenemos los datos base
-      const departamentoUsuario = att.employee.value?.department || "";
-      const params = new URLSearchParams();
-
-      // 2. Parámetros obligatorios y de fecha
-      params.append("hoy", "true");
-      params.append("company", selectedCompany.value || "Todas");
-
-      // --- LÓGICA DE PRIORIDAD DE FILTRADO ---
-
-      // Si el usuario seleccionó un ÁREA o SEGMENTO específico de la DB Local:
-      if (selectedArea.value || selectedSegmento.value) {
-        if (selectedArea.value) params.append("area_id", selectedArea.value);
-        if (selectedSegmento.value)
-          params.append("segmento_id", selectedSegmento.value);
-
-        // NOTA: Al enviar area_id, el Backend ignorará el departamento para
-        // traer exactamente a las personas de esa área local.
-      }
-      // Si NO hay área seleccionada, usamos el departamento del perfil/login
-      else if (departamentoUsuario && departamentoUsuario !== "DEPARTAMENTOS") {
-        params.append("departamento", departamentoUsuario);
-      }
-
-      // 3. Construcción de URL y Petición
-      const urlFinal = `${API_BASE_URL}/reporte-novedades?${params.toString()}`;
-
-      console.log("Ejecutando reporte con prioridad de área local:", urlFinal);
-
-      const res = await fetch(urlFinal);
-      const data = await res.json();
-
-      // Asignamos a la variable que uses para mostrar (report o rawData)
-      report.value = data;
-    } catch (err) {
-      console.error("Error al obtener el reporte:", err);
     }
   };
 
@@ -99,7 +84,7 @@ export function adminOdoo() {
       });
       const data = await res.json();
       if (data.status === "success") {
-        await fetchReport();
+        await fetchReporte();
         if (data.type === "in") {
           att.employee.value.is_inside = true;
           att.employee.value.day_completed = false;
@@ -123,15 +108,12 @@ export function adminOdoo() {
   const downloadExcelReport = async () => {
     isExporting.value = true;
     try {
-      // Exportamos solo lo que está filtrado actualmente en pantalla
       const worksheet = XLSX.utils.json_to_sheet(filteredReport.value);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Asistencias");
       XLSX.writeFile(
         workbook,
-        `Reporte_${selectedCompany.value}_${
-          new Date().toISOString().split("T")[0]
-        }.xlsx`,
+        `Reporte_${selectedCompany.value}_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
       att.showToast("Excel generado", "success");
     } catch (err) {
@@ -142,56 +124,35 @@ export function adminOdoo() {
   };
 
   onMounted(async () => {
-    await fetchCompanies(); // Primero traemos las compañías
-    fetchReport();
-    intervalId = setInterval(fetchReport, 60000);
+    await fetchCompanies();
+    // fetchReporte lo llama el componente Vue — no llamar aquí
   });
 
-  onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId);
-  });
-
-  // --- FILTRADO POR BUSQUEDA Y POR COMPAÑIA ---
-  // useCargarAsistencias.js
-  const filteredReport = computed(() => {
-    const s = search.value.toLowerCase().trim();
-    const deptoSeleccionado = selectedDepartment.value;
-
-    return rawData.value.filter((item) => {
-      // 1. Filtro de Búsqueda (Colaborador o Estado)
-      const matchesSearch =
-        !s ||
-        String(item.empleado || "")
-          .toLowerCase()
-          .includes(s) ||
-        String(item.estado || "")
-          .toLowerCase()
-          .includes(s);
-
-      // 2. Filtro de Departamento (SOLUCIÓN):
-      // Si ya viene filtrado del backend, no necesitamos re-filtrar aquí
-      // a menos que el usuario use explícitamente el SELECT del UI.
-      const matchesDept =
-        !deptoSeleccionado ||
-        String(item.department_id).trim() === String(deptoSeleccionado).trim();
-
-      return matchesSearch && matchesDept;
-    });
-  });
   return {
     ...att,
     currentModule,
     isSidebarOpen,
-    report,
     searchQuery,
     isExporting,
-    allCompanies, // Exportamos para el select
-    selectedCompany, // Exportamos para el v-model
-    fetchReport,
-    handleAttendance,
-    downloadExcelReport,
-    filteredReport,
+    allCompanies,
+    // Del composable:
+    selectedCompany,
     selectedArea,
     selectedSegmento,
+    selectedDepartment,
+    search,
+    startDate,
+    endDate,
+    filterHoy,
+    loading,
+    rawData,
+    reportData,
+    filteredReport,
+    departments,
+    fetchReporte,
+    downloadReport,
+    clearFilters,
+    handleAttendance,
+    downloadExcelReport,
   };
 }

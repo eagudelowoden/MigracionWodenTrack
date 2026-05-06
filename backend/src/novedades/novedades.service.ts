@@ -1,7 +1,8 @@
 // src/novedades/novedades.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import * as fs from 'fs';
@@ -15,11 +16,12 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Novedad } from './entities/novedad.entity';
+import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
+import { SistemaConfigService } from '../sistema-config/sistema-config.service';
 
 @Injectable()
 export class NovedadesService {
-  private readonly storageMode: string;
   private readonly localDir: string;
   private readonly s3: S3Client;
   private readonly bucket: string;
@@ -27,9 +29,12 @@ export class NovedadesService {
   constructor(
     @InjectRepository(Novedad)
     private readonly novedadRepo: Repository<Novedad>,
+    @InjectRepository(NovedadEstadoCh)
+    private readonly estadoChRepo: Repository<NovedadEstadoCh>,
     private readonly config: ConfigService,
+    private readonly sistemaConfig: SistemaConfigService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {
-    this.storageMode = this.config.get<string>('STORAGE_MODE', 'local');
     this.localDir = path.join(process.cwd(), 'uploads', 'novedades');
     this.bucket = this.config.get<string>('AWS_S3_BUCKET', '');
 
@@ -41,7 +46,7 @@ export class NovedadesService {
       },
     });
 
-    if (this.storageMode === 'local' && !fs.existsSync(this.localDir)) {
+    if (!fs.existsSync(this.localDir)) {
       fs.mkdirSync(this.localDir, { recursive: true });
     }
   }
@@ -51,7 +56,14 @@ export class NovedadesService {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
-    if (modo === 's3') {
+    if (modo === 's3' && !this.bucket) {
+      throw new Error(
+        'El modo de almacenamiento está configurado como S3 pero AWS_S3_BUCKET no está definido en las variables de entorno.',
+      );
+    }
+    const modoEfectivo = modo;
+
+    if (modoEfectivo === 's3') {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
@@ -87,7 +99,8 @@ export class NovedadesService {
   // ─── CREATE ────────────────────────────────────────────────────────────────
   async create(dto: CreateNovedadDto, file: Express.Multer.File) {
     if (!file) throw new Error('Se requiere un documento de soporte.');
-    const modoEfectivo = dto.storageMode || this.storageMode;
+    const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
+    const modoEfectivo = dto.storageMode || storageFromDb;
     const { storageKey, storageMode } = await this.saveFile(file, modoEfectivo);
 
     const novedad = this.novedadRepo.create({
@@ -108,6 +121,7 @@ export class NovedadesService {
         : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,
+      creadoPor: dto.creadoPor ? Number(dto.creadoPor) : undefined,
     });
 
     const saved = await this.novedadRepo.save(novedad);
@@ -121,7 +135,163 @@ export class NovedadesService {
 
   // ─── FIND ALL ──────────────────────────────────────────────────────────────
   async findAll() {
-    return this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+    const novedades = await this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+    if (!novedades.length) return [];
+
+    // Enriquecer con departamento y cargo desde usuarios_registrados
+    const nombres = [...new Set(novedades.map((n) => n.nombre).filter(Boolean))];
+    const escapedNames = nombres
+      .map((n) => `'${n.replace(/'/g, "''")}'`)
+      .join(', ');
+
+    const usuarios: Array<{ nombre: string; departamento: string; cargo: string }> =
+      await this.dataSource.query(
+        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
+      );
+
+    const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
+
+    return novedades.map((n) => ({
+      ...n,
+      departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
+      cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+    }));
+  }
+
+  // ─── Helper: novedades de un conjunto de empleados ───────────────────────
+  // Busca por creadoPor (id_odoo, muy confiable) O por cedula (fallback)
+  // Así el jefe ve TODAS las novedades de su equipo sin importar cómo
+  // se registró la cédula.
+  private async novedadesPorCedulas(
+    empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }>,
+  ) {
+    if (!empleados.length) return [];
+
+    // Obtener id_odoo y cédulas únicas (filtrando nulos)
+    const idOdoos = [
+      ...new Set(empleados.map((e) => e.idOdoo).filter((x): x is number => !!x)),
+    ];
+    const cedulas = [
+      ...new Set(empleados.map((e) => e.cedula).filter(Boolean)),
+    ];
+
+    if (!idOdoos.length && !cedulas.length) return [];
+
+    // Construir condiciones: creado_por IN (...) OR cedula IN (...)
+    const conditions: string[] = [];
+
+    if (idOdoos.length) {
+      conditions.push(`n.creado_por IN (${idOdoos.join(',')})`);
+    }
+
+    if (cedulas.length) {
+      const escaped = cedulas
+        .map((c) => `'${String(c).replace(/'/g, "''")}'`)
+        .join(', ');
+      conditions.push(`n.cedula IN (${escaped})`);
+    }
+
+    const novedades = await this.novedadRepo
+      .createQueryBuilder('n')
+      .where(conditions.join(' OR '))
+      .orderBy('n.createdAt', 'DESC')
+      .getMany();
+
+    const empByCedula = new Map(empleados.map((e) => [e.cedula, e]));
+    const empByIdOdoo = new Map(
+      empleados.filter((e) => e.idOdoo).map((e) => [e.idOdoo!, e]),
+    );
+
+    return novedades.map((n) => {
+      const emp = empByCedula.get(n.cedula) ?? empByIdOdoo.get(n.creadoPor!);
+      return {
+        ...n,
+        departamento: emp?.departamento ?? null,
+        cargo: emp?.cargo ?? null,
+      };
+    });
+  }
+
+  // ─── ÁREA: solo empleados cuyo area_id pertenece a este responsable ───────
+  async findPorAreaResponsable(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_areas a    ON u.area_id = a.id
+        INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+        WHERE  r.id_odoo = ${idOdoo}
+          AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
+  // ─── SEGMENTO: TODOS los empleados del segmento, sin importar area_id ────
+  async findPorSegmentoResponsable(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_segmentos s ON u.segmento_id = s.id
+        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+        WHERE  r.id_odoo = ${idOdoo}
+          AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
+  // ─── DEPARTAMENTO: todos en los deptos del director ───────────────────────
+  async findPorDepartamentos(departamentos: string[]) {
+    if (!departamentos.length) return [];
+
+    const escapedDeptos = departamentos
+      .map((d) => `'${d.replace(/'/g, "''")}'`)
+      .join(', ');
+
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
+      await this.dataSource.query(`
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  departamento IN (${escapedDeptos})
+          AND  identificacion IS NOT NULL
+      `);
+
+    return this.novedadesPorCedulas(empleados);
+  }
+
+  // ─── FIND MIS NOVEDADES (historial del usuario) ───────────────────────────
+  async findMias(
+    idOdoo: number,
+    fechaDesde?: string,
+    fechaHasta?: string,
+    buscar?: string,
+  ) {
+    const qb = this.novedadRepo
+      .createQueryBuilder('n')
+      .where('n.creadoPor = :idOdoo', { idOdoo })
+      .orderBy('n.createdAt', 'DESC');
+
+    if (fechaDesde) qb.andWhere('n.fechaInicio >= :fechaDesde', { fechaDesde });
+    if (fechaHasta) qb.andWhere('n.fechaInicio <= :fechaHasta', { fechaHasta });
+    if (buscar) {
+      const like = `%${buscar}%`;
+      qb.andWhere(
+        '(n.descripcion LIKE :like OR n.tipificacion LIKE :like OR n.nombre LIKE :like)',
+        { like },
+      );
+    }
+
+    return qb.getMany();
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────
@@ -161,15 +331,20 @@ export class NovedadesService {
     fs.createReadStream(filePath).pipe(res);
   }
 
-  // ─── DELETE ───────────────────────────────────────────────────────────────
-  async remove(id: number) {
+  // ─── DELETE (soft delete + auditoría) ────────────────────────────────────
+  async remove(
+    id: number,
+    eliminadoPor?: number,
+    eliminadoPorNombre?: string,
+  ) {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
+    // Borrar archivo físico
     if (novedad.soporteStorageMode === 'local') {
       const filePath = path.join(this.localDir, novedad.soporteStorageKey);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } else {
+    } else if (this.bucket) {
       await this.s3.send(
         new DeleteObjectCommand({
           Bucket: this.bucket,
@@ -178,7 +353,13 @@ export class NovedadesService {
       );
     }
 
-    await this.novedadRepo.delete(id);
+    // Guardar auditoría antes de soft-delete
+    novedad.eliminadoPor = eliminadoPor ?? null;
+    novedad.eliminadoPorNombre = eliminadoPorNombre ?? null;
+    await this.novedadRepo.save(novedad);
+
+    // Soft delete: marca deleted_at, el registro queda en BD
+    await this.novedadRepo.softDelete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
   async aprobarJefe(id: number, aprobado: number, motivo: string) {
@@ -213,5 +394,122 @@ export class NovedadesService {
     } else {
       novedad.aprobado = null; // aún pendiente
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CARPETAS PERSONALIZADAS (independientes por módulo)
+  //   tipo = 'rrhh'         → Capital Humano   → campo: estadoCh
+  //   tipo = 'coordinador'  → Jefe/Coordinador → campo: estadoChCoord
+  // ══════════════════════════════════════════════════════════════════
+
+  /** Devuelve las carpetas del tipo indicado */
+  async findEstadosCh(tipo: string = 'rrhh'): Promise<NovedadEstadoCh[]> {
+    return this.estadoChRepo.find({
+      where: { tipo },
+      order: { orden: 'ASC', createdAt: 'ASC' },
+    });
+  }
+
+  /** Crea una nueva carpeta para el tipo indicado */
+  async crearEstadoCh(
+    nombre: string,
+    icono: string,
+    color: string,
+    tipo: string = 'rrhh',
+  ): Promise<NovedadEstadoCh> {
+    // Unicidad dentro del mismo tipo
+    const existe = await this.estadoChRepo.findOneBy({ nombre, tipo });
+    if (existe) throw new ConflictException(`La carpeta "${nombre}" ya existe en este módulo.`);
+    const totalActual = await this.estadoChRepo.count({ where: { tipo } });
+    const estado = this.estadoChRepo.create({
+      nombre,
+      icono: icono || 'fas fa-folder',
+      color: color || '#6b7280',
+      orden: totalActual,
+      tipo,
+    });
+    return this.estadoChRepo.save(estado);
+  }
+
+  /** Edita nombre/icono/color de una carpeta existente */
+  async editarEstadoCh(
+    id: number,
+    nombre: string,
+    icono: string,
+    color: string,
+  ): Promise<NovedadEstadoCh> {
+    const estado = await this.estadoChRepo.findOneBy({ id });
+    if (!estado) throw new NotFoundException('Carpeta no encontrada.');
+
+    const oldNombre = estado.nombre;
+
+    // Verificar que el nuevo nombre no choque con otro del mismo tipo
+    if (nombre !== oldNombre) {
+      const choque = await this.estadoChRepo.findOneBy({ nombre, tipo: estado.tipo });
+      if (choque) throw new ConflictException(`La carpeta "${nombre}" ya existe en este módulo.`);
+    }
+
+    estado.nombre = nombre;
+    estado.icono  = icono  || 'fas fa-folder';
+    estado.color  = color  || '#6b7280';
+    const saved = await this.estadoChRepo.save(estado);
+
+    // Si cambió el nombre, propagar a las novedades que tenían el nombre viejo
+    if (oldNombre !== nombre) {
+      if (estado.tipo === 'coordinador') {
+        await this.novedadRepo.createQueryBuilder()
+          .update(Novedad).set({ estadoChCoord: nombre })
+          .where('estado_ch_coord = :old', { old: oldNombre })
+          .execute();
+      } else {
+        await this.novedadRepo.createQueryBuilder()
+          .update(Novedad).set({ estadoCh: nombre })
+          .where('estado_ch = :old', { old: oldNombre })
+          .execute();
+      }
+    }
+
+    return saved;
+  }
+
+  /** Elimina una carpeta y limpia su referencia en novedades */
+  async eliminarEstadoCh(id: number): Promise<{ success: boolean }> {
+    const estado = await this.estadoChRepo.findOneBy({ id });
+    if (!estado) throw new NotFoundException('Carpeta no encontrada.');
+
+    if (estado.tipo === 'coordinador') {
+      await this.novedadRepo.createQueryBuilder()
+        .update(Novedad).set({ estadoChCoord: null })
+        .where('estado_ch_coord = :nombre', { nombre: estado.nombre })
+        .execute();
+    } else {
+      await this.novedadRepo.createQueryBuilder()
+        .update(Novedad).set({ estadoCh: null })
+        .where('estado_ch = :nombre', { nombre: estado.nombre })
+        .execute();
+    }
+
+    await this.estadoChRepo.remove(estado);
+    return { success: true };
+  }
+
+  /**
+   * Asigna (o limpia) la carpeta en una novedad.
+   * tipo = 'rrhh'        → actualiza estadoCh
+   * tipo = 'coordinador' → actualiza estadoChCoord
+   */
+  async cambiarEstadoCh(
+    novedadId: number,
+    estadoCh: string | null,
+    tipo: string = 'rrhh',
+  ): Promise<Novedad> {
+    const novedad = await this.novedadRepo.findOneBy({ id: novedadId });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+    if (tipo === 'coordinador') {
+      novedad.estadoChCoord = estadoCh ?? null;
+    } else {
+      novedad.estadoCh = estadoCh ?? null;
+    }
+    return this.novedadRepo.save(novedad);
   }
 }

@@ -18,6 +18,9 @@ export class PermisoDepartamento {
   @Column()
   departamento: string;
 
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  asignado_por: string | null;
+
   @ManyToOne(() => Usuario, (usuario) => usuario.permisosDepartamento, {
     nullable: true,
   })

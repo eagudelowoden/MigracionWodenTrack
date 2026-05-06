@@ -89,6 +89,15 @@
                     <div class="space-y-1.5">
                         <template v-for="slug in MODULOS" :key="slug">
 
+                            <!-- Separador antes de permisos de visibilidad de novedades -->
+                            <div v-if="slug === 'marcacion.novedad'" class="flex items-center gap-2 px-2 pt-2">
+                                <span class="text-[8px] font-black uppercase tracking-widest opacity-30"
+                                    :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                                    Novedades — visibilidad
+                                </span>
+                                <div class="h-px flex-1" :class="isDark ? 'bg-white/5' : 'bg-slate-200'"></div>
+                            </div>
+
                             <!-- Separador antes del primer sub-permiso de novedades -->
                             <div v-if="slug === 'admin.novedades.user'" class="flex items-center gap-2 px-2 pt-1">
                                 <div class="w-4 h-px" :class="isDark ? 'bg-transparent' : 'bg-transparent'"></div>
@@ -141,7 +150,7 @@
                     </div>
 
                     <!-- DEPARTAMENTOS VISIBLES -->
-                    <template v-if="hasPerm('admin.filtro_departamento')">
+                    <template v-if="hasPerm('admin.filtro_departamento') || hasPerm('novedades.director')">
                         <div class="flex items-center gap-3">
                             <div class="h-px flex-1 bg-blue-500/10"></div>
                             <span class="text-[9px] font-semibold uppercase tracking-widest opacity-30">Departamentos
@@ -231,11 +240,16 @@ const MODULOS = [
     'admin.admin',
     'admin.asistencias',
     'admin.mallas',
+    'admin.calculos',
     'admin.novedades',
     'admin.novedades.user',
     'admin.novedades.admin',
     'admin.novedades.rrhh',
     'admin.filtro_departamento',
+    'marcacion.novedad',
+    'novedades.ver_area',
+    'novedades.ver_segmento',
+    'novedades.director',
 ];
 
 const MODULO_LABELS = {
@@ -247,14 +261,20 @@ const MODULO_LABELS = {
     'admin.admin': { nombre: 'Admin General', desc: 'Acceso al panel de administración' },
     'admin.asistencias': { nombre: 'Asistencias', desc: 'Control de asistencia' },
     'admin.mallas': { nombre: 'Mallas', desc: 'Programación de turnos' },
+    'admin.calculos': { nombre: 'Horas Extra', desc: 'Cálculo y registro de horas extra' },
     'admin.novedades': { nombre: 'Novedades', desc: 'Acceso al módulo de novedades' },
     'admin.novedades.user': { nombre: 'Novedades — Empleado', desc: 'Registrar novedad propia' },
     'admin.novedades.admin': { nombre: 'Novedades — Admin', desc: 'Gestión completa de novedades' },
     'admin.novedades.rrhh': { nombre: 'Novedades — RRHH', desc: 'Auditoría y revisión' },
     'admin.filtro_departamento': { nombre: 'Filtro Departamento', desc: 'Limitar vista por departamento' },
+    'marcacion.novedad': { nombre: 'Registrar Novedad', desc: 'Ver botón de novedad en marcación' },
+    'novedades.ver_area': { nombre: 'Novedades — Jefe Área', desc: 'Solo empleados de su área asignada (area_id)' },
+    'novedades.ver_segmento': { nombre: 'Novedades — Jefe Segmento', desc: 'Todos los empleados del segmento (con o sin área)' },
+    'novedades.director': { nombre: 'Novedades — Director Depto', desc: 'Todos los empleados del departamento completo' },
 };
 const isSubNovedad = (slug) =>
-    ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh'].includes(slug);
+    ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh',
+     'novedades.ver_area', 'novedades.ver_segmento', 'novedades.director'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,
@@ -289,13 +309,25 @@ const toggleDept = (dept) => {
     else deptosSeleccionados.value.splice(idx, 1);
 };
 
+const getAdminName = () => {
+    try {
+        const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+        return session.name || 'Desconocido';
+    } catch {
+        return 'Desconocido';
+    }
+};
+
 const guardarDeptos = async () => {
     isSavingDeptos.value = true;
     try {
         await fetch(`${props.apiUrl}/departamentos-permitidos/${props.modelValue.id_odoo}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ departamentos: deptosSeleccionados.value }),
+            body: JSON.stringify({
+                departamentos: deptosSeleccionados.value,
+                adminName: getAdminName(),
+            }),
         });
     } finally {
         isSavingDeptos.value = false;
