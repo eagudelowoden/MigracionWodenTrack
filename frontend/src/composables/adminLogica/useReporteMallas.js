@@ -26,7 +26,9 @@ export function useReporteMallas() {
   const registros = ref([]);
   const isLoading = ref(false);
   const isCalculating = ref(false);
+  const isSaving = ref(false);
   const isExporting = ref(false);
+  const hayResultadosCalculados = ref(false);
 
   const startDate = ref(getFirstDayOfMonth());
   const endDate = ref(getToday());
@@ -215,9 +217,36 @@ export function useReporteMallas() {
     }
   }
 
-  async function calcularYCargar(company) {
+  async function calcular(company) {
     try {
       isCalculating.value = true;
+      hayResultadosCalculados.value = false;
+      const s = getSession();
+
+      const payload = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        company: company || "",
+        calculado_por: s.name || "Desconocido",
+        guardar: false,
+        ...getAreaSegmento(),
+      };
+
+      const { data } = await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
+      registros.value = data;
+      currentPage.value = 1;
+      hayResultadosCalculados.value = true;
+    } catch (err) {
+      console.error("Error calculando horas extra:", err);
+      throw err;
+    } finally {
+      isCalculating.value = false;
+    }
+  }
+
+  async function guardarCalculados(company) {
+    try {
+      isSaving.value = true;
       const s = getSession();
 
       const payload = {
@@ -231,12 +260,18 @@ export function useReporteMallas() {
 
       await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
       await cargarHistorial(company);
+      hayResultadosCalculados.value = false;
     } catch (err) {
-      console.error("Error calculando horas extra:", err);
+      console.error("Error guardando horas extra:", err);
       throw err;
     } finally {
-      isCalculating.value = false;
+      isSaving.value = false;
     }
+  }
+
+  // Mantener compatibilidad con código existente
+  async function calcularYCargar(company) {
+    return guardarCalculados(company);
   }
 
   async function aprobarMasivo(company, tipo) {
@@ -343,7 +378,9 @@ export function useReporteMallas() {
     registros,
     isLoading,
     isCalculating,
+    isSaving,
     isExporting,
+    hayResultadosCalculados,
 
     // Filtros
     startDate,
@@ -370,6 +407,8 @@ export function useReporteMallas() {
 
     // Acciones
     cargarHistorial,
+    calcular,
+    guardarCalculados,
     calcularYCargar,
     aprobarRegistro,
     aprobarMasivo,

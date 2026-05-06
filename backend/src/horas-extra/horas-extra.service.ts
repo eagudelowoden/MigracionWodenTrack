@@ -228,8 +228,14 @@ export class HorasExtraService {
         result.hefn = toHex(minsNocturno(inMins, outMins));
       }
     } else {
-      // Día ordinario con malla
-      if (!turno) return result;
+      // Día ordinario sin malla → todas las horas son extra
+      if (!turno) {
+        result.hedo = toHex(minsDiurno(inMins, outMins));
+        result.heno = toHex(minsNocturno(inMins, outMins));
+        result.hedo = Math.round(result.hedo * 100) / 100;
+        result.heno = Math.round(result.heno * 100) / 100;
+        return result;
+      }
 
       const shiftStart = Number(turno.hora_inicio) * 60;
       const shiftEnd = Number(turno.hora_fin) * 60;

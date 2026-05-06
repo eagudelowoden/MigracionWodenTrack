@@ -107,10 +107,17 @@
       <div class="flex items-center gap-2 ml-auto self-end">
 
         <!-- Calcular -->
-        <button @click="handleCalcular" :disabled="isCalculating || isLoading"
+        <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
           class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
           <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-xs"></i>
           <span>{{ isCalculating ? 'Calculando...' : 'Calcular' }}</span>
+        </button>
+
+        <!-- Guardar -->
+        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
+          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-xs"></i>
+          <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
         </button>
 
         <!-- Refrescar historial -->
@@ -466,7 +473,9 @@ const {
   registros,
   isLoading,
   isCalculating,
+  isSaving,
   isExporting,
+  hayResultadosCalculados,
   startDate,
   endDate,
   filterNombre,
@@ -481,7 +490,8 @@ const {
   totalPages,
   totalRegistros,
   cargarHistorial,
-  calcularYCargar,
+  calcular,
+  guardarCalculados,
   aprobarRegistro,
   exportarExcel,
   formatHora,
@@ -531,7 +541,13 @@ async function handleCargar() {
 
 async function handleCalcular() {
   try {
-    await calcularYCargar(props.company);
+    await calcular(props.company);
+  } catch { /* el composable ya loguea */ }
+}
+
+async function handleGuardar() {
+  try {
+    await guardarCalculados(props.company);
   } catch { /* el composable ya loguea */ }
 }
 
