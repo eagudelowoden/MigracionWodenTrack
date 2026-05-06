@@ -38,10 +38,6 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
-  // ── Caché en memoria para getReporteNovedades (TTL: 2 min) ──────────────────
-  private readonly _reporteCache = new Map<string, { data: any[]; ts: number }>();
-  private readonly _REPORTE_TTL_MS = 120_000; // 2 minutos
-
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -1454,17 +1450,6 @@ export class UsuariosService {
       }
     }
 
-    // ── Opción 3: caché en memoria — respuesta inmediata para consultas repetidas
-    const cacheKey = JSON.stringify({
-      soloHoy, companyName, startDate, endDate,
-      departamentoName, areaId, segmentoId, agruparLogs,
-    });
-    const cached = this._reporteCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
-      console.log('✅ Reporte servido desde caché en memoria');
-      return cached.data;
-    }
-
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
     const uid = await this.odoo.authenticate();
@@ -1630,9 +1615,6 @@ export class UsuariosService {
         })
         .catch((e) => console.error('Error enviando alerta correo:', e));
     }
-
-    // ── Opción 3: guardar en caché para la próxima solicitud idéntica ─────────
-    this._reporteCache.set(cacheKey, { data: resultado, ts: Date.now() });
 
     return resultado;
   }
