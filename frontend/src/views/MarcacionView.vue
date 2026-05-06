@@ -81,7 +81,7 @@
       </div>
 
       <!-- Botón Registrar Novedad — solo si tiene permiso -->
-      <button v-if="canRegistrarNovedad" @click="showChoiceModal = true"
+      <!-- <button v-if="canRegistrarNovedad" @click="showChoiceModal = true"
         class="w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all duration-300 active:scale-95 group"
         :class="isDark
           ? 'border-white/8 bg-white/3 hover:border-[#ff8f00]/40 hover:bg-[#ff8f00]/5'
@@ -101,7 +101,7 @@
         </div>
         <i
           class="fas fa-chevron-right text-[8px] opacity-20 group-hover:opacity-60 group-hover:text-[#ff8f00] transition-all group-hover:translate-x-0.5"></i>
-      </button>
+      </button> -->
 
       <!-- Dev Nav -->
       <div v-if="employee?.isSuperAdmin" class="flex items-center justify-center gap-3 pt-2">
