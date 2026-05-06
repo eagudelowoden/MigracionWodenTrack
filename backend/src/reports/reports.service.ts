@@ -20,6 +20,8 @@ export class ReportsService {
   async generarPlantillaMallas(
     companyName: string,
     departamento: string,
+    areaId?: number,
+    segmentoId?: number,
   ): Promise<Buffer> {
     // Plantilla simple para carga masiva: cedula | nombre_malla
     // El upload solo necesita estos dos campos para asignar mallas.
@@ -52,12 +54,19 @@ export class ReportsService {
       };
     });
 
-    // ── Traer empleados de la DB local filtrando por departamento ─────────────
+    // ── Traer empleados filtrando por área, segmento o departamento ──────────
     const conditions: string[] = [`u.is_active = 1`];
+    const queryParams: (string | number)[] = [];
 
-    if (departamento && departamento !== '' && departamento !== 'Todas') {
-      const deptoEscaped = departamento.replace(/'/g, "''");
-      conditions.push(`u.departamento LIKE '%${deptoEscaped}%'`);
+    if (segmentoId) {
+      conditions.push(`u.segmento_id = @${queryParams.length}`);
+      queryParams.push(segmentoId);
+    } else if (areaId) {
+      conditions.push(`u.area_id = @${queryParams.length}`);
+      queryParams.push(areaId);
+    } else if (departamento && departamento !== '' && departamento !== 'Todas') {
+      conditions.push(`u.departamento LIKE @${queryParams.length}`);
+      queryParams.push(`%${departamento}%`);
     }
 
     const whereClause = conditions.join(' AND ');
@@ -75,7 +84,7 @@ export class ReportsService {
     `;
 
     const empleados: Array<{ cedula: string; nombre: string; nombre_malla: string | null }> =
-      await this.dataSource.query(query);
+      await this.dataSource.query(query, queryParams);
 
     // ── Filas de datos con formato alternado ─────────────────────────────────
     const COLOR_PAR   = 'FFFFF8F0'; // naranja muy suave (filas pares)

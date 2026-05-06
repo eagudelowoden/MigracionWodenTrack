@@ -108,28 +108,54 @@ export function useMallasGeneral() {
       isLoadingDownload.value = true;
 
       const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const deptoUsuario = session.department || "";
-      const esAdmin = session.role === "admin";
-      const deptoAplicar = esAdmin ? selectedDepartment.value || "" : deptoUsuario;
+      const permisos = session.permisos || session.permissions || {};
+      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+      const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+
+      // Asegurar que el perfil esté cargado (igual que fetchMallasDesdeOdoo)
+      if (!tieneFiltroDepto && !perfilUsuario.value) {
+        await _cargarPerfil();
+      }
+
+      const params = {};
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        params.company = selectedCompany.value;
+      }
+
+      if (tieneFiltroDepto) {
+        if (selectedDepartment.value) params.departamento = selectedDepartment.value;
+      } else {
+        const perfil = perfilUsuario.value;
+        if (esResponsableSegmento && perfil?.segmento?.id) {
+          params.segmento_id = perfil.segmento.id;
+        } else if (perfil?.area?.id) {
+          params.area_id = perfil.area.id;
+        } else {
+          const deptoUsuario = session.department || "";
+          if (deptoUsuario) params.departamento = deptoUsuario;
+        }
+      }
 
       const response = await axios.get(`${API_BASE_URL}/reports/mallas/template`, {
-        params: { company: selectedCompany.value, departamento: deptoAplicar },
+        params,
         responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      const deptoClean = deptoAplicar.replace(/\s+/g, "_") || "general";
       const fecha = new Date().toISOString().slice(0, 10);
-      link.setAttribute("download", `plantilla_${selectedCompany.value}_${deptoClean}_${fecha}.xlsx`);
+      const sufijo = params.segmento_id ? `seg${params.segmento_id}`
+        : params.area_id ? `area${params.area_id}`
+        : (params.departamento || "general").replace(/\s+/g, "_");
+      link.setAttribute("download", `plantilla_mallas_${sufijo}_${fecha}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error al descargar plantilla:", error);
-      alert("Error al descargar la plantilla. Verifica que existan empleados en tu departamento.");
+      alert("Error al descargar la plantilla. Verifica que existan empleados en tu área.");
     } finally {
       isLoadingDownload.value = false;
     }

@@ -11,13 +11,16 @@ export class ReportsController {
   async descargarPlantilla(
     @Res() res: express.Response,
     @Query('company') companyName: string,
-    @Query('departamento') departamento?: string, // <--- CAPTURAMOS EL DEPARTAMENTO
+    @Query('departamento') departamento?: string,
+    @Query('area_id') areaId?: string,
+    @Query('segmento_id') segmentoId?: string,
   ) {
     try {
-      // Pasamos ambos filtros al servicio
       const buffer = await this.reportsService.generarPlantillaMallas(
         companyName,
         departamento || '',
+        areaId ? Number(areaId) : undefined,
+        segmentoId ? Number(segmentoId) : undefined,
       );
 
       // Limpiamos el nombre del archivo para que no tenga problemas con espacios
