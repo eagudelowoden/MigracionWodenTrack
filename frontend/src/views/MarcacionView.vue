@@ -146,7 +146,7 @@
           :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
 
           <!-- Header -->
-          <div class="flex items-center justify-between px-5 py-4 border-b"
+          <!-- <div class="flex items-center justify-between px-5 py-4 border-b"
             :class="isDark ? 'border-white/10' : 'border-slate-100'">
             <div class="flex items-center gap-2">
               <div class="w-7 h-7 rounded-xl bg-[#ff8f00]/15 flex items-center justify-center">
@@ -160,7 +160,7 @@
               :class="isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:bg-slate-100'">
               <i class="fas fa-times text-xs"></i>
             </button>
-          </div>
+          </div> -->
 
           <!-- Opciones -->
           <div class="p-4 flex flex-col gap-3">
