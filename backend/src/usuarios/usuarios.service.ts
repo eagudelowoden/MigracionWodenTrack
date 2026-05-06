@@ -37,6 +37,11 @@ export class UsuariosService {
   };
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
+
+  // ── Caché en memoria para getReporteNovedades (TTL: 2 min) ──────────────────
+  private readonly _reporteCache = new Map<string, { data: any[]; ts: number }>();
+  private readonly _REPORTE_TTL_MS = 120_000; // 2 minutos
+
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -1491,6 +1496,17 @@ export class UsuariosService {
           `El rango máximo permitido es 62 días. Seleccionaste ${dias} días.`,
         );
       }
+    }
+
+    // ── Opción 3: Caché en memoria ────────────────────────────────────────────
+    const cacheKey = JSON.stringify({
+      soloHoy, companyName, startDate, endDate,
+      departamentoName, areaId, segmentoId, agruparLogs,
+    });
+    const cached = this._reporteCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
+      console.log('✅ Reporte servido desde caché en memoria');
+      return cached.data;
     }
 
     console.time('⏱ TOTAL reporte');
