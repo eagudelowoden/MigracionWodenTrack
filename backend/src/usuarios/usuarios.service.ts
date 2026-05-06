@@ -37,6 +37,11 @@ export class UsuariosService {
   };
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
+
+  // ── Caché en memoria para getReporteNovedades (TTL: 2 min) ──────────────────
+  private readonly _reporteCache = new Map<string, { data: any[]; ts: number }>();
+  private readonly _REPORTE_TTL_MS = 120_000; // 2 minutos
+
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -1449,6 +1454,17 @@ export class UsuariosService {
       }
     }
 
+    // ── Opción 3: caché en memoria — respuesta inmediata para consultas repetidas
+    const cacheKey = JSON.stringify({
+      soloHoy, companyName, startDate, endDate,
+      departamentoName, areaId, segmentoId, agruparLogs,
+    });
+    const cached = this._reporteCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
+      console.log('✅ Reporte servido desde caché en memoria');
+      return cached.data;
+    }
+
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
     const uid = await this.odoo.authenticate();
@@ -1488,13 +1504,27 @@ export class UsuariosService {
       finUTCLog,
     );
 
-    // 4. Consultar Odoo
+    // 4. Consultar Odoo  +  Opción 1: lanzar partner map en paralelo si ya tenemos IDs
     console.time('⏱ query-odoo');
     let attendances: any[];
     let logs: any[];
+    let partnerMap: Record<string, string>;
 
     try {
-      [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid);
+      if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+        // Tenemos los IDs → podemos buscar cédulas al mismo tiempo que asistencias
+        console.time('⏱ partners (paralelo)');
+        const [odooResult, pm] = await Promise.all([
+          this.consultarOdoo(domainAtt, domainLog, uid),
+          this.obtenerPartnerMapPorIds(employeeIdsPorEstructura, uid),
+        ]);
+        [attendances, logs] = odooResult;
+        partnerMap = pm;
+        console.timeEnd('⏱ partners (paralelo)');
+      } else {
+        // Sin filtro de estructura: primero traemos datos, luego cédulas
+        [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid);
+      }
     } catch (error) {
       // Enviar correo si la consulta falla (ej: demasiados registros)
       this.mailService
@@ -1526,10 +1556,12 @@ export class UsuariosService {
         .catch((e) => console.error('Error enviando alerta correo:', e));
     }
 
-    // 5. Obtener cédulas
-    console.time('⏱ partners');
-    const partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
-    console.timeEnd('⏱ partners');
+    // 5. Obtener cédulas (solo si no se resolvió en paralelo ya)
+    if (!partnerMap!) {
+      console.time('⏱ partners');
+      partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
+      console.timeEnd('⏱ partners');
+    }
 
     // 6. Mapear resultados
     const toLocal = this.crearConvertidorLocal();
@@ -1598,6 +1630,9 @@ export class UsuariosService {
         })
         .catch((e) => console.error('Error enviando alerta correo:', e));
     }
+
+    // ── Opción 3: guardar en caché para la próxima solicitud idéntica ─────────
+    this._reporteCache.set(cacheKey, { data: resultado, ts: Date.now() });
 
     return resultado;
   }
@@ -1769,12 +1804,24 @@ export class UsuariosService {
     return Promise.race([consulta, timeout]);
   }
 
+  /**
+   * Versión directa: acepta IDs ya conocidos.
+   * Usada en la ejecución paralela (Opción 1).
+   */
+  private async obtenerPartnerMapPorIds(
+    employeeIds: number[],
+    uid: number,
+  ): Promise<Record<string, string>> {
+    if (employeeIds.length === 0) return {};
+    return this._resolverCedulasPorIds(employeeIds, uid);
+  }
+
+  /** Versión clásica: extrae IDs de los arrays de asistencias/logs. */
   private async obtenerPartnerMap(
     attendances: any[],
     logs: any[],
     uid: number,
   ): Promise<Record<string, string>> {
-    // 1. Obtener IDs únicos de empleados
     const employeeIds = [
       ...new Set([
         ...attendances.map((a) => a.employee_id?.[0]),
@@ -1783,8 +1830,15 @@ export class UsuariosService {
     ].filter(Boolean) as number[];
 
     if (employeeIds.length === 0) return {};
+    return this._resolverCedulasPorIds(employeeIds, uid);
+  }
 
-    // 2. Buscar empleados por ID — más confiable que por nombre
+  /** Lógica compartida: dado un array de IDs de Odoo, devuelve nombre→cédula. */
+  private async _resolverCedulasPorIds(
+    employeeIds: number[],
+    uid: number,
+  ): Promise<Record<string, string>> {
+    // 1. Buscar empleados por ID
     const empleados = await this.odoo.executeKw<any[]>(
       'hr.employee',
       'search_read',
@@ -1804,7 +1858,7 @@ export class UsuariosService {
     const partnerMap: Record<string, string> = {};
     const sinCedula: any[] = [];
 
-    // 3. Primero intentar con identification_id o barcode directo
+    // 2. Primero intentar con identification_id o barcode directo
     empleados.forEach((e) => {
       const cedula = e.identification_id || e.barcode;
       if (cedula && cedula.trim() !== '') {
@@ -1814,7 +1868,7 @@ export class UsuariosService {
       }
     });
 
-    // 4. Para los que no tienen, buscar en res.partner por address_home_id
+    // 3. Para los que no tienen, buscar en res.partner por address_home_id
     const partnerIds = sinCedula
       .map((e) => e.address_home_id?.[0])
       .filter(Boolean) as number[];
