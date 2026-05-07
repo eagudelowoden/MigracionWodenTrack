@@ -32,7 +32,7 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110 text-blue-400"></i>
+            <i class="fas fa-user-check text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Asistencias</span>
           <div v-if="route.path === '/admin/asistencias'"
@@ -46,7 +46,7 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-cloud-arrow-up text-xs transition-transform group-hover:scale-110 text-indigo-400"></i>
+            <i class="fas fa-cloud-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue Mallas</span>
           <div v-if="route.path === '/admin/mallas'"
@@ -60,7 +60,7 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110 text-amber-400"></i>
+            <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
           <div v-if="route.path === '/admin/horas-extra'"
@@ -74,7 +74,7 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110 text-cyan-400"></i>
+            <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue HX</span>
           <div v-if="route.path === '/admin/cargue-horas-ch'"
@@ -88,7 +88,7 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-bullhorn text-xs transition-transform group-hover:scale-110 text-rose-400"></i>
+            <i class="fas fa-bullhorn text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Novedades</span>
           <div v-if="route.path.startsWith('/admin/novedades')"
@@ -190,18 +190,15 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-3 border-l border-slate-300 dark:border-white/10 pl-6">
+          <div class="flex items-center gap-2 border-l border-slate-300 dark:border-white/10 pl-6">
             <div class="text-right">
-              <p class="text-[10px] font-black tracking-wide leading-none" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              <p class="text-[11px] font-bold leading-none" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 ¡Hola,
-                <span class="text-[#3B82F6]">{{ employee?.name?.split(' ').pop()?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) }}</span>!
+                <span class="text-[15px] font-black text-[#3B82F6]">{{ employee?.name?.split(' ').pop()?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) }}</span>!
               </p>
-              <p class="text-[9px] font-bold leading-tight mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <p class="text-[9px] font-medium leading-tight mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                 Administrador
               </p>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#3B82F6] to-[#60A5FA] flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">
-              {{ employee?.name?.charAt(0) }}
             </div>
           </div>
         </div>

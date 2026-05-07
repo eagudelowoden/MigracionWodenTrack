@@ -2,42 +2,38 @@
   <div class="h-full flex flex-col">
 
     <!-- ── Panel de selección ─────────────────────────────────────────────── -->
-    <div v-if="!subModule" class="h-full flex flex-col items-center justify-center animate-fade-in py-6">
+    <div v-if="!subModule" class="h-full flex flex-col items-center justify-start animate-fade-in pt-10">
 
-      <div class="text-center mb-10">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 text-[9px] font-black uppercase tracking-widest"
-          :class="isDark ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-100'">
-          <i class="fas fa-bell text-[8px]"></i> Centro de Novedades
-        </div>
-        <h2 class="text-2xl font-black tracking-tight transition-colors duration-500"
+      <div class="text-center mb-8">
+        <h2 class="text-xl font-black tracking-tight transition-colors duration-500"
           :class="isDark ? 'text-white' : 'text-slate-900'">
           Panel de <span class="text-[#3B82F6]">Novedades</span>
         </h2>
-        <p class="text-[10px] font-medium mt-1.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Selecciona el módulo al que deseas acceder</p>
+        <p class="text-[10px] font-medium mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Selecciona el módulo al que deseas acceder</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl px-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl px-6">
 
         <!-- Admin Card -->
         <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin')"
           @click="subModule = 'admin'"
           class="group relative flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1"
           :class="isDark
-            ? 'bg-[#1a2235] border-white/10 hover:border-rose-500/50 hover:shadow-[0_8px_30px_rgba(244,63,94,0.2)]'
-            : 'bg-white border-slate-100 shadow-sm hover:border-rose-300 hover:shadow-[0_8px_25px_rgba(244,63,94,0.12)]'">
+            ? 'bg-[#1a2235] border-white/10 hover:border-violet-500/50 hover:shadow-[0_8px_30px_rgba(139,92,246,0.2)]'
+            : 'bg-white border-slate-100 shadow-sm hover:border-violet-300 hover:shadow-[0_8px_25px_rgba(139,92,246,0.12)]'">
           <div class="absolute top-0 left-4 right-4 h-px transition-all duration-500"
-            :class="isDark ? 'bg-gradient-to-r from-transparent via-rose-500/0 to-transparent group-hover:via-rose-500/60' : 'bg-gradient-to-r from-transparent via-rose-400/0 to-transparent group-hover:via-rose-300'"></div>
+            :class="isDark ? 'bg-gradient-to-r from-transparent via-violet-500/0 to-transparent group-hover:via-violet-500/60' : 'bg-gradient-to-r from-transparent via-violet-400/0 to-transparent group-hover:via-violet-300'"></div>
           <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
             :class="isDark
-              ? 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-rose-500/30'
-              : 'bg-rose-50 text-rose-500 group-hover:bg-rose-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-rose-500/25'">
+              ? 'bg-violet-500/10 text-violet-400 group-hover:bg-violet-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-violet-500/30'
+              : 'bg-violet-50 text-violet-500 group-hover:bg-violet-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-violet-500/25'">
             <i class="fas fa-user-shield text-xl"></i>
           </div>
           <div class="text-center relative">
             <h3 class="font-black uppercase text-[11px] tracking-wide transition-colors"
               :class="isDark ? 'text-slate-200' : 'text-slate-800'">Acceso Coordinadores</h3>
             <p class="text-[9px] font-bold uppercase tracking-widest mt-1 transition-colors"
-              :class="isDark ? 'text-slate-500 group-hover:text-rose-400' : 'text-slate-400 group-hover:text-rose-500'">Planta</p>
+              :class="isDark ? 'text-slate-500 group-hover:text-violet-400' : 'text-slate-400 group-hover:text-violet-500'">Planta</p>
           </div>
         </button>
 

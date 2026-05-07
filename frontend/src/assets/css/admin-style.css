@@ -14,8 +14,8 @@
   overflow: hidden;
   font-family: "Inter", sans-serif;
 }
-*, *::before, *::after {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+* {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 body {
