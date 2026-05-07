@@ -2,21 +2,22 @@
   <div class="h-full animate-fade-in flex flex-col gap-2">
 
     <!-- ── Tabs de módulo ──────────────────────────────────────────────────── -->
-    <div class="flex items-center gap-1"
-      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')">
+    <div class="flex items-center gap-1 p-1 rounded-xl w-fit"
+      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')"
+      :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
       <button @click="activeTab = 'calculos'"
-        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
         :class="activeTab === 'calculos'
-          ? 'bg-[#FF8F00] text-white shadow-md shadow-orange-500/20'
-          : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100')">
-        <i class="fas fa-calculator mr-1.5 text-[9px]"></i>Cálculos
+          ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/30'
+          : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+        <i class="fas fa-calculator text-[9px]"></i>Cálculos
       </button>
       <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
-        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
         :class="activeTab === 'cargue'
-          ? 'bg-[#FF8F00] text-white shadow-md shadow-orange-500/20'
-          : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100')">
-        <i class="fas fa-file-arrow-up mr-1.5 text-[9px]"></i>Cargue Horas
+          ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/30'
+          : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+        <i class="fas fa-file-arrow-up text-[9px]"></i>Cargue Horas
       </button>
     </div>
 
@@ -33,7 +34,7 @@
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
         <input type="date" v-model="startDate"
           class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500/60' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500/60'" />
       </div>
 
       <!-- Hasta -->
@@ -42,7 +43,7 @@
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
         <input type="date" v-model="endDate"
           class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500/60' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500/60'" />
       </div>
 
       <!-- Filtro Nombre -->
@@ -53,7 +54,7 @@
           <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           <input v-model="filterNombre" type="text" placeholder="Buscar..."
             class="pl-7 pr-2.5 py-1.5 text-[10px] font-semibold rounded-lg border outline-none w-36 transition-colors"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500/60' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500/60'" />
         </div>
       </div>
 
@@ -64,7 +65,7 @@
         <div class="relative">
           <select v-model="filterCargo"
             class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-40 cursor-pointer transition-colors"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500/60' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500/60'">
             <option value="">Todos los cargos</option>
             <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
           </select>
@@ -80,7 +81,7 @@
         <div class="relative">
           <select v-model="filterDepartamento"
             class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-44 cursor-pointer transition-colors"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'">
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500/60' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500/60'">
             <option value="">Todos los departamentos</option>
             <option v-for="d in opcionesDepartamentos" :key="d" :value="d">{{ d }}</option>
           </select>
@@ -93,7 +94,7 @@
       <label class="flex items-center gap-2 cursor-pointer select-none self-end pb-1.5">
         <div class="relative">
           <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
-          <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-[#FF8F00]"
+          <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-blue-500"
             :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
           <div
             class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm">
@@ -104,33 +105,45 @@
       </label>
 
       <!-- Acciones -->
-      <div class="flex items-center gap-2 ml-auto self-end">
+      <div class="flex items-center gap-1.5 ml-auto self-end">
 
         <!-- Calcular -->
         <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
-          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-xs"></i>
+          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 text-white"
+          :class="isDark
+            ? 'bg-blue-600 hover:bg-blue-500'
+            : 'bg-blue-500 hover:bg-blue-600'">
+          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
           <span>{{ isCalculating ? 'Calculando...' : 'Calcular' }}</span>
         </button>
 
         <!-- Guardar -->
         <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
-          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-xs"></i>
+          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 text-white"
+          :class="isDark
+            ? 'bg-emerald-600 hover:bg-emerald-500'
+            : 'bg-emerald-500 hover:bg-emerald-600'">
+          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
           <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
         </button>
 
         <!-- Refrescar historial -->
-        <button @click="handleCargar" :disabled="isLoading" class="p-2 rounded-lg transition-all"
-          :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-500 hover:text-[#FF8F00]'"
+        <button @click="handleCargar" :disabled="isLoading"
+          class="w-7 h-7 rounded-full border flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
+          :class="isDark
+            ? 'border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10'
+            : 'border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-300 hover:bg-blue-50'"
           title="Refrescar historial">
-          <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoading }"></i>
+          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
         </button>
 
         <!-- Excel -->
         <button @click="handleExportar" :disabled="isExporting || !registros.length"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all active:scale-95 disabled:opacity-50">
-          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-xs"></i>
+          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
+          :class="isDark
+            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
+            : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'">
+          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
           <span>{{ isExporting ? 'Exportando...' : 'Excel' }}</span>
         </button>
 
@@ -139,7 +152,7 @@
 
     <!-- ── Nota sexagesimal ───────────────────────────────────────────────── -->
     <!-- <div class="px-4 py-1.5 rounded-xl text-[9px] font-medium"
-      :class="isDark ? 'bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20' : 'bg-orange-50 text-orange-700 border border-orange-200'">
+      :class="isDark ? 'bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20' : 'bg-blue-50 text-blue-700 border border-blue-200'">
       <i class="fas fa-circle-info mr-1.5"></i>
       <strong>NOTA:</strong> Valores en sistema sexagesimal.
       15 min = 0,25 &nbsp;|&nbsp; 30 min = 0,50 &nbsp;|&nbsp; 45 min = 0,75 &nbsp;|&nbsp; 60 min = 1,0
@@ -223,7 +236,7 @@
                 <div class="flex flex-col items-center gap-3">
                   <div class="w-12 h-12 rounded-xl flex items-center justify-center"
                     :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
-                    <i class="fas fa-calculator text-xl text-[#FF8F00]"></i>
+                    <i class="fas fa-calculator text-xl text-[#3B82F6]"></i>
                   </div>
                   <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                     Selecciona un rango de fechas y presiona Calcular
@@ -248,7 +261,7 @@
                 idx % 2 !== 0
                   ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60')
                   : '',
-                isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-orange-50/40'
+                isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-blue-50/40'
               ]">
 
                 <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
@@ -295,7 +308,7 @@
                 <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center" :class="[
                   isDark ? 'border-white/5' : 'border-slate-100',
                   Number(item.data[col]) > 0
-                    ? (isDark ? 'text-[#FF8F00] font-black' : 'text-orange-600 font-black')
+                    ? (isDark ? 'text-[#3B82F6] font-black' : 'text-blue-500 font-black')
                     : (isDark ? 'text-slate-600' : 'text-slate-300')
                 ]">
                   {{ formatDecimal(item.data[col]) }}
@@ -324,18 +337,18 @@
               <!-- Subtotal colaborador -->
               <tr v-else-if="item.tipo === 'subtotal'">
                 <td colspan="7" class="px-3 py-2 border-b border-r text-[9px] font-black uppercase italic" :class="isDark
-                  ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20 text-[#FF8F00]'
-                  : 'bg-orange-50 border-orange-200 text-orange-800'">
+                  ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]'
+                  : 'bg-blue-50 border-blue-200 text-blue-800'">
                   Subtotal — {{ item.data.nombre }}
                 </td>
                 <td v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 border-b border-r text-center text-[10px] font-black" :class="isDark
-                    ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20 text-[#FF8F00]'
-                    : 'bg-orange-50 border-orange-200 text-orange-700'">
+                    ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]'
+                    : 'bg-blue-50 border-blue-200 text-blue-700'">
                   {{ formatDecimal(item.data.subtotales[col]) }}
                 </td>
                 <td class="border-b"
-                  :class="isDark ? 'bg-[#FF8F00]/10 border-[#FF8F00]/20' : 'bg-orange-50 border-orange-200'">
+                  :class="isDark ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20' : 'bg-blue-50 border-blue-200'">
                 </td>
               </tr>
 
@@ -404,10 +417,10 @@
           <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
             :class="[
               isDragOver
-                ? 'border-[#FF8F00] bg-[#FF8F00]/10'
+                ? 'border-[#3B82F6] bg-[#3B82F6]/10'
                 : (isDark
-                    ? 'border-white/10 bg-[#1e2538]/60 hover:border-[#FF8F00]/40 hover:bg-[#FF8F00]/5'
-                    : 'border-slate-200 bg-slate-50 hover:border-[#FF8F00]/40 hover:bg-orange-50/30'),
+                    ? 'border-white/10 bg-[#1e2538]/60 hover:border-[#3B82F6]/40 hover:bg-[#3B82F6]/5'
+                    : 'border-slate-200 bg-slate-50 hover:border-[#3B82F6]/40 hover:bg-blue-50/30'),
               archivoSeleccionado ? (isDark ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-emerald-400/50 bg-emerald-50/50') : ''
             ]"
             @dragover.prevent="isDragOver = true"
@@ -421,10 +434,10 @@
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all"
               :class="archivoSeleccionado
                 ? (isDark ? 'bg-emerald-500/20 shadow-emerald-500/10' : 'bg-emerald-100 shadow-emerald-200')
-                : (isDark ? 'bg-[#FF8F00]/15 shadow-[#FF8F00]/10' : 'bg-orange-100 shadow-orange-200')">
+                : (isDark ? 'bg-[#3B82F6]/15 shadow-[#3B82F6]/10' : 'bg-blue-100 shadow-blue-200')">
               <i class="text-3xl transition-all"
                 :class="[
-                  archivoSeleccionado ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-arrow-up text-[#FF8F00]',
+                  archivoSeleccionado ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-arrow-up text-[#3B82F6]',
                   isDragOver ? 'scale-110' : ''
                 ]"></i>
             </div>
@@ -460,7 +473,7 @@
           <div class="px-4 py-3 border-t flex items-center justify-end"
             :class="isDark ? 'border-white/5 bg-[#1e2538]' : 'border-slate-200 bg-slate-50'">
             <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
-              class="flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
+              class="flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 bg-blue-500 hover:bg-blue-600 text-white shadow-md shadow-blue-500/25">
               <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-xs"></i>
               {{ isUploading ? 'Guardando...' : 'Guardar Cargue' }}
             </button>

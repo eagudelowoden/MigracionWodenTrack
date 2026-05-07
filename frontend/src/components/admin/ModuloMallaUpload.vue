@@ -8,13 +8,13 @@
 
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-9 h-9 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-amber-500/25">
+          class="flex-shrink-0 w-9 h-9 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-500/25">
           <i class="fas fa-calendar-check text-sm"></i>
         </div>
         <div class="leading-tight">
           <h2 class="text-base font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Asignación
             de Mallas</h2>
-          <p class="text-[9px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-[0.15em]">Horarios
+          <p class="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-[0.15em]">Horarios
             Colaboradores</p>
         </div>
       </div>
@@ -38,28 +38,29 @@
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
             class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 md:w-52 transition-all shadow-sm"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
+            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-400'" />
         </div>
 
         <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
           <button @click="fetchMallasDesdeOdoo" class="p-2 rounded-lg transition-all"
-            :class="isDark ? 'text-slate-400 hover:text-amber-400' : 'text-slate-500 hover:text-amber-500'"
+            :class="isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-500'"
             title="Refrescar">
             <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoadingMallas }"></i>
           </button>
 
           <button @click="downloadMallaTemplate"
-            class="p-2 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
             title="Descargar Plantilla">
-            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <span>Plantilla</span>
           </button>
 
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
           <label for="fileInputMallas"
-            class="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
+            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#3B82F6] text-white text-[10px] font-black uppercase rounded-full cursor-pointer hover:bg-blue-600 transition-all active:scale-95"
             :class="{ 'opacity-50 pointer-events-none': isUploading }">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
             <span>{{ isUploading ? 'Cargando...' : 'Subir' }}</span>
           </label>
         </div>
@@ -175,7 +176,7 @@
         <div class="px-6 pt-6 pb-4">
           <div class="flex items-center gap-3 mb-1">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-              :class="isDark ? 'bg-amber-500/15' : 'bg-amber-50'">
+              :class="isDark ? 'bg-[#3B82F6]/15' : 'bg-amber-50'">
               <i class="fas fa-file-excel text-amber-500 text-base"></i>
             </div>
             <div>
@@ -196,7 +197,7 @@
         <div class="px-6 pb-6 flex flex-col gap-2">
           <button @click="openPreview"
             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all"
-            :class="isDark ? 'border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400' : 'border-amber-400/50 bg-amber-50 hover:bg-amber-100 text-amber-700'">
+            :class="isDark ? 'border-amber-500/40 bg-[#3B82F6]/10 hover:bg-[#3B82F6]/20 text-amber-400' : 'border-amber-400/50 bg-amber-50 hover:bg-amber-100 text-amber-700'">
             <i class="fas fa-eye text-lg"></i>
             <div class="text-left">
               <p class="text-[12px] font-bold">Vista Previa</p>
@@ -261,7 +262,7 @@
           <button @click="cancelAll" class="px-4 py-2 rounded-xl text-[11px] font-bold uppercase border transition-all"
             :class="isDark ? 'border-white/15 text-slate-300' : 'border-slate-200 text-slate-600'">Cancelar</button>
           <button @click="confirmUpload"
-            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center gap-2">
+            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-[#3B82F6] text-white hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center gap-2">
             <i class="fas fa-cloud-arrow-up text-xs"></i>
             Confirmar carga
           </button>

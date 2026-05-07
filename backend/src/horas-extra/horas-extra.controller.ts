@@ -100,6 +100,24 @@ export class HorasExtraController {
     return this.service.aprobarRegistro(Number(id), dto.aprobado);
   }
 
+  @Post('exportar-calculado')
+  async exportarCalculado(
+    @Body() body: { registros: any[] },
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.exportarCalculado(body.registros ?? []);
+    const fecha = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reporte_hx_${fecha}.xlsx"`,
+    );
+    res.send(buffer);
+  }
+
   @Get('exportar-excel')
   async exportarExcel(
     @Query('startDate') startDate: string,

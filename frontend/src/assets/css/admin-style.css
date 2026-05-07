@@ -1,6 +1,6 @@
 /* --- VARIABLES Y CONFIGURACIÓN BASE --- */
 :root {
-  --woden-orange: #ff8f00;
+  --woden-blue: #3b82f6;
   --sidebar-w-open: 240px;
   --sidebar-w-closed: 64px;
   --header-h: 56px;
@@ -14,15 +14,18 @@
   overflow: hidden;
   font-family: "Inter", sans-serif;
 }
+*, *::before, *::after {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
 body {
   margin: 0;
-  /* El gradiente hará que no se vea tan "plano" y oscuro */
   background: radial-gradient(
     circle at top right,
     #1e293b 0%,
     var(--woden-bg-main) 100%
   );
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: white;
   min-height: 100vh;
 }
@@ -71,7 +74,7 @@ body {
 }
 
 .nav-link.active {
-  background-color: var(--woden-orange);
+  background-color: var(--woden-blue);
   color: white;
 }
 
@@ -183,8 +186,8 @@ body {
 }
 /* --- VARIABLES --- */
 :root {
-  --woden-orange: #ff8f00;
-  --woden-orange-hover: #e68200;
+  --woden-blue: #3b82f6;
+  --woden-blue-hover: #2563eb;
   --sidebar-w-open: 240px;
   --sidebar-w-closed: 70px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -195,7 +198,7 @@ body {
 /* --- BOTÓN TOGGLE SIDEBAR (CORREGIDO) --- */
 .sidebar-toggle-btn {
   background-color: rgba(167, 83, 71, 0.836);
-  color: var(--woden-orange);
+  color: var(--woden-blue);
   border: none;
   padding: 0.5rem;
   border-radius: 0.5rem;
@@ -207,7 +210,7 @@ body {
 }
 
 .sidebar-toggle-btn:hover {
-  background-color: var(--woden-orange);
+  background-color: var(--woden-blue);
   color: white;
 }
 
@@ -360,14 +363,14 @@ main.flex-1 {
 }
 
 .nav-link-smart.active {
-  background-color: #ff8f00;
+  background-color: #3b82f6;
   color: white;
   box-shadow: 0 8px 16px rgba(255, 143, 0, 0.25);
 }
 
 .nav-link-smart:hover:not(.active) {
   background-color: rgba(255, 143, 0, 0.08);
-  color: #ff8f00;
+  color: #3b82f6;
 }
 
 /* --- SIDEBAR CONFIG --- */
@@ -412,7 +415,7 @@ main.flex-1 {
 }
 
 .nav-link-v2.active {
-  @apply text-white bg-[#FF8F00] shadow-lg shadow-orange-500/30;
+  @apply text-white bg-[#3B82F6] shadow-lg shadow-blue-500/30;
 }
 
 .nav-link-v2.active .nav-icon {
@@ -420,7 +423,7 @@ main.flex-1 {
 }
 
 .nav-link-v2:hover:not(.active) {
-  @apply text-[#FF8F00] bg-[#FF8F00]/5;
+  @apply text-[#3B82F6] bg-[#3B82F6]/5;
 }
 
 .nav-link-v2.logout:hover {
@@ -446,7 +449,7 @@ main.flex-1 {
 
 /* --- SELECTOR DE COMPAÑÍA --- */
 .company-selector:hover {
-  @apply border-[#FF8F00] shadow-md;
+  @apply border-[#3B82F6] shadow-md;
 }
 
 /* --- SIDEBAR --- */
@@ -600,7 +603,7 @@ main.flex-1 {
 .hub-card-mini {
   @apply border p-4 rounded-[1.5rem] 
          flex flex-col items-center gap-3 transition-all duration-300 
-         hover:border-[#FF8F00]/50 hover:scale-105 active:scale-95;
+         hover:border-[#3B82F6]/50 hover:scale-105 active:scale-95;
 }
 
 /* En modo claro, agregamos un hover con sombra naranja sutil */

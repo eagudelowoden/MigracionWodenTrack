@@ -5,15 +5,15 @@
     <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
       <div class="flex items-center gap-3">
-        <div class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
-          <i class="fas fa-calendar-alt text-amber-500 text-xs"></i>
+        <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+          <i class="fas fa-calendar-alt text-blue-500 text-xs"></i>
         </div>
         <div>
           <h2 class="text-[11px] font-semibold uppercase tracking-wider"
             :class="isDark ? 'text-white' : 'text-slate-700'">Gestión de Mallas</h2>
           <p class="text-[9px] font-medium opacity-40 uppercase tracking-wide"
             :class="isDark ? 'text-white' : 'text-slate-500'">
-            {{ mallas.length }} mallas · DB Local
+            {{ mallas.length }} mallas · {{ mallasFiltradas.length }} mostrando
           </p>
         </div>
       </div>
@@ -35,7 +35,7 @@
           class="h-8 px-4 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-2"
           :class="panelForm
             ? 'bg-slate-500 text-white'
-            : 'bg-amber-500 text-black hover:bg-amber-400'">
+            : 'bg-blue-500 text-white hover:bg-blue-400'">
           <i :class="panelForm ? 'fas fa-times' : 'fas fa-plus'" class="text-[10px]"></i>
           {{ panelForm ? 'Cancelar' : 'Nueva Malla' }}
         </button>
@@ -82,7 +82,6 @@
           </button>
         </div>
 
-        <!-- Resultado del upload -->
         <div v-if="resultadoUpload" class="px-4 pb-4">
           <div class="rounded-lg px-3 py-2 text-[10px] font-medium border"
             :class="resultadoUpload.errores?.length
@@ -102,10 +101,11 @@
     </Transition>
 
     <!-- PANEL: FORMULARIO CREAR MALLA -->
+    <!-- overflow-visible permite que los dropdowns de hora en el Domingo no queden ocultos -->
     <Transition name="slide-down">
-      <div v-if="panelForm" class="rounded-xl border overflow-hidden transition-all"
+      <div v-if="panelForm" class="rounded-xl border transition-all"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
-        <div class="px-3 py-2 border-b"
+        <div class="px-3 py-2 border-b rounded-t-xl"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
           <span class="text-[10px] font-semibold uppercase tracking-wider opacity-60"
             :class="isDark ? 'text-white' : 'text-slate-600'">Nueva malla horaria</span>
@@ -120,8 +120,8 @@
               <input v-model="form.nombre" type="text" placeholder="(ADM) ADMIN-001 Colombia L-V 7-17"
                 class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all"
                 :class="isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-amber-500/50'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-amber-400'" />
+                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
             </div>
             <div>
               <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
@@ -129,18 +129,18 @@
               <input v-model="form.compania" type="text" placeholder="(CO) WODEN COLOMBIA SAS"
                 class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all"
                 :class="isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-amber-500/50'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-amber-400'" />
+                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
             </div>
           </div>
 
-          <!-- Tabla de días -->
-          <div class="rounded-xl border overflow-hidden"
+          <!-- Tabla de días — sin overflow-hidden para que los dropdowns de la última fila sean visibles -->
+          <div class="rounded-xl border"
             :class="isDark ? 'border-white/10' : 'border-slate-200'">
-            <table class="w-full text-[10px]">
+            <table class="w-full text-[10px] border-collapse">
               <thead>
                 <tr :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
-                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50 w-8">
+                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50 w-8 rounded-tl-xl">
                     <i class="fas fa-check"></i>
                   </th>
                   <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Día</th>
@@ -151,7 +151,7 @@
                       <button @click="toggleHeaderDropdown('inicio')"
                         class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1 group"
                         :class="headerDropdown === 'inicio'
-                          ? 'bg-amber-500 text-black'
+                          ? 'bg-blue-500 text-white'
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora inicio
@@ -171,7 +171,7 @@
                           <div v-for="h in horasFiltradas(searchHoraInicio)" :key="h.value"
                             @click="aplicarHoraATodos('inicio', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="isDark ? 'hover:bg-amber-500/20 text-white hover:text-amber-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            :class="isDark ? 'hover:bg-blue-500/20 text-white hover:text-blue-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
                             {{ h.label }}
                           </div>
                         </div>
@@ -185,7 +185,7 @@
                       <button @click="toggleHeaderDropdown('fin')"
                         class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1"
                         :class="headerDropdown === 'fin'
-                          ? 'bg-amber-500 text-black'
+                          ? 'bg-blue-500 text-white'
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora fin
@@ -205,7 +205,7 @@
                           <div v-for="h in horasFiltradas(searchHoraFin)" :key="h.value"
                             @click="aplicarHoraATodos('fin', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="isDark ? 'hover:bg-amber-500/20 text-white hover:text-amber-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            :class="isDark ? 'hover:bg-blue-500/20 text-white hover:text-blue-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
                             {{ h.label }}
                           </div>
                         </div>
@@ -213,11 +213,11 @@
                     </div>
                   </th>
 
-                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50">Periodo</th>
+                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50 rounded-tr-xl">Periodo</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="detalle in form.detalles" :key="detalle.dia_semana"
+                <tr v-for="(detalle, idx) in form.detalles" :key="detalle.dia_semana"
                   class="border-t transition-all"
                   :class="[
                     isDark ? 'border-white/5' : 'border-slate-100',
@@ -225,13 +225,13 @@
                   ]">
                   <td class="px-3 py-2">
                     <input type="checkbox" v-model="detalle.activo"
-                      class="w-3.5 h-3.5 accent-amber-500 cursor-pointer" />
+                      class="w-3.5 h-3.5 accent-blue-500 cursor-pointer" />
                   </td>
                   <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">
                     {{ DIAS[detalle.dia_semana] }}
                   </td>
 
-                  <!-- HORA INICIO — dropdown buscable por fila -->
+                  <!-- HORA INICIO — dropdown buscable por fila. Las últimas filas abren hacia arriba -->
                   <td class="px-3 py-2">
                     <div class="relative">
                       <button :disabled="!detalle.activo"
@@ -242,8 +242,11 @@
                         <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
                       </button>
                       <div v-if="rowDropdown === `${detalle.dia_semana}-inicio`"
-                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
-                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
+                        :class="[
+                          idx >= form.detalles.length - 3 ? 'bottom-full mb-1' : 'top-full mt-1',
+                          isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'
+                        ]">
                         <div class="p-1.5 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                           <input v-model="searchRow" type="text" placeholder="Buscar..."
                             class="w-full text-[11px] outline-none bg-transparent px-1"
@@ -255,8 +258,8 @@
                             @click="selectRowHora(detalle, 'inicio', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
                             :class="[
-                              detalle.hora_inicio === h.value ? 'text-amber-500 font-black' : '',
-                              isDark ? 'hover:bg-amber-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                              detalle.hora_inicio === h.value ? 'text-blue-500 font-black' : '',
+                              isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
                             ]">
                             {{ h.label }}
                           </div>
@@ -265,7 +268,7 @@
                     </div>
                   </td>
 
-                  <!-- HORA FIN — dropdown buscable por fila -->
+                  <!-- HORA FIN — dropdown buscable por fila. Las últimas filas abren hacia arriba -->
                   <td class="px-3 py-2">
                     <div class="relative">
                       <button :disabled="!detalle.activo"
@@ -276,8 +279,11 @@
                         <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
                       </button>
                       <div v-if="rowDropdown === `${detalle.dia_semana}-fin`"
-                        class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
-                        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
+                        :class="[
+                          idx >= form.detalles.length - 3 ? 'bottom-full mb-1' : 'top-full mt-1',
+                          isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'
+                        ]">
                         <div class="p-1.5 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                           <input v-model="searchRow" type="text" placeholder="Buscar..."
                             class="w-full text-[11px] outline-none bg-transparent px-1"
@@ -289,8 +295,8 @@
                             @click="selectRowHora(detalle, 'fin', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
                             :class="[
-                              detalle.hora_fin === h.value ? 'text-amber-500 font-black' : '',
-                              isDark ? 'hover:bg-amber-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                              detalle.hora_fin === h.value ? 'text-blue-500 font-black' : '',
+                              isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
                             ]">
                             {{ h.label }}
                           </div>
@@ -303,8 +309,8 @@
                     <select v-model="detalle.periodo" :disabled="!detalle.activo"
                       class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
                       :class="isDark
-                        ? 'bg-white/5 border-white/10 text-white focus:border-amber-500/50'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-amber-400'">
+                        ? 'bg-white/5 border-white/10 text-white focus:border-blue-500/50'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400'">
                       <option value="morning">Diurna</option>
                       <option value="afternoon">Tarde</option>
                       <option value="night">Nocturna</option>
@@ -346,7 +352,6 @@
                 class="px-4 pb-4 pt-1 flex flex-wrap items-end gap-4 border-t"
                 :class="isDark ? 'border-orange-500/20' : 'border-orange-200'">
 
-                <!-- Horas a reducir -->
                 <div>
                   <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                     :class="isDark ? 'text-white' : 'text-slate-600'">Horas a reducir</label>
@@ -354,15 +359,13 @@
                     <button @click="reduccion.horas = Math.max(0.5, reduccion.horas - 0.5)"
                       class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all font-bold"
                       :class="isDark ? 'border-white/10 text-white hover:bg-white/10' : 'border-slate-200 text-slate-600 hover:bg-slate-100'">−</button>
-                    <span class="w-12 text-center text-[13px] font-black"
-                      :class="'text-orange-500'">{{ reduccion.horas }}h</span>
+                    <span class="w-12 text-center text-[13px] font-black text-orange-500">{{ reduccion.horas }}h</span>
                     <button @click="reduccion.horas = Math.min(8, reduccion.horas + 0.5)"
                       class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all font-bold"
                       :class="isDark ? 'border-white/10 text-white hover:bg-white/10' : 'border-slate-200 text-slate-600 hover:bg-slate-100'">+</button>
                   </div>
                 </div>
 
-                <!-- Día a reducir -->
                 <div>
                   <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                     :class="isDark ? 'text-white' : 'text-slate-600'">Día afectado</label>
@@ -380,7 +383,6 @@
                   </div>
                 </div>
 
-                <!-- Preview del resultado -->
                 <div v-if="reduccion.dia !== null" class="flex-1 min-w-[160px]">
                   <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                     :class="isDark ? 'text-white' : 'text-slate-600'">Resultado</label>
@@ -399,7 +401,7 @@
           <!-- Botón guardar -->
           <div class="flex justify-end">
             <button @click="crearMalla" :disabled="guardando || !form.nombre.trim()"
-              class="h-9 px-6 rounded-xl bg-amber-500 text-black text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-amber-400 transition-all flex items-center gap-2">
+              class="h-9 px-6 rounded-xl bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-blue-400 transition-all flex items-center gap-2">
               <i class="fas text-[10px]" :class="guardando ? 'fa-circle-notch fa-spin' : 'fa-save'"></i>
               {{ guardando ? 'Guardando...' : 'Guardar Malla' }}
             </button>
@@ -411,10 +413,30 @@
     <!-- TABLA DE MALLAS EXISTENTES -->
     <div class="flex-1 min-h-0 rounded-xl border overflow-hidden transition-all flex flex-col"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
-      <div class="shrink-0 px-3 py-2 border-b flex items-center justify-between"
+
+      <!-- Header con búsqueda -->
+      <div class="shrink-0 px-3 py-2 border-b flex items-center gap-2"
         :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
-        <span class="text-[9px] font-semibold uppercase tracking-wider opacity-50"
-          :class="isDark ? 'text-white' : 'text-slate-600'">Mallas registradas</span>
+        <!-- Búsqueda por nombre/compañía -->
+        <div class="relative flex-1 max-w-xs">
+          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] opacity-40"
+            :class="isDark ? 'text-white' : 'text-slate-500'"></i>
+          <input
+            v-model="filterMalla"
+            type="text"
+            placeholder="Buscar malla..."
+            class="w-full pl-7 pr-2.5 py-1 rounded-lg border text-[10px] font-medium outline-none transition-all"
+            :class="isDark
+              ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/40'
+              : 'bg-white border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'"
+          />
+        </div>
+
+        <span class="text-[9px] font-semibold uppercase tracking-wider opacity-40 ml-auto"
+          :class="isDark ? 'text-white' : 'text-slate-600'">
+          {{ mallasFiltradas.length }} / {{ mallas.length }}
+        </span>
+
         <button @click="cargarMallas" :disabled="cargando"
           class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
           :class="isDark ? 'border-white/10 text-white/40 hover:bg-white/5' : 'border-slate-200 text-slate-400 hover:bg-slate-50'">
@@ -423,19 +445,19 @@
       </div>
 
       <div v-if="cargando" class="flex-1 flex items-center justify-center">
-        <i class="fas fa-circle-notch fa-spin text-amber-500 text-lg"></i>
+        <i class="fas fa-circle-notch fa-spin text-blue-500 text-lg"></i>
       </div>
 
-      <div v-else-if="!mallas.length" class="flex-1 flex flex-col items-center justify-center">
+      <div v-else-if="!mallasFiltradas.length" class="flex-1 flex flex-col items-center justify-center">
         <i class="fas fa-calendar-alt text-3xl opacity-10 mb-2 block"
           :class="isDark ? 'text-white' : 'text-slate-400'"></i>
         <p class="text-[11px] opacity-30" :class="isDark ? 'text-white' : 'text-slate-500'">
-          No hay mallas registradas
+          {{ filterMalla ? 'Sin resultados para "' + filterMalla + '"' : 'No hay mallas registradas' }}
         </p>
       </div>
 
       <div v-else class="flex-1 overflow-y-auto divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
-        <div v-for="malla in mallas" :key="malla.id"
+        <div v-for="malla in mallasFiltradas" :key="malla.id"
           class="px-4 py-3 transition-all"
           :class="isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'">
           <div class="flex items-start justify-between gap-3">
@@ -453,12 +475,11 @@
               <p v-if="malla.compania" class="text-[9px] opacity-40 mt-0.5"
                 :class="isDark ? 'text-white' : 'text-slate-500'">{{ malla.compania }}</p>
 
-              <!-- Detalles de días -->
               <div v-if="malla.detalles?.length" class="flex flex-wrap gap-1 mt-2">
                 <span v-for="d in malla.detalles.slice().sort((a,b) => a.dia_semana - b.dia_semana)"
                   :key="d.id"
                   class="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                  :class="isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'">
+                  :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-50 text-amber-600'">
                   {{ DIAS_SHORT[d.dia_semana] }}
                   {{ formatHora(d.hora_inicio) }}-{{ formatHora(d.hora_fin) }}
                 </span>
@@ -525,18 +546,16 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['success', 'error']);
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ── Constantes ─────────────────────────────────────────────
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DIAS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-// 00:00 a 23:30 — incluye turnos nocturnos y madrugada
 const HORAS = Array.from({ length: 48 }, (_, i) => {
   const valor = i * 0.5;
   const h = Math.floor(valor).toString().padStart(2, '0');
@@ -545,25 +564,24 @@ const HORAS = Array.from({ length: 48 }, (_, i) => {
 });
 
 const formatHora = (decimal) => {
-  const norm = ((decimal % 24) + 24) % 24; // normalizar si pasa 24h
+  const norm = ((decimal % 24) + 24) % 24;
   const h = Math.floor(norm).toString().padStart(2, '0');
   const m = Math.round((norm % 1) * 60).toString().padStart(2, '0');
   return `${h}:${m}`;
 };
 
-// Preview reducción respetando turnos nocturnos
 const formatHoraFin = (inicio, fin, reduccion) => {
-  const esNocturno = fin < inicio; // turno cruza medianoche
+  const esNocturno = fin < inicio;
   const nuevaFin = esNocturno
-    ? Math.max(0, fin - reduccion)           // reducir desde el lado de la madrugada
-    : Math.max(inicio + 1, fin - reduccion); // reducir hora fin normal
+    ? Math.max(0, fin - reduccion)
+    : Math.max(inicio + 1, fin - reduccion);
   return formatHora(nuevaFin);
 };
 
 const detectarPeriodo = (horaInicio) => {
   if (horaInicio >= 5 && horaInicio < 12) return 'morning';
   if (horaInicio >= 12 && horaInicio < 20) return 'afternoon';
-  return 'night'; // 20:00+ o madrugada
+  return 'night';
 };
 
 const formularioInicial = () => ({
@@ -594,9 +612,20 @@ const cargandoExcel = ref(false);
 const resultadoUpload = ref(null);
 const reduccion = ref(reduccionInicial());
 
+// Filtro búsqueda mallas
+const filterMalla = ref('');
+
+const mallasFiltradas = computed(() => {
+  if (!filterMalla.value.trim()) return mallas.value;
+  const q = filterMalla.value.toLowerCase();
+  return mallas.value.filter(
+    m => m.nombre?.toLowerCase().includes(q) || m.compania?.toLowerCase().includes(q)
+  );
+});
+
 // ── Dropdowns de horas ──────────────────────────────────────
-const headerDropdown = ref(null);   // 'inicio' | 'fin' | null
-const rowDropdown    = ref(null);   // '0-inicio' | '3-fin' | null
+const headerDropdown = ref(null);
+const rowDropdown    = ref(null);
 const searchHoraInicio = ref('');
 const searchHoraFin    = ref('');
 const searchRow        = ref('');
@@ -654,7 +683,6 @@ const crearMalla = async () => {
   if (!form.value.nombre.trim()) return;
   guardando.value = true;
   try {
-    // Aplicar reducción de horas si está activa
     const detallesFinales = form.value.detalles
       .filter((d) => d.activo)
       .map((d) => {
@@ -751,7 +779,6 @@ const descargarPlantilla = () => {
   window.open(`${API_URL}/mallas-admin/plantilla`, '_blank');
 };
 
-// Auto-detectar periodo al cambiar hora_inicio
 watch(
   () => form.value.detalles.map((d) => d.hora_inicio),
   (nuevas, anteriores) => {

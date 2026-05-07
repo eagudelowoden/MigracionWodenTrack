@@ -1,6 +1,10 @@
 :root {
-  --primary: #ff8f00;
-  --primary-gradient: linear-gradient(135deg, #ff8f00 0%, #ff6a00 100%);
+  --primary: #3b82f6;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+*, *::before, *::after {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 /* Layout Responsivo */

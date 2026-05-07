@@ -349,22 +349,11 @@ export function useReporteMallas() {
   async function exportarExcel(company) {
     try {
       isExporting.value = true;
-      const s = getSession();
 
-      const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
-      };
-
-      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
-        if (s.department) params.departamento = s.department;
-      }
-
-      const response = await axios.get(
-        `${API_BASE_URL}/horas-extra/exportar-excel`,
-        { params, responseType: "blob" },
+      const response = await axios.post(
+        `${API_BASE_URL}/horas-extra/exportar-calculado`,
+        { registros: registros.value },
+        { responseType: "blob" },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));

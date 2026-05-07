@@ -634,16 +634,18 @@ export class HorasExtraService {
         '(h.hedo > 0 OR h.heno > 0 OR h.hefd > 0 OR h.hefn > 0 OR h.total_minutos_extra > 0)',
       );
 
-    // Filtro por estructura (área/segmento) → busca cédulas locales
+    // Filtro por estructura (área/segmento) → OR entre ambos criterios
     if (filters.area_id || filters.segmento_id) {
-      const where: any = {};
-      if (filters.area_id) where.area_id = filters.area_id;
-      if (filters.segmento_id) where.segmento_id = filters.segmento_id;
+      const conditions: any[] = [];
+      if (filters.area_id) conditions.push({ area_id: filters.area_id });
+      if (filters.segmento_id) conditions.push({ segmento_id: filters.segmento_id });
       const usuarios = await this.usuarioRepo.find({
-        where,
+        where: conditions,
         select: ['identificacion'],
       });
-      const cedulas = usuarios.map((u) => u.identificacion).filter(Boolean);
+      const cedulas = [...new Set(
+        usuarios.map((u) => u.identificacion).filter(Boolean),
+      )];
       if (!cedulas.length) return [];
       qb.andWhere('h.cedula IN (:...cedulas)', {
         cedulas: cedulas.slice(0, 500),
@@ -689,6 +691,10 @@ export class HorasExtraService {
     return this.horaExtraRepo.findOne({ where: { id } });
   }
 
+  async exportarCalculado(registros: any[]): Promise<Buffer> {
+    return this._generarExcelDesdeRegistros(registros);
+  }
+
   async exportarExcel(filters: {
     startDate?: string;
     endDate?: string;
@@ -703,6 +709,10 @@ export class HorasExtraService {
       ...filters,
       soloConExtras: false,
     });
+    return this._generarExcelDesdeRegistros(registros);
+  }
+
+  private async _generarExcelDesdeRegistros(registros: any[]): Promise<Buffer> {
 
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Reporte HX');
@@ -808,7 +818,7 @@ export class HorasExtraService {
     });
 
     // Agrupar: empresa → colaborador → filas
-    const empresas = new Map<string, Map<string, HoraExtra[]>>();
+    const empresas = new Map<string, Map<string, any[]>>();
     for (const r of sorted) {
       const emp = r.company ?? 'SIN EMPRESA';
       const colab = `${r.cedula}__${r.nombre}`;
@@ -857,12 +867,16 @@ export class HorasExtraService {
           const fechaDisplay = r.fecha
             ? r.fecha.split('-').reverse().join('/')
             : '';
-          const horaEntrada = r.fecha_entrada
-            ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '')
-            : '';
-          const horaSalida = r.fecha_salida
-            ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '')
-            : '';
+          const horaEntrada = r.hora_inicio_laborado
+            ? r.hora_inicio_laborado.slice(0, 5)
+            : r.fecha_entrada
+              ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '')
+              : '';
+          const horaSalida = r.hora_fin_laborado
+            ? r.hora_fin_laborado.slice(0, 5)
+            : r.fecha_salida
+              ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '')
+              : '';
 
           const values = [
             r.cedula,

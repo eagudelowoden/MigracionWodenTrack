@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-
 .font-round-custom {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
 }
 
 
@@ -26,12 +24,12 @@
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #FF8F00 transparent;
+    scrollbar-color: #3B82F6 transparent;
 }
 
 /* Scrollbar minimalista naranja */
 .table-responsive-container::-webkit-scrollbar { width: 4px; }
-.table-responsive-container::-webkit-scrollbar-thumb { background: #FF8F00; border-radius: 10px; }
+.table-responsive-container::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 10px; }
 
 /* Tabla Compacta */
 .novedades-table {

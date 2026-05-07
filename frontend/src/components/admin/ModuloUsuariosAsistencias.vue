@@ -13,7 +13,7 @@
         </span>
 
         <div
-          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#FF8F00] text-white shadow-sm shadow-orange-500/20">
+          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#3B82F6] text-white shadow-sm shadow-blue-500/20">
           <i class="fas fa-clipboard-list text-xs"></i>
         </div>
 
@@ -25,8 +25,8 @@
 
       <div class="flex flex-wrap items-center gap-1.5">
         <button @click="filterHoy = !filterHoy"
-          class="flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
-          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
+          class="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
+          :class="filterHoy ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
           title="Filtrar solo hoy">
           <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
           HOY
@@ -62,7 +62,7 @@
           <div class="relative group">
             <input v-model="search" type="text" placeholder="BUSCAR..."
               class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 shadow-sm transition-all"
-              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-600 focus:border-blue-400'">
             <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           </div>
         </div>
@@ -71,12 +71,13 @@
           <button @click="clearFilters" class="p-1.5 text-slate-400 hover:text-rose-500 transition-all">
             <i class="fas fa-filter-circle-xmark text-base"></i>
           </button>
-          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-[#FF8F00] transition-all">
+          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-blue-400 transition-all">
             <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': loading }"></i>
           </button>
           <button @click="downloadReport" :disabled="loading || reportData.length === 0"
-            class="ml-1 p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
-            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+            class="ml-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
+            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <span>Excel</span>
           </button>
         </div>
       </div>
@@ -140,7 +141,7 @@
             <tr v-else v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
               :class="[
                 index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50'
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50'
               ]">
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
@@ -154,7 +155,7 @@
                       :class="isDark ? 'text-white' : 'text-slate-900'">
                       {{ item.empleado }}
                     </span>
-                    <span class="text-[9px] font-bold" :class="isDark ? 'text-orange-400/90' : 'text-orange-600'">
+                    <span class="text-[9px] font-bold" :class="isDark ? 'text-blue-400/90' : 'text-blue-600'">
                       {{ item.department_id || 'Sin Depto' }}
                     </span>
                   </div>

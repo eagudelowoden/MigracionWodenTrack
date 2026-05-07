@@ -11,7 +11,7 @@
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
         <input type="date" v-model="startDate"
           class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-400'" />
       </div>
 
       <!-- Hasta -->
@@ -20,7 +20,7 @@
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
         <input type="date" v-model="endDate"
           class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-400'" />
       </div>
 
       <!-- Filtro Nombre -->
@@ -31,7 +31,7 @@
           <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           <input v-model="filterNombre" type="text" placeholder="Buscar..."
             class="pl-7 pr-2.5 py-1.5 text-[10px] font-semibold rounded-lg border outline-none w-36 transition-colors"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+            :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-400'" />
         </div>
       </div>
 
@@ -41,14 +41,14 @@
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">Departamento</label>
         <input v-model="filterDepartamento" type="text" placeholder="Filtrar departamento..."
           class="px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border outline-none w-44 transition-colors"
-          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#FF8F00]'" />
+          :class="isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-400'" />
       </div>
 
       <!-- Acciones -->
       <div class="flex items-center gap-2 ml-auto self-end">
         <button @click="handleCargar" :disabled="isLoading"
           class="p-2 rounded-lg transition-all"
-          :class="isDark ? 'text-slate-400 hover:text-[#FF8F00]' : 'text-slate-500 hover:text-[#FF8F00]'"
+          :class="isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-400'"
           title="Refrescar">
           <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoading }"></i>
         </button>
