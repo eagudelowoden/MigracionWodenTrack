@@ -381,6 +381,8 @@ export class HorasExtraService {
 
     // Agregar registros de attendance.log para empleados/días no cubiertos por hr.attendance
     // Agrupar punches por empId+fecha
+    const idsPermitidos = idsPorEstructura ? new Set(idsPorEstructura) : null;
+
     const logGrupos: Record<string, { empId: number; nombre: string; dept: string; fecha: string; punches: any[] }> = {};
     for (const log of logs) {
       const empId = log.employee_id?.[0];
@@ -388,6 +390,9 @@ export class HorasExtraService {
       const localTime = this.toLocal(log.punching_time);
       const fecha = localTime ? localTime.split(' ')[0] : null;
       if (!fecha || !empId) continue;
+
+      // Filtro de seguridad: si Odoo no aplicó bien el dominio, lo hacemos aquí
+      if (idsPermitidos && !idsPermitidos.has(empId)) continue;
 
       const key = `${empId}_${fecha}`;
       if (grupos[key]) continue; // ya cubierto por hr.attendance

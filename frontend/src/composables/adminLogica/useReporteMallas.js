@@ -46,11 +46,26 @@ export function useReporteMallas() {
   const currentPage = ref(1);
   const itemsPerPage = 20;
 
+  // ── Perfil completo (igual que mallas) ────────────────────────────────────
+  const perfilUsuario = ref(null);
+
+  async function _cargarPerfil() {
+    try {
+      const s = getSession();
+      const idOdoo = s.employee_id || s.id_odoo;
+      if (!idOdoo) return;
+      const { data } = await axios.get(`${API_BASE_URL}/perfil-completo/${idOdoo}`);
+      perfilUsuario.value = data;
+    } catch (e) {
+      console.error("Error cargando perfil para horas extra:", e);
+    }
+  }
+
   // ── Helpers de sesión ──────────────────────────────────────────────────────
 
+  // Misma lógica que mallasGeneral: prioridad segmento > area, nunca los dos juntos
   function getAreaSegmento() {
     const s = getSession();
-    // "desarrollador_junior" ve todo (sin filtro de área/segmento)
     if (
       s.isSuperAdmin ||
       s.role === "desarrollador_junior" ||
@@ -58,10 +73,21 @@ export function useReporteMallas() {
     ) {
       return {};
     }
-    const params = {};
-    if (s.area_id) params.area_id = s.area_id;
-    if (s.segmento_id) params.segmento_id = s.segmento_id;
-    return params;
+
+    const esResponsableSegmento = hasPerm("novedades.ver_segmento");
+    const perfil = perfilUsuario.value;
+
+    if (esResponsableSegmento && perfil?.segmento?.id) {
+      return { segmento_id: perfil.segmento.id };
+    }
+    if (perfil?.area?.id) {
+      return { area_id: perfil.area.id };
+    }
+
+    // Fallback a sesión si el perfil aún no cargó
+    if (s.segmento_id) return { segmento_id: s.segmento_id };
+    if (s.area_id) return { area_id: s.area_id };
+    return {};
   }
 
   // ── Opciones para filtros (derivadas de los registros cargados) ─────────────
@@ -186,10 +212,18 @@ export function useReporteMallas() {
 
   // ── API calls ──────────────────────────────────────────────────────────────
 
+  async function _asegurarPerfil() {
+    const s = getSession();
+    if (!s.isSuperAdmin && !hasPerm("admin.ver_todo") && !perfilUsuario.value) {
+      await _cargarPerfil();
+    }
+  }
+
   async function cargarHistorial(company) {
     try {
       isLoading.value = true;
       aprobacionesLocales.value = {};
+      await _asegurarPerfil();
 
       const s = getSession();
       const params = {
@@ -221,6 +255,7 @@ export function useReporteMallas() {
     try {
       isCalculating.value = true;
       hayResultadosCalculados.value = false;
+      await _asegurarPerfil();
       const s = getSession();
 
       const payload = {
@@ -246,6 +281,7 @@ export function useReporteMallas() {
   async function guardarCalculados(company) {
     try {
       isSaving.value = true;
+      await _asegurarPerfil();
       const s = getSession();
 
       const payload = {
