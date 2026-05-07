@@ -1533,7 +1533,7 @@ export class UsuariosService {
     console.time('⏱ query-odoo');
     let attendances: any[];
     let logs: any[];
-    let partnerMap: Record<string, string>;
+    let partnerMap: Record<string, string> | undefined;
 
     try {
       if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
@@ -1594,10 +1594,15 @@ export class UsuariosService {
     ] as number[];
 
     console.time('⏱ partners+mallas');
-    const [partnerMap, mallasLocalMap] = await Promise.all([
-      this.obtenerPartnerMap(attendances, logs, uid),
-      this.getMallasMapLocal(todosLosEmpIds),
-    ]);
+    let mallasLocalMap: Map<number, any[]>;
+    if (partnerMap) {
+      mallasLocalMap = await this.getMallasMapLocal(todosLosEmpIds);
+    } else {
+      [partnerMap, mallasLocalMap] = await Promise.all([
+        this.obtenerPartnerMap(attendances, logs, uid),
+        this.getMallasMapLocal(todosLosEmpIds),
+      ]);
+    }
     console.timeEnd('⏱ partners+mallas');
 
     const toLocal = this.crearConvertidorLocal();
@@ -1605,9 +1610,9 @@ export class UsuariosService {
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
       Promise.resolve(
-        this.mapAttendances(attendances, partnerMap, toLocal, mallasLocalMap),
+        this.mapAttendances(attendances, partnerMap!, toLocal, mallasLocalMap),
       ),
-      this.mapLogs(logs, partnerMap, toLocal, uid, agruparLogs, mallasLocalMap),
+      this.mapLogs(logs, partnerMap!, toLocal, uid, agruparLogs, mallasLocalMap),
     ]);
     console.timeEnd('⏱ mapLogs');
 
