@@ -68,7 +68,7 @@ export class UsuariosService {
     private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
-  ) { }
+  ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
   private readonly ENVIAR_CAMPOS_STUDIO =
@@ -196,7 +196,10 @@ export class UsuariosService {
     ]);
 
     // Responsable de segmento → puede ver todas las novedades del segmento
-    if (respSegmento.length > 0 && mapaPermisos['novedades.ver_segmento'] === undefined) {
+    if (
+      respSegmento.length > 0 &&
+      mapaPermisos['novedades.ver_segmento'] === undefined
+    ) {
       mapaPermisos['novedades.ver_segmento'] = true;
     }
     // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
@@ -560,11 +563,17 @@ export class UsuariosService {
 
     // Si tenemos IDs específicos por estructura (permisos), filtramos por ellos
     if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-      usuarioQuery.andWhere('u.id_odoo IN (:...ids)', { ids: employeeIdsPorEstructura });
+      usuarioQuery.andWhere('u.id_odoo IN (:...ids)', {
+        ids: employeeIdsPorEstructura,
+      });
     }
 
     // Filtros adicionales de búsqueda
-    if (departamentoName && departamentoName.trim() !== '' && departamentoName !== 'Todas') {
+    if (
+      departamentoName &&
+      departamentoName.trim() !== '' &&
+      departamentoName !== 'Todas'
+    ) {
       usuarioQuery.andWhere('u.departamento LIKE :depto', {
         depto: `%${departamentoName}%`,
       });
@@ -581,7 +590,13 @@ export class UsuariosService {
     }
 
     const usuarios = await usuarioQuery
-      .select(['u.id_odoo', 'u.nombre', 'u.cargo', 'u.departamento', 'u.identificacion'])
+      .select([
+        'u.id_odoo',
+        'u.nombre',
+        'u.cargo',
+        'u.departamento',
+        'u.identificacion',
+      ])
       .orderBy('u.nombre', 'ASC')
       .getMany();
 
@@ -619,11 +634,17 @@ export class UsuariosService {
         if (asigLocal.malla.detalles?.length) {
           const detalleHoy = asigLocal.malla.detalles
             .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
-            .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
+            .sort(
+              (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+            )[0];
 
           if (detalleHoy) {
             horario = `${this.formatDecimal(detalleHoy.hora_inicio)} - ${this.formatDecimal(detalleHoy.hora_fin)}`;
-            const jornadas = { morning: 'Diurna', afternoon: 'Tarde', night: 'Nocturna' };
+            const jornadas = {
+              morning: 'Diurna',
+              afternoon: 'Tarde',
+              night: 'Nocturna',
+            };
             jornada = jornadas[detalleHoy.periodo] || 'N/A';
           }
         }
@@ -753,7 +774,7 @@ export class UsuariosService {
       .where('a.usuario_id_odoo IN (:...ids)', { ids: employeeIds })
       .orderBy('a.fecha_inicio', 'DESC')
       .addOrderBy('a.actual', 'DESC') // si hay dos filas con igual fecha_inicio, la activa (actual=1) primero
-      .addOrderBy('a.id', 'DESC')     // luego por más reciente
+      .addOrderBy('a.id', 'DESC') // luego por más reciente
       .getMany();
 
     const mallaMap = new Map<number, any[]>();
@@ -1001,8 +1022,8 @@ export class UsuariosService {
         });
         const ultimoConSalida = conSalida.length
           ? conSalida.reduce((best, cur) =>
-            new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
-          )
+              new Date(cur.check_out) > new Date(best.check_out) ? cur : best,
+            )
           : null;
 
         const localIn = toLocal(primero.check_in);
@@ -1069,16 +1090,21 @@ export class UsuariosService {
           const { hi, hf } = nocturnoAnterior;
           if (hIn <= hf + 2) {
             const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-            if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            if (
+              prevFila &&
+              !prevFila.eliminado &&
+              prevFila.localIn &&
+              !prevFila.localOut
+            ) {
               const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
               if (hPrevIn >= hi - 1) {
-                prevFila.localOut    = fila.localIn;
+                prevFila.localOut = fila.localIn;
                 prevFila.checkOutUTC = fila.checkInUTC;
               }
             }
-            fila.localIn     = fila.localOut;
-            fila.checkInUTC  = fila.checkOutUTC;
-            fila.localOut    = null;
+            fila.localIn = fila.localOut;
+            fila.checkInUTC = fila.checkOutUTC;
+            fila.localOut = null;
             fila.checkOutUTC = null;
             const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
             if (nuevaFecha !== fila.fecha) {
@@ -1096,16 +1122,22 @@ export class UsuariosService {
       // entró en horario nocturno (≥ 18 h) — cubre empleados sin malla asignada.
       if (!fila.localOut) {
         const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-        if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+        if (
+          prevFila &&
+          !prevFila.eliminado &&
+          prevFila.localIn &&
+          !prevFila.localOut
+        ) {
           const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
 
           const matchMalla = nocturnoAnterior
-            ? hPrevIn >= nocturnoAnterior.hi - 1 && hIn <= nocturnoAnterior.hf + 2
+            ? hPrevIn >= nocturnoAnterior.hi - 1 &&
+              hIn <= nocturnoAnterior.hf + 2
             : false;
           const matchHeuristica = !nocturnoAnterior && hPrevIn >= 18;
 
           if (matchMalla || matchHeuristica) {
-            prevFila.localOut    = fila.localIn;
+            prevFila.localOut = fila.localIn;
             prevFila.checkOutUTC = fila.checkInUTC;
             fila.eliminado = true;
           }
@@ -1141,22 +1173,22 @@ export class UsuariosService {
 
           const cEntrada = empId
             ? this.clasificarPorMallaLocal(
-              empId,
-              checkInUTC as string,
-              true,
-              mallasLocalMap,
-              diaSemanaEntrada,
-            )
+                empId,
+                checkInUTC as string,
+                true,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
             : 'No programado';
 
           const cSalida = checkOutUTC
             ? this.clasificarPorMallaLocal(
-              empId,
-              checkOutUTC,
-              false,
-              mallasLocalMap,
-              diaSemanaEntrada,
-            )
+                empId,
+                checkOutUTC,
+                false,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
             : 'N/A';
 
           return {
@@ -1341,16 +1373,21 @@ export class UsuariosService {
           const { hi, hf } = nocturnoAnterior;
           if (hIn <= hf + 2) {
             const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-            if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+            if (
+              prevFila &&
+              !prevFila.eliminado &&
+              prevFila.localIn &&
+              !prevFila.localOut
+            ) {
               const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
               if (hPrevIn >= hi - 1) {
-                prevFila.localOut    = fila.localIn;
+                prevFila.localOut = fila.localIn;
                 prevFila.punchOutUTC = fila.punchInUTC;
               }
             }
-            fila.localIn    = fila.localOut;
+            fila.localIn = fila.localOut;
             fila.punchInUTC = fila.punchOutUTC;
-            fila.localOut    = null;
+            fila.localOut = null;
             fila.punchOutUTC = null;
             const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
             if (nuevaFecha !== fila.fecha) {
@@ -1368,16 +1405,22 @@ export class UsuariosService {
       // entró en horario nocturno (≥ 18 h) — cubre empleados sin malla asignada.
       if (!fila.localOut) {
         const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-        if (prevFila && !prevFila.eliminado && prevFila.localIn && !prevFila.localOut) {
+        if (
+          prevFila &&
+          !prevFila.eliminado &&
+          prevFila.localIn &&
+          !prevFila.localOut
+        ) {
           const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
 
           const matchMalla = nocturnoAnterior
-            ? hPrevIn >= nocturnoAnterior.hi - 1 && hIn <= nocturnoAnterior.hf + 2
+            ? hPrevIn >= nocturnoAnterior.hi - 1 &&
+              hIn <= nocturnoAnterior.hf + 2
             : false;
           const matchHeuristica = !nocturnoAnterior && hPrevIn >= 18;
 
           if (matchMalla || matchHeuristica) {
-            prevFila.localOut    = fila.localIn;
+            prevFila.localOut = fila.localIn;
             prevFila.punchOutUTC = fila.punchInUTC;
             fila.eliminado = true;
           }
@@ -1411,12 +1454,12 @@ export class UsuariosService {
           ),
           c_salida: f.punchOutUTC
             ? this.clasificarPorMallaLocal(
-              f.empId,
-              f.punchOutUTC,
-              false,
-              mallasLocalMap,
-              diaSemanaEntrada,
-            )
+                f.empId,
+                f.punchOutUTC,
+                false,
+                mallasLocalMap,
+                diaSemanaEntrada,
+              )
             : 'SIN SALIDA',
           fecha: f.fecha,
           tipo: 'LOG CRUDO',
@@ -1441,7 +1484,8 @@ export class UsuariosService {
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
     if (!soloHoy && startDate && endDate) {
       const dias = Math.round(
-        (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+          86400000,
       );
       if (dias > 62) {
         throw new (require('@nestjs/common').BadRequestException)(
@@ -1472,12 +1516,8 @@ export class UsuariosService {
       return [];
 
     // 2. Calcular fechas UTC
-    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } = this.calcularRangoUTC(
-      soloHoy,
-      hoyFechaCorta,
-      startDate,
-      endDate,
-    );
+    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } =
+      this.calcularRangoUTC(soloHoy, hoyFechaCorta, startDate, endDate);
 
     // 3. Construir dominios
     const { domainAtt, domainLog } = this.construirDominios(
@@ -1508,7 +1548,11 @@ export class UsuariosService {
         console.timeEnd('⏱ partners (paralelo)');
       } else {
         // Sin filtro de estructura: primero traemos datos, luego cédulas
-        [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid);
+        [attendances, logs] = await this.consultarOdoo(
+          domainAtt,
+          domainLog,
+          uid,
+        );
       }
     } catch (error) {
       // Enviar correo si la consulta falla (ej: demasiados registros)
@@ -1541,24 +1585,22 @@ export class UsuariosService {
         .catch((e) => console.error('Error enviando alerta correo:', e));
     }
 
-    // 5. Obtener cédulas (solo si no se resolvió en paralelo ya)
-    if (!partnerMap!) {
-      console.time('⏱ partners');
-      partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
-      console.timeEnd('⏱ partners');
-    }
-
-    // 6. Mapear resultados
-    const toLocal = this.crearConvertidorLocal();
-
-    // Construir malla local para TODOS los empleados (attendance + logs)
+    // 5 + 6. Obtener cédulas y mallas en paralelo (son independientes entre sí)
     const todosLosEmpIds = [
       ...new Set([
         ...attendances.map((a) => a.employee_id?.[0]).filter(Boolean),
         ...logs.map((l) => l.employee_id?.[0]).filter(Boolean),
       ]),
-    ];
-    const mallasLocalMap = await this.getMallasMapLocal(todosLosEmpIds);
+    ] as number[];
+
+    console.time('⏱ partners+mallas');
+    const [partnerMap, mallasLocalMap] = await Promise.all([
+      this.obtenerPartnerMap(attendances, logs, uid),
+      this.getMallasMapLocal(todosLosEmpIds),
+    ]);
+    console.timeEnd('⏱ partners+mallas');
+
+    const toLocal = this.crearConvertidorLocal();
 
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
@@ -1569,7 +1611,7 @@ export class UsuariosService {
     ]);
     console.timeEnd('⏱ mapLogs');
 
-    // 7. Unir y ordenar
+    // 8. Unir y ordenar
     const todosSinFiltrar = [...resAttendances, ...resLogs].sort((a, b) => {
       const timeA = new Date(
         (a.check_in || a.check_out || '0').replace(' ', 'T'),
@@ -1581,22 +1623,23 @@ export class UsuariosService {
     });
 
     // FILTRO REPARADO:
-    const resultado = (startDay || endDay)
-      ? todosSinFiltrar.filter((r) => {
-        // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha 
-        // sea el día que empezó el turno (incluso para salidas nocturnas)
-        const f = r.fecha;
+    const resultado =
+      startDay || endDay
+        ? todosSinFiltrar.filter((r) => {
+            // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha
+            // sea el día que empezó el turno (incluso para salidas nocturnas)
+            const f = r.fecha;
 
-        if (!f || f === 'N/A') return true;
+            if (!f || f === 'N/A') return true;
 
-        // Si pediste hasta el 29, esto eliminará cualquier bloque que 
-        // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
-        if (startDay && f < startDay) return false;
-        if (endDay && f > endDay) return false;
+            // Si pediste hasta el 29, esto eliminará cualquier bloque que
+            // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
+            if (startDay && f < startDay) return false;
+            if (endDay && f > endDay) return false;
 
-        return true;
-      })
-      : todosSinFiltrar;
+            return true;
+          })
+        : todosSinFiltrar;
 
     const tiempoTotal = (Date.now() - inicioTotal) / 1000;
     console.timeEnd('⏱ TOTAL reporte');
@@ -1645,7 +1688,13 @@ export class UsuariosService {
     hoyFechaCorta: string,
     startDate?: string,
     endDate?: string,
-  ): { inicioUTC: string | null; finUTC: string | null; finUTCLog: string | null; startDay: string | null; endDay: string | null } {
+  ): {
+    inicioUTC: string | null;
+    finUTC: string | null;
+    finUTCLog: string | null;
+    startDay: string | null;
+    endDay: string | null;
+  } {
     const startDay = soloHoy ? hoyFechaCorta : (startDate ?? null);
     const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
@@ -1740,7 +1789,12 @@ export class UsuariosService {
     const TIMEOUT_MS = 180_000;
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error('⏰ Timeout: Odoo tardó más de 3 min. Reduce el rango de fechas.')),
+        () =>
+          reject(
+            new Error(
+              '⏰ Timeout: Odoo tardó más de 3 min. Reduce el rango de fechas.',
+            ),
+          ),
         TIMEOUT_MS,
       ),
     );
