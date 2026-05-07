@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 
   <div class="w-full h-full">
 
@@ -11,13 +11,13 @@
         :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
         <div class="flex items-center gap-2 ml-1">
-          <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#FF8F00] text-white shadow-sm shrink-0">
+          <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#3B82F6] text-white shadow-sm shrink-0">
             <i class="fas fa-file-signature text-xs"></i>
           </div>
           <div>
             <h2 class="text-base font-black uppercase tracking-tighter"
               :class="isDark ? 'text-white' : 'text-slate-800'">
-              Registro <span class="text-[#FF8F00]">Novedad</span>
+              Registro <span class="text-[#3B82F6]">Novedad</span>
             </h2>
             <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
               :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -28,7 +28,7 @@
         <button @click="vistaActiva = 'aprobaciones'"
           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase italic tracking-widest border transition-all hover:scale-105 active:scale-95"
           :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'">
-          <i class="fas fa-clock text-[#FF8F00]"></i>
+          <i class="fas fa-clock text-[#3B82F6]"></i>
           Listado
         </button>
 
@@ -36,7 +36,7 @@
         <div
           class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest mr-1"
           :class="storageMode === 's3'
-            ? 'bg-[#FF8F00]/10 text-[#FF8F00] border-[#FF8F00]/30'
+            ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'
             : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
           <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
           {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
@@ -56,7 +56,7 @@
 
             <!-- Banner modo storage -->
             <div class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold border" :class="storageMode === 's3'
-              ? 'bg-[#FF8F00]/10 border-[#FF8F00]/25 text-[#FF8F00]'
+              ? 'bg-[#3B82F6]/10 border-[#3B82F6]/25 text-[#3B82F6]'
               : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600'">
               <!-- <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i> -->
               <span v-if="storageMode === 's3'">
@@ -76,9 +76,9 @@
                 <label class="text-[9px] font-black uppercase tracking-widest ml-1"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Nombre</label>
                 <div
-                  class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all text-xs"
+                  class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all text-xs"
                   :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
-                  <i class="fas fa-user-circle text-[#FF8F00]/80 text-sm"></i>
+                  <i class="fas fa-user-circle text-[#3B82F6]/80 text-sm"></i>
                   <input type="text" v-model="form.nombre" placeholder="Nombre completo..." required
                     class="bg-transparent w-full font-bold outline-none placeholder:text-slate-500"
                     :class="isDark ? 'text-white' : 'text-slate-800'" />
@@ -89,7 +89,7 @@
               <div v-if="jefe" class="md:col-span-2 flex items-center gap-3 px-4 py-2.5 rounded-lg border"
                 :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
                 <div
-                  class="w-7 h-7 rounded-lg bg-[#FF8F00]/10 flex items-center justify-center text-[10px] font-black text-[#FF8F00] shrink-0">
+                  class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-black text-[#3B82F6] shrink-0">
                   {{ jefe.name?.charAt(0) ?? '?' }}
                 </div>
                 <div class="flex flex-col flex-1">
@@ -101,7 +101,7 @@
                     || '' }}</span>
                 </div>
                 <span
-                  class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-[#FF8F00]/10 text-[#FF8F00] border border-[#FF8F00]/20">
+                  class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20">
                   <i class="fas fa-user-tie mr-1"></i>Responsable
                 </span>
               </div>
@@ -110,9 +110,9 @@
                 <label class="text-[9px] font-black uppercase tracking-widest ml-1"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
                 <div
-                  class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#FF8F00]/30 transition-all text-xs"
+                  class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all text-xs"
                   :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
-                  <i class="fas fa-id-card text-[#FF8F00]/80 text-sm"></i>
+                  <i class="fas fa-id-card text-[#3B82F6]/80 text-sm"></i>
                   <input type="number" v-model="form.cedula" placeholder="Número identificación..." required
                     class="bg-transparent w-full font-bold outline-none placeholder:text-slate-500"
                     :class="isDark ? 'text-white' : 'text-slate-800'" />
@@ -173,14 +173,14 @@
                 <!-- Drop zone -->
                 <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
                   class="flex items-center p-1.5 rounded-lg border transition-all" :class="[
-                    dragOver ? 'border-dashed border-[#FF8F00] scale-[1.01]' : '',
+                    dragOver ? 'border-dashed border-[#3B82F6] scale-[1.01]' : '',
                     isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'
                   ]">
                   <div class="flex-1 px-3 truncate text-[10px] font-bold" :class="fileName
                     ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
                     : (isDark ? 'text-slate-500' : 'text-slate-400')">
                     <i
-                      :class="['mr-2', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-upload text-[#FF8F00]']"></i>
+                      :class="['mr-2', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-upload text-[#3B82F6]']"></i>
                     {{ fileName || 'Ningún archivo seleccionado...' }}
                   </div>
 
@@ -188,14 +188,14 @@
                   <button v-if="previewUrl" @click.prevent="toggleViewer" type="button"
                     class="px-3 py-2 rounded-md mr-1 text-[10px] font-black uppercase italic transition-all hover:brightness-110 active:scale-95 flex items-center gap-1 border"
                     :class="isDark ? 'bg-[#2d3548] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                    <i class="fas fa-eye text-[#FF8F00]"></i>
+                    <i class="fas fa-eye text-[#3B82F6]"></i>
                     {{ viewerOpen ? 'Cerrar' : 'Ver' }}
                   </button>
 
                   <input type="file" @change="onFileChange" id="file-upload" class="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
                   <label for="file-upload"
-                    class="px-4 py-2 rounded-md bg-[#FF8F00] text-black text-[10px] font-black uppercase italic cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                    class="px-4 py-2 rounded-md bg-[#3B82F6] text-white text-[10px] font-black uppercase italic cursor-pointer hover:brightness-110 active:scale-95 transition-all">
                     {{ fileName ? 'Cambiar' : 'Subir' }}
                   </label>
                 </div>
@@ -249,7 +249,7 @@
 
               <button type="submit" :disabled="loading"
                 class="group px-8 py-2.5 rounded-lg font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 shadow-md flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
-                :class="isDark ? 'bg-[#FF8F00] text-black hover:brightness-110' : 'bg-slate-900 text-white hover:bg-slate-700'">
+                :class="isDark ? 'bg-[#3B82F6] text-white hover:brightness-110' : 'bg-slate-900 text-white hover:bg-slate-700'">
                 <i v-if="loading" class="fas fa-circle-notch fa-spin text-[10px]"></i>
                 <i v-else class="fas fa-check-circle text-[10px] group-hover:scale-110 transition-transform"></i>
                 {{ loading ? 'Guardando...' : 'Guardar Novedad' }}
@@ -268,7 +268,7 @@
             <div class="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
               :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
               <div class="flex items-center gap-2">
-                <i class="fas fa-eye text-[#FF8F00] text-xs"></i>
+                <i class="fas fa-eye text-[#3B82F6] text-xs"></i>
                 <span class="text-[11px] font-black uppercase tracking-widest"
                   :class="isDark ? 'text-white' : 'text-slate-700'">Vista Previa</span>
                 <span class="text-[10px] font-bold truncate max-w-[140px] opacity-50"
@@ -278,7 +278,7 @@
                 <a :href="previewUrl" :download="fileName"
                   class="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all hover:brightness-110 flex items-center gap-1"
                   :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                  <i class="fas fa-download text-[#FF8F00]"></i> Descargar
+                  <i class="fas fa-download text-[#3B82F6]"></i> Descargar
                 </a>
                 <button @click="viewerOpen = false"
                   class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all"
