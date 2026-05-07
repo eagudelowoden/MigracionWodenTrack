@@ -374,16 +374,18 @@
 
     <!-- ══ TAB CARGUE HORAS ══════════════════════════════════════════════════ -->
     <template v-else-if="activeTab === 'cargue'">
-      <div class="flex flex-col gap-3 flex-1">
+      <div class="flex flex-col gap-3 flex-1 overflow-hidden">
 
-        <!-- Acciones superiores -->
-        <div class="flex items-center gap-2 flex-wrap">
+        <!-- Barra superior -->
+        <div class="flex items-center gap-2 flex-wrap p-2 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
+          :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
+
           <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 border"
             :class="isDark
-              ? 'border-white/10 text-slate-300 hover:bg-white/5'
-              : 'border-slate-300 text-slate-600 hover:bg-slate-50'">
-            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-emerald-500"></i>
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+              : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'">
+            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
             Descargar Plantilla
           </button>
 
@@ -394,55 +396,76 @@
           </div>
         </div>
 
-        <!-- Zona de cargue -->
-        <div class="rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 p-8 cursor-pointer transition-all"
-          :class="[
-            isDragOver ? 'border-[#FF8F00] bg-[#FF8F00]/5' : (isDark ? 'border-white/10 hover:border-[#FF8F00]/40' : 'border-slate-200 hover:border-[#FF8F00]/40'),
-          ]"
-          @dragover.prevent="isDragOver = true"
-          @dragleave="isDragOver = false"
-          @drop.prevent="handleDrop"
-          @click="$refs.fileInput.click()">
+        <!-- Tarjeta principal de cargue -->
+        <div class="flex-1 rounded-xl border flex flex-col overflow-hidden transition-all duration-300"
+          :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
 
-          <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
+          <!-- Zona de drop -->
+          <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
+            :class="[
+              isDragOver
+                ? 'border-[#FF8F00] bg-[#FF8F00]/10'
+                : (isDark
+                    ? 'border-white/10 bg-[#1e2538]/60 hover:border-[#FF8F00]/40 hover:bg-[#FF8F00]/5'
+                    : 'border-slate-200 bg-slate-50 hover:border-[#FF8F00]/40 hover:bg-orange-50/30'),
+              archivoSeleccionado ? (isDark ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-emerald-400/50 bg-emerald-50/50') : ''
+            ]"
+            @dragover.prevent="isDragOver = true"
+            @dragleave="isDragOver = false"
+            @drop.prevent="handleDrop"
+            @click="$refs.fileInput.click()">
 
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center"
-            :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
-            <i class="fas fa-file-arrow-up text-2xl text-[#FF8F00]"></i>
+            <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
+
+            <!-- Icono -->
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all"
+              :class="archivoSeleccionado
+                ? (isDark ? 'bg-emerald-500/20 shadow-emerald-500/10' : 'bg-emerald-100 shadow-emerald-200')
+                : (isDark ? 'bg-[#FF8F00]/15 shadow-[#FF8F00]/10' : 'bg-orange-100 shadow-orange-200')">
+              <i class="text-3xl transition-all"
+                :class="[
+                  archivoSeleccionado ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-arrow-up text-[#FF8F00]',
+                  isDragOver ? 'scale-110' : ''
+                ]"></i>
+            </div>
+
+            <!-- Texto -->
+            <div class="text-center">
+              <p class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel aquí o haz clic para seleccionar' }}
+              </p>
+              <p class="text-[9px] mt-1.5 font-medium" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                {{ archivoSeleccionado ? 'Archivo listo para cargar' : 'Formatos aceptados: .xlsx, .xls' }}
+              </p>
+            </div>
+
+            <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
+              class="px-3 py-1 rounded-lg text-[9px] font-bold border transition-colors"
+              :class="isDark ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10' : 'border-rose-300 text-rose-500 hover:bg-rose-50'">
+              <i class="fas fa-times mr-1"></i>Quitar archivo
+            </button>
           </div>
 
-          <div class="text-center">
-            <p class="text-[11px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
-              {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel aquí o haz clic para seleccionar' }}
-            </p>
-            <p class="text-[9px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-              Formatos aceptados: .xlsx, .xls
-            </p>
+          <!-- Mensajes de estado -->
+          <div v-if="cargueSuccessMsg" class="mx-4 mb-3 px-4 py-2 rounded-lg text-[10px] font-bold border flex items-center gap-2"
+            :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
+            <i class="fas fa-circle-check text-sm"></i>{{ cargueSuccessMsg }}
+          </div>
+          <div v-if="cargueErrorMsg" class="mx-4 mb-3 px-4 py-2 rounded-lg text-[10px] font-bold border flex items-center gap-2"
+            :class="isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'">
+            <i class="fas fa-triangle-exclamation text-sm"></i>{{ cargueErrorMsg }}
           </div>
 
-          <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
-            class="text-[9px] font-bold text-rose-500 hover:text-rose-400 transition-colors">
-            <i class="fas fa-times mr-1"></i>Quitar archivo
-          </button>
-        </div>
+          <!-- Pie: botón guardar -->
+          <div class="px-4 py-3 border-t flex items-center justify-end"
+            :class="isDark ? 'border-white/5 bg-[#1e2538]' : 'border-slate-200 bg-slate-50'">
+            <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
+              class="flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
+              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-xs"></i>
+              {{ isUploading ? 'Guardando...' : 'Guardar Cargue' }}
+            </button>
+          </div>
 
-        <!-- Mensajes de estado -->
-        <div v-if="cargueSuccessMsg" class="px-4 py-2 rounded-lg text-[10px] font-bold border"
-          :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
-          {{ cargueSuccessMsg }}
-        </div>
-        <div v-if="cargueErrorMsg" class="px-4 py-2 rounded-lg text-[10px] font-bold border"
-          :class="isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'">
-          {{ cargueErrorMsg }}
-        </div>
-
-        <!-- Botón guardar -->
-        <div class="flex justify-end">
-          <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 bg-[#FF8F00] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-xs"></i>
-            {{ isUploading ? 'Guardando...' : 'Guardar Cargue' }}
-          </button>
         </div>
 
       </div>

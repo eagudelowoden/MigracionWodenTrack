@@ -228,11 +228,10 @@ export function useReporteMallas() {
         endDate: endDate.value,
         company: company || "",
         calculado_por: s.name || "Desconocido",
-        guardar: false,
         ...getAreaSegmento(),
       };
 
-      const { data } = await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
+      const { data } = await axios.post(`${API_BASE_URL}/horas-extra/calcular`, payload);
       registros.value = data;
       currentPage.value = 1;
       hayResultadosCalculados.value = true;
