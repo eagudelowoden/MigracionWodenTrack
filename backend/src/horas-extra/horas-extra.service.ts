@@ -70,14 +70,22 @@ export class HorasExtraService {
     segmentoId?: number,
   ): Promise<number[] | null> {
     if (!areaId && !segmentoId) return null;
-    const where: any = {};
-    if (areaId) where.area_id = areaId;
-    if (segmentoId) where.segmento_id = segmentoId;
+
+    // OR entre area y segmento: un empleado que coincida con cualquiera de los
+    // dos criterios es válido. Usar AND excluía empleados que solo tenían uno.
+    const conditions: any[] = [];
+    if (areaId) conditions.push({ area_id: areaId });
+    if (segmentoId) conditions.push({ segmento_id: segmentoId });
+
     const usuarios = await this.usuarioRepo.find({
-      where,
+      where: conditions,
       select: ['id_odoo'],
     });
-    return usuarios.map((u) => u.id_odoo).filter((id) => id != null);
+
+    const ids = [...new Set(
+      usuarios.map((u) => u.id_odoo).filter((id) => id != null),
+    )];
+    return ids;
   }
 
   private toLocal(utcDate: string): string | null {
@@ -289,32 +297,138 @@ export class HorasExtraService {
     );
     if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
 
-    const domain: any[] = [];
-    if (inicioUTC) domain.push(['check_in', '>=', inicioUTC]);
-    if (finUTC) domain.push(['check_in', '<=', finUTC]);
+    // Dominio para hr.attendance
+    const domainAtt: any[] = [];
+    if (inicioUTC) domainAtt.push(['check_in', '>=', inicioUTC]);
+    if (finUTC) domainAtt.push(['check_in', '<=', finUTC]);
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
-      domain.push(['employee_id.company_id.name', '=', dto.company]);
+      domainAtt.push(['employee_id.company_id.name', '=', dto.company]);
     }
     if (idsPorEstructura && idsPorEstructura.length > 0) {
-      domain.push(['employee_id', 'in', idsPorEstructura]);
+      domainAtt.push(['employee_id', 'in', idsPorEstructura]);
     }
 
-    const attendances = await this.odoo.executeKw<any[]>(
-      'hr.attendance',
-      'search_read',
-      [domain],
-      {
-        fields: ['employee_id', 'check_in', 'check_out', 'department_id'],
-        limit: 30000000,
-        order: 'check_in asc',
-      },
-      uid,
-    );
+    // Dominio para attendance.log (biométrico / app)
+    const domainLog: any[] = [];
+    if (inicioUTC) domainLog.push(['punching_time', '>=', inicioUTC]);
+    if (finUTC) domainLog.push(['punching_time', '<=', finUTC]);
+    if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+      domainLog.push(['company_id.name', '=', dto.company]);
+    }
+    if (idsPorEstructura && idsPorEstructura.length > 0) {
+      domainLog.push(['employee_id', 'in', idsPorEstructura]);
+    }
 
-    if (!attendances.length) return [];
+    // Consultar ambos modelos en paralelo
+    const [attendances, logs] = await Promise.all([
+      this.odoo.executeKw<any[]>(
+        'hr.attendance',
+        'search_read',
+        [domainAtt],
+        {
+          fields: ['employee_id', 'check_in', 'check_out', 'department_id'],
+          limit: 30000000,
+          order: 'check_in asc',
+        },
+        uid,
+      ),
+      this.odoo.executeKw<any[]>(
+        'attendance.log',
+        'search_read',
+        [domainLog],
+        {
+          fields: ['employee_id', 'punching_time', 'x_studio_related_field_j40wn'],
+          limit: 30000000,
+          order: 'punching_time asc',
+        },
+        uid,
+      ),
+    ]);
+
+    if (!attendances.length && !logs.length) return [];
+
+    // Agrupar hr.attendance por empId+fecha
+    const grupos: Record<
+      string,
+      {
+        empId: number;
+        nombre: string;
+        dept: string;
+        fecha: string;
+        records: any[];
+      }
+    > = {};
+
+    for (const att of attendances) {
+      const empId = att.employee_id?.[0];
+      const nombre = att.employee_id?.[1] || 'Desconocido';
+      const localIn = this.toLocal(att.check_in);
+      const fecha = localIn ? localIn.split(' ')[0] : null;
+      if (!fecha || !empId) continue;
+
+      const key = `${empId}_${fecha}`;
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+          fecha,
+          records: [],
+        };
+      }
+      grupos[key].records.push(att);
+    }
+
+    // Agregar registros de attendance.log para empleados/días no cubiertos por hr.attendance
+    // Agrupar punches por empId+fecha
+    const logGrupos: Record<string, { empId: number; nombre: string; dept: string; fecha: string; punches: any[] }> = {};
+    for (const log of logs) {
+      const empId = log.employee_id?.[0];
+      const nombre = log.employee_id?.[1] || 'Desconocido';
+      const localTime = this.toLocal(log.punching_time);
+      const fecha = localTime ? localTime.split(' ')[0] : null;
+      if (!fecha || !empId) continue;
+
+      const key = `${empId}_${fecha}`;
+      if (grupos[key]) continue; // ya cubierto por hr.attendance
+
+      if (!logGrupos[key]) {
+        const dept = log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+        logGrupos[key] = { empId, nombre, dept, fecha, punches: [] };
+      }
+      logGrupos[key].punches.push(log);
+    }
+
+    // Convertir grupos de attendance.log a registros sintéticos compatibles
+    for (const g of Object.values(logGrupos)) {
+      const sorted = g.punches.sort(
+        (a, b) => new Date(a.punching_time).getTime() - new Date(b.punching_time).getTime(),
+      );
+      const primero = sorted[0];
+      const ultimo = sorted[sorted.length - 1];
+      const haySalida =
+        sorted.length > 1 &&
+        new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime() >= 60_000;
+
+      const key = `${g.empId}_${g.fecha}`;
+      grupos[key] = {
+        empId: g.empId,
+        nombre: g.nombre,
+        dept: g.dept,
+        fecha: g.fecha,
+        records: [
+          {
+            employee_id: [g.empId, g.nombre],
+            check_in: primero.punching_time,
+            check_out: haySalida ? ultimo.punching_time : null,
+            department_id: null,
+          },
+        ],
+      };
+    }
 
     const empIds = [
-      ...new Set(attendances.map((a) => a.employee_id?.[0]).filter(Boolean)),
+      ...new Set(Object.values(grupos).map((g) => g.empId).filter(Boolean)),
     ] as number[];
 
     const empleados = await this.odoo.executeKw<any[]>(
@@ -348,37 +462,6 @@ export class HorasExtraService {
     );
 
     const mallasMap = await this.getMallasMap(empIds);
-
-    const grupos: Record<
-      string,
-      {
-        empId: number;
-        nombre: string;
-        dept: string;
-        fecha: string;
-        records: any[];
-      }
-    > = {};
-
-    for (const att of attendances) {
-      const empId = att.employee_id?.[0];
-      const nombre = att.employee_id?.[1] || 'Desconocido';
-      const localIn = this.toLocal(att.check_in);
-      const fecha = localIn ? localIn.split(' ')[0] : null;
-      if (!fecha || !empId) continue;
-
-      const key = `${empId}_${fecha}`;
-      if (!grupos[key]) {
-        grupos[key] = {
-          empId,
-          nombre,
-          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-          fecha,
-          records: [],
-        };
-      }
-      grupos[key].records.push(att);
-    }
 
     const resultados: HoraExtra[] = [];
 
