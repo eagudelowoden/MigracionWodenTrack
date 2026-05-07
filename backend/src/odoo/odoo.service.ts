@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 export class OdooService {
   private common: xmlrpc.Client;
   private models: xmlrpc.Client;
+  private _cachedUid: number | null = null;
+  private _uidExpiry = 0;
 
   constructor(private readonly config: ConfigService) {
     const url = this.config.get<string>('ODOO_URL');
@@ -17,6 +19,9 @@ export class OdooService {
 
   // Asegúrate de que el nombre sea EXACTAMENTE 'authenticate'
   public authenticate(): Promise<number> {
+    if (this._cachedUid && Date.now() < this._uidExpiry) {
+      return Promise.resolve(this._cachedUid);
+    }
     return new Promise((resolve, reject) => {
       this.common.methodCall(
         'authenticate',
@@ -31,6 +36,8 @@ export class OdooService {
             reject(new InternalServerErrorException('Error Odoo Auth'));
             return;
           }
+          this._cachedUid = uid;
+          this._uidExpiry = Date.now() + 30 * 60 * 1000; // 30 min
           resolve(uid);
         },
       );

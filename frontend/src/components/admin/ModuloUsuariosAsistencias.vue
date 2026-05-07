@@ -82,6 +82,25 @@
       </div>
     </div>
 
+    <!-- Error de validación de rango -->
+    <div v-if="errorMsg"
+      class="mx-0 mb-2 px-4 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+      <i class="fas fa-circle-exclamation"></i>
+      {{ errorMsg }}
+    </div>
+
+    <!-- Progreso de carga por chunks -->
+    <div v-if="loading && chunkProgress.total > 1"
+      class="mb-2 px-4 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold flex items-center gap-3">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span class="shrink-0">Cargando datos…</span>
+      <div class="flex-1 h-1.5 rounded-full bg-amber-200 overflow-hidden">
+        <div class="h-full bg-amber-500 transition-all duration-500 rounded-full"
+          :style="{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }"></div>
+      </div>
+      <span class="shrink-0 tabular-nums">{{ Math.round((chunkProgress.current / chunkProgress.total) * 100) }}%</span>
+    </div>
+
     <div
       class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300 font-round-custom"
       :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
@@ -244,7 +263,9 @@ const {
   clearFilters,
   selectedArea,
   selectedSegmento,
-  selectedCompany
+  selectedCompany,
+  errorMsg,
+  chunkProgress,
 } = useCargarAsistencias();
 
 const { isDark: isDarkTheme } = useAttendance();

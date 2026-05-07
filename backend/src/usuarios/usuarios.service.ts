@@ -1514,22 +1514,22 @@ export class UsuariosService {
         .catch((e) => console.error('Error enviando alerta correo:', e));
     }
 
-    // 5. Obtener cédulas
-    console.time('⏱ partners');
-    const partnerMap = await this.obtenerPartnerMap(attendances, logs, uid);
-    console.timeEnd('⏱ partners');
-
-    // 6. Mapear resultados
-    const toLocal = this.crearConvertidorLocal();
-
-    // Construir malla local para TODOS los empleados (attendance + logs)
+    // 5 + 6. Obtener cédulas y mallas en paralelo (son independientes entre sí)
     const todosLosEmpIds = [
       ...new Set([
         ...attendances.map((a) => a.employee_id?.[0]).filter(Boolean),
         ...logs.map((l) => l.employee_id?.[0]).filter(Boolean),
       ]),
-    ];
-    const mallasLocalMap = await this.getMallasMapLocal(todosLosEmpIds);
+    ] as number[];
+
+    console.time('⏱ partners+mallas');
+    const [partnerMap, mallasLocalMap] = await Promise.all([
+      this.obtenerPartnerMap(attendances, logs, uid),
+      this.getMallasMapLocal(todosLosEmpIds),
+    ]);
+    console.timeEnd('⏱ partners+mallas');
+
+    const toLocal = this.crearConvertidorLocal();
 
     console.time('⏱ mapLogs');
     const [resAttendances, resLogs] = await Promise.all([
@@ -1540,7 +1540,7 @@ export class UsuariosService {
     ]);
     console.timeEnd('⏱ mapLogs');
 
-    // 7. Unir y ordenar
+    // 8. Unir y ordenar
     const todosSinFiltrar = [...resAttendances, ...resLogs].sort((a, b) => {
       const timeA = new Date(
         (a.check_in || a.check_out || '0').replace(' ', 'T'),
