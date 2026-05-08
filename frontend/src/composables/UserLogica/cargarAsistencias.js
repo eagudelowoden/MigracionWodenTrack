@@ -198,7 +198,9 @@ export function useCargarAsistencias() {
 
     return rawData.value.filter((item) => {
       const matchesSearch =
-        !s || String(item.empleado || "").toLowerCase().includes(s);
+        !s ||
+        String(item.empleado || "").toLowerCase().includes(s) ||
+        String(item.cc || "").includes(s);
       const matchesDept =
         !d || String(item.department_id).trim() === String(d).trim();
       let matchesDate = true;

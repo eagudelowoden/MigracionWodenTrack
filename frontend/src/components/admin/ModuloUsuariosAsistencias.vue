@@ -60,8 +60,9 @@
           </template>
 
           <div class="relative group">
-            <input v-model="search" type="text" placeholder="BUSCAR..."
-              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 shadow-sm transition-all"
+            <input v-model="search" type="text" placeholder="NOMBRE O CÉDULA..."
+              @keyup.enter="fetchReporte"
+              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-44 shadow-sm transition-all"
               :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-600 focus:border-blue-400'">
             <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           </div>
