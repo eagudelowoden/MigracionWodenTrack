@@ -196,7 +196,7 @@
               </div>
 
               <!-- Lista de archivos seleccionados -->
-              <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1">
+              <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1 max-h-[136px] overflow-y-auto pr-0.5">
                 <div v-for="(file, idx) in archivosSeleccionados" :key="idx"
                   class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
                   :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-white'">

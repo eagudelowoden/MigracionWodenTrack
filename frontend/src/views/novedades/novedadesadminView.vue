@@ -46,10 +46,8 @@
       <div class="flex-1 flex gap-1.5 overflow-hidden min-h-0">
 
         <!-- Formulario -->
-        <div class="flex flex-col overflow-hidden rounded-xl border transition-all duration-300" :class="[
-          viewerOpen ? 'w-1/2' : 'w-full',
-          isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'
-        ]">
+        <div class="flex flex-col overflow-hidden rounded-xl border transition-all duration-300 w-full"
+          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
           <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
 
@@ -136,51 +134,51 @@
                 </select>
               </div>
 
-              <!-- Soporte -->
+              <!-- Archivos adjuntos (múltiples) -->
               <div class="flex flex-col gap-1.5">
                 <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  Documento de Soporte
-                  <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">PDF, imagen, Word, Excel — máx 20 MB</span>
+                  Archivos de Soporte
+                  <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos, 20 MB c/u</span>
                 </label>
+
+                <!-- Zona de drop -->
                 <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
-                  class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all" :class="[
-                    dragOver ? 'border-dashed border-[#3B82F6] scale-[1.005]' : '',
-                    isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'
-                  ]">
-                  <i :class="['text-xs', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-paperclip text-slate-400']"></i>
-                  <span class="flex-1 truncate text-[10px] font-medium" :class="fileName
-                    ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
-                    : (isDark ? 'text-slate-500' : 'text-slate-400')">
-                    {{ fileName || 'Ningún archivo seleccionado...' }}
+                  class="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer"
+                  :class="[dragOver ? 'border-[#3B82F6] bg-[#3B82F6]/5' : (isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-slate-50')]"
+                  @click="$refs.fileInput.click()">
+                  <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
+                  <span class="flex-1 text-[10px] font-medium text-slate-400">
+                    {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` : 'Arrastra o haz clic para seleccionar...' }}
                   </span>
-                  <button v-if="previewUrl" @click.prevent="toggleViewer" type="button"
-                    class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all hover:brightness-110 active:scale-95 border"
-                    :class="isDark ? 'bg-[#2d3548] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                    <i class="fas fa-eye text-[#3B82F6] text-[9px]"></i>
-                    {{ viewerOpen ? 'Cerrar' : 'Ver' }}
-                  </button>
-                  <input type="file" @change="onFileChange" id="file-upload-admin" class="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
-                  <label for="file-upload-admin"
-                    class="flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#3B82F6] text-white text-[9px] font-black uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all shrink-0">
-                    <i class="fas fa-arrow-up-from-bracket text-[9px]"></i>
-                    {{ fileName ? 'Cambiar' : 'Subir' }}
-                  </label>
+                  <input ref="fileInput" type="file" multiple @change="onFilesChange" class="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+                  <span class="shrink-0 px-3 py-1 rounded-md bg-[#3B82F6] text-white text-[9px] font-black uppercase">
+                    Elegir
+                  </span>
                 </div>
-                <div v-if="previewUrl && isImage"
-                  class="rounded-lg overflow-hidden border max-h-24 flex items-center justify-center"
-                  :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                  <img :src="previewUrl" class="max-h-24 object-contain" />
-                </div>
-                <div v-else-if="fileName" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
-                  :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                  <i :class="['text-lg', fileIcon]"></i>
-                  <div>
-                    <p class="text-[10px] font-semibold truncate max-w-xs" :class="isDark ? 'text-white' : 'text-slate-700'">{{ fileName }}</p>
-                    <p class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileSize }}</p>
+
+                <!-- Lista de archivos seleccionados -->
+                <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1 max-h-[136px] overflow-y-auto pr-0.5">
+                  <div v-for="(file, idx) in archivosSeleccionados" :key="idx"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
+                    :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-white'">
+                    <i :class="['text-sm shrink-0', getFileIcon(file)]"></i>
+                    <span class="flex-1 text-[10px] font-medium truncate"
+                      :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{ file.name }}</span>
+                    <span class="text-[9px] opacity-40 shrink-0"
+                      :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatSize(file.size) }}</span>
+                    <button @click.prevent="quitarArchivo(idx)" type="button"
+                      class="shrink-0 w-5 h-5 flex items-center justify-center rounded-md text-rose-400 hover:bg-rose-500/10 transition-all">
+                      <i class="fas fa-xmark text-[9px]"></i>
+                    </button>
                   </div>
                 </div>
+
+                <!-- Error de tipo -->
+                <p v-if="archivoError" class="text-[9px] text-rose-400 font-semibold flex items-center gap-1">
+                  <i class="fas fa-circle-exclamation"></i> {{ archivoError }}
+                </p>
               </div>
 
             </div>
@@ -213,60 +211,16 @@
           </form>
         </div>
 
-        <!-- Panel visor de archivo -->
-        <transition name="slide-panel">
-          <div v-if="viewerOpen && previewUrl" class="flex flex-col w-1/2 rounded-xl border overflow-hidden"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-
-            <!-- Toolbar visor -->
-            <div class="flex items-center justify-between px-3 py-2 border-b shrink-0"
-              :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-              <div class="flex items-center gap-2 min-w-0">
-                <i class="fas fa-eye text-[#3B82F6] text-[10px]"></i>
-                <span class="text-[10px] font-black uppercase tracking-widest"
-                  :class="isDark ? 'text-white' : 'text-slate-700'">Vista Previa</span>
-                <span class="text-[9px] font-medium truncate max-w-[120px] opacity-40"
-                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileName }}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <a :href="previewUrl" :download="fileName"
-                  class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase border transition-all hover:brightness-110"
-                  :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                  <i class="fas fa-download text-[#3B82F6] text-[9px]"></i> Descargar
-                </a>
-                <button @click="viewerOpen = false"
-                  class="w-6 h-6 rounded-md flex items-center justify-center border transition-all"
-                  :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
-                  <i class="fas fa-xmark text-[9px]"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Contenido visor -->
-            <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
-              :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
-              <img v-if="isImage" :src="previewUrl" class="max-w-full max-h-full object-contain rounded-lg shadow-xl" />
-              <iframe v-else-if="isPdf" :src="previewUrl" class="w-full h-full rounded-lg border-0"
-                title="Vista previa PDF" />
-              <div v-else class="flex flex-col items-center gap-4 opacity-60">
-                <i :class="['text-6xl', fileIcon]"></i>
-                <p class="text-xs text-center" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  Vista previa no disponible.<br />
-                  <span class="opacity-60 text-[10px]">Descarga el archivo para abrirlo.</span>
-                </p>
-              </div>
-            </div>
-
-          </div>
-        </transition>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import MisAprobacionesView from './MisAprobacionesView.vue';
+import { useNovedades } from '../../composables/adminLogica/useNovedades';
+import { useNovedades as useNovedadesUsuario } from '../../composables/adminLogica/useNovedadesUsuario';
 
 const props = defineProps({
   isDark: Boolean,
@@ -274,37 +228,16 @@ const props = defineProps({
   employee: Object,
 });
 
-// ─── Composable ───────────────────────────────────────────────────────────────
-import { useNovedades } from '../../composables/adminLogica/useNovedades';
-import { useNovedades as useNovedadesUsuario } from '../../composables/adminLogica/useNovedadesUsuario';
-
 const { crearNovedad, loading } = useNovedades();
 const { jefe, fetchJefeDeArea } = useNovedadesUsuario();
 
-// AÑADIR esto (después de los refs)
-onMounted(async () => {
-  const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-  const department = props.employee?.department || session?.department;
-  if (department) await fetchJefeDeArea(department);
-
-  try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/sistema-config`);
-    if (res.ok) {
-      const cfg = await res.json();
-      if (cfg.storage_mode) storageMode.value = cfg.storage_mode;
-    }
-  } catch { }
-});
-
-// ─── Storage mode: se lee desde la config del sistema (Super Admin) ──────────
+const vistaActiva = ref('registro');
 const storageMode = ref('local');
 
-// ─── Form — misma estructura que tenías ──────────────────────────────────────
 const form = ref({
   nombre: '', cedula: '', descripcion: '', tipificacion: '',
-  fechaInicio: '', fechaFin: '', soporte: null,
+  fechaInicio: '', fechaFin: '',
 });
-
 
 const TIPIFICACIONES = [
   'Vacaciones', 'No remunerado', 'Días compensatorios', 'Horas extra',
@@ -312,56 +245,52 @@ const TIPIFICACIONES = [
   'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
 ];
 
-// ─── Estado archivo ───────────────────────────────────────────────────────────
-const fileName = ref('');
-const fileSize = ref('');
-const previewUrl = ref('');
+// ─── Multi-file ───────────────────────────────────────────────────────────────
+const archivosSeleccionados = ref([]);
+const archivoError = ref('');
 const dragOver = ref(false);
-const viewerOpen = ref(false);
-
-// ─── Estado submit ────────────────────────────────────────────────────────────
-const submitStatus = ref(''); // '' | 'ok' | 'error'
+const submitStatus = ref('');
 const submitMessage = ref('');
 
-// ─── Computed tipo de archivo ─────────────────────────────────────────────────
-const ext = computed(() => fileName.value.split('.').pop().toLowerCase());
-const isImage = computed(() => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext.value));
-const isPdf = computed(() => ext.value === 'pdf');
-const fileIcon = computed(() => {
-  if (isImage.value) return 'fas fa-file-image text-violet-400';
-  if (isPdf.value) return 'fas fa-file-pdf text-red-400';
-  if (['doc', 'docx'].includes(ext.value)) return 'fas fa-file-word text-blue-400';
-  if (['xls', 'xlsx'].includes(ext.value)) return 'fas fa-file-excel text-emerald-400';
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+const getMimeIcon = (mime = '') => {
+  if (mime === 'application/pdf') return 'fas fa-file-pdf text-red-400';
+  if (mime.startsWith('image/')) return 'fas fa-file-image text-violet-400';
   return 'fas fa-file text-slate-400';
-});
-
-// ─── Manejo de archivo ────────────────────────────────────────────────────────
-const processFile = (file) => {
-  if (!file) return;
-  form.value.soporte = file;
-  fileName.value = file.name;
-  fileSize.value = file.size > 1024 * 1024
-    ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
-    : `${(file.size / 1024).toFixed(0)} KB`;
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
-  previewUrl.value = URL.createObjectURL(file);
 };
-const vistaActiva = ref('registro');
-// Igual que tu handleFileUpload original, pero renombrado para claridad
-const onFileChange = (e) => processFile(e.target.files[0]);
-const onDrop = (e) => { dragOver.value = false; processFile(e.dataTransfer?.files[0]); };
-const toggleViewer = () => { viewerOpen.value = !viewerOpen.value; };
+const getFileIcon = (file) => getMimeIcon(file.type);
+const formatSize = (bytes) => bytes > 1024 * 1024
+  ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  : `${(bytes / 1024).toFixed(0)} KB`;
 
-// ─── Submit — reemplaza el alert por llamada real ─────────────────────────────
-const handleSubmit = async () => {
-  if (!form.value.soporte) {
-    submitStatus.value = 'error';
-    submitMessage.value = 'Por favor cargue un documento de soporte.';
-    return;
+const agregarArchivos = (files) => {
+  archivoError.value = '';
+  for (const f of files) {
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      archivoError.value = `"${f.name}" no es PDF ni imagen. Solo se aceptan PDF, JPG, PNG, GIF o WEBP.`;
+      return;
+    }
+    if (archivosSeleccionados.value.length >= 10) {
+      archivoError.value = 'Máximo 10 archivos por novedad.';
+      return;
+    }
+    if (!archivosSeleccionados.value.find(x => x.name === f.name && x.size === f.size)) {
+      archivosSeleccionados.value.push(f);
+    }
   }
+};
 
+const onFilesChange = (e) => agregarArchivos([...e.target.files]);
+const onDrop = (e) => { dragOver.value = false; agregarArchivos([...(e.dataTransfer?.files ?? [])]); };
+const quitarArchivo = (idx) => archivosSeleccionados.value.splice(idx, 1);
+
+// ─── Submit ───────────────────────────────────────────────────────────────────
+const handleSubmit = async () => {
   submitStatus.value = '';
+  archivoError.value = '';
   try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     const res = await crearNovedad({
       nombre: form.value.nombre,
       cedula: form.value.cedula,
@@ -369,18 +298,17 @@ const handleSubmit = async () => {
       tipificacion: form.value.tipificacion,
       fechaInicio: form.value.fechaInicio,
       fechaFin: form.value.fechaFin,
-      soporte: form.value.soporte,
+      archivos: archivosSeleccionados.value,
       storageMode: storageMode.value,
-
-      // ─── AÑADIR ESTO ───────────────────────────
       responsableIdOdoo: jefe.value?.id_odoo ?? null,
       responsableNombre: jefe.value?.name ?? null,
       responsableCargo: jefe.value?.job ?? null,
+      creadoPor: session.id_odoo ?? null,
     });
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;
+    resetForm();
     setTimeout(() => { submitStatus.value = ''; }, 5000);
-
   } catch (e) {
     submitStatus.value = 'error';
     submitMessage.value = e?.response?.data?.message || 'Error al guardar la novedad.';
@@ -389,11 +317,25 @@ const handleSubmit = async () => {
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
-  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '', soporte: null };
-  fileName.value = fileSize.value = previewUrl.value = '';
-  viewerOpen.value = false;
+  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '' };
+  archivosSeleccionados.value = [];
+  archivoError.value = '';
   submitStatus.value = '';
 };
+
+// ─── onMounted ────────────────────────────────────────────────────────────────
+onMounted(async () => {
+  const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+  const department = props.employee?.department || session?.department;
+  if (department) await fetchJefeDeArea(department);
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/sistema-config`);
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.storage_mode) storageMode.value = cfg.storage_mode;
+    }
+  } catch { }
+});
 </script>
 
 <style scoped>
