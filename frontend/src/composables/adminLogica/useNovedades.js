@@ -232,6 +232,20 @@ export function useNovedades() {
     }
   };
 
+  // ─── MI SEGMENTO: todos en el segmento del coordinador (sin ser responsable) ─
+  const fetchPorMiSegmento = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-mi-segmento`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por mi segmento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // ─── Nivel DEPARTAMENTO: todos en los deptos configurados ────────────────
   const fetchPorDepartamentos = async (departamentos) => {
     if (!departamentos?.length) { novedades.value = []; return; }
@@ -344,6 +358,7 @@ export function useNovedades() {
     fetchJefeDeArea,
     fetchPorArea,
     fetchPorSegmento,
+    fetchPorMiSegmento,
     fetchPorDepartamentos,
     // Archivos adjuntos
     getArchivos,

@@ -312,10 +312,12 @@ onMounted(async () => {
         userProfile.value = perfil;
 
         // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
+        // Coordinador con coord.ver_segmento → también ve todo el segmento (sin ser responsable).
         // Responsable de área → filtrar solo por área.
         // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
         const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
-        if (esResponsableSegmento && perfil.segmento?.id) {
+        const esCoordSegmento = !esResponsableSegmento && session.permisos?.['coord.ver_segmento'] === true;
+        if ((esResponsableSegmento || esCoordSegmento) && perfil.segmento?.id) {
           selectedSegmento.value = perfil.segmento.id;
         } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;

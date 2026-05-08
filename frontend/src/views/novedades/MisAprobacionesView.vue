@@ -751,7 +751,7 @@ const emit = defineEmits(['volver']);
 const {
     novedades, loading,
     aprobarJefe, getFileUrl,
-    fetchPorArea, fetchPorSegmento, fetchPorDepartamentos,
+    fetchPorArea, fetchPorSegmento, fetchPorMiSegmento, fetchPorDepartamentos,
     // Carpetas (tipo = 'coordinador')
     estadosCh, fetchEstadosCh, crearEstadoCh, editarEstadoCh, eliminarEstadoCh, cambiarEstadoCh,
 } = useNovedades();
@@ -770,8 +770,14 @@ const histEstado = ref('');
 // ─── Nivel de acceso ──────────────────────────────────────────────
 const esDirector = session?.isSuperAdmin || session?.permisos?.['novedades.director'] === true;
 const esSegmento = !esDirector && session?.permisos?.['novedades.ver_segmento'] === true;
-const modoLabel = esDirector ? 'Director — Todo el departamento' : esSegmento ? 'Jefe — Todo el segmento' : 'Jefe — Solo mi área';
-const modoIcon = esDirector ? 'fas fa-building' : esSegmento ? 'fas fa-sitemap' : 'fas fa-users';
+const esMiSegmento = !esDirector && !esSegmento && session?.permisos?.['coord.ver_segmento'] === true;
+const modoLabel = esDirector ? 'Director — Todo el departamento'
+  : esSegmento ? 'Jefe — Todo el segmento'
+  : esMiSegmento ? 'Coordinador — Todo mi segmento'
+  : 'Jefe — Solo mi área';
+const modoIcon = esDirector ? 'fas fa-building'
+  : (esSegmento || esMiSegmento) ? 'fas fa-sitemap'
+  : 'fas fa-users';
 
 // ─── Componentes internos ─────────────────────────────────────────
 
@@ -840,6 +846,8 @@ onMounted(async () => {
         }
     } else if (esSegmento) {
         await fetchPorSegmento(miIdOdoo);
+    } else if (esMiSegmento) {
+        await fetchPorMiSegmento(miIdOdoo);
     } else {
         await fetchPorArea(miIdOdoo);
     }

@@ -74,6 +74,13 @@ export class NovedadesController {
     return this.novedadesService.findPorSegmentoResponsable(+idOdoo);
   }
 
+  // GET /novedades/por-mi-segmento?idOdoo=X
+  // Para coordinadores con coord.ver_segmento: ve todo su segmento sin ser responsable
+  @Get('por-mi-segmento')
+  findPorMiSegmento(@Query('idOdoo') idOdoo: string) {
+    return this.novedadesService.findPorMiSegmento(+idOdoo);
+  }
+
   // GET /novedades/por-departamento?departamentos=A,B
   @Get('por-departamento')
   findPorDepartamento(@Query('departamentos') departamentos: string) {

@@ -368,6 +368,27 @@ export class NovedadesService {
     return this.novedadesPorCedulas(empleados);
   }
 
+  // ─── MI SEGMENTO: todos en el segmento al que pertenece este usuario ────────
+  // Diferencia vs findPorSegmentoResponsable: NO requiere ser responsable.
+  // Solo necesita que el usuario tenga un segmento_id asignado.
+  async findPorMiSegmento(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        WHERE  u.segmento_id = (
+                 SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo} LIMIT 1
+               )
+          AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
   // ─── DEPARTAMENTO: todos en los deptos del director ───────────────────────
   async findPorDepartamentos(departamentos: string[]) {
     if (!departamentos.length) return [];

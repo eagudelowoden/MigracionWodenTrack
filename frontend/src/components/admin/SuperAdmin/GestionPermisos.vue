@@ -249,6 +249,7 @@ const MODULOS = [
     'marcacion.novedad',
     'novedades.ver_area',
     'novedades.ver_segmento',
+    'coord.ver_segmento',
     'novedades.director',
 ];
 
@@ -270,11 +271,12 @@ const MODULO_LABELS = {
     'marcacion.novedad': { nombre: 'Registrar Novedad', desc: 'Ver botón de novedad en marcación' },
     'novedades.ver_area': { nombre: 'Novedades — Jefe Área', desc: 'Solo empleados de su área asignada (area_id)' },
     'novedades.ver_segmento': { nombre: 'Novedades — Jefe Segmento', desc: 'Todos los empleados del segmento (con o sin área)' },
+    'coord.ver_segmento': { nombre: 'Coordinador — Ver Segmento Completo', desc: 'Ve todo el segmento sin ser responsable del mismo' },
     'novedades.director': { nombre: 'Novedades — Director Depto', desc: 'Todos los empleados del departamento completo' },
 };
 const isSubNovedad = (slug) =>
     ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh',
-     'novedades.ver_area', 'novedades.ver_segmento', 'novedades.director'].includes(slug);
+     'novedades.ver_area', 'novedades.ver_segmento', 'coord.ver_segmento', 'novedades.director'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,

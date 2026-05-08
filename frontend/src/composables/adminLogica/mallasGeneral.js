@@ -61,6 +61,7 @@ export function useMallasGeneral() {
       const permisos = session.permisos || session.permissions || {};
       const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
       const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+      const esCoordSegmento = !esResponsableSegmento && permisos["coord.ver_segmento"] === true;
 
       // Cargar perfil si aún no se tiene y el usuario no es admin con filtro libre
       if (!tieneFiltroDepto && !perfilUsuario.value) {
@@ -82,6 +83,9 @@ export function useMallasGeneral() {
         const perfil = perfilUsuario.value;
         if (esResponsableSegmento && perfil?.segmento?.id) {
           // Responsable de segmento: ve todos en su segmento
+          params.append("segmento_id", perfil.segmento.id);
+        } else if (esCoordSegmento && perfil?.segmento?.id) {
+          // Coordinador con acceso al segmento completo (sin ser responsable)
           params.append("segmento_id", perfil.segmento.id);
         } else if (perfil?.area?.id) {
           // Responsable de área: ve solo su área
@@ -111,6 +115,7 @@ export function useMallasGeneral() {
       const permisos = session.permisos || session.permissions || {};
       const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
       const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+      const esCoordSegmento = !esResponsableSegmento && permisos["coord.ver_segmento"] === true;
 
       // Asegurar que el perfil esté cargado (igual que fetchMallasDesdeOdoo)
       if (!tieneFiltroDepto && !perfilUsuario.value) {
@@ -127,6 +132,8 @@ export function useMallasGeneral() {
       } else {
         const perfil = perfilUsuario.value;
         if (esResponsableSegmento && perfil?.segmento?.id) {
+          params.segmento_id = perfil.segmento.id;
+        } else if (esCoordSegmento && perfil?.segmento?.id) {
           params.segmento_id = perfil.segmento.id;
         } else if (perfil?.area?.id) {
           params.area_id = perfil.area.id;
