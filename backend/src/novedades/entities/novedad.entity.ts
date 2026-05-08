@@ -6,7 +6,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { NovedadArchivo } from './novedad-archivo.entity';
 
 @Entity('novedades')
 export class Novedad {
@@ -31,17 +33,21 @@ export class Novedad {
   @Column({ name: 'fecha_fin', type: 'date' })
   fechaFin: string;
 
-  @Column({ name: 'soporte_nombre_original', length: 255 })
+  @Column({ name: 'soporte_nombre_original', length: 255, nullable: true, default: null })
   soporteNombreOriginal: string;
 
-  @Column({ name: 'soporte_storage_key', length: 512 })
+  @Column({ name: 'soporte_storage_key', length: 512, nullable: true, default: null })
   soporteStorageKey: string;
 
-  @Column({ name: 'soporte_storage_mode', length: 10, default: 'local' })
+  @Column({ name: 'soporte_storage_mode', length: 10, default: 'local', nullable: true })
   soporteStorageMode: string; // 'local' | 's3'
 
   @Column({ name: 'soporte_mime', length: 120, nullable: true })
   soporteMime: string;
+
+  // ─── Archivos adjuntos (múltiples) ───────────────────────────────
+  @OneToMany(() => NovedadArchivo, (a) => a.novedad, { cascade: true, eager: false })
+  archivos: NovedadArchivo[];
 
   @Column({ name: 'creado_por', nullable: true })
   creadoPor: number;

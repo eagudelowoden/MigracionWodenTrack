@@ -9,12 +9,12 @@ import {
   Query,
   Res,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
   Body,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import express from 'express';
 import { NovedadesService } from './novedades.service';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
@@ -32,15 +32,15 @@ class CreateEstadoChDto {
 export class NovedadesController {
   constructor(private readonly novedadesService: NovedadesService) {}
 
-  // POST /novedades  — crea novedad + sube soporte
+  // POST /novedades  — crea novedad + sube archivos (PDF / imagen, máx 10)
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('soporte'))
+  @UseInterceptors(FilesInterceptor('archivos', 10))
   async create(
     @Body() dto: CreateNovedadDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.novedadesService.create(dto, file);
+    return this.novedadesService.create(dto, files ?? []);
   }
 
   // GET /novedades  — lista todas
@@ -137,16 +137,54 @@ export class NovedadesController {
 
   // ─── Rutas con parámetro :id — van DESPUÉS de todas las literales ─────────
 
-  // GET /novedades/:id  — detalle + fileUrl
+  // GET /novedades/:id  — detalle + archivos
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.novedadesService.findOne(+id);
   }
 
-  // GET /novedades/:id/file  — stream local ó redirect S3
+  // GET /novedades/:id/file  — stream legacy soporte
   @Get(':id/file')
   async getFile(@Param('id') id: string, @Res() res: express.Response) {
     return this.novedadesService.streamFile(+id, res);
+  }
+
+  // ─── Archivos adjuntos (múltiples) ────────────────────────────────────────
+
+  // GET  /novedades/:id/archivos          — lista archivos de la novedad
+  @Get(':id/archivos')
+  getArchivos(@Param('id') id: string) {
+    return this.novedadesService.getArchivos(+id);
+  }
+
+  // POST /novedades/:id/archivos          — añadir archivos a novedad existente
+  @Post(':id/archivos')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FilesInterceptor('archivos', 10))
+  addArchivos(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.novedadesService.addArchivos(+id, files ?? []);
+  }
+
+  // GET  /novedades/:id/archivos/:archivoId/file — stream/redirect archivo
+  @Get(':id/archivos/:archivoId/file')
+  async getArchivoFile(
+    @Param('id') id: string,
+    @Param('archivoId') archivoId: string,
+    @Res() res: express.Response,
+  ) {
+    return this.novedadesService.streamArchivo(+id, +archivoId, res);
+  }
+
+  // DELETE /novedades/:id/archivos/:archivoId — eliminar archivo
+  @Delete(':id/archivos/:archivoId')
+  removeArchivo(
+    @Param('id') id: string,
+    @Param('archivoId') archivoId: string,
+  ) {
+    return this.novedadesService.removeArchivo(+id, +archivoId);
   }
 
   // DELETE /novedades/:id?eliminadoPor=X&eliminadoPorNombre=Y

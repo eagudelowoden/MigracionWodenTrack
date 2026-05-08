@@ -169,54 +169,55 @@
               </textarea>
             </div>
 
-            <!-- Soporte -->
+            <!-- Archivos adjuntos (múltiples) -->
             <div class="flex flex-col gap-1.5">
               <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Documento de Soporte
-                <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">PDF, imagen, Word, Excel — máx 20 MB</span>
+                Archivos de Soporte
+                <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos, 20 MB c/u</span>
               </label>
 
+              <!-- Zona de drop -->
               <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all" :class="[
-                  dragOver ? 'border-dashed border-[#3B82F6] scale-[1.005]' : '',
-                  isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'
-                ]">
-                <i :class="['text-xs', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-paperclip text-slate-400']"></i>
-                <span class="flex-1 truncate text-[10px] font-medium" :class="fileName
-                  ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
-                  : (isDark ? 'text-slate-500' : 'text-slate-400')">
-                  {{ fileName || 'Ningún archivo seleccionado...' }}
+                class="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer"
+                :class="[
+                  dragOver ? 'border-[#3B82F6] bg-[#3B82F6]/5' : (isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-slate-50'),
+                ]"
+                @click="$refs.fileInput.click()">
+                <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
+                <span class="flex-1 text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
+                  {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` : 'Arrastra o haz clic para seleccionar...' }}
                 </span>
-                <button v-if="previewUrl" @click.prevent="toggleViewer" type="button"
-                  class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all hover:brightness-110 active:scale-95 border"
-                  :class="isDark ? 'bg-[#2d3548] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                  <i class="fas fa-eye text-[#3B82F6] text-[9px]"></i>
-                  {{ viewerOpen ? 'Cerrar' : 'Ver' }}
-                </button>
-                <input type="file" @change="onFileChange" id="file-upload" class="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
-                <label for="file-upload"
-                  class="flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#3B82F6] text-white text-[9px] font-black uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all shrink-0">
-                  <i class="fas fa-arrow-up-from-bracket text-[9px]"></i>
-                  {{ fileName ? 'Cambiar' : 'Subir' }}
-                </label>
+                <input ref="fileInput" type="file" multiple @change="onFilesChange" class="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+                <span class="shrink-0 px-3 py-1 rounded-md bg-[#3B82F6] text-white text-[9px] font-black uppercase">
+                  Elegir
+                </span>
               </div>
 
-              <div v-if="previewUrl && isImage"
-                class="rounded-lg overflow-hidden border max-h-24 flex items-center justify-center"
-                :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                <img :src="previewUrl" class="max-h-24 object-contain" />
-              </div>
-
-              <div v-else-if="fileName" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
-                :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                <i :class="['text-lg', fileIcon]"></i>
-                <div>
-                  <p class="text-[10px] font-semibold truncate max-w-xs" :class="isDark ? 'text-white' : 'text-slate-700'">{{ fileName }}</p>
-                  <p class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileSize }}</p>
+              <!-- Lista de archivos seleccionados -->
+              <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1">
+                <div v-for="(file, idx) in archivosSeleccionados" :key="idx"
+                  class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
+                  :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-white'">
+                  <i :class="['text-sm shrink-0', getFileIcon(file)]"></i>
+                  <span class="flex-1 text-[10px] font-medium truncate" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                    {{ file.name }}
+                  </span>
+                  <span class="text-[9px] opacity-40 shrink-0" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                    {{ formatSize(file.size) }}
+                  </span>
+                  <button @click.prevent="quitarArchivo(idx)" type="button"
+                    class="shrink-0 w-5 h-5 flex items-center justify-center rounded-md text-rose-400 hover:bg-rose-500/10 transition-all">
+                    <i class="fas fa-xmark text-[9px]"></i>
+                  </button>
                 </div>
               </div>
+
+              <!-- Error de tipo -->
+              <p v-if="archivoError" class="text-[9px] text-rose-400 font-semibold flex items-center gap-1">
+                <i class="fas fa-circle-exclamation"></i> {{ archivoError }}
+              </p>
             </div>
 
           </div>
@@ -443,14 +444,32 @@
                     <span v-else class="text-[10px] opacity-30">—</span>
                   </td>
 
-                  <!-- Acciones: Ver soporte + Eliminar -->
+                  <!-- Archivos adjuntos + Eliminar -->
                   <td class="px-4 py-2.5 text-center">
                     <div class="flex items-center justify-center gap-1.5">
-                      <a :href="getFileUrl(nov.id)" target="_blank"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
-                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                        <i class="fas fa-eye text-[#3B82F6]"></i> Ver
-                      </a>
+                      <!-- Badge con cantidad de archivos -->
+                      <div class="relative group">
+                        <button type="button"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                          :class="(nov.archivos?.length ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20' : (isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200'))">
+                          <i class="fas fa-paperclip"></i>
+                          {{ nov.archivos?.length ?? 0 }}
+                        </button>
+                        <!-- Dropdown de archivos al hover -->
+                        <div v-if="nov.archivos?.length"
+                          class="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border shadow-xl overflow-hidden opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-150"
+                          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                          <a v-for="arch in nov.archivos" :key="arch.id"
+                            :href="getArchivoUrl(nov.id, arch.id)" target="_blank"
+                            class="flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-colors hover:bg-[#3B82F6]/10 border-b last:border-0"
+                            :class="isDark ? 'text-slate-200 border-[#2d3548]' : 'text-slate-700 border-slate-100'">
+                            <i :class="['shrink-0', getMimeIcon(arch.mime)]"></i>
+                            <span class="truncate flex-1">{{ arch.nombreOriginal }}</span>
+                            <i class="fas fa-external-link-alt text-[#3B82F6] shrink-0 text-[8px]"></i>
+                          </a>
+                        </div>
+                      </div>
+                      <!-- Eliminar novedad -->
                       <button @click="abrirModalEliminar(nov)"
                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
                         :class="isDark ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20' : 'bg-red-50 text-red-500 border-red-200 hover:bg-red-100'">
@@ -558,7 +577,7 @@ const props = defineProps({
   employee: Object,
 });
 
-const { crearNovedad, loading, jefe, fetchJefeDeArea, misNovedades, fetchMisNovedades, getFileUrl, eliminarMiNovedad } = useNovedades();
+const { crearNovedad, loading, jefe, fetchJefeDeArea, misNovedades, fetchMisNovedades, getFileUrl, getArchivoUrl, eliminarMiNovedad } = useNovedades();
 
 const activeTab = ref('registro');
 const storageMode = ref('local');
@@ -567,32 +586,32 @@ const sessionNombre = ref('');
 
 const form = ref({
   nombre: '', cedula: '', descripcion: '',
-  fechaInicio: '', fechaFin: '', soporte: null,
+  fechaInicio: '', fechaFin: '',
 });
 
-const fileName = ref('');
-const fileSize = ref('');
-const previewUrl = ref('');
+const archivosSeleccionados = ref([]);
+const archivoError = ref('');
 const dragOver = ref(false);
-const viewerOpen = ref(false);
 const submitStatus = ref('');
 const submitMessage = ref('');
+
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+const getMimeIcon = (mime = '') => {
+  if (mime === 'application/pdf') return 'fas fa-file-pdf text-red-400';
+  if (mime.startsWith('image/')) return 'fas fa-file-image text-violet-400';
+  return 'fas fa-file text-slate-400';
+};
+const getFileIcon = (file) => getMimeIcon(file.type);
+const formatSize = (bytes) => bytes > 1024 * 1024
+  ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  : `${(bytes / 1024).toFixed(0)} KB`;
 
 const filtros = ref({ buscar: '', fechaDesde: '', fechaHasta: '' });
 
 const modalEliminar = ref({ open: false, novedad: null });
 const loadingDelete = ref(false);
 
-const ext = computed(() => fileName.value.split('.').pop().toLowerCase());
-const isImage = computed(() => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext.value));
-const isPdf = computed(() => ext.value === 'pdf');
-const fileIcon = computed(() => {
-  if (isImage.value) return 'fas fa-file-image text-violet-400';
-  if (isPdf.value) return 'fas fa-file-pdf text-red-400';
-  if (['doc', 'docx'].includes(ext.value)) return 'fas fa-file-word text-blue-400';
-  if (['xls', 'xlsx'].includes(ext.value)) return 'fas fa-file-excel text-emerald-400';
-  return 'fas fa-file text-slate-400';
-});
 
 // ─── Badges simples para Jefe / RRHH (aprobado parcial) ──────────
 const estadoLabel = (v) => v === 1 ? 'Aprobado' : v === 0 ? 'Rechazado' : 'Pendiente';
@@ -666,29 +685,34 @@ const limpiarFiltros = async () => {
   await fetchMisNovedades({ idOdoo: sessionIdOdoo.value });
 };
 
-const processFile = (file) => {
-  if (!file) return;
-  form.value.soporte = file;
-  fileName.value = file.name;
-  fileSize.value = file.size > 1024 * 1024
-    ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
-    : `${(file.size / 1024).toFixed(0)} KB`;
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
-  previewUrl.value = URL.createObjectURL(file);
+const onFilesChange = (e) => agregarArchivos([...e.target.files]);
+const onDrop = (e) => { dragOver.value = false; agregarArchivos([...(e.dataTransfer?.files ?? [])]); };
+
+const agregarArchivos = (files) => {
+  archivoError.value = '';
+  for (const f of files) {
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      archivoError.value = `"${f.name}" no es PDF ni imagen. Solo se aceptan PDF, JPG, PNG, GIF o WEBP.`;
+      return;
+    }
+    if (archivosSeleccionados.value.length >= 10) {
+      archivoError.value = 'Máximo 10 archivos por novedad.';
+      return;
+    }
+    // Evitar duplicados por nombre
+    if (!archivosSeleccionados.value.find(x => x.name === f.name && x.size === f.size)) {
+      archivosSeleccionados.value.push(f);
+    }
+  }
 };
 
-const onFileChange = (e) => processFile(e.target.files[0]);
-const onDrop = (e) => { dragOver.value = false; processFile(e.dataTransfer?.files[0]); };
-const toggleViewer = () => { viewerOpen.value = !viewerOpen.value; };
+const quitarArchivo = (idx) => {
+  archivosSeleccionados.value.splice(idx, 1);
+};
 
 const handleSubmit = async () => {
-  if (!form.value.soporte) {
-    submitStatus.value = 'error';
-    submitMessage.value = 'Por favor cargue un documento de soporte.';
-    return;
-  }
-
   submitStatus.value = '';
+  archivoError.value = '';
   try {
     const res = await crearNovedad({
       nombre: form.value.nombre,
@@ -696,7 +720,7 @@ const handleSubmit = async () => {
       descripcion: form.value.descripcion,
       fechaInicio: form.value.fechaInicio,
       fechaFin: form.value.fechaFin,
-      soporte: form.value.soporte,
+      archivos: archivosSeleccionados.value,
       storageMode: storageMode.value,
       responsableIdOdoo: jefe.value?.id_odoo ?? null,
       responsableNombre: jefe.value?.name ?? null,
@@ -705,6 +729,7 @@ const handleSubmit = async () => {
     });
     submitStatus.value = 'ok';
     submitMessage.value = `Novedad guardada correctamente (ID ${res?.data?.id ?? ''}).`;
+    resetForm();
     setTimeout(() => { submitStatus.value = ''; }, 5000);
   } catch (e) {
     submitStatus.value = 'error';
@@ -713,9 +738,9 @@ const handleSubmit = async () => {
 };
 
 const resetForm = () => {
-  form.value = { ...form.value, cedula: '', descripcion: '', fechaInicio: '', fechaFin: '', soporte: null };
-  fileName.value = fileSize.value = previewUrl.value = '';
-  viewerOpen.value = false;
+  form.value = { ...form.value, cedula: '', descripcion: '', fechaInicio: '', fechaFin: '' };
+  archivosSeleccionados.value = [];
+  archivoError.value = '';
   submitStatus.value = '';
 };
 </script>
