@@ -1,83 +1,85 @@
 ﻿<template>
-    <div class="w-full h-full animate-fade-in flex flex-col gap-2">
+    <div class="w-full h-full animate-fade-in flex flex-col gap-1.5">
 
         <!-- Header -->
-        <div class="flex items-center justify-between p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
+        <div class="flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0"
             :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-            <div class="flex items-center gap-2 ml-1">
-                <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#3B82F6] text-white shadow-sm">
-                    <i class="fas fa-folder-open text-xs"></i>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="w-6 h-6 flex items-center justify-center rounded-lg bg-[#3B82F6] text-white shrink-0">
+                    <i class="fas fa-users text-[10px]"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-black uppercase tracking-tighter"
+                    <h2 class="text-sm font-black uppercase tracking-tight leading-none"
                         :class="isDark ? 'text-white' : 'text-slate-800'">
                         Novedades <span class="text-[#3B82F6]">Mi Equipo</span>
                     </h2>
-                    <div class="flex items-center gap-1.5 mt-0.5">
+                    <div class="flex items-center gap-1 mt-0.5">
                         <i :class="modoIcon" class="text-[8px] text-[#3B82F6]"></i>
-                        <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
+                        <p class="text-[8px] font-semibold opacity-40 uppercase tracking-[0.15em]"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ modoLabel }}</p>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <!-- Botón gestionar mis carpetas -->
-                <button @click="modalCarpetas.open = true"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110"
-                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-[#3B82F6]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/30 text-[#3B82F6]'">
-                    <i class="fas fa-folder-plus text-[9px]"></i> Mis Carpetas
-                </button>
-
-                <!-- Tabs Por Aprobar / Historial -->
-                <div class="flex items-center rounded-xl border overflow-hidden"
+            <div class="flex items-center gap-1.5 ml-auto shrink-0">
+                <!-- Tabs -->
+                <div class="flex items-center rounded-lg border overflow-hidden"
                     :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
                     <button @click="activeTab = 'pendientes'"
-                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'pendientes'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-                        <i class="fas fa-folder-open text-[9px]"></i>
+                        <i class="fas fa-clock-rotate-left text-[8px]"></i>
                         Por Aprobar
                         <span v-if="pendientes.length > 0"
-                            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-black"
+                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-black"
                             :class="activeTab === 'pendientes' ? 'bg-black/20 text-black' : 'bg-[#3B82F6]/20 text-[#3B82F6]'">
                             {{ pendientes.length }}
                         </span>
                     </button>
                     <button @click="activeTab = 'historial'"
-                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'historial'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-                        <i class="fas fa-clock-rotate-left text-[9px]"></i>
+                        <i class="fas fa-list text-[8px]"></i>
                         Historial
                     </button>
                     <button @click="activeTab = 'carpetas'"
-                        class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5"
+                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'carpetas'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-                        <i class="fas fa-folder-open text-[9px]"></i>
+                        <i class="fas fa-folder text-[8px]"></i>
                         Carpetas
                         <span v-if="novedadesEnCarpeta > 0"
-                            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-black"
+                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-black"
                             :class="activeTab === 'carpetas' ? 'bg-black/20 text-black' : 'bg-[#3B82F6]/20 text-[#3B82F6]'">
                             {{ novedadesEnCarpeta }}
                         </span>
                     </button>
                 </div>
 
+                <!-- Botón carpetas -->
+                <button @click="modalCarpetas.open = true"
+                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-[#3B82F6]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/30 text-[#3B82F6]'">
+                    <i class="fas fa-folder-plus text-[9px]"></i> Carpetas
+                </button>
+
+                <!-- Botón volver -->
                 <button @click="$emit('volver')"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase italic tracking-widest border transition-all hover:scale-105"
-                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
-                    <i class="fas fa-arrow-left text-[9px]"></i> Volver
+                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all hover:brightness-110 active:scale-95"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 shadow-sm'">
+                    <i class="fas fa-arrow-left text-[8px]"></i> Volver
                 </button>
             </div>
         </div>
 
         <!-- Contenido -->
-        <div class="flex-1 flex flex-col overflow-hidden rounded-2xl border"
+        <div class="flex-1 flex flex-col overflow-hidden rounded-xl border min-h-0"
             :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
             <div v-if="loading" class="flex-1 flex items-center justify-center gap-2">

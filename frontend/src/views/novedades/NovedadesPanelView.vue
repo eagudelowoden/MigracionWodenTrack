@@ -2,7 +2,7 @@
   <div class="h-full flex flex-col">
 
     <!-- ── Panel de selección ─────────────────────────────────────────────── -->
-    <div v-if="!subModule" class="h-full flex flex-col items-center justify-start animate-fade-in pt-10">
+    <div v-if="!subModule" class="h-full flex flex-col items-center justify-start animate-fade-in pt-4">
 
       <div class="text-center mb-8">
         <h2 class="text-xl font-black tracking-tight transition-colors duration-500"
@@ -90,9 +90,11 @@
     <template v-else>
       <!-- Botón volver -->
       <button @click="subModule = null"
-        class="self-start flex items-center gap-2 px-3 py-1.5 mb-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-        :class="isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'">
-        <i class="fas fa-arrow-left text-[9px]"></i> Volver
+        class="self-start flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border"
+        :class="isDark
+          ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500'
+          : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 shadow-sm'">
+        <i class="fas fa-arrow-left text-[8px]"></i> Volver
       </button>
 
       <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />

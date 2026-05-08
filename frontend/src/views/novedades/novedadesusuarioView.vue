@@ -1,29 +1,70 @@
 ﻿<template>
-  <div class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1">
+  <div class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1.5">
 
     <!-- Header -->
-    <div class="flex items-center justify-between gap-2 p-1.5 px-3 rounded-2xl border shrink-0 shadow-sm"
+    <div class="flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0"
       :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
-      <div class="flex items-center gap-2 ml-1">
-        <div class="w-7 h-7 flex items-center justify-center rounded-xl bg-[#3B82F6] text-white shadow-sm shrink-0">
-          <i class="fas fa-file-signature text-xs"></i>
+      <!-- Título -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="w-6 h-6 flex items-center justify-center rounded-lg bg-[#3B82F6] text-white shrink-0">
+          <i class="fas fa-file-signature text-[10px]"></i>
         </div>
         <div>
-          <h2 class="text-base font-black uppercase tracking-tighter" :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-sm font-black uppercase tracking-tight leading-none" :class="isDark ? 'text-white' : 'text-slate-800'">
             {{ activeTab === 'registro' ? 'Registro' : 'Mi Historial' }}
             <span class="text-[#3B82F6]">{{ activeTab === 'registro' ? 'Novedad' : 'Novedades' }}</span>
           </h2>
-          <p class="text-[8px] font-bold opacity-50 uppercase tracking-[0.2em]"
+          <p class="text-[8px] font-semibold opacity-40 uppercase tracking-[0.15em] mt-0.5"
             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
             {{ company || 'Woden Track' }}
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 mr-1">
+      <!-- Filtros inline (solo historial) -->
+      <template v-if="activeTab === 'historial'">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border flex-1 min-w-0 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
+          :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
+          <i class="fas fa-magnifying-glass text-[#3B82F6] text-[9px] shrink-0"></i>
+          <input v-model="filtros.buscar" type="text" placeholder="Buscar descripción o tipificación..."
+            class="bg-transparent flex-1 outline-none font-medium text-[11px] placeholder:text-slate-400 min-w-0"
+            :class="isDark ? 'text-white' : 'text-slate-800'" />
+          <button v-if="filtros.buscar" @click="filtros.buscar = ''" class="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+            <i class="fas fa-xmark text-[9px]"></i>
+          </button>
+        </div>
+        <input v-model="filtros.fechaDesde" type="date"
+          class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold outline-none transition-all shrink-0"
+          :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-slate-50 border-slate-200 text-slate-800'" />
+        <span class="text-[9px] opacity-30 shrink-0" :class="isDark ? 'text-slate-400' : 'text-slate-500'">—</span>
+        <input v-model="filtros.fechaHasta" type="date"
+          class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold outline-none transition-all shrink-0"
+          :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-slate-50 border-slate-200 text-slate-800'" />
+        <button @click="aplicarFiltros"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#3B82F6] text-white text-[9px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shrink-0">
+          <i class="fas fa-filter text-[8px]"></i> Filtrar
+        </button>
+        <button @click="limpiarFiltros"
+          class="flex items-center justify-center w-7 h-7 rounded-lg border hover:brightness-110 active:scale-95 transition-all shrink-0"
+          :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+          <i class="fas fa-rotate-left text-[9px]"></i>
+        </button>
+      </template>
+
+      <div class="flex items-center gap-1.5 ml-auto shrink-0">
+        <!-- Indicador almacenamiento -->
+        <div v-if="activeTab === 'registro'"
+          class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold"
+          :class="storageMode === 's3'
+            ? 'bg-[#3B82F6]/10 text-[#3B82F6]'
+            : 'bg-emerald-500/10 text-emerald-500'">
+          <i :class="storageMode === 's3' ? 'fab fa-aws text-[10px]' : 'fas fa-hard-drive text-[10px]'"></i>
+          {{ storageMode === 's3' ? 'S3' : 'Local' }}
+        </div>
+
         <!-- Tabs -->
-        <div class="flex items-center rounded-xl border overflow-hidden"
+        <div class="flex items-center rounded-lg border overflow-hidden"
           :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
           <button @click="activeTab = 'registro'"
             class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all" :class="activeTab === 'registro'
@@ -35,174 +76,145 @@
             class="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all" :class="activeTab === 'historial'
               ? 'bg-[#3B82F6] text-white'
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-            <i class="fas fa-clock-rotate-left mr-1"></i>Mi Historial
+            <i class="fas fa-clock-rotate-left mr-1"></i>Historial
           </button>
-        </div>
-
-        <!-- Indicador almacenamiento (solo en tab registro) -->
-        <div v-if="activeTab === 'registro'"
-          class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest"
-          :class="storageMode === 's3'
-            ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'
-            : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'">
-          <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
-          {{ storageMode === 's3' ? 'AWS S3' : 'Local' }}
         </div>
       </div>
     </div>
 
     <!-- TAB: REGISTRO -->
-    <div v-if="activeTab === 'registro'" class="flex-1 flex gap-1 overflow-hidden">
+    <div v-if="activeTab === 'registro'" class="flex-1 flex gap-1.5 overflow-hidden min-h-0">
 
       <!-- Formulario -->
-      <div class="flex flex-col overflow-hidden rounded-2xl border transition-all duration-300" :class="[
+      <div class="flex flex-col overflow-hidden rounded-xl border transition-all duration-300" :class="[
         viewerOpen ? 'w-1/2' : 'w-full',
-        isDark ? 'bg-[#1e2538] border-[#2d3548] shadow-black/40' : 'bg-white border-slate-200 shadow-slate-100'
+        isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'
       ]">
-        <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
+        <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
 
-          <!-- Banner modo storage -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold border" :class="storageMode === 's3'
-            ? 'bg-[#3B82F6]/10 border-[#3B82F6]/25 text-[#3B82F6]'
-            : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600'">
-            <i :class="storageMode === 's3' ? 'fab fa-aws' : 'fas fa-hard-drive'"></i>
-            <span v-if="storageMode === 's3'">
-              <!-- Soporte → <strong>AWS S3</strong> -->
-            </span>
-            <!--
-            <span v-else>
-              Soporte → <strong>carpeta local</strong>
-              <code class="ml-1 opacity-50 text-[9px]">/uploads/novedades/</code>
-            </span>-->
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+          <div class="grid grid-cols-1 gap-3">
 
             <!-- Nombre -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
+            <div class="flex flex-col gap-1">
+              <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
                 :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
-              <div class="flex items-center gap-3 px-4 py-2.5 rounded-lg border text-xs"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-500'">
-                <i class="fas fa-user-circle opacity-50 text-sm"></i>
+              <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs"
+                :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
+                <i class="fas fa-user-circle opacity-40 text-xs" :class="isDark ? 'text-slate-400' : 'text-slate-500'"></i>
                 <input type="text" v-model="form.nombre" readonly
-                  class="bg-transparent w-full font-bold outline-none cursor-not-allowed"
-                  :class="isDark ? 'text-white' : 'text-slate-600'" />
+                  class="bg-transparent w-full font-semibold outline-none cursor-not-allowed text-xs"
+                  :class="isDark ? 'text-slate-200' : 'text-slate-700'" />
               </div>
             </div>
 
             <!-- Jefe de área -->
-            <div v-if="jefe" class="md:col-span-2 flex items-center gap-3 px-4 py-2.5 rounded-lg border"
+            <div v-if="jefe" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
               :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
-              <div
-                class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-black text-[#3B82F6] shrink-0">
+              <div class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-black text-[#3B82F6] shrink-0">
                 {{ jefe.name?.charAt(0) ?? '?' }}
               </div>
-              <div class="flex flex-col flex-1">
-                <span class="text-[8px] font-black uppercase tracking-widest opacity-50"
+              <div class="flex flex-col flex-1 min-w-0">
+                <span class="text-[8px] font-bold uppercase tracking-widest opacity-40"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
-                <span class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{
-                  jefe.name }}</span>
-                <span class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job ||
-                  '' }}</span>
+                <span class="text-[11px] font-bold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ jefe.name }}</span>
+                <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job || '' }}</span>
               </div>
-              <span
-                class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20">
-                <i class="fas fa-user-tie mr-1"></i>Responsable
+              <span class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase bg-[#3B82F6]/10 text-[#3B82F6]">
+                <i class="fas fa-user-tie text-[8px]"></i>Responsable
               </span>
             </div>
 
-            <!-- Cédula -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
-              <div
-                class="flex items-center gap-3 px-4 py-2.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all text-xs"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
-                <i class="fas fa-id-card text-[#3B82F6]/80 text-sm"></i>
-                <input type="number" v-model="form.cedula" placeholder="Número identificación..." required
-                  class="bg-transparent w-full font-bold outline-none placeholder:text-slate-500"
-                  :class="isDark ? 'text-white' : 'text-slate-800'" />
+            <!-- Fila: Cédula + Fecha Inicio + Fecha Fin -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+              <!-- Cédula -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
+                  :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'">
+                  <i class="fas fa-id-card text-[#3B82F6]/60 text-xs"></i>
+                  <input type="number" v-model="form.cedula" placeholder="N° identificación..." required
+                    class="bg-transparent w-full font-semibold outline-none placeholder:text-slate-500 text-xs"
+                    :class="isDark ? 'text-white' : 'text-slate-800'" />
+                </div>
+              </div>
+
+              <!-- Fecha Inicio -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
+                <input type="date" v-model="form.fechaInicio" required
+                  class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
+                  :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+              </div>
+
+              <!-- Fecha Fin -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
+                <input type="date" v-model="form.fechaFin" required
+                  class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
+                  :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
               </div>
             </div>
 
-            <!-- Fecha Inicio -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
-              <input type="date" v-model="form.fechaInicio" required
-                class="px-4 py-2.5 rounded-lg border text-xs font-bold outline-none transition-all"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
-            </div>
-
-            <!-- Fecha Fin -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
-              <input type="date" v-model="form.fechaFin" required
-                class="px-4 py-2.5 rounded-lg border text-xs font-bold outline-none transition-all"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
-            </div>
-
             <!-- Descripción -->
-            <div class="md:col-span-2 flex flex-col gap-1.5">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
+            <div class="flex flex-col gap-1">
+              <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">Descripción</label>
               <textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
-                class="px-4 py-3 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
-                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800 shadow-sm'">
+                class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
+                :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
               </textarea>
             </div>
 
             <!-- Soporte -->
-            <div class="md:col-span-2 flex flex-col gap-2">
-              <label class="text-[9px] font-black uppercase tracking-widest ml-1"
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 Documento de Soporte
-                <span class="ml-1 opacity-40 normal-case font-medium text-[9px]">
-                  PDF, imagen, Word, Excel — máx 20 MB
-                </span>
+                <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">PDF, imagen, Word, Excel — máx 20 MB</span>
               </label>
 
               <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
-                class="flex items-center p-1.5 rounded-lg border transition-all" :class="[
-                  dragOver ? 'border-dashed border-[#3B82F6] scale-[1.01]' : '',
-                  isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all" :class="[
+                  dragOver ? 'border-dashed border-[#3B82F6] scale-[1.005]' : '',
+                  isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'
                 ]">
-                <div class="flex-1 px-3 truncate text-[10px] font-bold" :class="fileName
+                <i :class="['text-xs', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-paperclip text-slate-400']"></i>
+                <span class="flex-1 truncate text-[10px] font-medium" :class="fileName
                   ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
                   : (isDark ? 'text-slate-500' : 'text-slate-400')">
-                  <i
-                    :class="['mr-2', fileName ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-upload text-[#3B82F6]']"></i>
                   {{ fileName || 'Ningún archivo seleccionado...' }}
-                </div>
+                </span>
                 <button v-if="previewUrl" @click.prevent="toggleViewer" type="button"
-                  class="px-3 py-2 rounded-md mr-1 text-[10px] font-black uppercase italic transition-all hover:brightness-110 active:scale-95 flex items-center gap-1 border"
+                  class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all hover:brightness-110 active:scale-95 border"
                   :class="isDark ? 'bg-[#2d3548] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                  <i class="fas fa-eye text-[#3B82F6]"></i>
+                  <i class="fas fa-eye text-[#3B82F6] text-[9px]"></i>
                   {{ viewerOpen ? 'Cerrar' : 'Ver' }}
                 </button>
                 <input type="file" @change="onFileChange" id="file-upload" class="hidden"
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
                 <label for="file-upload"
-                  class="px-4 py-2 rounded-md bg-[#3B82F6] text-white text-[10px] font-black uppercase italic cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+                  class="flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#3B82F6] text-white text-[9px] font-black uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all shrink-0">
+                  <i class="fas fa-arrow-up-from-bracket text-[9px]"></i>
                   {{ fileName ? 'Cambiar' : 'Subir' }}
                 </label>
               </div>
 
               <div v-if="previewUrl && isImage"
-                class="rounded-xl overflow-hidden border max-h-28 flex items-center justify-center"
+                class="rounded-lg overflow-hidden border max-h-24 flex items-center justify-center"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                <img :src="previewUrl" class="max-h-28 object-contain" />
+                <img :src="previewUrl" class="max-h-24 object-contain" />
               </div>
 
-              <div v-else-if="fileName" class="flex items-center gap-3 px-4 py-3 rounded-xl border"
+              <div v-else-if="fileName" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
                 :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                <i :class="['text-xl', fileIcon]"></i>
+                <i :class="['text-lg', fileIcon]"></i>
                 <div>
-                  <p class="text-[11px] font-bold truncate max-w-xs" :class="isDark ? 'text-white' : 'text-slate-700'">
-                    {{ fileName }}</p>
-                  <p class="text-[9px] opacity-50" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileSize }}
-                  </p>
+                  <p class="text-[10px] font-semibold truncate max-w-xs" :class="isDark ? 'text-white' : 'text-slate-700'">{{ fileName }}</p>
+                  <p class="text-[9px] opacity-40" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileSize }}</p>
                 </div>
               </div>
             </div>
@@ -211,7 +223,7 @@
 
           <!-- Mensaje estado -->
           <transition name="fade-msg">
-            <div v-if="submitStatus" class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[11px] font-bold border"
+            <div v-if="submitStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border"
               :class="submitStatus === 'ok'
                 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                 : 'bg-red-500/10 text-red-400 border-red-500/20'">
@@ -221,20 +233,20 @@
           </transition>
 
           <!-- Footer form -->
-          <div class="flex items-center justify-between pt-4 mt-auto border-t"
-            :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
+          <div class="flex items-center justify-between pt-3 mt-auto border-t"
+            :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
             <button @click.prevent="resetForm" type="button"
-              class="px-5 py-2.5 rounded-lg font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 flex items-center gap-2 border"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border"
               :class="isDark
-                ? 'text-slate-400 border-[#2d3548] hover:text-slate-200 hover:border-slate-500'
-                : 'text-slate-400 border-slate-200 hover:text-slate-700 hover:border-slate-400'">
-              <i class="fas fa-rotate-left text-[10px]"></i> Limpiar
+                ? 'text-slate-500 border-[#2d3548] hover:text-slate-300 hover:border-slate-500'
+                : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300'">
+              <i class="fas fa-rotate-left text-[9px]"></i> Limpiar
             </button>
             <button type="submit" :disabled="loading"
-              class="group px-8 py-2.5 rounded-lg font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 shadow-md flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+              class="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-black uppercase tracking-widest text-[9px] transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-wait"
               :class="isDark ? 'bg-[#3B82F6] text-white hover:brightness-110' : 'bg-slate-900 text-white hover:bg-slate-700'">
-              <i v-if="loading" class="fas fa-circle-notch fa-spin text-[10px]"></i>
-              <i v-else class="fas fa-check-circle text-[10px] group-hover:scale-110 transition-transform"></i>
+              <i v-if="loading" class="fas fa-circle-notch fa-spin text-[9px]"></i>
+              <i v-else class="fas fa-check-circle text-[9px] group-hover:scale-110 transition-transform"></i>
               {{ loading ? 'Guardando...' : 'Guardar Novedad' }}
             </button>
           </div>
@@ -244,28 +256,28 @@
 
       <!-- Panel visor -->
       <transition name="slide-panel">
-        <div v-if="viewerOpen && previewUrl" class="flex flex-col w-1/2 rounded-2xl border overflow-hidden"
+        <div v-if="viewerOpen && previewUrl" class="flex flex-col w-1/2 rounded-xl border overflow-hidden"
           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
-          <div class="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
+          <div class="flex items-center justify-between px-3 py-2 border-b shrink-0"
             :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-            <div class="flex items-center gap-2">
-              <i class="fas fa-eye text-[#3B82F6] text-xs"></i>
-              <span class="text-[11px] font-black uppercase tracking-widest"
+            <div class="flex items-center gap-2 min-w-0">
+              <i class="fas fa-eye text-[#3B82F6] text-[10px]"></i>
+              <span class="text-[10px] font-black uppercase tracking-widest"
                 :class="isDark ? 'text-white' : 'text-slate-700'">Vista Previa</span>
-              <span class="text-[10px] font-bold truncate max-w-[140px] opacity-50"
+              <span class="text-[9px] font-medium truncate max-w-[120px] opacity-40"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ fileName }}</span>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1">
               <a :href="previewUrl" :download="fileName"
-                class="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all hover:brightness-110 flex items-center gap-1"
+                class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase border transition-all hover:brightness-110"
                 :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
-                <i class="fas fa-download text-[#3B82F6]"></i> Descargar
+                <i class="fas fa-download text-[#3B82F6] text-[9px]"></i> Descargar
               </a>
               <button @click="viewerOpen = false"
-                class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all"
+                class="w-6 h-6 rounded-md flex items-center justify-center border transition-all"
                 :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
-                <i class="fas fa-xmark text-xs"></i>
+                <i class="fas fa-xmark text-[9px]"></i>
               </button>
             </div>
           </div>
@@ -290,63 +302,10 @@
     </div>
 
     <!-- TAB: HISTORIAL -->
-    <div v-else class="flex-1 flex flex-col gap-2 overflow-hidden">
-
-      <!-- Filtros -->
-      <div class="flex flex-wrap items-end gap-2 px-1 shrink-0">
-
-        <!-- Buscar -->
-        <div class="flex flex-col gap-1 min-w-[200px] flex-1">
-          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Buscar</label>
-          <div
-            class="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/40"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
-            <i class="fas fa-magnifying-glass text-[#3B82F6] text-[10px]"></i>
-            <input v-model="filtros.buscar" type="text" placeholder="Descripción o tipificación..."
-              class="bg-transparent flex-1 outline-none font-medium text-xs placeholder:text-slate-500"
-              :class="isDark ? 'text-white' : 'text-slate-800'" />
-            <button v-if="filtros.buscar" @click="filtros.buscar = ''"
-              class="text-slate-400 hover:text-slate-600 transition-colors">
-              <i class="fas fa-xmark text-[10px]"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Fecha desde -->
-        <div class="flex flex-col gap-1">
-          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
-          <input v-model="filtros.fechaDesde" type="date"
-            class="px-3 py-2 rounded-xl border text-xs font-bold outline-none transition-all"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
-        </div>
-
-        <!-- Fecha hasta -->
-        <div class="flex flex-col gap-1">
-          <label class="text-[9px] font-black uppercase tracking-widest ml-0.5"
-            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
-          <input v-model="filtros.fechaHasta" type="date"
-            class="px-3 py-2 rounded-xl border text-xs font-bold outline-none transition-all"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
-        </div>
-
-        <!-- Botones -->
-        <div class="flex items-center gap-1.5 pb-0.5">
-          <button @click="aplicarFiltros"
-            class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#3B82F6] text-white text-[10px] font-black uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm">
-            <i class="fas fa-filter text-[9px]"></i> Filtrar
-          </button>
-          <button @click="limpiarFiltros"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase italic tracking-widest hover:brightness-110 active:scale-95 transition-all"
-            :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
-            <i class="fas fa-rotate-left text-[9px]"></i>
-          </button>
-        </div>
-      </div>
+    <div v-else class="flex-1 flex flex-col overflow-hidden min-h-0">
 
       <!-- Tabla -->
-      <div class="flex-1 rounded-2xl border overflow-hidden flex flex-col"
+      <div class="flex-1 rounded-xl border overflow-hidden flex flex-col min-h-0"
         :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
 
         <!-- Loading -->
