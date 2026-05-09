@@ -42,6 +42,128 @@
       </div>
     </div>
 
+    <!-- PANEL: REPORTE POR DEPARTAMENTO -->
+    <div class="rounded-xl border overflow-hidden transition-all shrink-0"
+      :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
+
+      <!-- Header del panel -->
+      <div class="px-3 py-2.5 flex items-center justify-between cursor-pointer select-none"
+        @click="toggleReporte">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center">
+            <i class="fas fa-layer-group text-violet-500 text-[10px]"></i>
+          </div>
+          <span class="text-[10px] font-semibold uppercase tracking-wider"
+            :class="isDark ? 'text-white' : 'text-slate-700'">Reporte por Departamento</span>
+          <span v-if="reporte.datos.length"
+            class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400">
+            {{ reporte.datos.length }} depts
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button v-if="reporte.datos.length" @click.stop="exportarPorDepartamento"
+            :disabled="reporte.exportando"
+            class="h-6 px-3 rounded-lg bg-violet-500 text-white text-[9px] font-bold uppercase tracking-wide hover:bg-violet-400 disabled:opacity-50 transition-all flex items-center gap-1.5">
+            <i class="fas text-[9px]"
+              :class="reporte.exportando ? 'fa-circle-notch fa-spin' : 'fa-file-excel'"></i>
+            {{ reporte.filtro ? reporte.filtro : 'Todos' }}
+          </button>
+          <i class="fas text-[9px] opacity-40 transition-transform"
+            :class="[
+              reporte.abierto ? 'fa-chevron-up' : 'fa-chevron-down',
+              isDark ? 'text-white' : 'text-slate-500'
+            ]"></i>
+        </div>
+      </div>
+
+      <Transition name="slide-down">
+        <div v-if="reporte.abierto" class="border-t"
+          :class="isDark ? 'border-white/5' : 'border-slate-100'">
+
+          <!-- Controles -->
+          <div class="px-3 py-2 flex items-center gap-2 border-b"
+            :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
+            <select v-model="reporte.filtro"
+              class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
+              :class="isDark
+                ? 'bg-white/5 border-white/10 text-white'
+                : 'bg-white border-slate-200 text-slate-700'">
+              <option value="">Todos los departamentos</option>
+              <option v-for="d in departamentosReporte" :key="d" :value="d">{{ d }}</option>
+            </select>
+            <button @click="cargarReporte" :disabled="reporte.cargando"
+              class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
+              :class="isDark
+                ? 'border-white/10 text-white/40 hover:bg-white/5'
+                : 'border-slate-200 text-slate-400 hover:bg-slate-50'">
+              <i class="fas fa-rotate text-[9px]" :class="reporte.cargando ? 'fa-spin' : ''"></i>
+            </button>
+            <span class="text-[9px] font-semibold uppercase opacity-40 ml-auto"
+              :class="isDark ? 'text-white' : 'text-slate-500'">
+              {{ reporteFiltrado.reduce((acc, g) => acc + g.mallas.length, 0) }} mallas
+            </span>
+          </div>
+
+          <!-- Cargando -->
+          <div v-if="reporte.cargando" class="flex items-center justify-center py-8">
+            <i class="fas fa-circle-notch fa-spin text-violet-500 text-lg"></i>
+          </div>
+
+          <!-- Sin datos -->
+          <div v-else-if="!reporteFiltrado.length" class="flex flex-col items-center justify-center py-8">
+            <i class="fas fa-layer-group text-3xl opacity-10 mb-2 block"
+              :class="isDark ? 'text-white' : 'text-slate-400'"></i>
+            <p class="text-[11px] opacity-30" :class="isDark ? 'text-white' : 'text-slate-500'">
+              No hay datos para mostrar
+            </p>
+          </div>
+
+          <!-- Tabla -->
+          <div v-else class="overflow-x-auto max-h-96 overflow-y-auto">
+            <table class="w-full text-[10px] border-collapse">
+              <thead class="sticky top-0 z-10">
+                <tr :class="isDark ? 'bg-[#162030]' : 'bg-slate-50'">
+                  <th class="px-4 py-2 text-left font-semibold uppercase tracking-wider opacity-50 w-40"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Departamento</th>
+                  <th class="px-4 py-2 text-left font-semibold uppercase tracking-wider opacity-50 w-64"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Malla</th>
+                  <th class="px-4 py-2 text-left font-semibold uppercase tracking-wider opacity-50"
+                    :class="isDark ? 'text-white' : 'text-slate-600'">Días y Horarios</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="grupo in reporteFiltrado" :key="grupo.departamento">
+                  <tr v-for="(malla, idx) in grupo.mallas" :key="malla.id"
+                    class="border-t transition-all"
+                    :class="isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'">
+                    <td class="px-4 py-2">
+                      <span v-if="idx === 0"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg"
+                        :class="isDark ? 'bg-violet-500/10 text-violet-300' : 'bg-violet-50 text-violet-700'">
+                        {{ grupo.departamento }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 font-semibold"
+                      :class="isDark ? 'text-white' : 'text-slate-700'">{{ malla.nombre }}</td>
+                    <td class="px-4 py-2">
+                      <div class="flex flex-wrap gap-1">
+                        <span v-for="d in malla.detalles" :key="d.dia_semana"
+                          class="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                          :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-50 text-amber-600'">
+                          {{ DIAS_SHORT[d.dia_semana] }}
+                          {{ formatHora(d.hora_inicio) }}-{{ formatHora(d.hora_fin) }}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
     <!-- PANEL: CARGA MASIVA EXCEL -->
     <Transition name="slide-down">
       <div v-if="panelUpload" class="rounded-xl border overflow-hidden transition-all"
@@ -663,6 +785,60 @@ const selectRowHora = (detalle, tipo, valor) => {
   if (tipo === 'inicio') detalle.hora_inicio = valor;
   else detalle.hora_fin = valor;
   rowDropdown.value = null;
+};
+
+// ── Reporte por departamento ────────────────────────────────
+const reporte = ref({ abierto: false, cargando: false, exportando: false, filtro: '', datos: [] });
+
+const departamentosReporte = computed(() => [
+  ...new Set(reporte.value.datos.map((d) => d.departamento)),
+].sort());
+
+const reporteFiltrado = computed(() => {
+  if (!reporte.value.filtro) return reporte.value.datos;
+  return reporte.value.datos.filter((d) => d.departamento === reporte.value.filtro);
+});
+
+const toggleReporte = async () => {
+  reporte.value.abierto = !reporte.value.abierto;
+  if (reporte.value.abierto && !reporte.value.datos.length) await cargarReporte();
+};
+
+const cargarReporte = async () => {
+  reporte.value.cargando = true;
+  try {
+    const res = await fetch(`${API_URL}/mallas-admin/reporte-departamento`);
+    if (!res.ok) throw new Error();
+    reporte.value.datos = await res.json();
+  } catch {
+    emit('error', 'Error al cargar el reporte');
+  } finally {
+    reporte.value.cargando = false;
+  }
+};
+
+const exportarPorDepartamento = async () => {
+  reporte.value.exportando = true;
+  try {
+    const params = reporte.value.filtro
+      ? `?departamento=${encodeURIComponent(reporte.value.filtro)}`
+      : '';
+    const res = await fetch(`${API_URL}/mallas-admin/exportar-departamento${params}`);
+    if (!res.ok) throw new Error();
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = reporte.value.filtro
+      ? `mallas-${reporte.value.filtro}.xlsx`
+      : 'mallas-por-departamento.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    emit('error', 'Error al exportar');
+  } finally {
+    reporte.value.exportando = false;
+  }
 };
 
 // ── API ─────────────────────────────────────────────────────
