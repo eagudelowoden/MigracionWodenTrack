@@ -16,6 +16,8 @@ import { NovedadesModule } from './novedades/novedades.module';
 import { SistemaConfigModule } from './sistema-config/sistema-config.module';
 import { ApiExternaModule } from './api-externa/api-externa.module';
 import { HorasExtraModule } from './horas-extra/horas-extra.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { HorasExtraModule } from './horas-extra/horas-extra.module';
     SistemaConfigModule,
     ApiExternaModule,
     HorasExtraModule,
+    ScheduleModule.forRoot(),
+    RecordatoriosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

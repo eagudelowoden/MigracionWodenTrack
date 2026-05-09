@@ -68,6 +68,6 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
     SuperAdminSesionesService,
     SuperAdminMensajesService,
   ],
-  exports: [UsuariosService, MallasUploadService, MallasCrudService],
+  exports: [UsuariosService, MallasUploadService, MallasCrudService, InternoGateway, SuperAdminCorreoService],
 })
 export class UsuariosModule {}

@@ -4,7 +4,9 @@
       "Bash(npx tsc *)",
       "Bash(findstr /i \"novedad\")",
       "Bash(xargs grep -l \"getAllMallas\\\\|departamento.*malla\")",
-      "Bash(xargs grep -l \"attendance\\\\|POST.*login\")"
+      "Bash(xargs grep -l \"attendance\\\\|POST.*login\")",
+      "Bash(findstr /i \"schedule\" \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\backend\\\\package.json\")",
+      "Bash(npm install *)"
     ]
   }
 }

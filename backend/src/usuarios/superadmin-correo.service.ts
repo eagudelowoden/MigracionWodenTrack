@@ -118,6 +118,30 @@ export class SuperAdminCorreoService {
     }
   }
 
+  // ── Recordatorio automático ───────────────────────────────────
+  async enviarRecordatorio(titulo: string, mensaje: string, destinatarios: string[]): Promise<void> {
+    const cfg = await this.getConfig();
+    if (!cfg.habilitado) return;
+    const t = await this.crearTransporter();
+    const from = `"${cfg.fromNombre || 'WodenTrack'}" <${cfg.user}>`;
+    const html = `
+      <div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:22px 28px;">
+          <p style="margin:0;color:rgba(255,255,255,0.55);font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">WodenTrack · Recordatorio</p>
+          <h1 style="margin:6px 0 0;color:#ffffff;font-size:18px;font-weight:800;">🔔 ${titulo}</h1>
+        </div>
+        <div style="padding:24px 28px;">
+          <p style="font-size:14px;color:#334155;line-height:1.6;">${mensaje}</p>
+        </div>
+        <div style="padding:14px 28px;background:#f8fafc;border-top:1px solid #f1f5f9;">
+          <p style="margin:0;font-size:10px;color:#94a3b8;">
+            ${new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' })} · Sistema WodenTrack
+          </p>
+        </div>
+      </div>`;
+    await t.sendMail({ from, to: destinatarios.join(', ') || from, subject: `🔔 Recordatorio: ${titulo}`, html });
+  }
+
   // ── Template HTML ─────────────────────────────────────────────
   private buildHtml(data: any): string {
     const rows: [string, string][] = [

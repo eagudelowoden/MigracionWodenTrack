@@ -16,7 +16,8 @@ import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfig
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
 import GestionSesiones  from '../components/admin/SuperAdmin/GestionSesiones.vue';
-import GestionMensajes  from '../components/admin/SuperAdmin/GestionMensajes.vue';
+import GestionMensajes       from '../components/admin/SuperAdmin/GestionMensajes.vue';
+import GestionRecordatorios  from '../components/admin/SuperAdmin/GestionRecordatorios.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -257,6 +258,7 @@ onMounted(async () => {
             analitica:     { icon: 'fas fa-chart-bar',    label: 'Analítica HR',   color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
             sesiones:      { icon: 'fas fa-shield-halved', label: 'Sesiones',      color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
             mensajes:      { icon: 'fas fa-comments',     label: 'Mensajes',       color: 'text-sky-500',     bg: 'bg-sky-500/10' },
+            recordatorios: { icon: 'fas fa-bell',         label: 'Recordatorios',  color: 'text-violet-500',  bg: 'bg-violet-500/10' },
             config:        { icon: 'fas fa-sliders',      label: 'Configuración',  color: 'text-slate-500',   bg: 'bg-slate-500/10' },
             api:           { icon: 'fas fa-plug',         label: 'API Externa',    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           }" :key="key">
@@ -358,7 +360,7 @@ onMounted(async () => {
             {{ {
               stats: 'Dashboard', apk: 'APK', companies: 'Empresas',
               users: 'Personal', notifications: 'Avisos', estructura: 'Organización',
-              mallas: 'Mallas', analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes', config: 'Configuración', api: 'API Externa'
+              mallas: 'Mallas', analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes', recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa'
             }[currentTab] }}
           </span>
         </div>
@@ -431,6 +433,10 @@ onMounted(async () => {
 
         <div v-if="currentTab === 'mensajes'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionMensajes :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
+        </div>
+
+        <div v-if="currentTab === 'recordatorios'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+          <GestionRecordatorios :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
         </div>
 
         <div v-if="currentTab === 'config'" class="animate-fade-in">
