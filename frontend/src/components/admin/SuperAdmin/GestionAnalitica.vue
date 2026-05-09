@@ -75,17 +75,20 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="e in smFiltrados" :key="e.id_odoo"
-                class="border-t transition-all"
+              <tr v-for="e in smFiltrados" :key="e.id_odoo" class="border-t transition-all"
                 :class="isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'">
-                <td class="px-4 py-2.5 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">{{ e.nombre }}</td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{ e.cargo }}</td>
+                <td class="px-4 py-2.5 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">{{ e.nombre }}
+                </td>
+                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                  e.cargo }}</td>
                 <td class="px-4 py-2.5">
                   <span class="px-2 py-0.5 rounded-full text-[9px] font-bold"
                     :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'">{{ e.area }}</span>
                 </td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{ e.departamento }}</td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{ e.segmento }}</td>
+                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                  e.departamento }}</td>
+                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                  e.segmento }}</td>
               </tr>
             </tbody>
           </table>
@@ -113,8 +116,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <select v-model="masivo.mallaId"
-            class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
+          <select v-model="masivo.mallaId" class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
             :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
             <option value="">— Seleccionar malla —</option>
             <option v-for="m in masivo.mallas" :key="m.id" :value="m.id">{{ m.nombre }}</option>
@@ -152,21 +154,20 @@
             No hay empleados sin malla
           </p>
         </div>
-        <div v-else class="flex-1 overflow-y-auto divide-y"
-          :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
+        <div v-else class="flex-1 overflow-y-auto divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
           <div v-for="e in sm.data" :key="e.id_odoo"
-            class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all"
-            :class="[
+            class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all" :class="[
               masivo.seleccionados.includes(e.id_odoo)
                 ? isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'
                 : isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'
-            ]"
-            @click="toggleSeleccion(e.id_odoo)">
+            ]" @click="toggleSeleccion(e.id_odoo)">
             <input type="checkbox" class="w-3.5 h-3.5 accent-indigo-500 cursor-pointer shrink-0"
               :checked="masivo.seleccionados.includes(e.id_odoo)" @click.stop />
             <div class="flex-1 min-w-0">
-              <p class="text-[11px] font-semibold truncate" :class="isDark ? 'text-white' : 'text-slate-700'">{{ e.nombre }}</p>
-              <p class="text-[9px] opacity-50" :class="isDark ? 'text-white' : 'text-slate-500'">{{ e.area }} · {{ e.departamento }}</p>
+              <p class="text-[11px] font-semibold truncate" :class="isDark ? 'text-white' : 'text-slate-700'">{{
+                e.nombre }}</p>
+              <p class="text-[9px] opacity-50" :class="isDark ? 'text-white' : 'text-slate-500'">{{ e.area }} · {{
+                e.departamento }}</p>
             </div>
           </div>
         </div>
@@ -193,8 +194,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <select v-model="hm.departamento"
-            class="h-7 px-2 rounded-lg border text-[10px] outline-none"
+          <select v-model="hm.departamento" class="h-7 px-2 rounded-lg border text-[10px] outline-none"
             :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
             <option value="">Todos los departamentos</option>
             <option v-for="d in hm.data?.departamentos || []" :key="d" :value="d">{{ d }}</option>
@@ -225,14 +225,14 @@
         <div v-else class="flex-1 overflow-auto p-4">
           <!-- Leyenda -->
           <div class="flex items-center gap-3 mb-4">
-            <span class="text-[9px] font-bold uppercase opacity-40" :class="isDark ? 'text-white' : 'text-slate-500'">Asistencia:</span>
+            <span class="text-[9px] font-bold uppercase opacity-40"
+              :class="isDark ? 'text-white' : 'text-slate-500'">Asistencia:</span>
             <div class="flex items-center gap-1">
-              <div v-for="pct in [0,25,50,75,100]" :key="pct"
+              <div v-for="pct in [0, 25, 50, 75, 100]" :key="pct"
                 class="w-8 h-4 rounded text-[8px] font-bold flex items-center justify-center text-white"
                 :style="{ background: heatColor(pct) }">{{ pct }}%</div>
             </div>
-            <span class="text-[9px] font-bold opacity-40 ml-auto"
-              :class="isDark ? 'text-white' : 'text-slate-500'">
+            <span class="text-[9px] font-bold opacity-40 ml-auto" :class="isDark ? 'text-white' : 'text-slate-500'">
               Total: {{ hm.data.totalEmpleados }} empleados
             </span>
           </div>
@@ -241,8 +241,7 @@
           <div class="grid gap-1" style="grid-template-columns: auto repeat(7, 1fr);">
             <!-- Headers días semana -->
             <div></div>
-            <div v-for="d in DIAS_SEMANA" :key="d"
-              class="text-center text-[9px] font-bold uppercase opacity-40 py-1"
+            <div v-for="d in DIAS_SEMANA" :key="d" class="text-center text-[9px] font-bold uppercase opacity-40 py-1"
               :class="isDark ? 'text-white' : 'text-slate-500'">{{ d }}</div>
 
             <!-- Semanas -->
@@ -253,8 +252,7 @@
               </div>
               <div v-for="dia in semana" :key="dia?.fecha || `empty-${si}-${dia}`"
                 class="h-10 rounded-lg flex flex-col items-center justify-center text-[8px] font-bold transition-all relative group"
-                :style="dia ? { background: heatColor(dia.pct) } : {}"
-                :class="[
+                :style="dia ? { background: heatColor(dia.pct) } : {}" :class="[
                   dia ? 'cursor-default text-white' : 'opacity-10',
                   !dia && (isDark ? 'bg-white/5' : 'bg-slate-100')
                 ]">
@@ -262,7 +260,8 @@
                   <span>{{ dia.fecha.slice(8) }}</span>
                   <span class="opacity-80">{{ dia.pct }}%</span>
                   <!-- Tooltip -->
-                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-[9px] font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 shadow-lg"
+                  <div
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-[9px] font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-20 shadow-lg"
                     :class="isDark ? 'bg-slate-900 text-white border border-white/10' : 'bg-white text-slate-700 border border-slate-200'">
                     {{ dia.fecha }} · {{ dia.presentes }} presentes
                   </div>
@@ -336,20 +335,20 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in comp.data" :key="a.area"
-                class="border-t transition-all"
+              <tr v-for="a in comp.data" :key="a.area" class="border-t transition-all"
                 :class="isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'">
                 <td class="px-4 py-3 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">{{ a.area }}</td>
-                <td class="px-4 py-3 text-[9px] opacity-60" :class="isDark ? 'text-white' : 'text-slate-600'">{{ a.departamento }}</td>
-                <td class="px-4 py-3 text-center font-bold text-[11px]" :class="isDark ? 'text-white' : 'text-slate-700'">{{ a.totalEmpleados }}</td>
+                <td class="px-4 py-3 text-[9px] opacity-60" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                  a.departamento }}</td>
+                <td class="px-4 py-3 text-center font-bold text-[11px]"
+                  :class="isDark ? 'text-white' : 'text-slate-700'">{{ a.totalEmpleados }}</td>
 
                 <!-- Puntualidad -->
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2">
                     <div class="flex-1 h-1.5 rounded-full overflow-hidden"
                       :class="isDark ? 'bg-white/10' : 'bg-slate-100'">
-                      <div class="h-full rounded-full transition-all"
-                        :style="{ width: a.aTiempoPct + '%' }"
+                      <div class="h-full rounded-full transition-all" :style="{ width: a.aTiempoPct + '%' }"
                         :class="a.aTiempoPct >= 80 ? 'bg-emerald-500' : a.aTiempoPct >= 60 ? 'bg-amber-500' : 'bg-rose-500'">
                       </div>
                     </div>
@@ -388,10 +387,10 @@
           </table>
 
           <!-- Nota metodología -->
-          <div class="px-4 py-2 border-t"
-            :class="isDark ? 'border-white/5' : 'border-slate-100'">
+          <div class="px-4 py-2 border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
             <p class="text-[9px] opacity-30" :class="isDark ? 'text-white' : 'text-slate-500'">
-              * Ausentismo estimado comparando marcaciones registradas vs. días laborales esperados (L-V). Puntualidad calculada sobre marcaciones con estado "A TIEMPO".
+              * Ausentismo estimado comparando marcaciones registradas vs. días laborales esperados (L-V). Puntualidad
+              calculada sobre marcaciones con estado "A TIEMPO".
             </p>
           </div>
         </div>
@@ -454,7 +453,8 @@
               <label class="block text-[9px] font-bold uppercase tracking-wider opacity-50 mb-1"
                 :class="isDark ? 'text-white' : 'text-slate-600'">
                 Contraseña *
-                <span v-if="correo.config.passConfigurado" class="ml-1 text-emerald-400 normal-case font-normal">(ya configurada — dejar vacío para no cambiar)</span>
+                <span v-if="correo.config.passConfigurado" class="ml-1 text-emerald-400 normal-case font-normal">(ya
+                  configurada — dejar vacío para no cambiar)</span>
               </label>
               <input v-model="correo.form.pass" type="password" placeholder="••••••••"
                 class="w-full px-3 py-1.5 rounded-lg border text-[11px] outline-none transition-all"
@@ -470,17 +470,17 @@
             </div>
 
             <!-- Toggle habilitado -->
-            <div class="flex items-center justify-between p-2.5 rounded-xl border"
-              :class="correo.form.habilitado
-                ? isDark ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-emerald-300 bg-emerald-50'
-                : isDark ? 'border-white/10' : 'border-slate-200'">
+            <div class="flex items-center justify-between p-2.5 rounded-xl border" :class="correo.form.habilitado
+              ? isDark ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-emerald-300 bg-emerald-50'
+              : isDark ? 'border-white/10' : 'border-slate-200'">
               <div>
                 <p class="text-[10px] font-bold"
                   :class="correo.form.habilitado ? 'text-emerald-500' : isDark ? 'text-white/60' : 'text-slate-500'">
                   Sistema de correo
                 </p>
                 <p class="text-[9px] opacity-50" :class="isDark ? 'text-white' : 'text-slate-400'">
-                  {{ correo.form.habilitado ? 'Habilitado — se enviarán correos' : 'Deshabilitado — no se enviarán correos' }}
+                  {{ correo.form.habilitado ? 'Habilitado — se enviarán correos' : 'Deshabilitado — no se' + 'enviarán'
+                    + 'correos' }}
                 </p>
               </div>
               <button @click="correo.form.habilitado = !correo.form.habilitado"
@@ -507,11 +507,9 @@
             </div>
 
             <!-- Resultado test -->
-            <div v-if="correo.testResult"
-              class="px-3 py-2 rounded-xl text-[10px] font-semibold border"
-              :class="correo.testResult.ok
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
+            <div v-if="correo.testResult" class="px-3 py-2 rounded-xl text-[10px] font-semibold border" :class="correo.testResult.ok
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
               <i :class="correo.testResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="mr-1.5"></i>
               {{ correo.testResult.mensaje }}
             </div>
@@ -605,11 +603,9 @@
             </button>
 
             <!-- Resultado envío -->
-            <div v-if="correo.envioResult"
-              class="px-3 py-2 rounded-xl text-[10px] font-semibold border"
-              :class="correo.envioResult.ok
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
+            <div v-if="correo.envioResult" class="px-3 py-2 rounded-xl text-[10px] font-semibold border" :class="correo.envioResult.ok
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
               <i :class="correo.envioResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="mr-1.5"></i>
               {{ correo.envioResult.mensaje }}
             </div>
@@ -639,8 +635,7 @@
           <input v-model="ia.busqueda" type="text" placeholder="Buscar empleado…"
             class="h-7 px-3 rounded-lg border text-[10px] outline-none w-44 transition-all"
             :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300'" />
-          <select v-model="ia.nivelFiltro"
-            class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
+          <select v-model="ia.nivelFiltro" class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
             :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
             <option value="">Todos</option>
             <option value="alto">Alto riesgo</option>
@@ -672,8 +667,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="emp in iaFiltrados" :key="emp.id_odoo"
-              class="border-t transition-colors"
+            <tr v-for="emp in iaFiltrados" :key="emp.id_odoo" class="border-t transition-colors"
               :class="isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'">
               <td class="px-3 py-2">
                 <div class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ emp.nombre }}</div>
@@ -686,12 +680,11 @@
                     :class="emp.nivel === 'alto' ? 'text-rose-500' : emp.nivel === 'medio' ? 'text-amber-500' : 'text-emerald-500'">
                     {{ emp.score }}
                   </span>
-                  <span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase"
-                    :class="emp.nivel === 'alto'
-                      ? 'bg-rose-500/10 text-rose-500'
-                      : emp.nivel === 'medio'
-                        ? 'bg-amber-500/10 text-amber-500'
-                        : 'bg-emerald-500/10 text-emerald-500'">
+                  <span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase" :class="emp.nivel === 'alto'
+                    ? 'bg-rose-500/10 text-rose-500'
+                    : emp.nivel === 'medio'
+                      ? 'bg-amber-500/10 text-amber-500'
+                      : 'bg-emerald-500/10 text-emerald-500'">
                     {{ emp.nivel }}
                   </span>
                 </div>
@@ -738,8 +731,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <select v-model="tend.depto"
-            class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
+          <select v-model="tend.depto" class="h-7 px-2 rounded-lg border text-[10px] outline-none transition-all"
             :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
             <option value="">Todos los deptos.</option>
             <option v-for="d in tendDeptos" :key="d" :value="d">{{ d }}</option>
@@ -757,48 +749,51 @@
         <div v-if="tend.cargando" class="flex items-center justify-center h-40">
           <i class="fas fa-circle-notch fa-spin text-cyan-500 text-xl"></i>
         </div>
-        <div v-else-if="!tendDataFiltrado.length" class="flex items-center justify-center h-40 opacity-30 text-sm">Sin datos</div>
+        <div v-else-if="!tendDataFiltrado.length" class="flex items-center justify-center h-40 opacity-30 text-sm">Sin
+          datos</div>
         <template v-else>
           <!-- Leyenda -->
           <div class="flex items-center gap-4 mb-4">
             <div class="flex items-center gap-1.5">
               <div class="w-3 h-0.5 bg-emerald-500 rounded"></div>
-              <span class="text-[9px] font-semibold uppercase opacity-60" :class="isDark ? 'text-white' : 'text-slate-600'">Puntualidad %</span>
+              <span class="text-[9px] font-semibold uppercase opacity-60"
+                :class="isDark ? 'text-white' : 'text-slate-600'">Puntualidad %</span>
             </div>
             <div class="flex items-center gap-1.5">
               <div class="w-3 h-0.5 bg-rose-500 rounded"></div>
-              <span class="text-[9px] font-semibold uppercase opacity-60" :class="isDark ? 'text-white' : 'text-slate-600'">Ausentismo %</span>
+              <span class="text-[9px] font-semibold uppercase opacity-60"
+                :class="isDark ? 'text-white' : 'text-slate-600'">Ausentismo %</span>
             </div>
           </div>
           <!-- SVG Chart -->
           <div class="overflow-x-auto">
             <svg :width="tendSvgW" height="220" class="overflow-visible">
               <!-- Grid lines -->
-              <line v-for="y in [0,25,50,75,100]" :key="y"
-                x1="50" :y1="tendY(y)" :x2="tendSvgW - 10" :y2="tendY(y)"
-                :stroke="isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'" stroke-width="1"/>
+              <line v-for="y in [0, 25, 50, 75, 100]" :key="y" x1="50" :y1="tendY(y)" :x2="tendSvgW - 10" :y2="tendY(y)"
+                :stroke="isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'" stroke-width="1" />
               <!-- Y labels -->
-              <text v-for="y in [0,25,50,75,100]" :key="'l'+y"
-                x="44" :y="tendY(y) + 4" text-anchor="end" font-size="8"
-                :fill="isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'">{{ y }}</text>
+              <text v-for="y in [0, 25, 50, 75, 100]" :key="'l' + y" x="44" :y="tendY(y) + 4" text-anchor="end"
+                font-size="8" :fill="isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'">{{ y }}</text>
               <!-- Puntualidad polyline -->
-              <polyline :points="tendPoints('puntualidadPct')" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <polyline :points="tendPoints('puntualidadPct')" fill="none" stroke="#10b981" stroke-width="2"
+                stroke-linejoin="round" stroke-linecap="round" />
               <!-- Ausentismo polyline -->
-              <polyline :points="tendPoints('ausentismoPct')" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <polyline :points="tendPoints('ausentismoPct')" fill="none" stroke="#f43f5e" stroke-width="2"
+                stroke-linejoin="round" stroke-linecap="round" />
               <!-- Dots puntualidad -->
-              <circle v-for="(p, i) in tendDataFiltrado" :key="'dp'+i"
-                :cx="tendX(i)" :cy="tendY(p.puntualidadPct)" r="3" fill="#10b981">
+              <circle v-for="(p, i) in tendDataFiltrado" :key="'dp' + i" :cx="tendX(i)" :cy="tendY(p.puntualidadPct)"
+                r="3" fill="#10b981">
                 <title>{{ p.mes }} · {{ p.departamento }} · Puntualidad: {{ p.puntualidadPct }}%</title>
               </circle>
               <!-- Dots ausentismo -->
-              <circle v-for="(p, i) in tendDataFiltrado" :key="'da'+i"
-                :cx="tendX(i)" :cy="tendY(p.ausentismoPct)" r="3" fill="#f43f5e">
+              <circle v-for="(p, i) in tendDataFiltrado" :key="'da' + i" :cx="tendX(i)" :cy="tendY(p.ausentismoPct)"
+                r="3" fill="#f43f5e">
                 <title>{{ p.mes }} · {{ p.departamento }} · Ausentismo: {{ p.ausentismoPct }}%</title>
               </circle>
               <!-- X labels -->
-              <text v-for="(p, i) in tendDataFiltrado" :key="'xl'+i"
-                :x="tendX(i)" y="215" text-anchor="middle" font-size="7"
-                :fill="isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'">{{ p.mes?.substring(5) }}</text>
+              <text v-for="(p, i) in tendDataFiltrado" :key="'xl' + i" :x="tendX(i)" y="215" text-anchor="middle"
+                font-size="7" :fill="isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'">{{ p.mes?.substring(5)
+                }}</text>
             </svg>
           </div>
         </template>
@@ -852,26 +847,29 @@
                   <span>{{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉' }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-[11px] font-bold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ area.area }}</div>
+                  <div class="text-[11px] font-bold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    area.area }}</div>
                   <div class="text-[9px] opacity-40">{{ area.departamento }} · {{ area.totalEmpleados }} emp.</div>
                   <div class="flex gap-2 mt-1">
                     <div class="flex items-center gap-1">
                       <div class="h-1 rounded-full bg-emerald-500/20 w-20 overflow-hidden">
-                        <div class="h-full rounded-full bg-emerald-500 transition-all" :style="{ width: area.asistenciaPct + '%' }"></div>
+                        <div class="h-full rounded-full bg-emerald-500 transition-all"
+                          :style="{ width: area.asistenciaPct + '%' }"></div>
                       </div>
                       <span class="text-[9px] text-emerald-500 font-bold">{{ area.asistenciaPct }}%</span>
                     </div>
                     <div class="flex items-center gap-1">
                       <div class="h-1 rounded-full bg-blue-500/20 w-20 overflow-hidden">
-                        <div class="h-full rounded-full bg-blue-500 transition-all" :style="{ width: area.puntualidadPct + '%' }"></div>
+                        <div class="h-full rounded-full bg-blue-500 transition-all"
+                          :style="{ width: area.puntualidadPct + '%' }"></div>
                       </div>
                       <span class="text-[9px] text-blue-500 font-bold">{{ area.puntualidadPct }}%</span>
                     </div>
                   </div>
                 </div>
                 <div class="text-right shrink-0">
-                  <div class="text-[18px] font-black"
-                    :class="isDark ? 'text-white' : 'text-slate-800'">{{ area.score }}</div>
+                  <div class="text-[18px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">{{ area.score }}
+                  </div>
                   <div class="text-[8px] opacity-40 uppercase tracking-wide">score</div>
                 </div>
               </div>
@@ -896,18 +894,21 @@
                   <span>{{ idx === 0 ? '⚠️' : idx === 1 ? '📉' : '🔴' }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-[11px] font-bold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ area.area }}</div>
+                  <div class="text-[11px] font-bold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    area.area }}</div>
                   <div class="text-[9px] opacity-40">{{ area.departamento }} · {{ area.totalEmpleados }} emp.</div>
                   <div class="flex gap-2 mt-1">
                     <div class="flex items-center gap-1">
                       <div class="h-1 rounded-full bg-rose-500/20 w-20 overflow-hidden">
-                        <div class="h-full rounded-full bg-rose-500 transition-all" :style="{ width: area.asistenciaPct + '%' }"></div>
+                        <div class="h-full rounded-full bg-rose-500 transition-all"
+                          :style="{ width: area.asistenciaPct + '%' }"></div>
                       </div>
                       <span class="text-[9px] text-rose-500 font-bold">{{ area.asistenciaPct }}%</span>
                     </div>
                     <div class="flex items-center gap-1">
                       <div class="h-1 rounded-full bg-amber-500/20 w-20 overflow-hidden">
-                        <div class="h-full rounded-full bg-amber-500 transition-all" :style="{ width: area.puntualidadPct + '%' }"></div>
+                        <div class="h-full rounded-full bg-amber-500 transition-all"
+                          :style="{ width: area.puntualidadPct + '%' }"></div>
                       </div>
                       <span class="text-[9px] text-amber-500 font-bold">{{ area.puntualidadPct }}%</span>
                     </div>
@@ -932,18 +933,18 @@
 import { ref, computed, onMounted, watch } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
-const emit  = defineEmits(['success', 'error']);
+const emit = defineEmits(['success', 'error']);
 const API_URL = import.meta.env.VITE_API_URL;
 
 const TABS = [
-  { key: 'sin-malla',   icon: 'fas fa-user-slash',  label: 'Sin malla'   },
-  { key: 'masivo',      icon: 'fas fa-layer-group',  label: 'Asig. masiva'},
-  { key: 'heatmap',     icon: 'fas fa-th',           label: 'Heatmap'     },
-  { key: 'comparativa', icon: 'fas fa-chart-bar',    label: 'Comparativa' },
-  { key: 'correo',      icon: 'fas fa-envelope',     label: 'Correo'      },
-  { key: 'ia',          icon: 'fas fa-brain',         label: 'IA Riesgo'   },
-  { key: 'tendencias',  icon: 'fas fa-chart-line',    label: 'Tendencias'  },
-  { key: 'ranking',     icon: 'fas fa-trophy',        label: 'Ranking'     },
+  { key: 'sin-malla', icon: 'fas fa-user-slash', label: 'Sin malla' },
+  { key: 'masivo', icon: 'fas fa-layer-group', label: 'Asig. masiva' },
+  { key: 'heatmap', icon: 'fas fa-th', label: 'Heatmap' },
+  { key: 'comparativa', icon: 'fas fa-chart-bar', label: 'Comparativa' },
+  { key: 'correo', icon: 'fas fa-envelope', label: 'Correo' },
+  { key: 'ia', icon: 'fas fa-brain', label: 'IA' },
+  { key: 'tendencias', icon: 'fas fa-chart-line', label: 'Tendencias' },
+  { key: 'ranking', icon: 'fas fa-trophy', label: 'Ranking' },
 ];
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -1084,12 +1085,12 @@ const cargarComparativa = async () => {
 
 // ── Estado: Correo ────────────────────────────────────────────
 const correo = ref({
-  config:      { host: '', port: '587', user: '', passConfigurado: false, fromNombre: 'WodenTrack', habilitado: false },
-  form:        { host: '', port: '587', user: '', pass: '', fromNombre: 'WodenTrack', habilitado: false },
-  guardando:   false,
-  testeando:   false,
-  testResult:  null,
-  enviando:    false,
+  config: { host: '', port: '587', user: '', passConfigurado: false, fromNombre: 'WodenTrack', habilitado: false },
+  form: { host: '', port: '587', user: '', pass: '', fromNombre: 'WodenTrack', habilitado: false },
+  guardando: false,
+  testeando: false,
+  testResult: null,
+  enviando: false,
   envioResult: null,
   envio: {
     empleado: '', cedula: '', cargo: '', departamento: '', area: '',
@@ -1104,12 +1105,12 @@ const cargarConfigCorreo = async () => {
     const cfg = await res.json();
     correo.value.config = cfg;
     correo.value.form = {
-      host:        cfg.host,
-      port:        cfg.port,
-      user:        cfg.user,
-      pass:        '',
-      fromNombre:  cfg.fromNombre,
-      habilitado:  cfg.habilitado,
+      host: cfg.host,
+      port: cfg.port,
+      user: cfg.user,
+      pass: '',
+      fromNombre: cfg.fromNombre,
+      habilitado: cfg.habilitado,
     };
   } catch { emit('error', 'Error al cargar configuración de correo'); }
 };
@@ -1153,16 +1154,16 @@ const enviarAusentismo = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        empleado:      e.empleado,
-        cedula:        e.cedula   || undefined,
-        cargo:         e.cargo    || undefined,
-        departamento:  e.departamento || undefined,
-        area:          e.area     || undefined,
-        fechaInicio:   e.fechaInicio,
-        fechaFin:      e.fechaFin || undefined,
-        motivo:        e.motivo   || undefined,
+        empleado: e.empleado,
+        cedula: e.cedula || undefined,
+        cargo: e.cargo || undefined,
+        departamento: e.departamento || undefined,
+        area: e.area || undefined,
+        fechaInicio: e.fechaInicio,
+        fechaFin: e.fechaFin || undefined,
+        motivo: e.motivo || undefined,
         destinatarios,
-        enviadoPor:    session.name || 'superadmin',
+        enviadoPor: session.name || 'superadmin',
       }),
     });
     correo.value.envioResult = await res.json();
@@ -1236,7 +1237,7 @@ const cargarRanking = async () => {
     const r = await fetch(`${API_URL}/superadmin/ia/ranking`);
     const d = await r.json();
     rank.value.mejores = Array.isArray(d?.mejores) ? d.mejores : [];
-    rank.value.peores  = Array.isArray(d?.peores)  ? d.peores  : [];
+    rank.value.peores = Array.isArray(d?.peores) ? d.peores : [];
   } catch { emit('error', 'Error cargando ranking'); }
   finally { rank.value.cargando = false; }
 };
