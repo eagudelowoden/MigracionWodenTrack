@@ -14,6 +14,9 @@ import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue'
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
+import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
+import GestionSesiones  from '../components/admin/SuperAdmin/GestionSesiones.vue';
+import GestionMensajes  from '../components/admin/SuperAdmin/GestionMensajes.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -251,6 +254,9 @@ onMounted(async () => {
             notifications: { icon: 'fas fa-bullhorn',     label: 'Avisos',         color: 'text-rose-500',    bg: 'bg-rose-500/10' },
             estructura:    { icon: 'fas fa-sitemap',      label: 'Organización',   color: 'text-cyan-600',    bg: 'bg-cyan-500/10' },
             mallas:        { icon: 'fas fa-calendar-alt', label: 'Mallas',         color: 'text-amber-500',   bg: 'bg-amber-500/10' },
+            analitica:     { icon: 'fas fa-chart-bar',    label: 'Analítica HR',   color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
+            sesiones:      { icon: 'fas fa-shield-halved', label: 'Sesiones',      color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+            mensajes:      { icon: 'fas fa-comments',     label: 'Mensajes',       color: 'text-sky-500',     bg: 'bg-sky-500/10' },
             config:        { icon: 'fas fa-sliders',      label: 'Configuración',  color: 'text-slate-500',   bg: 'bg-slate-500/10' },
             api:           { icon: 'fas fa-plug',         label: 'API Externa',    color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           }" :key="key">
@@ -352,7 +358,7 @@ onMounted(async () => {
             {{ {
               stats: 'Dashboard', apk: 'APK', companies: 'Empresas',
               users: 'Personal', notifications: 'Avisos', estructura: 'Organización',
-              mallas: 'Mallas', config: 'Configuración', api: 'API Externa'
+              mallas: 'Mallas', analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes', config: 'Configuración', api: 'API Externa'
             }[currentTab] }}
           </span>
         </div>
@@ -413,6 +419,18 @@ onMounted(async () => {
 
         <div v-if="currentTab === 'mallas'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionMallas :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
+        </div>
+
+        <div v-if="currentTab === 'analitica'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+          <GestionAnalitica :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
+        </div>
+
+        <div v-if="currentTab === 'sesiones'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+          <GestionSesiones :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
+        </div>
+
+        <div v-if="currentTab === 'mensajes'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+          <GestionMensajes :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
         </div>
 
         <div v-if="currentTab === 'config'" class="animate-fade-in">

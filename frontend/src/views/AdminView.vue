@@ -230,13 +230,56 @@
 
       </div>
     </main>
+
+    <!-- ── Widget mensajes internos ──────────────────────────────────────────── -->
+    <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+      <!-- Bandeja desplegable -->
+      <transition name="fade">
+        <div v-if="mostrarBandeja && mensajesNoLeidos.length"
+          class="w-72 rounded-2xl border shadow-2xl overflow-hidden mb-1"
+          :class="isDark ? 'bg-[#1e293b] border-white/10' : 'bg-white border-slate-200'">
+          <div class="px-4 py-2.5 border-b flex items-center justify-between"
+            :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
+            <span class="text-[10px] font-bold uppercase tracking-wider"
+              :class="isDark ? 'text-white/60' : 'text-slate-500'">Mensajes recibidos</span>
+            <button @click="mensajesNoLeidos = []" class="text-[9px] text-rose-400 hover:text-rose-600 font-bold uppercase">
+              Limpiar
+            </button>
+          </div>
+          <div class="max-h-60 overflow-y-auto">
+            <div v-for="msg in mensajesNoLeidos" :key="msg.id"
+              class="px-4 py-2.5 border-b last:border-b-0"
+              :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <div class="text-[9px] font-bold text-blue-500 mb-0.5">{{ msg.de_nombre }}</div>
+              <div class="text-[10px]" :class="isDark ? 'text-white/80' : 'text-slate-700'">{{ msg.contenido }}</div>
+              <div class="text-[8px] opacity-40 mt-0.5">
+                {{ new Date(msg.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- Botón flotante -->
+      <button @click="mostrarBandeja = !mostrarBandeja"
+        class="relative w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all"
+        :class="isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-500 hover:bg-blue-600'">
+        <i class="fas fa-comments text-white text-base"></i>
+        <span v-if="mensajesNoLeidos.length"
+          class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+          {{ mensajesNoLeidos.length > 9 ? '9+' : mensajesNoLeidos.length }}
+        </span>
+      </button>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, provide } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, provide, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
+import { io } from 'socket.io-client';
 import '../assets/css/admin-style.css';
 
 const router = useRouter();
@@ -283,10 +326,50 @@ const moduleKeyFromRoute = computed(() => {
   return null;
 });
 
+// ── WebSocket sesión interna ──────────────────────────────────────────────────
+const WS_URL = (API_URL || '').replace('/usuarios', '') || 'http://localhost:3000';
+let internoSocket = null;
+const mensajesNoLeidos = ref([]);
+const mostrarBandeja   = ref(false);
+
+const conectarInterno = () => {
+  if (internoSocket) return;
+  const idOdoo = employee.value?.id_odoo;
+  const nombre = employee.value?.name;
+  if (!idOdoo) return;
+
+  internoSocket = io(`${WS_URL}/interno`, { transports: ['websocket'] });
+  internoSocket.on('connect', () => {
+    internoSocket.emit('join', { idOdoo, nombre });
+  });
+  internoSocket.on('new-message', (msg) => {
+    if (msg.para_id_odoo === idOdoo || msg.para_id_odoo === null) {
+      mensajesNoLeidos.value.unshift(msg);
+    }
+  });
+  internoSocket.on('force-disconnect', () => {
+    internoSocket.disconnect();
+    logout();
+  });
+};
+
+// Conectar en cuanto employee se cargue
+watch(() => employee.value?.id_odoo, (id) => { if (id) conectarInterno(); }, { immediate: true });
+
 onMounted(async () => {
   try {
     const res = await fetch(`${API_URL}/sistema-config`);
     if (res.ok) Object.assign(modulosConfig, await res.json());
   } catch {}
 });
+
+onUnmounted(() => {
+  internoSocket?.disconnect();
+});
 </script>
+
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity .2s, transform .2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(8px); }
+</style>
