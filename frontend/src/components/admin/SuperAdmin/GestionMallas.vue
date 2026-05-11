@@ -53,7 +53,8 @@
             :class="isDark ? 'text-white' : 'text-slate-600'">Crear mallas desde Excel</span>
         </div>
         <div class="p-4 flex items-center gap-4">
-          <label class="flex-1 flex flex-col items-center gap-2 border-2 border-dashed rounded-xl py-6 cursor-pointer transition-all"
+          <label
+            class="flex-1 flex flex-col items-center gap-2 border-2 border-dashed rounded-xl py-6 cursor-pointer transition-all"
             :class="isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'">
             <i class="fas fa-cloud-upload-alt text-2xl opacity-30"
               :class="isDark ? 'text-white' : 'text-slate-400'"></i>
@@ -83,10 +84,9 @@
         </div>
 
         <div v-if="resultadoUpload" class="px-4 pb-4">
-          <div class="rounded-lg px-3 py-2 text-[10px] font-medium border"
-            :class="resultadoUpload.errores?.length
-              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'">
+          <div class="rounded-lg px-3 py-2 text-[10px] font-medium border" :class="resultadoUpload.errores?.length
+            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'">
             <p class="font-bold">
               {{ resultadoUpload.creadas }} mallas creadas ·
               {{ resultadoUpload.omitidas }} ya existían ·
@@ -118,8 +118,7 @@
               <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                 :class="isDark ? 'text-white' : 'text-slate-600'">Nombre *</label>
               <input v-model="form.nombre" type="text" placeholder="(ADM) ADMIN-001 Colombia L-V 7-17"
-                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all"
-                :class="isDark
+                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all" :class="isDark
                   ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
                   : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
             </div>
@@ -127,16 +126,14 @@
               <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                 :class="isDark ? 'text-white' : 'text-slate-600'">Compañía</label>
               <input v-model="form.compania" type="text" placeholder="(CO) WODEN COLOMBIA SAS"
-                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all"
-                :class="isDark
+                class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all" :class="isDark
                   ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
                   : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
             </div>
           </div>
 
           <!-- Tabla de días — sin overflow-hidden para que los dropdowns de la última fila sean visibles -->
-          <div class="rounded-xl border"
-            :class="isDark ? 'border-white/10' : 'border-slate-200'">
+          <div class="rounded-xl border" :class="isDark ? 'border-white/10' : 'border-slate-200'">
             <table class="w-full text-[10px] border-collapse">
               <thead>
                 <tr :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
@@ -155,7 +152,9 @@
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora inicio
-                        <i class="fas fa-chevron-down text-[8px]" :class="headerDropdown === 'inicio' ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                        <i class="fas fa-chevron-down text-[8px]"
+                          :class="headerDropdown === 'inicio' ? 'rotate-180' : ''"
+                          style="transition:transform .15s"></i>
                       </button>
                       <div v-if="headerDropdown === 'inicio'"
                         class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-44 overflow-hidden"
@@ -189,7 +188,8 @@
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora fin
-                        <i class="fas fa-chevron-down text-[8px]" :class="headerDropdown === 'fin' ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                        <i class="fas fa-chevron-down text-[8px]" :class="headerDropdown === 'fin' ? 'rotate-180' : ''"
+                          style="transition:transform .15s"></i>
                       </button>
                       <div v-if="headerDropdown === 'fin'"
                         class="absolute top-full left-0 mt-1 z-50 rounded-xl border shadow-xl w-44 overflow-hidden"
@@ -213,12 +213,12 @@
                     </div>
                   </th>
 
-                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50 rounded-tr-xl">Periodo</th>
+                  <th class="px-3 py-2 text-left font-semibold uppercase tracking-wider opacity-50 rounded-tr-xl">
+                    Periodo</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(detalle, idx) in form.detalles" :key="detalle.dia_semana"
-                  class="border-t transition-all"
+                <tr v-for="(detalle, idx) in form.detalles" :key="detalle.dia_semana" class="border-t transition-all"
                   :class="[
                     isDark ? 'border-white/5' : 'border-slate-100',
                     !detalle.activo ? 'opacity-30' : ''
@@ -234,16 +234,14 @@
                   <!-- HORA INICIO — dropdown buscable por fila. Las últimas filas abren hacia arriba -->
                   <td class="px-3 py-2">
                     <div class="relative">
-                      <button :disabled="!detalle.activo"
-                        @click="toggleRowDropdown(detalle.dia_semana, 'inicio')"
+                      <button :disabled="!detalle.activo" @click="toggleRowDropdown(detalle.dia_semana, 'inicio')"
                         class="rounded-lg border px-2 py-1 text-[10px] font-semibold outline-none transition-all flex items-center gap-1.5 min-w-[68px]"
                         :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
                         {{ formatHora(detalle.hora_inicio) }}
                         <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
                       </button>
                       <div v-if="rowDropdown === `${detalle.dia_semana}-inicio`"
-                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
-                        :class="[
+                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden" :class="[
                           idx >= form.detalles.length - 3 ? 'bottom-full mb-1' : 'top-full mt-1',
                           isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'
                         ]">
@@ -256,8 +254,7 @@
                         <div class="max-h-[160px] overflow-y-auto custom-scroll">
                           <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
                             @click="selectRowHora(detalle, 'inicio', h.value)"
-                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="[
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all" :class="[
                               detalle.hora_inicio === h.value ? 'text-blue-500 font-black' : '',
                               isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
                             ]">
@@ -271,16 +268,14 @@
                   <!-- HORA FIN — dropdown buscable por fila. Las últimas filas abren hacia arriba -->
                   <td class="px-3 py-2">
                     <div class="relative">
-                      <button :disabled="!detalle.activo"
-                        @click="toggleRowDropdown(detalle.dia_semana, 'fin')"
+                      <button :disabled="!detalle.activo" @click="toggleRowDropdown(detalle.dia_semana, 'fin')"
                         class="rounded-lg border px-2 py-1 text-[10px] font-semibold outline-none transition-all flex items-center gap-1.5 min-w-[68px]"
                         :class="isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'">
                         {{ formatHora(detalle.hora_fin) }}
                         <i class="fas fa-chevron-down text-[7px] opacity-40 ml-auto"></i>
                       </button>
                       <div v-if="rowDropdown === `${detalle.dia_semana}-fin`"
-                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden"
-                        :class="[
+                        class="absolute left-0 z-50 rounded-xl border shadow-xl w-40 overflow-hidden" :class="[
                           idx >= form.detalles.length - 3 ? 'bottom-full mb-1' : 'top-full mt-1',
                           isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'
                         ]">
@@ -293,8 +288,7 @@
                         <div class="max-h-[160px] overflow-y-auto custom-scroll">
                           <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
                             @click="selectRowHora(detalle, 'fin', h.value)"
-                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="[
+                            class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all" :class="[
                               detalle.hora_fin === h.value ? 'text-blue-500 font-black' : '',
                               isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
                             ]">
@@ -307,8 +301,7 @@
 
                   <td class="px-3 py-2">
                     <select v-model="detalle.periodo" :disabled="!detalle.activo"
-                      class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all"
-                      :class="isDark
+                      class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all" :class="isDark
                         ? 'bg-white/5 border-white/10 text-white focus:border-blue-500/50'
                         : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400'">
                       <option value="morning">Diurna</option>
@@ -322,34 +315,31 @@
           </div>
 
           <!-- Overlay para cerrar dropdowns de la tabla -->
-          <div v-if="headerDropdown || rowDropdown" @click="headerDropdown = null; rowDropdown = null" class="fixed inset-0 z-40"></div>
+          <div v-if="headerDropdown || rowDropdown" @click="headerDropdown = null; rowDropdown = null"
+            class="fixed inset-0 z-40"></div>
 
           <!-- REDUCCIÓN DE HORAS -->
-          <div class="rounded-xl border transition-all overflow-hidden"
-            :class="reduccion.activa
-              ? isDark ? 'border-orange-500/40 bg-orange-500/5' : 'border-orange-300 bg-orange-50'
-              : isDark ? 'border-white/10' : 'border-slate-200'">
+          <div class="rounded-xl border transition-all overflow-hidden" :class="reduccion.activa
+            ? isDark ? 'border-orange-500/40 bg-orange-500/5' : 'border-orange-300 bg-orange-50'
+            : isDark ? 'border-white/10' : 'border-slate-200'">
             <div class="px-3 py-2.5 flex items-center gap-3 cursor-pointer select-none"
               @click="reduccion.activa = !reduccion.activa">
-              <input type="checkbox" v-model="reduccion.activa"
-                class="w-3.5 h-3.5 accent-orange-500 cursor-pointer" @click.stop />
+              <input type="checkbox" v-model="reduccion.activa" class="w-3.5 h-3.5 accent-orange-500 cursor-pointer"
+                @click.stop />
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-wide"
-                  :class="reduccion.activa
-                    ? 'text-orange-500'
-                    : isDark ? 'text-white/60' : 'text-slate-500'">
+                <p class="text-[10px] font-bold uppercase tracking-wide" :class="reduccion.activa
+                  ? 'text-orange-500'
+                  : isDark ? 'text-white/60' : 'text-slate-500'">
                   Reducción de horas
                 </p>
-                <p class="text-[9px] opacity-50"
-                  :class="isDark ? 'text-white' : 'text-slate-400'">
+                <p class="text-[9px] opacity-50" :class="isDark ? 'text-white' : 'text-slate-400'">
                   Aplica reducción en un día específico de la malla
                 </p>
               </div>
             </div>
 
             <Transition name="slide-down">
-              <div v-if="reduccion.activa"
-                class="px-4 pb-4 pt-1 flex flex-wrap items-end gap-4 border-t"
+              <div v-if="reduccion.activa" class="px-4 pb-4 pt-1 flex flex-wrap items-end gap-4 border-t"
                 :class="isDark ? 'border-orange-500/20' : 'border-orange-200'">
 
                 <div>
@@ -372,8 +362,7 @@
                   <div class="flex flex-wrap gap-1.5">
                     <button v-for="d in form.detalles.filter(d => d.activo)" :key="d.dia_semana"
                       @click="reduccion.dia = d.dia_semana"
-                      class="h-7 px-3 rounded-lg border text-[9px] font-bold uppercase transition-all"
-                      :class="reduccion.dia === d.dia_semana
+                      class="h-7 px-3 rounded-lg border text-[9px] font-bold uppercase transition-all" :class="reduccion.dia === d.dia_semana
                         ? 'bg-orange-500 border-orange-500 text-white'
                         : isDark
                           ? 'border-white/10 text-white/50 hover:bg-white/10'
@@ -390,7 +379,8 @@
                     :class="isDark ? 'border-orange-500/30 bg-orange-500/10 text-orange-400' : 'border-orange-200 bg-orange-50 text-orange-600'">
                     {{ DIAS[reduccion.dia] }}:
                     {{ formatHora(form.detalles[reduccion.dia].hora_inicio) }} →
-                    {{ formatHoraFin(form.detalles[reduccion.dia].hora_inicio, form.detalles[reduccion.dia].hora_fin, reduccion.horas) }}
+                    {{ formatHoraFin(form.detalles[reduccion.dia].hora_inicio, form.detalles[reduccion.dia].hora_fin,
+                    reduccion.horas) }}
                     <span class="opacity-60">(−{{ reduccion.horas }}h)</span>
                   </div>
                 </div>
@@ -421,15 +411,11 @@
         <div class="relative flex-1 max-w-xs">
           <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] opacity-40"
             :class="isDark ? 'text-white' : 'text-slate-500'"></i>
-          <input
-            v-model="filterMalla"
-            type="text"
-            placeholder="Buscar malla..."
+          <input v-model="filterMalla" type="text" placeholder="Buscar malla..."
             class="w-full pl-7 pr-2.5 py-1 rounded-lg border text-[10px] font-medium outline-none transition-all"
             :class="isDark
               ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/40'
-              : 'bg-white border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'"
-          />
+              : 'bg-white border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
         </div>
 
         <span class="text-[9px] font-semibold uppercase tracking-wider opacity-40 ml-auto"
@@ -457,18 +443,16 @@
       </div>
 
       <div v-else class="flex-1 overflow-y-auto divide-y" :class="isDark ? 'divide-white/5' : 'divide-slate-100'">
-        <div v-for="malla in mallasFiltradas" :key="malla.id"
-          class="px-4 py-3 transition-all"
+        <div v-for="malla in mallasFiltradas" :key="malla.id" class="px-4 py-3 transition-all"
           :class="isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'">
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <span class="text-[11px] font-semibold truncate"
-                  :class="isDark ? 'text-white' : 'text-slate-700'">{{ malla.nombre }}</span>
-                <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  :class="malla.activa
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'bg-slate-500/10 text-slate-400'">
+                <span class="text-[11px] font-semibold truncate" :class="isDark ? 'text-white' : 'text-slate-700'">{{
+                  malla.nombre }}</span>
+                <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full" :class="malla.activa
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'bg-slate-500/10 text-slate-400'">
                   {{ malla.activa ? 'Activa' : 'Inactiva' }}
                 </span>
               </div>
@@ -476,29 +460,26 @@
                 :class="isDark ? 'text-white' : 'text-slate-500'">{{ malla.compania }}</p>
 
               <div v-if="malla.detalles?.length" class="flex flex-wrap gap-1 mt-2">
-                <span v-for="d in malla.detalles.slice().sort((a,b) => a.dia_semana - b.dia_semana)"
-                  :key="d.id"
+                <span v-for="d in malla.detalles.slice().sort((a, b) => a.dia_semana - b.dia_semana)" :key="d.id"
                   class="text-[9px] font-semibold px-2 py-0.5 rounded-full"
                   :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-50 text-amber-600'">
                   {{ DIAS_SHORT[d.dia_semana] }}
                   {{ formatHora(d.hora_inicio) }}-{{ formatHora(d.hora_fin) }}
                 </span>
               </div>
-              <p v-else class="text-[9px] opacity-30 mt-1 italic"
-                :class="isDark ? 'text-white' : 'text-slate-400'">Sin horarios definidos</p>
+              <p v-else class="text-[9px] opacity-30 mt-1 italic" :class="isDark ? 'text-white' : 'text-slate-400'">Sin
+                horarios definidos</p>
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0">
               <button @click="toggleMalla(malla)"
-                class="h-6 px-2.5 rounded-lg border text-[9px] font-semibold uppercase transition-all"
-                :class="malla.activa
+                class="h-6 px-2.5 rounded-lg border text-[9px] font-semibold uppercase transition-all" :class="malla.activa
                   ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
                   : 'border-slate-400/30 text-slate-400 hover:bg-slate-500 hover:text-white'">
                 {{ malla.activa ? 'ON' : 'OFF' }}
               </button>
               <button @click="confirmarEliminar(malla)"
-                class="h-6 w-6 rounded-lg border flex items-center justify-center transition-all"
-                :class="isDark
+                class="h-6 w-6 rounded-lg border flex items-center justify-center transition-all" :class="isDark
                   ? 'border-rose-500/20 text-rose-400/50 hover:bg-rose-500 hover:text-white hover:border-rose-500'
                   : 'border-rose-200 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500'">
                 <i class="fas fa-trash text-[9px]"></i>
@@ -625,10 +606,10 @@ const mallasFiltradas = computed(() => {
 
 // ── Dropdowns de horas ──────────────────────────────────────
 const headerDropdown = ref(null);
-const rowDropdown    = ref(null);
+const rowDropdown = ref(null);
 const searchHoraInicio = ref('');
-const searchHoraFin    = ref('');
-const searchRow        = ref('');
+const searchHoraFin = ref('');
+const searchRow = ref('');
 
 const horasFiltradas = (query) => {
   if (!query) return HORAS;
@@ -794,23 +775,35 @@ onMounted(cargarMallas);
 </script>
 
 <style scoped>
-.custom-scroll::-webkit-scrollbar { width: 4px; }
-.custom-scroll::-webkit-scrollbar-track { background: transparent; }
-.custom-scroll::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.2); border-radius: 10px; }
+.custom-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.2);
+  border-radius: 10px;
+}
 
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.2s ease;
 }
+
 .slide-down-enter-from,
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-8px);
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;

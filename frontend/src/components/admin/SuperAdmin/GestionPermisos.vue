@@ -237,6 +237,7 @@ const MODULOS = [
     'super.gestionarapk',
     'super.companias',
     'super.personal',
+    'super.mallas',
     'admin.admin',
     'admin.asistencias',
     'admin.mallas',
@@ -259,6 +260,7 @@ const MODULO_LABELS = {
     'super.gestionarapk': { nombre: 'Gestionar APK', desc: 'Publicación de aplicaciones' },
     'super.companias': { nombre: 'Compañías', desc: 'Administración de empresas' },
     'super.personal': { nombre: 'Personal', desc: 'Gestión de colaboradores' },
+    'super.mallas': { nombre: 'Mallas', desc: 'Gestión de Mallas' },
     'admin.admin': { nombre: 'Admin General', desc: 'Acceso al panel de administración' },
     'admin.asistencias': { nombre: 'Asistencias', desc: 'Control de asistencia' },
     'admin.mallas': { nombre: 'Mallas', desc: 'Programación de turnos' },
@@ -276,7 +278,7 @@ const MODULO_LABELS = {
 };
 const isSubNovedad = (slug) =>
     ['admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh',
-     'novedades.ver_area', 'novedades.ver_segmento', 'coord.ver_segmento', 'novedades.director'].includes(slug);
+        'novedades.ver_area', 'novedades.ver_segmento', 'coord.ver_segmento', 'novedades.director'].includes(slug);
 const props = defineProps({
     modelValue: Object,
     isDark: Boolean,
