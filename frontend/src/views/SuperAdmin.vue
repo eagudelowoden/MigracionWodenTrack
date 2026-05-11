@@ -480,40 +480,45 @@ onMounted(async () => {
           <GestionApk :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'companies' && employee?.permisos?.['super.companias']" class="animate-fade-in">
+        <div v-if="currentTab === 'companies' && (employee?.permisos?.['super.companies'] || employee?.isSuperAdmin)"
+          class="animate-fade-in">
           <GestionCompanias :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
-        <div v-if="currentTab === 'users' && employee?.permisos?.['super.personal']" class="animate-fade-in">
+        <div v-if="currentTab === 'users' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
+          class="animate-fade-in">
           <GestionUsuarios :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
         </div>
 
-        <div v-if="currentTab === 'notifications' && employee?.permisos?.['super.notifications']"
+        <div v-if="currentTab === 'notifications' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
           class="animate-fade-in">
           <Notificaciones :isDark="isDark" :apiUrl="API_URL"
             @notification-sent="showNotification('Notificación enviada')" />
         </div>
 
-        <div v-if="currentTab === 'estructura' && employee?.permisos?.['super.estructura']" class="animate-fade-in">
+        <div v-if="currentTab === 'estructura' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
+          class="animate-fade-in">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
             :departamentosDisponibles="segmentos.map((s) => s.nombre)" @save="handleSaveEstructura"
             @update-area="handleUpdateArea" @refresh="fetchOrganizacion" />
         </div>
 
-        <div v-if="currentTab === 'mallas' && employee?.permisos?.['super.mallas']"
+        <div v-if="currentTab === 'mallas' && (employee?.permisos?.['super.mallas'] || employee?.isSuperAdmin)"
           class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionMallas :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'config' && employee?.permisos?.['super.config']" class="animate-fade-in">
+        <div v-if="currentTab === 'config' && (employee?.permisos?.['super.config'] || employee?.isSuperAdmin)"
+          class="animate-fade-in">
           <GestionConfiguraciones :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'api' && employee?.permisos?.['super.api']" class="animate-fade-in">
+        <div v-if="currentTab === 'api' && (employee?.permisos?.['super.api'] || employee?.isSuperAdmin)"
+          class="animate-fade-in">
           <GestionApiExterna :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
