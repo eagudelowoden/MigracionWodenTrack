@@ -57,12 +57,11 @@
 
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
-          <label for="fileInputMallas"
-            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#3B82F6] text-white text-[10px] font-black uppercase rounded-full cursor-pointer hover:bg-blue-600 transition-all active:scale-95"
-            :class="{ 'opacity-50 pointer-events-none': isUploading }">
+          <button @click="intentarCargar" :disabled="isUploading"
+            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#3B82F6] text-white text-[10px] font-black uppercase rounded-full hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-50">
             <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
             <span>{{ isUploading ? 'Cargando...' : 'Subir' }}</span>
-          </label>
+          </button>
         </div>
       </div>
     </div>
@@ -167,6 +166,60 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal: fuera de fecha de cargue -->
+    <Transition name="fade">
+      <div v-if="showSolicitudModal"
+        class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
+          :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="px-5 py-4 border-b flex items-center gap-3"
+            :class="isDark ? 'border-white/8 bg-amber-500/8' : 'border-amber-100 bg-amber-50'">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <i class="fas fa-calendar-xmark text-amber-400 text-lg"></i>
+            </div>
+            <div>
+              <h3 class="text-[13px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Fuera de fecha de cargue
+              </h3>
+              <p class="text-[9px] mt-0.5" :class="isDark ? 'text-white/40' : 'text-slate-500'">
+                No hay una ventana de cargue activa para hoy
+              </p>
+            </div>
+          </div>
+
+          <div class="p-5 space-y-3">
+            <p class="text-[10px] leading-relaxed" :class="isDark ? 'text-white/60' : 'text-slate-600'">
+              El administrador ha programado fechas específicas para el cargue de mallas.
+              <span v-if="proximaFechaHabilitada" class="font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                La próxima fecha habilitada es el <em>{{ proximaFechaHabilitada }}</em>.
+              </span>
+            </p>
+
+            <!-- Nota informativa -->
+            <div class="flex items-start gap-2 p-3 rounded-xl text-[9px]"
+              :class="isDark ? 'bg-white/4 border border-white/8 text-white/40' : 'bg-slate-50 border border-slate-200 text-slate-500'">
+              <i class="fas fa-circle-info mt-0.5 shrink-0"></i>
+              Puedes enviar una solicitud de apertura al Super Admin si necesitas cargar mallas hoy.
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button @click="crearSolicitud()"
+                class="flex-1 h-9 rounded-xl text-[10px] font-black uppercase tracking-wide bg-amber-500 text-white hover:bg-amber-400 transition-all flex items-center justify-center gap-1.5">
+                <i class="fas fa-paper-plane text-[9px]"></i> Solicitar apertura
+              </button>
+              <button @click="showSolicitudModal = false"
+                class="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all"
+                :class="isDark ? 'bg-white/5 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Modal elección -->
     <div v-show="showChoiceModal"
@@ -428,7 +481,20 @@ const {
   currentPage: mallasPage,
   totalPages: mallasPages,
   totalRecords,
+  carguePermitido,
+  proximaFechaHabilitada,
+  showSolicitudModal,
+  crearSolicitud,
 } = useMallasGeneral();
+
+// Intercepta click de "Subir": valida ventana antes de abrir el file picker
+const intentarCargar = () => {
+  if (!carguePermitido.value) {
+    showSolicitudModal.value = true;
+    return;
+  }
+  document.getElementById('fileInputMallas')?.click();
+};
 
 // ── Sincronizar company y cargar mallas ──────────────────────────────────────
 watch(

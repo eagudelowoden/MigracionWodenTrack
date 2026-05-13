@@ -29,6 +29,9 @@ import { SuperAdminSesionesService } from './superadmin-sesiones.service';
 import { SuperAdminSesionesController } from './superadmin-sesiones.controller';
 import { SuperAdminMensajesService } from './superadmin-mensajes.service';
 import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
+import { SuperAdminSolicitudesService } from './superadmin-solicitudes.service';
+import { SuperAdminSolicitudesController } from './superadmin-solicitudes.controller';
+import { MallasSolicitud } from './entities/mallas-solicitud.entity';
 
 @Module({
   imports: [
@@ -42,6 +45,7 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
       MallaAsignacion,
       SesionActiva,
       MensajeInterno,
+      MallasSolicitud,
     ]),
     OdooModule,
     MailModule,
@@ -56,6 +60,7 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
     SuperAdminIAController,
     SuperAdminSesionesController,
     SuperAdminMensajesController,
+    SuperAdminSolicitudesController,
   ],
   providers: [
     UsuariosService,
@@ -67,6 +72,7 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
     InternoGateway,
     SuperAdminSesionesService,
     SuperAdminMensajesService,
+    SuperAdminSolicitudesService,
   ],
   exports: [UsuariosService, MallasUploadService, MallasCrudService, InternoGateway, SuperAdminCorreoService],
 })

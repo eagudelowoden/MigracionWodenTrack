@@ -299,6 +299,7 @@ const SECTIONS = [
             'super.recordatorios',
             'super.configuracion',
             'super.api',
+            'super.solicitudes',
         ],
     },
     {
@@ -359,6 +360,7 @@ const MODULO_LABELS = {
     'super.recordatorios': { nombre: 'Recordatorios',      desc: 'Gestión de recordatorios automáticos' },
     'super.configuracion': { nombre: 'Configuración',      desc: 'Parámetros generales del sistema' },
     'super.api':           { nombre: 'API Externa',        desc: 'Configuración de integraciones y webhooks' },
+    'super.solicitudes':   { nombre: 'Solicitudes',        desc: 'Gestión de solicitudes de apertura de cargue de mallas' },
 
     // Admin
     'admin.admin':         { nombre: 'Admin General',      desc: 'Acceso al panel de administración' },

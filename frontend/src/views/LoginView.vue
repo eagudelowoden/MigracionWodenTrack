@@ -89,7 +89,7 @@
             <i class="fab fa-android"></i> Descargar Aplicación
           </router-link>
           <p class="text-[7px] font-bold uppercase tracking-[0.4em] opacity-20"
-            :class="isDark ? 'text-slate-300' : 'text-slate-500'">Version 1.0</p>
+            :class="isDark ? 'text-slate-300' : 'text-slate-500'">v{{ appVersion }}</p>
         </div>
       </div>
 
@@ -99,8 +99,20 @@
 
 <script setup>
 import '../assets/css/woden-style.css';
+import { ref, onMounted } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme } = useAttendance();
+
+const appVersion = ref('...');
+const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
+
+onMounted(async () => {
+  try {
+    const r = await fetch(`${API_BASE}/version`);
+    const d = await r.json();
+    appVersion.value = d.version || '—';
+  } catch { appVersion.value = '—'; }
+});
 </script>
 
 <style scoped>

@@ -1,5 +1,6 @@
 import { ref, computed, watch } from "vue";
 import axios from "axios";
+import { useMallasSchedule } from "./useMallasSchedule.js";
 
 export function useMallasGeneral() {
   const mallasData = ref([]);
@@ -26,6 +27,28 @@ export function useMallasGeneral() {
   const itemsPerPage = ref(15);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+  // ── Control de fechas de cargue ──────────────────────────────────────────
+  const { schedule, carguePermitido, proximaFechaHabilitada, cargarSchedule } = useMallasSchedule();
+  const showSolicitudModal = ref(false);
+  cargarSchedule();
+
+  const crearSolicitud = async (mensaje = '') => {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const perfil = perfilUsuario.value;
+    try {
+      await axios.post(`${API_BASE_URL}/superadmin/solicitudes`, {
+        solicitante_id_odoo: session.employee_id || session.id_odoo || 0,
+        solicitante_nombre:  session.name || 'Desconocido',
+        area_nombre:         perfil?.area?.nombre || null,
+        segmento_nombre:     perfil?.segmento?.nombre || null,
+        mensaje:             mensaje || `Solicitud de apertura para cargue de mallas del ${new Date().toLocaleDateString('es-CO')}`,
+      });
+    } catch (e) {
+      console.error('Error creando solicitud:', e);
+    }
+    showSolicitudModal.value = false;
+  };
 
   const departments = computed(() => {
     if (!mallasData.value || mallasData.value.length === 0) return [];
@@ -300,6 +323,12 @@ export function useMallasGeneral() {
     if (!file) return;
     if (event.target) event.target.value = "";
 
+    // Verificar ventana de cargue
+    if (!carguePermitido.value) {
+      showSolicitudModal.value = true;
+      return;
+    }
+
     // Limpiar estado anterior
     uploadErrors.value = [];
     uploadSuccessMessage.value = "";
@@ -437,5 +466,11 @@ export function useMallasGeneral() {
     selectedDepartment,
     departments,
     perfilUsuario,
+    // schedule
+    carguePermitido,
+    proximaFechaHabilitada,
+    showSolicitudModal,
+    crearSolicitud,
+    schedule,
   };
 }
