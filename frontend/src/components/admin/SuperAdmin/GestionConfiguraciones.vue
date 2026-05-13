@@ -1,6 +1,100 @@
 <template>
   <div class="max-w-3xl mx-auto space-y-6 animate-fade-in">
 
+    <!-- ── Sección 0: Modo mantenimiento del sitio ───────────────────────── -->
+    <div class="rounded-2xl border p-5 space-y-4 transition-all"
+      :class="mantenimiento.enabled
+        ? (isDark ? 'bg-rose-950/40 border-rose-500/40' : 'bg-rose-50 border-rose-300')
+        : (isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200 shadow-sm')">
+
+      <div class="flex items-center gap-2 pb-3 border-b"
+        :class="mantenimiento.enabled
+          ? (isDark ? 'border-rose-500/30' : 'border-rose-200')
+          : (isDark ? 'border-white/10' : 'border-slate-100')">
+        <i class="fas fa-hard-hat"
+          :class="mantenimiento.enabled ? 'text-rose-400' : 'text-[#FF8F00]'"></i>
+        <h3 class="text-[11px] font-black uppercase tracking-widest"
+          :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+          Modo mantenimiento del sitio
+        </h3>
+        <span class="ml-auto px-2 py-0.5 rounded-full text-[9px] font-black uppercase"
+          :class="mantenimiento.enabled
+            ? 'bg-rose-500/20 text-rose-400'
+            : (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-600')">
+          {{ mantenimiento.enabled ? 'ACTIVO' : 'Desactivado' }}
+        </span>
+      </div>
+
+      <!-- Sin configurar -->
+      <div v-if="!mantenimiento.configured"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[10px]"
+        :class="isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-700 border border-amber-200'">
+        <i class="fas fa-triangle-exclamation shrink-0"></i>
+        <span>
+          <strong>WEBCONFIG_PATH</strong> no está configurado en el <code class="font-mono">.env</code> del backend.
+          Agrega la ruta al <code class="font-mono">web.config</code> de IIS para habilitar el control remoto.
+        </span>
+      </div>
+
+      <template v-if="mantenimiento.configured">
+        <p class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          Activa el mantenimiento para redirigir a todos los usuarios (excepto la IP permitida en IIS) a la página
+          <code class="font-mono text-[9px] px-1 py-0.5 rounded"
+            :class="isDark ? 'bg-white/10' : 'bg-slate-100'">mantenimiento.html</code>.
+        </p>
+
+        <div class="flex items-center justify-between gap-4 rounded-xl p-4 border"
+          :class="mantenimiento.enabled
+            ? (isDark ? 'bg-rose-500/10 border-rose-500/30' : 'bg-rose-50 border-rose-200')
+            : (isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              :class="mantenimiento.enabled
+                ? 'bg-rose-500/20 text-rose-400'
+                : (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-600')">
+              <i :class="mantenimiento.enabled ? 'fas fa-lock text-sm' : 'fas fa-globe text-sm'"></i>
+            </div>
+            <div>
+              <p class="text-[12px] font-black"
+                :class="mantenimiento.enabled
+                  ? 'text-rose-400'
+                  : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
+                {{ mantenimiento.enabled ? 'Sitio en mantenimiento' : 'Sitio operativo' }}
+              </p>
+              <p class="text-[9px] opacity-50 mt-0.5">
+                {{ mantenimiento.enabled
+                  ? 'Usuarios ven la página de mantenimiento'
+                  : 'Todos los usuarios acceden normalmente' }}
+              </p>
+            </div>
+          </div>
+
+          <button @click="toggleMantenimiento" :disabled="mantenimiento.saving"
+            class="relative w-12 h-6 rounded-full transition-all duration-300 shrink-0 disabled:opacity-50"
+            :class="mantenimiento.enabled ? 'bg-rose-500' : (isDark ? 'bg-white/20' : 'bg-slate-300')">
+            <span v-if="mantenimiento.saving"
+              class="absolute inset-0 flex items-center justify-center">
+              <i class="fas fa-circle-notch fa-spin text-white text-[10px]"></i>
+            </span>
+            <span v-else
+              class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
+              :class="mantenimiento.enabled ? 'left-[26px]' : 'left-0.5'">
+            </span>
+          </button>
+        </div>
+
+        <div v-if="mantenimiento.enabled"
+          class="flex items-start gap-2 px-3 py-2.5 rounded-xl text-[10px]"
+          :class="isDark ? 'bg-rose-500/8 text-rose-300' : 'bg-rose-50 text-rose-700 border border-rose-200'">
+          <i class="fas fa-info-circle mt-0.5 shrink-0"></i>
+          <span>
+            Los usuarios con la IP autorizada en el <code class="font-mono">web.config</code> pueden seguir
+            accediendo normalmente para verificar el estado del sitio.
+          </span>
+        </div>
+      </template>
+    </div>
+
     <!-- Header -->
     <div class="flex items-center gap-3 mb-2">
       <div class="w-10 h-10 rounded-xl bg-[#FF8F00] flex items-center justify-center shadow-lg shadow-orange-500/20">
@@ -165,8 +259,45 @@ const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['success', 'error']);
 
 const API_URL = import.meta.env.VITE_API_URL;
+const API_BASE = API_URL.replace('/usuarios', '');
 
 const saving = ref(false);
+
+// ── Mantenimiento del sitio ──────────────────────────────────────────────────
+const mantenimiento = reactive({ enabled: false, configured: false, saving: false });
+
+const cargarMantenimiento = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/mantenimiento`);
+    if (!res.ok) return;
+    const data = await res.json();
+    mantenimiento.enabled = data.enabled;
+    mantenimiento.configured = data.configured;
+  } catch { /* no bloquea si el backend no lo soporta aún */ }
+};
+
+const toggleMantenimiento = async () => {
+  mantenimiento.saving = true;
+  const nuevoEstado = !mantenimiento.enabled;
+  try {
+    const res = await fetch(`${API_BASE}/mantenimiento`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: nuevoEstado }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      mantenimiento.enabled = nuevoEstado;
+      emit('success', nuevoEstado ? 'Mantenimiento activado' : 'Sitio restaurado');
+    } else {
+      emit('error', data.message || 'No se pudo cambiar el estado');
+    }
+  } catch {
+    emit('error', 'Error al comunicarse con el servidor');
+  } finally {
+    mantenimiento.saving = false;
+  }
+};
 
 const config = reactive({
   storage_mode: 'local',
@@ -219,7 +350,10 @@ const guardar = async () => {
   }
 };
 
-onMounted(cargar);
+onMounted(() => {
+  cargar();
+  cargarMantenimiento();
+});
 </script>
 
 <style scoped>
