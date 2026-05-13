@@ -9,7 +9,10 @@
       "Bash(npm install *)",
       "Bash(xargs grep -l -i \"dev.*menu\\\\|devmenu\\\\|developer.*menu\\\\|admin.*dev\")",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\frontend\\\\src\" -Recurse -Directory | Where-Object { $_.Name -notmatch \"node_modules\" } | Select-Object -ExpandProperty FullName | Sort-Object)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:8082/mantenimiento)",
+      "Bash(curl -s -X POST http://localhost:8082/mantenimiento -H \"Content-Type: application/json\" -d \"{\\\\\"enabled\\\\\":false}\")",
+      "Bash(findstr \"Modo Mantenimiento\" \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\backend\\\\web.config\")"
     ]
   }
 }

@@ -96,6 +96,11 @@ export class UsuariosController {
       );
     }
   }
+  @Get('buscar-cedula/:cedula')
+  async buscarPorCedula(@Param('cedula') cedula: string) {
+    return this.usuariosService.buscarPorCedula(cedula);
+  }
+
   @Get('apk-info') // <--- Ruta final
   getApkInfo() {
     // Aquí va la lógica que escribiste antes

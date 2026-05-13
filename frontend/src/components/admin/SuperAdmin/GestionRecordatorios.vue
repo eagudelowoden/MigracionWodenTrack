@@ -213,19 +213,48 @@
             </div>
           </div>
 
-          <!-- Destinatarios -->
+          <!-- Destinatarios por cédula -->
           <div>
-            <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
-              :class="isDark ? 'text-white' : 'text-slate-600'">
-              Destinatarios <span class="normal-case font-normal opacity-60">(JSON: [{id_odoo, nombre}])</span>
-            </label>
-            <textarea v-model="form.destinatariosRaw" rows="3" placeholder='[{"id_odoo":123,"nombre":"Ana García"}]'
-              class="w-full px-3 py-2 rounded-lg border text-[9px] font-mono outline-none resize-none"
-              :class="[
-                isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700',
-                destError ? 'border-rose-500' : ''
-              ]"></textarea>
-            <p v-if="destError" class="text-[9px] text-rose-500 mt-0.5">JSON inválido</p>
+            <label class="block text-[9px] font-bold uppercase tracking-wider mb-1.5 opacity-50"
+              :class="isDark ? 'text-white' : 'text-slate-600'">Destinatarios</label>
+
+            <!-- Chips de destinatarios agregados -->
+            <div v-if="form.destsList.length" class="flex flex-wrap gap-1 mb-2">
+              <span v-for="d in form.destsList" :key="d.id_odoo"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                :class="isDark ? 'bg-violet-500/20 text-violet-300' : 'bg-violet-100 text-violet-700'">
+                {{ d.nombre }}
+                <button @click="quitarDestinatarioRec(d.id_odoo)" class="opacity-60 hover:opacity-100 ml-0.5">
+                  <i class="fas fa-xmark text-[8px]"></i>
+                </button>
+              </span>
+            </div>
+
+            <!-- Búsqueda por cédula -->
+            <div class="flex gap-1.5">
+              <input v-model="cedulaRec" type="text" placeholder="Buscar por cédula…"
+                @keydown.enter.prevent="buscarDestinatarioRec"
+                class="flex-1 h-7 px-2.5 rounded-lg border text-[10px] outline-none"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+              <button @click="buscarDestinatarioRec" :disabled="buscandoRec || !cedulaRec.trim()"
+                class="h-7 px-2.5 rounded-lg text-[9px] font-bold bg-violet-500 text-white hover:bg-violet-600 transition-all disabled:opacity-40 flex items-center gap-1">
+                <i :class="buscandoRec ? 'fas fa-circle-notch fa-spin' : 'fas fa-search'" class="text-[9px]"></i>
+              </button>
+            </div>
+
+            <!-- Preview resultado -->
+            <div v-if="resultadoRec" class="mt-1.5 px-2.5 py-1.5 rounded-lg border flex items-center justify-between gap-2"
+              :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <i class="fas fa-user-check text-emerald-500 text-[10px] shrink-0"></i>
+                <span class="text-[10px] font-semibold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ resultadoRec.nombre }}</span>
+              </div>
+              <button @click="agregarDestinatarioRec"
+                class="h-6 px-2 rounded-lg text-[8px] font-bold uppercase bg-violet-500 text-white hover:bg-violet-600 transition-all shrink-0">
+                + Agregar
+              </button>
+            </div>
+            <p v-if="errorRec" class="text-[9px] text-rose-500 mt-0.5">{{ errorRec }}</p>
             <p class="text-[9px] opacity-30 mt-0.5" :class="isDark ? 'text-white' : 'text-slate-500'">
               Dejar vacío para notificar a todos los conectados
             </p>
@@ -290,14 +319,49 @@ const CANALES = [
 const lista    = ref([]);
 const cargando = ref(false);
 const guardando = ref(false);
-const destError = ref(false);
+
+const cedulaRec    = ref('');
+const buscandoRec  = ref(false);
+const resultadoRec = ref(null);
+const errorRec     = ref('');
 
 const formBase = () => ({
   abierto: false, id: null,
   nombre: '', mensaje: '', dias: [], hora: '08:00',
-  canal: 'websocket', destinatariosRaw: '', activo: true,
+  canal: 'websocket', destsList: [], activo: true,
 });
 const form = reactive(formBase());
+
+const buscarDestinatarioRec = async () => {
+  if (!cedulaRec.value.trim()) return;
+  buscandoRec.value = true;
+  resultadoRec.value = null;
+  errorRec.value = '';
+  try {
+    const r = await fetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaRec.value.trim())}`);
+    if (!r.ok) { errorRec.value = 'No se encontró un usuario con esa cédula'; return; }
+    const data = await r.json();
+    if (form.destsList.some(d => d.id_odoo === data.id_odoo)) {
+      errorRec.value = 'Ya está en la lista de destinatarios';
+    } else {
+      resultadoRec.value = data;
+    }
+  } catch { errorRec.value = 'Error al buscar. Intenta de nuevo.'; }
+  finally { buscandoRec.value = false; }
+};
+
+const agregarDestinatarioRec = () => {
+  if (!resultadoRec.value) return;
+  form.destsList.push({ id_odoo: resultadoRec.value.id_odoo, nombre: resultadoRec.value.nombre });
+  resultadoRec.value = null;
+  cedulaRec.value = '';
+  errorRec.value = '';
+};
+
+const quitarDestinatarioRec = (idOdoo) => {
+  const idx = form.destsList.findIndex(d => d.id_odoo === idOdoo);
+  if (idx !== -1) form.destsList.splice(idx, 1);
+};
 
 // ── Helpers ───────────────────────────────────────────────────
 const parseDias  = (s) => { try { return JSON.parse(s || '[]'); } catch { return []; } };
@@ -322,8 +386,15 @@ const cargar = async () => {
   finally { cargando.value = false; }
 };
 
+const resetSearch = () => {
+  cedulaRec.value = '';
+  resultadoRec.value = null;
+  errorRec.value = '';
+};
+
 const abrirNuevo = () => {
   Object.assign(form, formBase(), { abierto: true });
+  resetSearch();
 };
 
 const abrirEditar = (rec) => {
@@ -335,26 +406,20 @@ const abrirEditar = (rec) => {
     dias: parseDias(rec.dias),
     hora: rec.hora,
     canal: rec.canal,
-    destinatariosRaw: rec.destinatarios || '',
+    destsList: parseDests(rec.destinatarios),
     activo: rec.activo,
   });
+  resetSearch();
 };
 
 const guardar = async () => {
-  destError.value = false;
-  let destinatarios = [];
-  if (form.destinatariosRaw.trim()) {
-    try { destinatarios = JSON.parse(form.destinatariosRaw); }
-    catch { destError.value = true; return; }
-  }
-
   const payload = {
     nombre:       form.nombre.trim(),
     mensaje:      form.mensaje.trim(),
     dias:         form.dias,
     hora:         form.hora,
     canal:        form.canal,
-    destinatarios,
+    destinatarios: form.destsList,
     activo:       form.activo,
   };
 

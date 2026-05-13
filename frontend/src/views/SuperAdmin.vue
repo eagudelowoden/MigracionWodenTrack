@@ -47,9 +47,8 @@ const TAB_PERMS = {
   api:           'super.api',
 };
 
-const isSA = computed(() =>
-  employee.value?.isSuperAdmin || !!employee.value?.permisos?.['super.superadmin']
-);
+// Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
+const isSA = computed(() => !!employee.value?.isSuperAdmin);
 
 const canAccess = (tabKey) => {
   if (isSA.value) return true;

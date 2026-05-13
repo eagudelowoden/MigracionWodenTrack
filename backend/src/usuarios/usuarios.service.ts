@@ -74,6 +74,18 @@ export class UsuariosService {
   private readonly ENVIAR_CAMPOS_STUDIO =
     process.env.ENABLE_STUDIO_FIELDS === 'true';
 
+  async buscarPorCedula(cedula: string) {
+    const row = await this.dataSource
+      .getRepository(Usuario)
+      .createQueryBuilder('u')
+      .select(['u.id_odoo', 'u.nombre', 'u.identificacion', 'u.cargo'])
+      .where('u.identificacion = :cedula', { cedula })
+      .andWhere('u.is_active = 1')
+      .getOne();
+    if (!row) throw new NotFoundException('No se encontró un usuario con esa cédula');
+    return { id_odoo: row.id_odoo, nombre: row.nombre, identificacion: row.identificacion, cargo: row.cargo };
+  }
+
   async login(usuario: string, password: string) {
     const { inicioDia, ahoraStr } = getFechaColombia();
     console.log(`\n--- INTENTO DE LOGIN: ${usuario} ---`);

@@ -78,8 +78,7 @@ const routes = [
     path: "/super-admin",
     redirect: () => {
       const session = JSON.parse(localStorage.getItem("user_session") || "null");
-      const isSA = session?.isSuperAdmin || session?.permisos?.["super.superadmin"];
-      if (isSA) return "/super-admin/stats";
+      if (session?.isSuperAdmin) return "/super-admin/stats";
       const TAB_PERMS = {
         stats: "super.dashboard",
         apk: "super.gestionarapk",

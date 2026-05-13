@@ -345,7 +345,7 @@ const SECTIONS = [
 // ── Etiquetas y descripciones ────────────────────────────────────────────────
 const MODULO_LABELS = {
     // Super Admin
-    'super.superadmin':    { nombre: 'Super Admin',        desc: 'Acceso total al panel — equivale a administrador delegado' },
+    'super.superadmin':    { nombre: 'Super Admin',        desc: 'Acceso a la vista del panel — los módulos visibles dependen de los permisos super.* asignados individualmente' },
     'super.dashboard':     { nombre: 'Dashboard',          desc: 'Vista general y métricas del sistema' },
     'super.gestionarapk':  { nombre: 'Gestionar APK',      desc: 'Publicación y versionado de aplicaciones' },
     'super.companias':     { nombre: 'Compañías',          desc: 'Administración de empresas registradas' },

@@ -16,36 +16,48 @@
             <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
               :class="isDark ? 'text-white' : 'text-slate-600'">Jefes de área</span>
           </div>
-          <button @click="mostrarAgregar = !mostrarAgregar"
+          <button @click="mostrarAgregar ? cancelarAgregar() : (mostrarAgregar = true)"
             class="w-6 h-6 rounded-lg flex items-center justify-center transition-all text-blue-500"
             :class="isDark ? 'bg-blue-500/10 hover:bg-blue-500/20' : 'bg-blue-50 hover:bg-blue-100'">
             <i class="fas fa-plus text-[9px]"></i>
           </button>
         </div>
 
-        <!-- Formulario agregar destinatario -->
+        <!-- Formulario agregar destinatario por cédula -->
         <div v-if="mostrarAgregar"
           class="px-3 py-3 rounded-xl border shrink-0"
           :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
           <div class="flex flex-col gap-2">
-            <input v-model="nuevoDestinatario.id_odoo" type="number" placeholder="ID Odoo del jefe"
-              class="h-7 px-2.5 rounded-lg border text-[10px] outline-none w-full"
-              :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
-            <input v-model="nuevoDestinatario.nombre" type="text" placeholder="Nombre completo"
-              class="h-7 px-2.5 rounded-lg border text-[10px] outline-none w-full"
-              :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
-            <input v-model="nuevoDestinatario.cargo" type="text" placeholder="Cargo (opcional)"
-              class="h-7 px-2.5 rounded-lg border text-[10px] outline-none w-full"
-              :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+            <!-- Búsqueda por cédula -->
+            <div class="flex gap-1.5">
+              <input v-model="cedulaBusqueda" type="text" placeholder="N° cédula"
+                @keydown.enter.prevent="buscarPorCedula"
+                class="flex-1 h-7 px-2.5 rounded-lg border text-[10px] outline-none"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+              <button @click="buscarPorCedula" :disabled="buscando || !cedulaBusqueda.trim()"
+                class="h-7 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wide bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-40 flex items-center gap-1">
+                <i :class="buscando ? 'fas fa-circle-notch fa-spin' : 'fas fa-search'" class="text-[9px]"></i>
+              </button>
+            </div>
+            <!-- Resultado de búsqueda -->
+            <div v-if="resultadoBusqueda" class="px-2.5 py-2 rounded-lg border flex items-center gap-2"
+              :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'">
+              <i class="fas fa-user-check text-emerald-500 text-[10px]"></i>
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] font-semibold truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ resultadoBusqueda.nombre }}</div>
+                <div class="text-[9px] opacity-50">{{ resultadoBusqueda.cargo || 'Sin cargo' }}</div>
+              </div>
+            </div>
+            <p v-if="errorBusqueda" class="text-[9px] text-rose-500">{{ errorBusqueda }}</p>
             <div class="flex gap-2">
-              <button @click="agregarDestinatario"
-                class="flex-1 h-7 rounded-lg text-[9px] font-bold uppercase tracking-wide bg-blue-500 text-white hover:bg-blue-600 transition-all">
+              <button @click="agregarDestinatario" :disabled="!resultadoBusqueda"
+                class="flex-1 h-7 rounded-lg text-[9px] font-bold uppercase tracking-wide bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-30">
                 Agregar
               </button>
-              <button @click="mostrarAgregar = false"
+              <button @click="cancelarAgregar"
                 class="h-7 px-3 rounded-lg text-[9px] font-bold uppercase tracking-wide transition-all"
                 :class="isDark ? 'bg-white/5 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
-                Cancel
+                Cancelar
               </button>
             </div>
           </div>
@@ -193,7 +205,30 @@ const mostrarAgregar  = ref(false);
 const noLeidos        = reactive({});
 const sesionesActivas = ref(new Set()); // id_odoos conectados
 
-const nuevoDestinatario = ref({ id_odoo: null, nombre: '', cargo: '' });
+const cedulaBusqueda   = ref('');
+const buscando         = ref(false);
+const resultadoBusqueda = ref(null);
+const errorBusqueda    = ref('');
+
+const buscarPorCedula = async () => {
+  if (!cedulaBusqueda.value.trim()) return;
+  buscando.value = true;
+  resultadoBusqueda.value = null;
+  errorBusqueda.value = '';
+  try {
+    const r = await fetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaBusqueda.value.trim())}`);
+    if (!r.ok) { errorBusqueda.value = 'No se encontró un usuario con esa cédula'; return; }
+    resultadoBusqueda.value = await r.json();
+  } catch { errorBusqueda.value = 'Error al buscar. Intenta de nuevo.'; }
+  finally { buscando.value = false; }
+};
+
+const cancelarAgregar = () => {
+  mostrarAgregar.value = false;
+  cedulaBusqueda.value = '';
+  resultadoBusqueda.value = null;
+  errorBusqueda.value = '';
+};
 
 const chat = ref({ mensajes: [], borrador: '', cargando: false });
 const mensajesContainer = ref(null);
@@ -248,17 +283,16 @@ const cargarDestinatarios = async () => {
 };
 
 const agregarDestinatario = async () => {
-  const { id_odoo, nombre, cargo } = nuevoDestinatario.value;
-  if (!id_odoo || !nombre.trim()) return;
+  if (!resultadoBusqueda.value) return;
+  const { id_odoo, nombre, cargo } = resultadoBusqueda.value;
   try {
     const r = await fetch(`${API_URL}/superadmin/mensajes/destinatarios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_odoo: +id_odoo, nombre: nombre.trim(), cargo: cargo.trim() || undefined }),
+      body: JSON.stringify({ id_odoo, nombre, cargo: cargo || undefined }),
     });
     destinatarios.value = await r.json();
-    nuevoDestinatario.value = { id_odoo: null, nombre: '', cargo: '' };
-    mostrarAgregar.value = false;
+    cancelarAgregar();
     emit('success', 'Jefe agregado como destinatario');
   } catch { emit('error', 'Error agregando destinatario'); }
 };
