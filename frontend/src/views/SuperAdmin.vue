@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
@@ -27,7 +27,38 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const props = defineProps({ isDark: Boolean });
 const router = useRouter();
+const route = useRoute();
 const { logout, isDark, toggleTheme, employee } = useAttendance();
+
+// ── Sistema de permisos por módulo ────────────────────────────────────────────
+const TAB_PERMS = {
+  stats:         'super.dashboard',
+  apk:           'super.gestionarapk',
+  companies:     'super.companias',
+  users:         'super.personal',
+  notifications: 'super.avisos',
+  estructura:    'super.organizacion',
+  mallas:        'super.mallas',
+  analitica:     'super.analitica',
+  sesiones:      'super.sesiones',
+  mensajes:      'super.mensajes',
+  recordatorios: 'super.recordatorios',
+  config:        'super.configuracion',
+  api:           'super.api',
+};
+
+const isSA = computed(() =>
+  employee.value?.isSuperAdmin || !!employee.value?.permisos?.['super.superadmin']
+);
+
+const canAccess = (tabKey) => {
+  if (isSA.value) return true;
+  const perm = TAB_PERMS[tabKey];
+  return perm ? !!employee.value?.permisos?.[perm] : false;
+};
+
+const currentTab = computed(() => route.params.tab || 'stats');
+const navigateTo = (key) => router.push(`/super-admin/${key}`);
 const { departamentosUnicos } = useUsuariosSync();
 
 // 2. Extraer los métodos y estados
@@ -109,7 +140,6 @@ const hasPerm = (user, slug) => {
   return user.permisos.some((p) => p.modulos === slug);
 };
 // --- Estado Local Restante ---
-const currentTab = ref("stats");
 const isSidebarOpen = ref(true);
 
 // --- Sistema de Notificación ---
@@ -284,7 +314,7 @@ onMounted(async () => {
             config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-500', bg: 'bg-slate-500/10' },
             api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           }" :key="key">
-            <button @click="currentTab = key" :title="item.label"
+            <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label"
               class="group w-full flex items-center gap-3 rounded-xl transition-all duration-150 relative" :class="[
                 isSidebarOpen
                   ? 'px-2.5 py-2'
@@ -320,7 +350,7 @@ onMounted(async () => {
         <div class="mx-3 my-3 h-px" :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
 
         <!-- Dev links -->
-        <div v-if="employee?.isSuperAdmin" class="px-2 pb-2 space-y-0.5">
+        <div v-if="isSA" class="px-2 pb-2 space-y-0.5">
           <p v-if="isSidebarOpen" class="px-2 text-[8px] font-black uppercase tracking-widest mb-1"
             :class="isDark ? 'text-white/20' : 'text-slate-300'">
             Dev
@@ -428,71 +458,67 @@ onMounted(async () => {
 
       <!-- Contenido -->
       <div class="flex-1 overflow-y-auto p-4 lg:p-5 flex flex-col" :class="isDark ? 'bg-[#1e2a3a]' : 'bg-slate-100'">
-        <div v-if="currentTab === 'stats' && employee?.permisos?.['super.stats']" class="animate-fade-in">
+        <div v-if="currentTab === 'stats' && canAccess('stats')" class="animate-fade-in">
           <GestionDashboard :isDark="isDark" />
         </div>
 
-        <div v-if="currentTab === 'apk' && (employee?.permisos?.['super.gestionarapk'] || employee?.isSuperAdmin)"
-          class="animate-fade-in max-w-5xl">
+        <div v-if="currentTab === 'apk' && canAccess('apk')" class="animate-fade-in max-w-5xl">
           <GestionApk :isDark="isDark" @success="showNotification($event)" @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'companies' && (employee?.permisos?.['super.companies'] || employee?.isSuperAdmin)"
-          class="animate-fade-in">
+        <div v-if="currentTab === 'companies' && canAccess('companies')" class="animate-fade-in">
           <GestionCompanias :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
-        <div v-if="currentTab === 'users' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
-          class="animate-fade-in">
+
+        <div v-if="currentTab === 'users' && canAccess('users')" class="animate-fade-in">
           <GestionUsuarios :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
         </div>
 
-        <div v-if="currentTab === 'notifications' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
-          class="animate-fade-in">
+        <div v-if="currentTab === 'notifications' && canAccess('notifications')" class="animate-fade-in">
           <Notificaciones :isDark="isDark" :apiUrl="API_URL"
             @notification-sent="showNotification('Notificación enviada')" />
         </div>
 
-        <div v-if="currentTab === 'estructura' && (employee?.permisos?.['super.users'] || employee?.isSuperAdmin)"
-          class="animate-fade-in">
+        <div v-if="currentTab === 'estructura' && canAccess('estructura')" class="animate-fade-in">
           <GestionEstructura :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas"
             :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
             :departamentosDisponibles="segmentos.map(s => s.nombre)" @save="handleSaveEstructura"
             @update-area="handleUpdateArea" @refresh="fetchOrganizacion" />
         </div>
 
-        <div v-if="currentTab === 'mallas'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+        <div v-if="currentTab === 'mallas' && canAccess('mallas')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionMallas :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'analitica'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+        <div v-if="currentTab === 'analitica' && canAccess('analitica')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionAnalitica :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'sesiones'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+        <div v-if="currentTab === 'sesiones' && canAccess('sesiones')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionSesiones :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'mensajes'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+        <div v-if="currentTab === 'mensajes' && canAccess('mensajes')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionMensajes :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'recordatorios'" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+        <div v-if="currentTab === 'recordatorios' && canAccess('recordatorios')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionRecordatorios :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'config'" class="animate-fade-in">
+        <div v-if="currentTab === 'config' && canAccess('config')" class="animate-fade-in">
           <GestionConfiguraciones :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>
 
-        <div v-if="currentTab === 'api'" class="animate-fade-in">
+        <div v-if="currentTab === 'api' && canAccess('api')" class="animate-fade-in">
           <GestionApiExterna :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
         </div>

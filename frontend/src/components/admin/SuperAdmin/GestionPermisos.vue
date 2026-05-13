@@ -89,6 +89,15 @@
                     <div class="space-y-1.5">
                         <template v-for="slug in MODULOS" :key="slug">
 
+                            <!-- Separador Super Admin → Admin -->
+                            <div v-if="slug === 'admin.admin'" class="flex items-center gap-2 px-2 pt-3 pb-1">
+                                <span class="text-[8px] font-black uppercase tracking-widest opacity-30"
+                                    :class="isDark ? 'text-blue-400' : 'text-blue-500'">
+                                    Panel Admin
+                                </span>
+                                <div class="h-px flex-1" :class="isDark ? 'bg-blue-500/10' : 'bg-blue-200'"></div>
+                            </div>
+
                             <!-- Separador antes de permisos de visibilidad de novedades -->
                             <div v-if="slug === 'marcacion.novedad'" class="flex items-center gap-2 px-2 pt-2">
                                 <span class="text-[8px] font-black uppercase tracking-widest opacity-30"
@@ -237,7 +246,15 @@ const MODULOS = [
     'super.gestionarapk',
     'super.companias',
     'super.personal',
+    'super.avisos',
+    'super.organizacion',
     'super.mallas',
+    'super.analitica',
+    'super.sesiones',
+    'super.mensajes',
+    'super.recordatorios',
+    'super.configuracion',
+    'super.api',
     'admin.admin',
     'admin.asistencias',
     'admin.mallas',
@@ -255,12 +272,20 @@ const MODULOS = [
 ];
 
 const MODULO_LABELS = {
-    'super.superadmin': { nombre: 'Super Admin', desc: 'Control total del sistema' },
+    'super.superadmin': { nombre: 'Super Admin', desc: 'Control total — equivale a isSuperAdmin delegado' },
     'super.dashboard': { nombre: 'Dashboard', desc: 'Vista general del sistema' },
     'super.gestionarapk': { nombre: 'Gestionar APK', desc: 'Publicación de aplicaciones' },
     'super.companias': { nombre: 'Compañías', desc: 'Administración de empresas' },
     'super.personal': { nombre: 'Personal', desc: 'Gestión de colaboradores' },
+    'super.avisos': { nombre: 'Avisos / Notificaciones', desc: 'Envío de avisos masivos' },
+    'super.organizacion': { nombre: 'Organización', desc: 'Estructura de áreas y segmentos' },
     'super.mallas': { nombre: 'Mallas', desc: 'Gestión de Mallas' },
+    'super.analitica': { nombre: 'Analítica HR', desc: 'Reportes y métricas de RRHH' },
+    'super.sesiones': { nombre: 'Sesiones', desc: 'Gestión de sesiones activas' },
+    'super.mensajes': { nombre: 'Mensajes', desc: 'Centro de mensajería interna' },
+    'super.recordatorios': { nombre: 'Recordatorios', desc: 'Gestión de recordatorios automáticos' },
+    'super.configuracion': { nombre: 'Configuración', desc: 'Parámetros generales del sistema' },
+    'super.api': { nombre: 'API Externa', desc: 'Configuración de integraciones externas' },
     'admin.admin': { nombre: 'Admin General', desc: 'Acceso al panel de administración' },
     'admin.asistencias': { nombre: 'Asistencias', desc: 'Control de asistencia' },
     'admin.mallas': { nombre: 'Mallas', desc: 'Programación de turnos' },
