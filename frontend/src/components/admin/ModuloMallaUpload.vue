@@ -58,9 +58,15 @@
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
           <button @click="intentarCargar" :disabled="isUploading"
-            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#3B82F6] text-white text-[10px] font-black uppercase rounded-full hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-50">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
-            <span>{{ isUploading ? 'Cargando...' : 'Subir' }}</span>
+            class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase rounded-full transition-all active:scale-95 disabled:opacity-50"
+            :class="isUploading
+              ? 'bg-[#3B82F6] text-white'
+              : !carguePermitido
+                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
+                : 'bg-[#3B82F6] text-white hover:bg-blue-600'"
+            :title="!carguePermitido ? 'Fuera de ventana de cargue — haz clic para solicitar apertura' : 'Subir archivo de mallas'">
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')" class="text-[10px]"></i>
+            <span>{{ isUploading ? 'Cargando...' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
           </button>
         </div>
       </div>
@@ -505,30 +511,5 @@ watch(
   },
   { immediate: true },
 );
-// En tu ModuloMallaUpload.vue
-const cargarMallas = async () => {
-  try {
-    isLoading.value = true;
-
-    // Empaquetamos los valores actuales
-    const misFiltros = {
-      selectedCompany: selectedCompany.value,
-      selectedDepartment: selectedDepartment.value,
-      selectedArea: selectedArea.value,
-      selectedSegmento: selectedSegmento.value
-    };
-
-    // Llamamos a la función importada
-    const resultado = await fetchMallasDesdeOdoo(misFiltros);
-
-    mallasData.value = resultado;
-    currentPage.value = 1;
-
-  } catch (err) {
-    console.error("Fallo al cargar mallas en el componente:", err);
-  } finally {
-    isLoading.value = false;
-  }
-};
 </script>
 <style></style>

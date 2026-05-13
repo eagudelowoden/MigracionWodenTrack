@@ -15,6 +15,7 @@ const DEFAULTS: Record<string, { valor: string; descripcion: string }> = {
   mallas_schedule_mode: { valor: 'free', descripcion: 'Modo de programación: free | weekly | monthly' },
   mallas_schedule_weekly_days: { valor: '[]', descripcion: 'Días de semana habilitados (JSON array: 0=Dom 1=Lun ... 6=Sáb)' },
   mallas_schedule_monthly_days: { valor: '[]', descripcion: 'Días del mes habilitados (JSON array: 1-31)' },
+  mallas_schedule_specific_dates: { valor: '[]', descripcion: 'Fechas exactas habilitadas (JSON array de strings YYYY-MM-DD)' },
 };
 
 @Injectable()
