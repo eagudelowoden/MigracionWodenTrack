@@ -134,7 +134,8 @@
           <div class="flex items-center justify-center shrink-0 w-5">
             <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-xs"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' : 'Oscuro' }}</span>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' :
+            'Oscuro' }}</span>
         </button>
         <button @click="logout"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all">
@@ -194,9 +195,12 @@
             <div class="text-right">
               <p class="text-[11px] font-bold leading-none" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 ¡Hola,
-                <span class="text-[15px] font-black text-[#3B82F6]">{{ employee?.name?.split(' ').pop()?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) }}</span>!
+                <span class="text-[15px] font-black text-[#3B82F6]">
+                  {{employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase())}}
+                </span>!
               </p>
-              <p class="text-[9px] font-medium leading-tight mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <p class="text-[9px] font-medium leading-tight mt-0.5"
+                :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                 Administrador
               </p>
             </div>
@@ -235,8 +239,7 @@
 
     <!-- ── Toast recordatorio automático ─────────────────────────────────────── -->
     <transition name="fade">
-      <div v-if="toastRecordatorio"
-        class="fixed top-5 right-5 z-50 w-80 rounded-2xl border shadow-2xl overflow-hidden"
+      <div v-if="toastRecordatorio" class="fixed top-5 right-5 z-50 w-80 rounded-2xl border shadow-2xl overflow-hidden"
         :class="isDark ? 'bg-[#1e293b] border-violet-500/30' : 'bg-white border-violet-200'">
         <div class="h-1 bg-gradient-to-r from-violet-500 to-blue-500"></div>
         <div class="px-4 py-3 flex items-start gap-3">
@@ -247,12 +250,10 @@
             <div class="text-[10px] font-black uppercase tracking-wider text-violet-500 mb-0.5">
               🔔 Recordatorio · {{ toastRecordatorio.hora }}
             </div>
-            <div class="text-[11px] font-semibold mb-0.5"
-              :class="isDark ? 'text-white' : 'text-slate-800'">
+            <div class="text-[11px] font-semibold mb-0.5" :class="isDark ? 'text-white' : 'text-slate-800'">
               {{ toastRecordatorio.titulo }}
             </div>
-            <div class="text-[10px] opacity-60 leading-relaxed"
-              :class="isDark ? 'text-white' : 'text-slate-600'">
+            <div class="text-[10px] opacity-60 leading-relaxed" :class="isDark ? 'text-white' : 'text-slate-600'">
               {{ toastRecordatorio.mensaje }}
             </div>
           </div>
@@ -276,7 +277,7 @@ import { io } from 'socket.io-client';
 import '../assets/css/admin-style.css';
 
 const router = useRouter();
-const route  = useRoute();
+const route = useRoute();
 
 const {
   employee,
@@ -313,18 +314,18 @@ const moduloActivo = (key) => modulosConfig[`module_${key}_active`] === 'true';
 const moduleKeyFromRoute = computed(() => {
   const p = route.path;
   if (p.includes('/asistencias')) return 'asistencias';
-  if (p.includes('/mallas'))      return 'mallas';
+  if (p.includes('/mallas')) return 'mallas';
   if (p.includes('/horas-extra')) return 'calculos';
-  if (p.includes('/novedades'))   return 'novedades';
+  if (p.includes('/novedades')) return 'novedades';
   return null;
 });
 
 // ── WebSocket sesión interna ──────────────────────────────────────────────────
 const WS_URL = (API_URL || '').replace('/usuarios', '') || 'http://localhost:3000';
 let internoSocket = null;
-const mensajesNoLeidos  = ref([]);
-const mostrarBandeja    = ref(false);
-const socketConectado   = ref(false);
+const mensajesNoLeidos = ref([]);
+const mostrarBandeja = ref(false);
+const socketConectado = ref(false);
 const toastRecordatorio = ref(null);
 let toastTimer = null;
 
@@ -366,7 +367,7 @@ onMounted(async () => {
   try {
     const res = await fetch(`${API_URL}/sistema-config`);
     if (res.ok) Object.assign(modulosConfig, await res.json());
-  } catch {}
+  } catch { }
 });
 
 onUnmounted(() => {
@@ -377,6 +378,14 @@ onUnmounted(() => {
 
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity .2s, transform .2s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(8px); }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .2s, transform .2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
 </style>
