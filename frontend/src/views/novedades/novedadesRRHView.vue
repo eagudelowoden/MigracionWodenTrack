@@ -841,10 +841,11 @@
               :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-slate-200' : 'border-slate-200 text-slate-500 hover:text-slate-700'">
               Cancelar
             </button>
-            <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
-              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim() || accionModal.loading"
+              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-red-500 text-white hover:bg-red-600'">
-              Confirmar
+              <i v-if="accionModal.loading" class="fas fa-spinner fa-spin text-[9px]"></i>
+              {{ accionModal.loading ? 'Procesando...' : 'Confirmar' }}
             </button>
           </div>
         </div>
@@ -876,6 +877,28 @@
       </div>
     </teleport>
 
+    <!-- Toast notificación aprobación -->
+    <teleport to="body">
+      <transition name="toast-slide">
+        <div v-if="toast.visible"
+          class="fixed bottom-6 right-6 z-[200] flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-xs"
+          :class="toast.tipo === 'aprobado'
+            ? 'bg-emerald-600 border-emerald-500 text-white'
+            : 'bg-red-600 border-red-500 text-white'">
+          <i :class="toast.tipo === 'aprobado' ? 'fas fa-check-circle text-emerald-200' : 'fas fa-times-circle text-red-200'"
+            class="text-lg mt-0.5 shrink-0"></i>
+          <div>
+            <p class="text-[11px] font-black uppercase tracking-widest opacity-80">
+              Novedad {{ toast.tipo === 'aprobado' ? 'Aprobada' : 'Rechazada' }}
+            </p>
+            <p class="text-xs font-semibold mt-0.5">{{ toast.nombre }}</p>
+            <p class="text-[10px] opacity-70 mt-1">
+              <i class="fas fa-envelope text-[9px] mr-1"></i>Correo enviado a destinatarios
+            </p>
+          </div>
+        </div>
+      </transition>
+    </teleport>
 
   </div>
 </template>
@@ -923,7 +946,8 @@ const menuAbierto = ref(null);
 const itemMenuActual = ref(null);
 const menuPos = ref({ x: 0, y: 0 });
 const motivoModal = ref({ open: false, titulo: '', texto: '' });
-const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
+const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
+const toast = ref({ visible: false, tipo: '', nombre: '' });
 
 // Modal gestión estados CH
 const modalEstados = ref({ open: false });
@@ -1146,11 +1170,18 @@ const abrirAccion = (item, tipo) => {
 
 const confirmarAccion = async () => {
   if (!accionModal.value.motivo.trim()) return;
+  accionModal.value.loading = true;
   try {
-    await aprobarRrhh(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+    const nombre = accionModal.value.nombre;
+    const tipo = accionModal.value.tipo;
+    await aprobarRrhh(accionModal.value.id, tipo, accionModal.value.motivo);
     accionModal.value.open = false;
+    toast.value = { visible: true, tipo: tipo === 1 ? 'aprobado' : 'rechazado', nombre };
+    setTimeout(() => { toast.value.visible = false; }, 4000);
   } catch (e) {
     console.error('Error en confirmarAccion:', e);
+  } finally {
+    accionModal.value.loading = false;
   }
 };
 
@@ -1226,5 +1257,16 @@ const verSoporte = async (id) => {
 .fade-msg-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(16px);
 }
 </style>

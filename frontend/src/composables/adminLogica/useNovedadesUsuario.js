@@ -148,9 +148,11 @@ export function useNovedades() {
   // ─── Aprobación Jefe ──────────────────────────────────────────────────────
   const aprobarJefe = async (id, aprobado, motivo) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Coordinador',
       });
       await fetchNovedades();
       return res.data;
@@ -163,9 +165,11 @@ export function useNovedades() {
   // ─── Aprobación RRHH ──────────────────────────────────────────────────────
   const aprobarRrhh = async (id, aprobado, motivo) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-rrhh`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Capital Humano',
       });
       await fetchNovedades();
       return res.data;

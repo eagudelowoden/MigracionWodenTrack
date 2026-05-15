@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -8,12 +8,14 @@ import { Novedad } from './entities/novedad.entity';
 import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
 import { NovedadArchivo } from './entities/novedad-archivo.entity';
 import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Novedad, NovedadEstadoCh, NovedadArchivo]),
     MulterModule.register({ storage: memoryStorage() }),
     SistemaConfigModule,
+    forwardRef(() => UsuariosModule),
   ],
   controllers: [NovedadesController],
   providers: [NovedadesService],

@@ -941,7 +941,6 @@ const TABS = [
   { key: 'masivo', icon: 'fas fa-layer-group', label: 'Asig. masiva' },
   { key: 'heatmap', icon: 'fas fa-th', label: 'Heatmap' },
   { key: 'comparativa', icon: 'fas fa-chart-bar', label: 'Comparativa' },
-  { key: 'correo', icon: 'fas fa-envelope', label: 'Correo' },
   { key: 'ia', icon: 'fas fa-brain', label: 'IA' },
   { key: 'tendencias', icon: 'fas fa-chart-line', label: 'Tendencias' },
   { key: 'ranking', icon: 'fas fa-trophy', label: 'Ranking' },

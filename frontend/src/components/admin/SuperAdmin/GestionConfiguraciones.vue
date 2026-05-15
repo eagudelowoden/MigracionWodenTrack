@@ -429,6 +429,184 @@
           </div>
 
         </template>
+
+      </div>
+
+      <!-- ═══ TAB CORREO ═══════════════════════════════════════════════════════ -->
+      <div v-if="activeTab === 'correo'" class="p-5 space-y-4">
+
+        <!-- SMTP Config -->
+        <div class="rounded-2xl border overflow-hidden" :class="isDark ? 'border-white/10' : 'border-slate-200'">
+          <div class="px-5 py-3.5 border-b flex items-center justify-between gap-4"
+            :class="isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200'">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center"
+                :class="isDark ? 'bg-blue-500/15' : 'bg-blue-100'">
+                <i class="fas fa-gear text-blue-500 text-sm"></i>
+              </div>
+              <div>
+                <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Configuración SMTP</p>
+                <p class="text-[10px]" :class="isDark ? 'text-white/40' : 'text-slate-400'">Outlook / Office 365 — smtp.office365.com:587</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full" :class="correo.form.habilitado ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'"></div>
+              <span class="text-[9px] font-bold uppercase" :class="correo.form.habilitado ? 'text-emerald-400' : isDark ? 'text-slate-500' : 'text-slate-400'">
+                {{ correo.form.habilitado ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+          <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[9px] font-bold uppercase tracking-wider mb-1" :class="isDark ? 'text-white/50' : 'text-slate-500'">Host SMTP *</label>
+              <input v-model="correo.form.host" type="text" placeholder="smtp.office365.com"
+                class="w-full px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400'" />
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase tracking-wider mb-1" :class="isDark ? 'text-white/50' : 'text-slate-500'">Puerto</label>
+              <input v-model="correo.form.port" type="text" placeholder="587"
+                class="w-full px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[9px] font-bold uppercase tracking-wider mb-1" :class="isDark ? 'text-white/50' : 'text-slate-500'">Correo Outlook (usuario SMTP) *</label>
+              <input v-model="correo.form.user" type="email" placeholder="notificaciones@miempresa.com"
+                class="w-full px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400'" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[9px] font-bold uppercase tracking-wider mb-1" :class="isDark ? 'text-white/50' : 'text-slate-500'">
+                Contraseña de aplicación *
+                <span v-if="correo.config.passConfigurado" class="ml-1 text-emerald-400 normal-case font-normal">(configurada — dejar vacío para no cambiar)</span>
+              </label>
+              <input v-model="correo.form.pass" type="password" placeholder="••••••••"
+                class="w-full px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase tracking-wider mb-1" :class="isDark ? 'text-white/50' : 'text-slate-500'">Nombre del remitente</label>
+              <input v-model="correo.form.fromNombre" type="text" placeholder="WodenTrack RRHH"
+                class="w-full px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20' : 'bg-slate-50 border-slate-200 text-slate-700'" />
+            </div>
+            <div class="flex items-end">
+              <div class="w-full flex items-center justify-between p-3 rounded-xl border"
+                :class="correo.form.habilitado ? (isDark ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-emerald-300 bg-emerald-50') : (isDark ? 'border-white/10' : 'border-slate-200')">
+                <div>
+                  <p class="text-[10px] font-bold" :class="correo.form.habilitado ? 'text-emerald-500' : isDark ? 'text-white/50' : 'text-slate-500'">
+                    {{ correo.form.habilitado ? 'Habilitado' : 'Deshabilitado' }}
+                  </p>
+                  <p class="text-[9px] opacity-50" :class="isDark ? 'text-white' : 'text-slate-400'">Envío de correos</p>
+                </div>
+                <button @click="correo.form.habilitado = !correo.form.habilitado"
+                  class="w-10 h-5 rounded-full transition-all relative shrink-0"
+                  :class="correo.form.habilitado ? 'bg-emerald-500' : isDark ? 'bg-white/10' : 'bg-slate-200'">
+                  <div class="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all shadow-sm"
+                    :class="correo.form.habilitado ? 'left-[22px]' : 'left-0.5'"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="px-5 pb-5 flex gap-2">
+            <button @click="testConexion" :disabled="correo.testeando"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-wide transition-all disabled:opacity-50"
+              :class="isDark ? 'border-white/10 text-white/60 hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-50'">
+              <i class="fas text-[10px]" :class="correo.testeando ? 'fa-circle-notch fa-spin' : 'fa-plug'"></i>
+              Probar conexión
+            </button>
+            <button @click="guardarConfigCorreo" :disabled="correo.guardando"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wide hover:bg-blue-400 disabled:opacity-50 transition-all">
+              <i class="fas text-[10px]" :class="correo.guardando ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+              Guardar SMTP
+            </button>
+          </div>
+          <div v-if="correo.testResult" class="mx-5 mb-5 px-3 py-2 rounded-xl text-[10px] font-semibold border"
+            :class="correo.testResult.ok ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
+            <i :class="correo.testResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="mr-1.5"></i>
+            {{ correo.testResult.mensaje }}
+          </div>
+        </div>
+
+        <!-- Destinatarios de Novedades -->
+        <div class="rounded-2xl border overflow-hidden" :class="isDark ? 'border-white/10' : 'border-slate-200'">
+          <div class="px-5 py-3.5 border-b flex items-center gap-2.5"
+            :class="isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200'">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center"
+              :class="isDark ? 'bg-violet-500/15' : 'bg-violet-100'">
+              <i class="fas fa-users text-violet-500 text-sm"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Destinatarios de Novedades</p>
+              <p class="text-[10px]" :class="isDark ? 'text-white/40' : 'text-slate-400'">Recibirán un correo cuando el jefe o RRHH apruebe/rechace una novedad</p>
+            </div>
+          </div>
+          <div class="p-5 space-y-3">
+            <!-- Lista de destinatarios -->
+            <div v-if="correo.destinatarios.length" class="flex flex-wrap gap-2">
+              <div v-for="email in correo.destinatarios" :key="email"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-semibold"
+                :class="isDark ? 'bg-violet-500/10 border-violet-500/30 text-violet-300' : 'bg-violet-50 border-violet-200 text-violet-700'">
+                <i class="fas fa-envelope text-[9px] opacity-60"></i>
+                {{ email }}
+                <button @click="quitarDestinatario(email)" class="ml-1 opacity-50 hover:opacity-100 transition-opacity">
+                  <i class="fas fa-xmark text-[9px]"></i>
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-[10px] py-3 text-center" :class="isDark ? 'text-white/30' : 'text-slate-400'">
+              No hay destinatarios configurados aún
+            </p>
+            <!-- Agregar -->
+            <div class="flex gap-2">
+              <input v-model="correo.nuevoDestinatario" type="email" placeholder="correo@empresa.com"
+                @keydown.enter.prevent="agregarDestinatario"
+                class="flex-1 px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+                :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-violet-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-violet-400'" />
+              <button @click="agregarDestinatario"
+                class="px-3 py-2 rounded-xl border text-[10px] font-bold transition-all"
+                :class="isDark ? 'border-white/10 text-white/60 hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-100'">
+                <i class="fas fa-plus"></i>
+              </button>
+              <button @click="guardarDestinatarios" :disabled="correo.guardandoDest"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-[10px] font-bold uppercase tracking-wide hover:bg-violet-400 disabled:opacity-50 transition-all">
+                <i class="fas text-[10px]" :class="correo.guardandoDest ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prueba de envío -->
+        <div class="rounded-2xl border overflow-hidden" :class="isDark ? 'border-white/10' : 'border-slate-200'">
+          <div class="px-5 py-3.5 border-b flex items-center gap-2.5"
+            :class="isDark ? 'bg-white/3 border-white/8' : 'bg-slate-50 border-slate-200'">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center"
+              :class="isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'">
+              <i class="fas fa-paper-plane text-emerald-500 text-sm"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Prueba de envío</p>
+              <p class="text-[10px]" :class="isDark ? 'text-white/40' : 'text-slate-400'">Envía un correo de prueba para verificar que la configuración funciona</p>
+            </div>
+          </div>
+          <div class="p-5 flex gap-2">
+            <input v-model="correo.correoTest" type="email" placeholder="mi-correo@empresa.com"
+              class="flex-1 px-3 py-2 rounded-xl border text-[11px] outline-none transition-all"
+              :class="isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-emerald-500/50' : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-emerald-400'" />
+            <button @click="enviarCorreoTest" :disabled="correo.enviandoTest || !correo.correoTest"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-400 disabled:opacity-50 transition-all">
+              <i class="fas text-[10px]" :class="correo.enviandoTest ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
+              {{ correo.enviandoTest ? 'Enviando…' : 'Enviar prueba' }}
+            </button>
+          </div>
+          <div v-if="correo.testEnvioResult" class="mx-5 mb-5 px-3 py-2 rounded-xl text-[10px] font-semibold border"
+            :class="correo.testEnvioResult.ok ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'">
+            <i :class="correo.testEnvioResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="mr-1.5"></i>
+            {{ correo.testEnvioResult.mensaje }}
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -436,7 +614,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
 const emit = defineEmits(['success', 'error']);
@@ -450,6 +628,7 @@ const tabs = [
   { id: 'sistema',   label: 'Sistema',        icon: 'fas fa-server' },
   { id: 'modulos',   label: 'Módulos',         icon: 'fas fa-th-large' },
   { id: 'schedule',  label: 'Programación',    icon: 'fas fa-calendar-check' },
+  { id: 'correo',    label: 'Correo',           icon: 'fas fa-envelope' },
 ];
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -678,7 +857,113 @@ const guardar = async () => {
   finally { saving.value = false; }
 };
 
-onMounted(() => { cargar(); cargarMantenimiento(); });
+// ── Correo ────────────────────────────────────────────────────────────────────
+const correo = ref({
+  config: { host: '', port: '587', user: '', passConfigurado: false, fromNombre: 'WodenTrack', habilitado: false },
+  form: { host: '', port: '587', user: '', pass: '', fromNombre: 'WodenTrack', habilitado: false },
+  guardando: false, testeando: false, testResult: null,
+  destinatarios: [],
+  nuevoDestinatario: '',
+  guardandoDest: false,
+  correoTest: '',
+  enviandoTest: false,
+  testEnvioResult: null,
+});
+
+const cargarConfigCorreo = async () => {
+  try {
+    const [resCfg, resDest] = await Promise.all([
+      fetch(`${API_URL}/superadmin/correo/config`),
+      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`),
+    ]);
+    if (resCfg.ok) {
+      const cfg = await resCfg.json();
+      correo.value.config = cfg;
+      correo.value.form = { host: cfg.host, port: cfg.port, user: cfg.user, pass: '', fromNombre: cfg.fromNombre, habilitado: cfg.habilitado };
+    }
+    if (resDest.ok) {
+      correo.value.destinatarios = await resDest.json();
+    }
+  } catch { emit('error', 'Error al cargar configuración de correo'); }
+};
+
+const guardarConfigCorreo = async () => {
+  correo.value.guardando = true;
+  correo.value.testResult = null;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/config`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...correo.value.form, updatedBy: session.name || 'superadmin' }),
+    });
+    if (!res.ok) throw new Error();
+    emit('success', 'Configuración de correo guardada');
+    await cargarConfigCorreo();
+  } catch { emit('error', 'Error al guardar configuración'); }
+  finally { correo.value.guardando = false; }
+};
+
+const testConexion = async () => {
+  correo.value.testeando = true;
+  correo.value.testResult = null;
+  try {
+    const res = await fetch(`${API_URL}/superadmin/correo/test`, { method: 'POST' });
+    correo.value.testResult = await res.json();
+  } catch { correo.value.testResult = { ok: false, mensaje: 'Error al conectar con el servidor' }; }
+  finally { correo.value.testeando = false; }
+};
+
+const agregarDestinatario = () => {
+  const email = correo.value.nuevoDestinatario.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if (!correo.value.destinatarios.includes(email)) correo.value.destinatarios.push(email);
+  correo.value.nuevoDestinatario = '';
+};
+
+const quitarDestinatario = (email) => {
+  correo.value.destinatarios = correo.value.destinatarios.filter(d => d !== email);
+};
+
+const guardarDestinatarios = async () => {
+  correo.value.guardandoDest = true;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinatarios: correo.value.destinatarios, updatedBy: session.name || 'superadmin' }),
+    });
+    if (!res.ok) throw new Error();
+    emit('success', 'Destinatarios guardados');
+  } catch { emit('error', 'Error al guardar destinatarios'); }
+  finally { correo.value.guardandoDest = false; }
+};
+
+const enviarCorreoTest = async () => {
+  if (!correo.value.correoTest) return;
+  correo.value.enviandoTest = true;
+  correo.value.testEnvioResult = null;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/ausentismo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        empleado: 'Usuario de Prueba',
+        cedula: '0000000000',
+        tipificacion: 'PRUEBA DE CORREO',
+        descripcion: 'Este es un correo de prueba enviado desde WodenTrack.',
+        fechaInicio: new Date().toISOString().split('T')[0],
+        destinatarios: [correo.value.correoTest],
+        enviadoPor: session.name || 'SuperAdmin',
+      }),
+    });
+    correo.value.testEnvioResult = await res.json();
+  } catch { correo.value.testEnvioResult = { ok: false, mensaje: 'Error de red al enviar' }; }
+  finally { correo.value.enviandoTest = false; }
+};
+
+onMounted(() => { cargar(); cargarMantenimiento(); cargarConfigCorreo(); });
+
+watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 </script>
 
 <style scoped>

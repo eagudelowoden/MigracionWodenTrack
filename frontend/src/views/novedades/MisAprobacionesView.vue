@@ -728,14 +728,34 @@
                             :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
                             Cancelar
                         </button>
-                        <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim()"
-                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40"
+                        <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim() || accionModal.loading"
+                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
                             :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'">
-                            Confirmar
+                            <i v-if="accionModal.loading" class="fas fa-circle-notch fa-spin text-[9px]"></i>
+                            {{ accionModal.loading ? 'Procesando...' : 'Confirmar' }}
                         </button>
                     </div>
                 </div>
             </div>
+        </teleport>
+
+        <!-- Toast de éxito -->
+        <teleport to="body">
+            <transition name="fade-msg">
+                <div v-if="toast.visible"
+                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
+                    :class="toast.tipo === 'aprobada'
+                        ? 'bg-emerald-500 border-emerald-400 text-white'
+                        : 'bg-red-500 border-red-400 text-white'">
+                    <i :class="toast.tipo === 'aprobada' ? 'fas fa-circle-check' : 'fas fa-circle-xmark'" class="text-lg"></i>
+                    <div>
+                        <p class="text-[11px] font-black uppercase tracking-wide">
+                            Novedad {{ toast.tipo }}
+                        </p>
+                        <p class="text-[10px] opacity-80 mt-0.5">{{ toast.nombre }} · Correo enviado</p>
+                    </div>
+                </div>
+            </transition>
         </teleport>
     </div>
 </template>
@@ -1013,17 +1033,26 @@ const asignarCarpeta = async (nombreEstado) => {
 };
 
 // ─── Modal aprobar/rechazar ───────────────────────────────────────
-const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '' });
+const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
+const toast = ref({ visible: false, tipo: '', nombre: '' });
+
 const abrirAccion = (item, tipo) => {
-    accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '' };
+    accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '', loading: false };
 };
+
 const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
+    accionModal.value.loading = true;
     try {
         await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+        const tipoLabel = accionModal.value.tipo === 1 ? 'aprobada' : 'rechazada';
+        toast.value = { visible: true, tipo: tipoLabel, nombre: accionModal.value.nombre };
         accionModal.value.open = false;
+        setTimeout(() => { toast.value.visible = false; }, 4000);
     } catch (e) {
         console.error('Error:', e);
+    } finally {
+        accionModal.value.loading = false;
     }
 };
 </script>

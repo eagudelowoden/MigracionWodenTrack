@@ -25,4 +25,14 @@ export class SuperAdminCorreoController {
   enviarAusentismo(@Body() body: any) {
     return this.svc.enviarAusentismo(body);
   }
+
+  @Get('novedades-destinatarios')
+  getDestinatariosNovedades() {
+    return this.svc.getDestinatariosNovedades();
+  }
+
+  @Post('novedades-destinatarios')
+  saveDestinatariosNovedades(@Body() body: { destinatarios: string[]; updatedBy?: string }) {
+    return this.svc.saveDestinatariosNovedades(body.destinatarios, body.updatedBy || 'superadmin');
+  }
 }

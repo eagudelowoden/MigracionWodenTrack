@@ -20,6 +20,7 @@ import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
 import { NovedadArchivo } from './entities/novedad-archivo.entity';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
 import { SistemaConfigService } from '../sistema-config/sistema-config.service';
+import { SuperAdminCorreoService } from '../usuarios/superadmin-correo.service';
 
 @Injectable()
 export class NovedadesService {
@@ -46,6 +47,7 @@ export class NovedadesService {
     private readonly archivoRepo: Repository<NovedadArchivo>,
     private readonly config: ConfigService,
     private readonly sistemaConfig: SistemaConfigService,
+    private readonly correoService: SuperAdminCorreoService,
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {
     this.localDir = path.join(process.cwd(), 'uploads', 'novedades');
@@ -632,7 +634,7 @@ export class NovedadesService {
     await this.novedadRepo.softDelete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
-  async aprobarJefe(id: number, aprobado: number, motivo: string) {
+  async aprobarJefe(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
@@ -641,10 +643,17 @@ export class NovedadesService {
     novedad.fechaAprobacionJefe = new Date();
 
     this.actualizarEstadoGeneral(novedad);
-    return await this.novedadRepo.save(novedad);
+    const saved = await this.novedadRepo.save(novedad);
+
+    // Enviar correo con adjunto (no bloqueante)
+    this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe')
+      .then(payload => this.correoService.enviarAprobacionNovedad(payload))
+      .catch(() => {});
+
+    return saved;
   }
 
-  async aprobarRrhh(id: number, aprobado: number, motivo: string) {
+  async aprobarRrhh(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
@@ -653,7 +662,52 @@ export class NovedadesService {
     novedad.fechaAprobacionRrhh = new Date();
 
     this.actualizarEstadoGeneral(novedad);
-    return await this.novedadRepo.save(novedad);
+    const saved = await this.novedadRepo.save(novedad);
+
+    // Enviar correo con adjunto (no bloqueante)
+    this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Capital Humano', aprobado, motivo, 'rrhh')
+      .then(payload => this.correoService.enviarAprobacionNovedad(payload))
+      .catch(() => {});
+
+    return saved;
+  }
+
+  private async buildCorreoPayload(
+    novedad: Novedad,
+    aprobadoPor: string,
+    aprobado: number,
+    motivo: string,
+    rol: 'jefe' | 'rrhh',
+  ) {
+    // Buscar primer archivo adjunto
+    const archivos = await this.archivoRepo.find({ where: { novedadId: novedad.id }, order: { id: 'ASC' }, take: 1 });
+    const archivo = archivos[0];
+
+    let attachment: { filename: string; content: Buffer; contentType: string } | undefined;
+    if (archivo && archivo.storageMode === 'local') {
+      const filePath = path.join(this.localDir, archivo.storageKey);
+      if (fs.existsSync(filePath)) {
+        attachment = {
+          filename: archivo.nombreOriginal,
+          content: fs.readFileSync(filePath),
+          contentType: archivo.mime || 'application/octet-stream',
+        };
+      }
+    }
+
+    return {
+      empleado: novedad.nombre || '',
+      cedula: novedad.cedula || undefined,
+      tipificacion: novedad.tipificacion || undefined,
+      descripcion: novedad.descripcion || undefined,
+      fechaInicio: novedad.fechaInicio || undefined,
+      fechaFin: novedad.fechaFin || undefined,
+      aprobadoPor,
+      decision: (aprobado === 1 ? 'aprobado' : 'rechazado') as 'aprobado' | 'rechazado',
+      motivo: motivo || undefined,
+      rol,
+      attachment,
+    };
   }
 
   private actualizarEstadoGeneral(novedad: Novedad) {
