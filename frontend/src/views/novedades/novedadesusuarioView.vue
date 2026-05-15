@@ -448,16 +448,17 @@
                   <td class="px-4 py-2.5 text-center">
                     <div class="flex items-center justify-center gap-1.5">
                       <!-- Badge con cantidad de archivos -->
-                      <div class="relative group">
+                      <div class="relative" v-click-outside="() => dropdownAbierto = null">
                         <button type="button"
+                          @click.stop="dropdownAbierto = dropdownAbierto === nov.id ? null : nov.id"
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
                           :class="(nov.archivos?.length ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20' : (isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200'))">
                           <i class="fas fa-paperclip"></i>
                           {{ nov.archivos?.length ?? 0 }}
                         </button>
-                        <!-- Dropdown de archivos al hover -->
-                        <div v-if="nov.archivos?.length"
-                          class="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border shadow-xl overflow-hidden opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-150"
+                        <!-- Dropdown de archivos al click -->
+                        <div v-if="nov.archivos?.length && dropdownAbierto === nov.id"
+                          class="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border shadow-xl overflow-hidden"
                           :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
                           <a v-for="arch in nov.archivos" :key="arch.id"
                             :href="getArchivoUrl(nov.id, arch.id)" target="_blank"
@@ -568,6 +569,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+
+const vClickOutside = {
+  mounted(el, binding) {
+    el._clickOutsideHandler = (e) => { if (!el.contains(e.target)) binding.value(e); };
+    document.addEventListener('click', el._clickOutsideHandler);
+  },
+  unmounted(el) { document.removeEventListener('click', el._clickOutsideHandler); },
+};
 import { useNovedades } from '../../composables/adminLogica/useNovedadesUsuario';
 import { getEstadoVisual } from '../../composables/adminLogica/useNovedades';
 
@@ -611,6 +620,7 @@ const filtros = ref({ buscar: '', fechaDesde: '', fechaHasta: '' });
 
 const modalEliminar = ref({ open: false, novedad: null });
 const loadingDelete = ref(false);
+const dropdownAbierto = ref(null);
 
 
 // ─── Badges simples para Jefe / RRHH (aprobado parcial) ──────────

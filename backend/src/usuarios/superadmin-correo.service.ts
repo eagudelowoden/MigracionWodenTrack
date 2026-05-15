@@ -3,11 +3,11 @@ import { SistemaConfigService } from '../sistema-config/sistema-config.service';
 import * as nodemailer from 'nodemailer';
 
 const K = {
-  HOST:       'correo_smtp_host',
-  PORT:       'correo_smtp_port',
-  USER:       'correo_smtp_user',
-  PASS:       'correo_smtp_pass',
-  FROM_NAME:  'correo_from_nombre',
+  HOST: 'correo_smtp_host',
+  PORT: 'correo_smtp_port',
+  USER: 'correo_smtp_user',
+  PASS: 'correo_smtp_pass',
+  FROM_NAME: 'correo_from_nombre',
   HABILITADO: 'correo_habilitado',
 };
 
@@ -19,12 +19,12 @@ export class SuperAdminCorreoService {
   async getConfig() {
     const all = await this.cfg.getAll();
     return {
-      host:        all[K.HOST]      || '',
-      port:        all[K.PORT]      || '587',
-      user:        all[K.USER]      || '',
-      passConfigurado: !!(all[K.PASS]),
-      fromNombre:  all[K.FROM_NAME] || 'WodenTrack',
-      habilitado:  all[K.HABILITADO] === 'true',
+      host: all[K.HOST] || '',
+      port: all[K.PORT] || '587',
+      user: all[K.USER] || '',
+      passConfigurado: !!all[K.PASS],
+      fromNombre: all[K.FROM_NAME] || 'WodenTrack',
+      habilitado: all[K.HABILITADO] === 'true',
     };
   }
 
@@ -40,10 +40,10 @@ export class SuperAdminCorreoService {
     updatedBy: string,
   ) {
     const updates: Record<string, string> = {
-      [K.HOST]:       data.host,
-      [K.PORT]:       data.port,
-      [K.USER]:       data.user,
-      [K.FROM_NAME]:  data.fromNombre,
+      [K.HOST]: data.host,
+      [K.PORT]: data.port,
+      [K.USER]: data.user,
+      [K.FROM_NAME]: data.fromNombre,
       [K.HABILITADO]: data.habilitado ? 'true' : 'false',
     };
     // Solo actualiza contraseña si se envió un valor nuevo
@@ -58,11 +58,11 @@ export class SuperAdminCorreoService {
   private async crearTransporter() {
     const all = await this.cfg.getAll();
     return nodemailer.createTransport({
-      host:   all[K.HOST],
-      port:   Number(all[K.PORT]) || 587,
+      host: all[K.HOST],
+      port: Number(all[K.PORT]) || 587,
       secure: false,
-      auth:   { user: all[K.USER], pass: all[K.PASS] },
-      tls:    { rejectUnauthorized: false },
+      auth: { user: all[K.USER], pass: all[K.PASS] },
+      tls: { rejectUnauthorized: false },
     });
   }
 
@@ -95,10 +95,10 @@ export class SuperAdminCorreoService {
     }
 
     try {
-      const t   = await this.crearTransporter();
+      const t = await this.crearTransporter();
       const all = await this.cfg.getAll();
       const fromNombre = all[K.FROM_NAME] || 'WodenTrack';
-      const fromUser   = all[K.USER];
+      const fromUser = all[K.USER];
 
       const fechaDisplay =
         data.fechaFin && data.fechaFin !== data.fechaInicio
@@ -106,27 +106,34 @@ export class SuperAdminCorreoService {
           : data.fechaInicio;
 
       await t.sendMail({
-        from:    `"${fromNombre}" <${fromUser}>`,
-        to:      data.destinatarios.join(', '),
+        from: `"${fromNombre}" <${fromUser}>`,
+        to: data.destinatarios.join(', '),
         subject: `Ausentismo — ${data.empleado} · ${fechaDisplay}`,
-        html:    this.buildHtml(data),
+        html: this.buildHtml(data),
       });
 
-      return { ok: true, mensaje: `Correo enviado a: ${data.destinatarios.join(', ')}` };
+      return {
+        ok: true,
+        mensaje: `Correo enviado a: ${data.destinatarios.join(', ')}`,
+      };
     } catch (e) {
       return { ok: false, mensaje: `Error al enviar: ${e.message}` };
     }
   }
 
   // ── Recordatorio automático ───────────────────────────────────
-  async enviarRecordatorio(titulo: string, mensaje: string, destinatarios: string[]): Promise<void> {
+  async enviarRecordatorio(
+    titulo: string,
+    mensaje: string,
+    destinatarios: string[],
+  ): Promise<void> {
     const cfg = await this.getConfig();
     if (!cfg.habilitado) return;
     const t = await this.crearTransporter();
     const from = `"${cfg.fromNombre || 'WodenTrack'}" <${cfg.user}>`;
     const html = `
       <div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
-        <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:22px 28px;">
+        <div style="background:linear-gradient(135deg,#1e3a5f 0%,#1f2937 100%);padding:22px 28px;">
           <p style="margin:0;color:rgba(255,255,255,0.55);font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">WodenTrack · Recordatorio</p>
           <h1 style="margin:6px 0 0;color:#ffffff;font-size:18px;font-weight:800;">🔔 ${titulo}</h1>
         </div>
@@ -139,17 +146,24 @@ export class SuperAdminCorreoService {
           </p>
         </div>
       </div>`;
-    await t.sendMail({ from, to: destinatarios.join(', ') || from, subject: `🔔 Recordatorio: ${titulo}`, html });
+    await t.sendMail({
+      from,
+      to: destinatarios.join(', ') || from,
+      subject: `🔔 Recordatorio: ${titulo}`,
+      html,
+    });
   }
 
   // ── Template HTML ─────────────────────────────────────────────
   private buildHtml(data: any): string {
     const rows: [string, string][] = [
-      ['Empleado',     data.empleado],
-      ...(data.cedula       ? [['Cédula',       data.cedula]       as [string, string]] : []),
-      ...(data.cargo        ? [['Cargo',         data.cargo]        as [string, string]] : []),
-      ...(data.departamento ? [['Departamento',  data.departamento] as [string, string]] : []),
-      ...(data.area         ? [['Área',          data.area]         as [string, string]] : []),
+      ['Empleado', data.empleado],
+      ...(data.cedula ? [['Cédula', data.cedula] as [string, string]] : []),
+      ...(data.cargo ? [['Cargo', data.cargo] as [string, string]] : []),
+      ...(data.departamento
+        ? [['Departamento', data.departamento] as [string, string]]
+        : []),
+      ...(data.area ? [['Área', data.area] as [string, string]] : []),
       ['Fecha inicio', data.fechaInicio],
       ...(data.fechaFin && data.fechaFin !== data.fechaInicio
         ? [['Fecha fin', data.fechaFin] as [string, string]]
@@ -173,7 +187,7 @@ export class SuperAdminCorreoService {
         <div style="background:white;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
 
           <!-- Header -->
-          <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:22px 28px;">
+          <div style="background:linear-gradient(135deg,#1e3a5f 0%,#1f2937 100%);padding:22px 28px;">
             <p style="margin:0;color:rgba(255,255,255,0.55);font-size:9px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">WodenTrack · RRHH</p>
             <h1 style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.3px;">Reporte de Ausentismo</h1>
           </div>

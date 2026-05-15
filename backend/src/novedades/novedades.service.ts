@@ -64,8 +64,20 @@ export class NovedadesService {
     }
   }
 
+  // ─── Construir subcarpeta por usuario ────────────────────────────────────
+  private buildSubFolder(nombre?: string, cedula?: string, idOdoo?: number): string {
+    const sanitize = (s: string) =>
+      s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const nombreClean = nombre ? sanitize(nombre) : '';
+    if (nombreClean && cedula) return `${nombreClean}${cedula}`;
+    if (nombreClean && idOdoo) return `${nombreClean}${idOdoo}`;
+    if (nombreClean) return nombreClean;
+    if (cedula) return cedula;
+    return 'SIN_IDENTIFICACION';
+  }
+
   // ─── Guardar archivo ───────────────────────────────────────────────────────
-  private async saveFile(file: Express.Multer.File, modo: string) {
+  private async saveFile(file: Express.Multer.File, modo: string, subFolder: string) {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
@@ -77,20 +89,23 @@ export class NovedadesService {
     const modoEfectivo = modo;
 
     if (modoEfectivo === 's3') {
+      const key = `novedades/${subFolder}/${uniqueName}`;
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
-          Key: `novedades/${uniqueName}`,
+          Key: key,
           Body: file.buffer,
           ContentType: file.mimetype,
         }),
       );
-      return { storageKey: `novedades/${uniqueName}`, storageMode: 's3' };
+      return { storageKey: key, storageMode: 's3' };
     }
 
-    // Local
-    fs.writeFileSync(path.join(this.localDir, uniqueName), file.buffer);
-    return { storageKey: uniqueName, storageMode: 'local' };
+    // Local: crear subcarpeta si no existe
+    const localSubDir = path.join(this.localDir, subFolder);
+    if (!fs.existsSync(localSubDir)) fs.mkdirSync(localSubDir, { recursive: true });
+    fs.writeFileSync(path.join(localSubDir, uniqueName), file.buffer);
+    return { storageKey: `${subFolder}/${uniqueName}`, storageMode: 'local' };
   }
 
   // ─── Resolver URL ──────────────────────────────────────────────────────────
@@ -143,7 +158,8 @@ export class NovedadesService {
 
     // Guardar archivos adjuntos en novedad_archivos
     if (files.length) {
-      await this.saveArchivos(saved.id, files, modoEfectivo);
+      const subFolder = this.buildSubFolder(dto.nombre, dto.cedula, dto.creadoPor ? Number(dto.creadoPor) : undefined);
+      await this.saveArchivos(saved.id, files, modoEfectivo, subFolder);
     }
 
     return {
@@ -161,7 +177,8 @@ export class NovedadesService {
     for (const f of files) this.validateFileType(f);
 
     const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
-    const archivos = await this.saveArchivos(novedadId, files, storageFromDb);
+    const subFolder = this.buildSubFolder(novedad.nombre, novedad.cedula, novedad.creadoPor ?? undefined);
+    const archivos = await this.saveArchivos(novedadId, files, storageFromDb, subFolder);
     return { success: true, archivos };
   }
 
@@ -169,10 +186,11 @@ export class NovedadesService {
     novedadId: number,
     files: Express.Multer.File[],
     modo: string,
+    subFolder: string,
   ): Promise<NovedadArchivo[]> {
     const result: NovedadArchivo[] = [];
     for (const file of files) {
-      const { storageKey, storageMode } = await this.saveFile(file, modo);
+      const { storageKey, storageMode } = await this.saveFile(file, modo, subFolder);
       const archivo = this.archivoRepo.create({
         novedadId,
         nombreOriginal: file.originalname,
@@ -269,11 +287,32 @@ export class NovedadesService {
 
     const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
 
-    return novedades.map((n) => ({
-      ...n,
-      departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
-      cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
-    }));
+    // Cargar primer archivo de cada novedad para obtener mime
+    const ids = novedades.map((n) => n.id);
+    const primerArchivoPorNovedad = new Map<number, any>();
+    if (ids.length) {
+      const archivos = await this.archivoRepo
+        .createQueryBuilder('a')
+        .where('a.novedad_id IN (:...ids)', { ids })
+        .orderBy('a.id', 'ASC')
+        .getMany();
+      for (const a of archivos) {
+        if (!primerArchivoPorNovedad.has(a.novedadId))
+          primerArchivoPorNovedad.set(a.novedadId, a);
+      }
+    }
+
+    return novedades.map((n) => {
+      const primerArchivo = primerArchivoPorNovedad.get(n.id);
+      return {
+        ...n,
+        departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
+        cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+        soporteMime: n.soporteMime || primerArchivo?.mime || null,
+        soporteNombreOriginal: n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
+        tieneArchivos: primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
+      };
+    });
   }
 
   // ─── Helper: novedades de un conjunto de empleados ───────────────────────
@@ -320,12 +359,31 @@ export class NovedadesService {
       empleados.filter((e) => e.idOdoo).map((e) => [e.idOdoo!, e]),
     );
 
+    // Enriquecer con primer archivo (para mime y vista previa)
+    const ids = novedades.map((n) => n.id);
+    let primerArchivoPorNovedad = new Map<number, any>();
+    if (ids.length) {
+      const archivos = await this.archivoRepo
+        .createQueryBuilder('a')
+        .where('a.novedad_id IN (:...ids)', { ids })
+        .orderBy('a.id', 'ASC')
+        .getMany();
+      for (const a of archivos) {
+        if (!primerArchivoPorNovedad.has(a.novedadId))
+          primerArchivoPorNovedad.set(a.novedadId, a);
+      }
+    }
+
     return novedades.map((n) => {
       const emp = empByCedula.get(n.cedula) ?? empByIdOdoo.get(n.creadoPor!);
+      const primerArchivo = primerArchivoPorNovedad.get(n.id);
       return {
         ...n,
         departamento: emp?.departamento ?? null,
         cargo: emp?.cargo ?? null,
+        soporteMime: n.soporteMime || primerArchivo?.mime || null,
+        soporteNombreOriginal: n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
+        tieneArchivos: primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
       };
     });
   }
@@ -473,7 +531,13 @@ export class NovedadesService {
     if (novedad.soporteStorageKey) {
       fileUrl = await this.resolveUrl(novedad.soporteStorageKey, novedad.soporteStorageMode);
     }
-    return { ...novedad, fileUrl, archivos };
+
+    // Rellenar mime desde primer archivo si la entidad no tiene (nuevo sistema)
+    const primerArchivo = archivos[0] as any;
+    const soporteMime = novedad.soporteMime || primerArchivo?.mime || null;
+    const soporteNombreOriginal = novedad.soporteNombreOriginal || primerArchivo?.nombreOriginal || null;
+
+    return { ...novedad, soporteMime, soporteNombreOriginal, fileUrl, archivos };
   }
 
   // ─── STREAM FILE ──────────────────────────────────────────────────────────
@@ -481,6 +545,34 @@ export class NovedadesService {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
+    // ── Nuevo sistema: buscar primer archivo en novedad_archivos ──────────────
+    if (!novedad.soporteStorageKey) {
+      const archivos = await this.archivoRepo.find({
+        where: { novedadId: id },
+        order: { id: 'ASC' },
+        take: 1,
+      });
+
+      if (!archivos.length)
+        throw new NotFoundException('Esta novedad no tiene archivos adjuntos.');
+
+      const archivo = archivos[0];
+
+      if (archivo.storageMode === 's3') {
+        const url = await this.resolveUrl(archivo.storageKey, 's3');
+        return res.redirect(302, url);
+      }
+
+      const filePath = path.join(this.localDir, archivo.storageKey);
+      if (!fs.existsSync(filePath))
+        throw new NotFoundException('Archivo no encontrado en disco.');
+
+      res.setHeader('Content-Type', archivo.mime || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(archivo.nombreOriginal)}"`);
+      return fs.createReadStream(filePath).pipe(res);
+    }
+
+    // ── Sistema legacy: soporteStorageKey en la entidad Novedad ──────────────
     if (novedad.soporteStorageMode === 's3') {
       const url = await this.resolveUrl(novedad.soporteStorageKey, 's3');
       return res.redirect(302, url);
@@ -490,14 +582,8 @@ export class NovedadesService {
     if (!fs.existsSync(filePath))
       throw new NotFoundException('Archivo no encontrado en disco.');
 
-    res.setHeader(
-      'Content-Type',
-      novedad.soporteMime || 'application/octet-stream',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${encodeURIComponent(novedad.soporteNombreOriginal)}"`,
-    );
+    res.setHeader('Content-Type', novedad.soporteMime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(novedad.soporteNombreOriginal)}"`);
     fs.createReadStream(filePath).pipe(res);
   }
 
@@ -510,17 +596,31 @@ export class NovedadesService {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
-    // Borrar archivo físico
-    if (novedad.soporteStorageMode === 'local') {
-      const filePath = path.join(this.localDir, novedad.soporteStorageKey);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } else if (this.bucket) {
-      await this.s3.send(
-        new DeleteObjectCommand({
-          Bucket: this.bucket,
-          Key: novedad.soporteStorageKey,
-        }),
-      );
+    // Borrar archivo físico legacy (soporteStorageKey en la entidad)
+    if (novedad.soporteStorageKey) {
+      if (novedad.soporteStorageMode === 'local') {
+        const filePath = path.join(this.localDir, novedad.soporteStorageKey);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } else if (novedad.soporteStorageMode === 's3' && this.bucket) {
+        await this.s3.send(
+          new DeleteObjectCommand({
+            Bucket: this.bucket,
+            Key: novedad.soporteStorageKey,
+          }),
+        );
+      }
+    }
+
+    // Borrar archivos del nuevo sistema (novedad_archivos)
+    const archivos = await this.archivoRepo.find({ where: { novedadId: id } });
+    for (const archivo of archivos) {
+      if (archivo.storageMode === 'local') {
+        const fp = path.join(this.localDir, archivo.storageKey);
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      } else if (archivo.storageMode === 's3' && this.bucket) {
+        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: archivo.storageKey }));
+      }
+      await this.archivoRepo.delete(archivo.id);
     }
 
     // Guardar auditoría antes de soft-delete
