@@ -13,7 +13,7 @@
         </span>
 
         <div
-          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#FF8F00] text-white shadow-sm shadow-orange-500/20">
+          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#3B82F6] text-white shadow-sm shadow-blue-500/20">
           <i class="fas fa-clipboard-list text-xs"></i>
         </div>
 
@@ -25,8 +25,8 @@
 
       <div class="flex flex-wrap items-center gap-1.5">
         <button @click="filterHoy = !filterHoy"
-          class="flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
-          :class="filterHoy ? 'bg-[#FF8F00] text-white border-[#FF8F00]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
+          class="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
+          :class="filterHoy ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
           title="Filtrar solo hoy">
           <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
           HOY
@@ -60,9 +60,10 @@
           </template>
 
           <div class="relative group">
-            <input v-model="search" type="text" placeholder="BUSCAR..."
-              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-36 shadow-sm transition-all"
-              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-[#FF8F00]' : 'bg-white border-slate-200 text-slate-600 focus:border-[#FF8F00]'">
+            <input v-model="search" type="text" placeholder="NOMBRE O CÉDULA..."
+              @keyup.enter="fetchReporte"
+              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-44 shadow-sm transition-all"
+              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-600 focus:border-blue-400'">
             <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
           </div>
         </div>
@@ -71,15 +72,35 @@
           <button @click="clearFilters" class="p-1.5 text-slate-400 hover:text-rose-500 transition-all">
             <i class="fas fa-filter-circle-xmark text-base"></i>
           </button>
-          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-[#FF8F00] transition-all">
+          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-blue-400 transition-all">
             <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': loading }"></i>
           </button>
           <button @click="downloadReport" :disabled="loading || reportData.length === 0"
-            class="ml-1 p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
-            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+            class="ml-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
+            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <span>Excel</span>
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Error de validación de rango -->
+    <div v-if="errorMsg"
+      class="mx-0 mb-2 px-4 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+      <i class="fas fa-circle-exclamation"></i>
+      {{ errorMsg }}
+    </div>
+
+    <!-- Progreso de carga por chunks -->
+    <div v-if="loading && chunkProgress.total > 1"
+      class="mb-2 px-4 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold flex items-center gap-3">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span class="shrink-0">Cargando datos…</span>
+      <div class="flex-1 h-1.5 rounded-full bg-amber-200 overflow-hidden">
+        <div class="h-full bg-amber-500 transition-all duration-500 rounded-full"
+          :style="{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }"></div>
+      </div>
+      <span class="shrink-0 tabular-nums">{{ Math.round((chunkProgress.current / chunkProgress.total) * 100) }}%</span>
     </div>
 
     <div
@@ -121,7 +142,7 @@
             <tr v-else v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
               :class="[
                 index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-orange-50'
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50'
               ]">
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
@@ -135,7 +156,7 @@
                       :class="isDark ? 'text-white' : 'text-slate-900'">
                       {{ item.empleado }}
                     </span>
-                    <span class="text-[9px] font-bold" :class="isDark ? 'text-orange-400/90' : 'text-orange-600'">
+                    <span class="text-[9px] font-bold" :class="isDark ? 'text-blue-400/90' : 'text-blue-600'">
                       {{ item.department_id || 'Sin Depto' }}
                     </span>
                   </div>
@@ -244,7 +265,9 @@ const {
   clearFilters,
   selectedArea,
   selectedSegmento,
-  selectedCompany
+  selectedCompany,
+  errorMsg,
+  chunkProgress,
 } = useCargarAsistencias();
 
 const { isDark: isDarkTheme } = useAttendance();
@@ -289,10 +312,12 @@ onMounted(async () => {
         userProfile.value = perfil;
 
         // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
+        // Coordinador con coord.ver_segmento → también ve todo el segmento (sin ser responsable).
         // Responsable de área → filtrar solo por área.
         // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
         const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
-        if (esResponsableSegmento && perfil.segmento?.id) {
+        const esCoordSegmento = !esResponsableSegmento && session.permisos?.['coord.ver_segmento'] === true;
+        if ((esResponsableSegmento || esCoordSegmento) && perfil.segmento?.id) {
           selectedSegmento.value = perfil.segmento.id;
         } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;

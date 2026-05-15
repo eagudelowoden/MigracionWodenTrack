@@ -6,6 +6,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
@@ -44,6 +45,31 @@ export class MallasCrudController {
   async uploadExcel(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No se recibió archivo');
     return this.mallasCrudService.procesarExcelCreacion(file.buffer);
+  }
+
+  @Get('reporte-departamento')
+  getReporteDepartamento(@Query('departamento') departamento?: string) {
+    return this.mallasCrudService.getMallasPorDepartamento(departamento || undefined);
+  }
+
+  @Get('exportar-departamento')
+  async exportarDepartamento(
+    @Query('departamento') departamento: string,
+    @Res() res: any,
+  ) {
+    const workbook = await this.mallasCrudService.exportarMallasPorDepartamentoExcel(
+      departamento || undefined,
+    );
+    const nombre = departamento
+      ? `mallas-${departamento}.xlsx`
+      : 'mallas-por-departamento.xlsx';
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    await workbook.xlsx.write(res);
+    res.end();
   }
 
   @Get('plantilla')

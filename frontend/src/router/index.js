@@ -7,6 +7,7 @@ const getFirstAdminRoute = (session) => {
   if (isSA || p["admin.asistencias"]) return "/admin/asistencias";
   if (p["admin.mallas"]) return "/admin/mallas";
   if (p["admin.calculos"]) return "/admin/horas-extra";
+  if (p["horas.ver_cargue_ch"]) return "/admin/cargue-horas-ch";
   if (p["admin.novedades"]) return "/admin/novedades";
   return "/marcacion";
 };
@@ -63,11 +64,44 @@ const routes = [
         meta: { permiso: "admin.novedades" },
         component: () => import("../views/novedades/NovedadesPanelView.vue"),
       },
+      {
+        path: "cargue-horas-ch",
+        name: "CargueHorasCH",
+        meta: { permiso: "horas.ver_cargue_ch" },
+        component: () => import("../components/admin/ModuloCargueHorasCH.vue"),
+      },
     ],
   },
 
+  // Redirige /super-admin a la primera pestaña accesible
   {
     path: "/super-admin",
+    redirect: () => {
+      const session = JSON.parse(localStorage.getItem("user_session") || "null");
+      if (session?.isSuperAdmin) return "/super-admin/stats";
+      const TAB_PERMS = {
+        stats: "super.dashboard",
+        apk: "super.gestionarapk",
+        companies: "super.companias",
+        users: "super.personal",
+        notifications: "super.avisos",
+        estructura: "super.organizacion",
+        mallas: "super.mallas",
+        analitica: "super.analitica",
+        sesiones: "super.sesiones",
+        mensajes: "super.mensajes",
+        recordatorios: "super.recordatorios",
+        config: "super.configuracion",
+        api: "super.api",
+      };
+      const first = Object.keys(TAB_PERMS).find(
+        (t) => session?.permisos?.[TAB_PERMS[t]]
+      );
+      return `/super-admin/${first || "stats"}`;
+    },
+  },
+  {
+    path: "/super-admin/:tab",
     name: "SuperAdmin",
     component: () => import("../views/SuperAdmin.vue"),
   },
@@ -118,11 +152,14 @@ router.beforeEach((to, from, next) => {
   const isSuperAdmin = session?.isSuperAdmin;
 
   // ── Protección de SuperAdmin / Selector Perfil ─────────────────────────────
-  const tienePermisoUsuarios = session?.permisos?.["super.superadmin"];
+  const tieneAccesoSuperAdmin =
+    isSuperAdmin ||
+    session?.permisos?.["super.superadmin"] ||
+    Object.keys(session?.permisos || {}).some((k) => k.startsWith("super."));
+
   if (
-    (to.path === "/super-admin" || to.path === "/selector-perfil") &&
-    !isSuperAdmin &&
-    !tienePermisoUsuarios
+    (to.path.startsWith("/super-admin") || to.path === "/selector-perfil") &&
+    !tieneAccesoSuperAdmin
   ) {
     const fallback =
       session?.role === "admin" || session?.permisos?.["admin.admin"]

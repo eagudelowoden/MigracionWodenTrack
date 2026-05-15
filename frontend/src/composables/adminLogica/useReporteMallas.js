@@ -26,7 +26,9 @@ export function useReporteMallas() {
   const registros = ref([]);
   const isLoading = ref(false);
   const isCalculating = ref(false);
+  const isSaving = ref(false);
   const isExporting = ref(false);
+  const hayResultadosCalculados = ref(false);
 
   const startDate = ref(getFirstDayOfMonth());
   const endDate = ref(getToday());
@@ -44,11 +46,26 @@ export function useReporteMallas() {
   const currentPage = ref(1);
   const itemsPerPage = 20;
 
+  // ── Perfil completo (igual que mallas) ────────────────────────────────────
+  const perfilUsuario = ref(null);
+
+  async function _cargarPerfil() {
+    try {
+      const s = getSession();
+      const idOdoo = s.employee_id || s.id_odoo;
+      if (!idOdoo) return;
+      const { data } = await axios.get(`${API_BASE_URL}/perfil-completo/${idOdoo}`);
+      perfilUsuario.value = data;
+    } catch (e) {
+      console.error("Error cargando perfil para horas extra:", e);
+    }
+  }
+
   // ── Helpers de sesión ──────────────────────────────────────────────────────
 
+  // Misma lógica que mallasGeneral: prioridad segmento > area, nunca los dos juntos
   function getAreaSegmento() {
     const s = getSession();
-    // "desarrollador_junior" ve todo (sin filtro de área/segmento)
     if (
       s.isSuperAdmin ||
       s.role === "desarrollador_junior" ||
@@ -56,10 +73,21 @@ export function useReporteMallas() {
     ) {
       return {};
     }
-    const params = {};
-    if (s.area_id) params.area_id = s.area_id;
-    if (s.segmento_id) params.segmento_id = s.segmento_id;
-    return params;
+
+    const esResponsableSegmento = hasPerm("novedades.ver_segmento");
+    const perfil = perfilUsuario.value;
+
+    if (esResponsableSegmento && perfil?.segmento?.id) {
+      return { segmento_id: perfil.segmento.id };
+    }
+    if (perfil?.area?.id) {
+      return { area_id: perfil.area.id };
+    }
+
+    // Fallback a sesión si el perfil aún no cargó
+    if (s.segmento_id) return { segmento_id: s.segmento_id };
+    if (s.area_id) return { area_id: s.area_id };
+    return {};
   }
 
   // ── Opciones para filtros (derivadas de los registros cargados) ─────────────
@@ -184,10 +212,18 @@ export function useReporteMallas() {
 
   // ── API calls ──────────────────────────────────────────────────────────────
 
+  async function _asegurarPerfil() {
+    const s = getSession();
+    if (!s.isSuperAdmin && !hasPerm("admin.ver_todo") && !perfilUsuario.value) {
+      await _cargarPerfil();
+    }
+  }
+
   async function cargarHistorial(company) {
     try {
       isLoading.value = true;
       aprobacionesLocales.value = {};
+      await _asegurarPerfil();
 
       const s = getSession();
       const params = {
@@ -215,9 +251,37 @@ export function useReporteMallas() {
     }
   }
 
-  async function calcularYCargar(company) {
+  async function calcular(company) {
     try {
       isCalculating.value = true;
+      hayResultadosCalculados.value = false;
+      await _asegurarPerfil();
+      const s = getSession();
+
+      const payload = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        company: company || "",
+        calculado_por: s.name || "Desconocido",
+        ...getAreaSegmento(),
+      };
+
+      const { data } = await axios.post(`${API_BASE_URL}/horas-extra/calcular`, payload);
+      registros.value = data;
+      currentPage.value = 1;
+      hayResultadosCalculados.value = true;
+    } catch (err) {
+      console.error("Error calculando horas extra:", err);
+      throw err;
+    } finally {
+      isCalculating.value = false;
+    }
+  }
+
+  async function guardarCalculados(company) {
+    try {
+      isSaving.value = true;
+      await _asegurarPerfil();
       const s = getSession();
 
       const payload = {
@@ -231,12 +295,18 @@ export function useReporteMallas() {
 
       await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
       await cargarHistorial(company);
+      hayResultadosCalculados.value = false;
     } catch (err) {
-      console.error("Error calculando horas extra:", err);
+      console.error("Error guardando horas extra:", err);
       throw err;
     } finally {
-      isCalculating.value = false;
+      isSaving.value = false;
     }
+  }
+
+  // Mantener compatibilidad con código existente
+  async function calcularYCargar(company) {
+    return guardarCalculados(company);
   }
 
   async function aprobarMasivo(company, tipo) {
@@ -279,22 +349,11 @@ export function useReporteMallas() {
   async function exportarExcel(company) {
     try {
       isExporting.value = true;
-      const s = getSession();
 
-      const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
-      };
-
-      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
-        if (s.department) params.departamento = s.department;
-      }
-
-      const response = await axios.get(
-        `${API_BASE_URL}/horas-extra/exportar-excel`,
-        { params, responseType: "blob" },
+      const response = await axios.post(
+        `${API_BASE_URL}/horas-extra/exportar-calculado`,
+        { registros: registros.value },
+        { responseType: "blob" },
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -343,7 +402,9 @@ export function useReporteMallas() {
     registros,
     isLoading,
     isCalculating,
+    isSaving,
     isExporting,
+    hayResultadosCalculados,
 
     // Filtros
     startDate,
@@ -370,6 +431,8 @@ export function useReporteMallas() {
 
     // Acciones
     cargarHistorial,
+    calcular,
+    guardarCalculados,
     calcularYCargar,
     aprobarRegistro,
     aprobarMasivo,

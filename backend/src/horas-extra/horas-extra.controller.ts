@@ -7,7 +7,11 @@ import {
   Query,
   Param,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { HorasExtraService } from './horas-extra.service';
 
@@ -96,6 +100,24 @@ export class HorasExtraController {
     return this.service.aprobarRegistro(Number(id), dto.aprobado);
   }
 
+  @Post('exportar-calculado')
+  async exportarCalculado(
+    @Body() body: { registros: any[] },
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.exportarCalculado(body.registros ?? []);
+    const fecha = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reporte_hx_${fecha}.xlsx"`,
+    );
+    res.send(buffer);
+  }
+
   @Get('exportar-excel')
   async exportarExcel(
     @Query('startDate') startDate: string,
@@ -131,5 +153,75 @@ export class HorasExtraController {
       `attachment; filename="${filename}"`,
     );
     res!.send(buffer);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // CARGUE MANUAL
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  @Get('cargue/plantilla')
+  async plantillaCargue(@Res() res: Response) {
+    const buffer = await this.service.generarPlantillaCargue();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="plantilla_cargue_horas.xlsx"',
+    );
+    res.send(buffer);
+  }
+
+  @Post('cargue')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async subirCargue(
+    @UploadedFile() file: Express.Multer.File,
+    @Body()
+    body: {
+      company?: string;
+      departamento?: string;
+      area_id?: string;
+      segmento_id?: string;
+      cargado_por?: string;
+    },
+  ) {
+    if (!file) {
+      return { error: 'No se recibió ningún archivo' };
+    }
+    return this.service.procesarCargueExcel(file.buffer, {
+      company: body.company,
+      departamento: body.departamento,
+      area_id: body.area_id ? Number(body.area_id) : undefined,
+      segmento_id: body.segmento_id ? Number(body.segmento_id) : undefined,
+      cargado_por: body.cargado_por,
+    });
+  }
+
+  @Get('cargue/historial')
+  historialCargue(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
+  ) {
+    return this.service.getHistorialCargue({
+      startDate,
+      endDate,
+      company,
+      departamento,
+      area_id: area_id ? Number(area_id) : undefined,
+      segmento_id: segmento_id ? Number(segmento_id) : undefined,
+    });
+  }
+
+  @Patch('cargue/aprobar/:id')
+  aprobarCargue(
+    @Param('id') id: string,
+    @Body() dto: { aprobado: boolean | null },
+  ) {
+    return this.service.aprobarCargue(Number(id), dto.aprobado);
   }
 }

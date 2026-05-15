@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización | Woden</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --woden-orange: #FF8F00;
+            --bg-light: #F8FAFC;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-light);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+
+        /* --- FONDO DE ELEMENTOS INFINITOS --- */
+        .bg-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .element {
+            position: absolute;
+            opacity: 0.07;
+            color: #475569;
+        }
+
+        /* Animaciones */
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes floatSide {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -40px); }
+        }
+
+        /* --- TARJETA --- */
+        .card-woden {
+            background-color: white;
+            border-radius: 2.5rem;
+            padding: 3.5rem 2rem;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.04);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(8px);
+        }
+
+        .status-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(255, 143, 0, 0.1);
+            color: var(--woden-orange);
+            padding: 0.6rem 1.2rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .dot {
+            height: 8px;
+            width: 8px;
+            background-color: var(--woden-orange);
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .main-icon {
+            color: var(--woden-orange);
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
+            animation: rotate 15s linear infinite;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 0 1rem;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 1rem;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        footer {
+            margin-top: 3rem;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 480px) {
+            .card-woden { padding: 3rem 1.5rem; }
+            h1 { font-size: 1.6rem; }
+            p { font-size: 0.9rem; }
+            .element { opacity: 0.04; } /* Menos distracción en móvil */
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.3); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-layer" id="bgLayer">
+        </div>
+
+    <div class="card-woden">
+        <div class="status-container">
+            <div class="status-badge">
+                <span class="dot"></span> Sistema en Mantenimiento
+            </div>
+        </div>
+
+        <svg class="main-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+
+        <h1>Estamos actualizando</h1>
+        <p>
+            Nos encontramos realizando mejora a nuestros servicios de <strong>Woden Track</strong> para brindarte una mejor experiencia.
+        </p>
+
+        <footer>
+            &copy; 2026 WODEN S.A.
+        </footer>
+    </div>
+
+    <script>
+        // Script simple para llenar la pantalla de nubes y engranajes según el tamaño
+        const bg = document.getElementById('bgLayer');
+        const elements = [
+            // Icono Nube
+            '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 19c-3 0-5.5-2.5-5.5-5.5 0-3 2.5-5.5 5.5-5.5.3 0 .6 0 .9.1C17.1 5.4 14.5 3 11.5 3 8.2 3 5.5 5.7 5.5 9c0 .4 0 .8.1 1.1C3.2 10.7 1 13.1 1 16c0 3.3 2.7 6 6 6h10.5c2.5 0 4.5-2 4.5-4.5S20 13 17.5 13c-.1 0-.1 0-.2 0 .1-.2.2-.4.2-.5 0-1.9-1.6-3.5-3.5-3.5-1 0-1.9.4-2.5 1.1.6-1.1 1.8-1.9 3.2-1.9 2 0 3.7 1.5 3.9 3.5.1 0 .1 0 .2 0 1.9 0 3.5 1.6 3.5 3.5 0 1.9-1.6 3.5-3.5 3.5H17.5z"/></svg>',
+            // Icono Engranaje
+            '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.6 1.6 0 00.3 1.5l.3.3c.6.6.6 1.5 0 2.1l-.7.7c-.6.6-1.5.6-2.1 0l-.3-.3a1.6 1.6 0 00-1.5-.3 1.6 1.6 0 00-1.1 1.1l-.1.4c-.2.8-.9 1.4-1.7 1.4h-1c-.8 0-1.5-.6-1.7-1.4l-.1-.4a1.6 1.6 0 00-1.1-1.1 1.6 1.6 0 00-1.5.3l-.3.3c-.6.6-1.5.6-2.1 0l-.7-.7c-.6-.6-.6-1.5 0-2.1l.3-.3a1.6 1.6 0 00.3-1.5 1.6 1.6 0 00-1.1-1.1l-.4-.1c-.8-.2-1.4-.9-1.4-1.7v-1c0-.8.6-1.5 1.4-1.7l.4-.1a1.6 1.6 0 001.1-1.1 1.6 1.6 0 00-.3-1.5l-.3-.3c-.6-.6-.6-1.5 0-2.1l.7-.7c.6-.6 1.5-.6 2.1 0l.3.3a1.6 1.6 0 001.5.3 1.6 1.6 0 001.1-1.1l.1-.4c.2-.8.9-1.4 1.7-1.4h1c.8 0 1.5.6 1.7 1.4l.1.4a1.6 1.6 0 001.1 1.1 1.6 1.6 0 001.5-.3l.3-.3c.6-.6 1.5-.6 2.1 0l.7.7c.6.6.6 1.5 0 2.1l-.3.3a1.6 1.6 0 00-.3 1.5 1.6 1.6 0 001.1 1.1l.4.1c.8.2 1.4.9 1.4 1.7v1c0 .8-.6 1.5-1.4 1.7l-.4.1a1.6 1.6 0 00-1.1 1.1z"/></svg>'
+        ];
+
+        function createBackground() {
+            bg.innerHTML = '';
+            // Creamos 20 elementos para asegurar que llene pantallas grandes
+            for (let i = 0; i < 20; i++) {
+                const div = document.createElement('div');
+                div.className = 'element';
+                const isGear = Math.random() > 0.5;
+                div.innerHTML = isGear ? elements[1] : elements[0];
+                
+                // Posición aleatoria
+                div.style.left = Math.random() * 100 + '%';
+                div.style.top = Math.random() * 100 + '%';
+                
+                // Tamaño aleatorio
+                const size = 40 + Math.random() * 100;
+                div.style.width = size + 'px';
+                
+                // Animación aleatoria
+                const duration = 10 + Math.random() * 20;
+                const delay = Math.random() * -20;
+                div.style.animation = `${isGear ? 'rotate' : 'floatSide'} ${duration}s linear infinite ${delay}s`;
+                
+                bg.appendChild(div);
+            }
+        }
+
+        createBackground();
+        // Re-generar si cambian el tamaño de la ventana
+        window.addEventListener('resize', () => {
+            if(window.innerWidth > 1000) createBackground();
+        });
+    </script>
+</body>
+</html>

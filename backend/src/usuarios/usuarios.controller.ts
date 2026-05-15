@@ -54,6 +54,18 @@ export class UsuariosController {
     @Query('segmento_id') segmentoId: string,
     @Query('agrupar') agrupar: string = 'true',
   ) {
+    if (hoy !== 'true' && startDate && endDate) {
+      const inicio = new Date(startDate + 'T00:00:00');
+      const fin = new Date(endDate + 'T00:00:00');
+      const diffDias = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDias < 0)
+        throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin.');
+      if (diffDias > 31)
+        throw new BadRequestException(
+          `El rango máximo permitido es 31 días. Seleccionaste ${Math.round(diffDias)} días.`,
+        );
+    }
+
     return this.usuariosService.getReporteNovedades(
       hoy === 'true',
       company,
@@ -84,6 +96,11 @@ export class UsuariosController {
       );
     }
   }
+  @Get('buscar-cedula/:cedula')
+  async buscarPorCedula(@Param('cedula') cedula: string) {
+    return this.usuariosService.buscarPorCedula(cedula);
+  }
+
   @Get('apk-info') // <--- Ruta final
   getApkInfo() {
     // Aquí va la lógica que escribiste antes

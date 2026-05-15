@@ -9,12 +9,12 @@
       <!-- Logo -->
       <div class="relative h-16 flex items-center px-5 shrink-0 overflow-hidden">
         <div class="flex items-center group cursor-default">
-          <div class="w-1 h-5 bg-[#FF8F00] rounded-full group-hover:h-7 transition-all duration-300"></div>
+          <div class="w-1 h-5 bg-[#3B82F6] rounded-full group-hover:h-7 transition-all duration-300"></div>
           <div class="h-4 w-[1px] mx-3 opacity-20" :class="isDark ? 'bg-white' : 'bg-slate-900'"></div>
           <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in whitespace-nowrap">
             <span class="text-sm font-black tracking-tight uppercase transition-colors duration-300"
               :class="isDark ? 'text-white' : 'text-slate-900'">Woden</span>
-            <span class="ml-1 text-sm font-light tracking-widest text-[#FF8F00] uppercase">Track</span>
+            <span class="ml-1 text-sm font-light tracking-widest text-[#3B82F6] uppercase">Track</span>
           </div>
         </div>
         <div class="absolute bottom-0 left-4 right-4 h-[1px]"
@@ -32,11 +32,11 @@
             ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110"></i>
+            <i class="fas fa-user-check text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Asistencias</span>
           <div v-if="route.path === '/admin/asistencias'"
-            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
+            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.mallas']"
@@ -50,7 +50,7 @@
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue Mallas</span>
           <div v-if="route.path === '/admin/mallas'"
-            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
+            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.calculos']"
@@ -64,7 +64,21 @@
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
           <div v-if="route.path === '/admin/horas-extra'"
-            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
+            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+        </button>
+
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['horas.ver_cargue_ch']"
+          @click="router.push('/admin/cargue-horas-ch')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="route.path === '/admin/cargue-horas-ch'
+            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue HX</span>
+          <div v-if="route.path === '/admin/cargue-horas-ch'"
+            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
@@ -78,7 +92,7 @@
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Novedades</span>
           <div v-if="route.path.startsWith('/admin/novedades')"
-            class="absolute left-0 w-1 h-4 bg-[#FF8F00] rounded-r-full shadow-[0_0_8px_#FF8F00]"></div>
+            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
         </button>
 
       </nav>
@@ -88,26 +102,26 @@
         :class="isDark ? 'border-white/5' : 'border-slate-100'">
         <p v-if="isSidebarOpen" class="px-1 pt-2 text-[8px] font-black uppercase opacity-40 tracking-widest">Dev Nav</p>
         <button @click="router.push('/super-admin')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-shield-halved text-[#FF8F00] text-xs"></i>
+            <i class="fas fa-shield-halved text-[#3B82F6] text-xs"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Super Admin</span>
         </button>
         <button @click="router.push('/admin')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-user-shield text-[#FF8F00] text-xs"></i>
+            <i class="fas fa-user-shield text-[#3B82F6] text-xs"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Admin</span>
         </button>
         <button @click="router.push('/marcacion')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#FF8F00]/20"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
           :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-fingerprint text-[#FF8F00] text-xs"></i>
+            <i class="fas fa-fingerprint text-[#3B82F6] text-xs"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Marcación</span>
         </button>
@@ -116,11 +130,12 @@
       <!-- Acciones footer -->
       <div class="p-2 space-y-1 mt-auto border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
         <button @click="toggleTheme"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-orange-500 transition-all">
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-blue-500 transition-all">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-xs"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' : 'Oscuro' }}</span>
+          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' :
+            'Oscuro' }}</span>
         </button>
         <button @click="logout"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all">
@@ -148,8 +163,8 @@
             class="company-selector flex items-center gap-3 px-4 py-2 rounded-xl transition-all min-w-[320px] border"
             :class="isDark
               ? 'bg-[#0f172a] border-white/10 shadow-lg shadow-black/20'
-              : 'bg-slate-50 border-slate-200 shadow-inner hover:border-[#FF8F00]'">
-            <i class="fas fa-building text-[#FF8F00] text-xs"></i>
+              : 'bg-slate-50 border-slate-200 shadow-inner hover:border-[#3B82F6]'">
+            <i class="fas fa-building text-[#3B82F6] text-xs"></i>
             <select v-model="selectedCompany"
               class="flex-1 bg-transparent text-[11px] font-black uppercase outline-none cursor-pointer appearance-none transition-colors"
               :class="isDark ? 'text-white' : 'text-slate-800'">
@@ -176,15 +191,18 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-3 border-l border-slate-300 dark:border-white/10 pl-6">
+          <div class="flex items-center gap-2 border-l border-slate-300 dark:border-white/10 pl-6">
             <div class="text-right">
-              <p class="text-[9px] font-black text-[#FF8F00] tracking-widest leading-none">ADMIN</p>
-              <p class="text-[12px] font-bold leading-tight" :class="isDark ? 'text-white' : 'text-slate-800'">
-                {{ employee?.name }}
+              <p class="text-[11px] font-bold leading-none" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                ¡Hola,
+                <span class="text-[15px] font-black text-[#3B82F6]">
+                  {{employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase())}}
+                </span>!
               </p>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#FF8F00] to-orange-400 flex items-center justify-center text-white font-black shadow-lg shadow-orange-500/20">
-              {{ employee?.name?.charAt(0) }}
+              <p class="text-[9px] font-medium leading-tight mt-0.5"
+                :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                Administrador
+              </p>
             </div>
           </div>
         </div>
@@ -199,7 +217,7 @@
           <div class="text-center max-w-sm">
             <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
               :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
-              <i class="fas fa-wrench text-2xl text-[#FF8F00]"></i>
+              <i class="fas fa-wrench text-2xl text-[#3B82F6]"></i>
             </div>
             <h3 class="text-sm font-black uppercase tracking-tight mb-2"
               :class="isDark ? 'text-white' : 'text-slate-800'">Módulo en mantenimiento</h3>
@@ -216,17 +234,50 @@
 
       </div>
     </main>
+
+    <!-- Widget mensajes internos — deshabilitado temporalmente -->
+
+    <!-- ── Toast recordatorio automático ─────────────────────────────────────── -->
+    <transition name="fade">
+      <div v-if="toastRecordatorio" class="fixed top-5 right-5 z-50 w-80 rounded-2xl border shadow-2xl overflow-hidden"
+        :class="isDark ? 'bg-[#1e293b] border-violet-500/30' : 'bg-white border-violet-200'">
+        <div class="h-1 bg-gradient-to-r from-violet-500 to-blue-500"></div>
+        <div class="px-4 py-3 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
+            <i class="fas fa-bell text-violet-500 text-sm"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[10px] font-black uppercase tracking-wider text-violet-500 mb-0.5">
+              🔔 Recordatorio · {{ toastRecordatorio.hora }}
+            </div>
+            <div class="text-[11px] font-semibold mb-0.5" :class="isDark ? 'text-white' : 'text-slate-800'">
+              {{ toastRecordatorio.titulo }}
+            </div>
+            <div class="text-[10px] opacity-60 leading-relaxed" :class="isDark ? 'text-white' : 'text-slate-600'">
+              {{ toastRecordatorio.mensaje }}
+            </div>
+          </div>
+          <button @click="toastRecordatorio = null"
+            class="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-30 hover:opacity-70 transition-all"
+            :class="isDark ? 'text-white' : 'text-slate-500'">
+            <i class="fas fa-xmark text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+    </transition>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, provide } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, provide, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
+import { io } from 'socket.io-client';
 import '../assets/css/admin-style.css';
 
 const router = useRouter();
-const route  = useRoute();
+const route = useRoute();
 
 const {
   employee,
@@ -263,16 +314,78 @@ const moduloActivo = (key) => modulosConfig[`module_${key}_active`] === 'true';
 const moduleKeyFromRoute = computed(() => {
   const p = route.path;
   if (p.includes('/asistencias')) return 'asistencias';
-  if (p.includes('/mallas'))      return 'mallas';
+  if (p.includes('/mallas')) return 'mallas';
   if (p.includes('/horas-extra')) return 'calculos';
-  if (p.includes('/novedades'))   return 'novedades';
+  if (p.includes('/novedades')) return 'novedades';
   return null;
 });
 
+// ── WebSocket sesión interna ──────────────────────────────────────────────────
+const WS_URL = (API_URL || '').replace('/usuarios', '') || 'http://localhost:3000';
+let internoSocket = null;
+const mensajesNoLeidos = ref([]);
+const mostrarBandeja = ref(false);
+const socketConectado = ref(false);
+const toastRecordatorio = ref(null);
+let toastTimer = null;
+
+const conectarInterno = () => {
+  if (internoSocket) return;
+  const idOdoo = employee.value?.id_odoo;
+  const nombre = employee.value?.name;
+  if (!idOdoo) return;
+
+  internoSocket = io(`${WS_URL}/interno`, { transports: ['websocket'] });
+  internoSocket.on('connect', () => {
+    socketConectado.value = true;
+    internoSocket.emit('join', { idOdoo, nombre });
+  });
+  internoSocket.on('disconnect', () => { socketConectado.value = false; });
+  internoSocket.on('new-message', (msg) => {
+    if (msg.para_id_odoo === idOdoo || msg.para_id_odoo === null) {
+      mensajesNoLeidos.value.unshift(msg);
+    }
+  });
+  internoSocket.on('reminder', (data) => {
+    toastRecordatorio.value = data;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastRecordatorio.value = null; }, 8000);
+  });
+  internoSocket.on('force-disconnect', () => {
+    internoSocket.disconnect();
+    logout();
+  });
+};
+
+// Conectar en cuanto employee se cargue (watcher + fallback en onMounted)
+watch(() => employee.value?.id_odoo, (id) => { if (id) conectarInterno(); }, { immediate: true });
+
 onMounted(async () => {
+  // Fallback: si el watcher no alcanzó a disparar antes del mount
+  setTimeout(() => conectarInterno(), 1500);
+
   try {
     const res = await fetch(`${API_URL}/sistema-config`);
     if (res.ok) Object.assign(modulosConfig, await res.json());
-  } catch {}
+  } catch { }
+});
+
+onUnmounted(() => {
+  internoSocket?.disconnect();
+  clearTimeout(toastTimer);
 });
 </script>
+
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .2s, transform .2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>

@@ -24,7 +24,7 @@ export function useNovedades() {
     }
   };
 
-  // ─── POST crear novedad ───────────────────────────────────────────────────
+  // ─── POST crear novedad con múltiples archivos (PDF/imagen) ──────────────
   const crearNovedad = async (payload) => {
     try {
       loading.value = true;
@@ -37,17 +37,19 @@ export function useNovedades() {
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");
-      if (payload.soporte) fd.append("soporte", payload.soporte);
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
       fd.append("responsableCargo", payload.responsableCargo ?? "");
       if (payload.creadoPor != null) fd.append("creadoPor", payload.creadoPor);
 
+      // Múltiples archivos — field name: archivos
+      const archivos = Array.isArray(payload.archivos) ? payload.archivos : (payload.archivos ? [payload.archivos] : []);
+      for (const file of archivos) fd.append("archivos", file);
+
       const res = await axios.post(`${API_URL}/novedades`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      await fetchNovedades();
       return res.data;
     } catch (e) {
       console.error("Error al crear novedad:", e);
@@ -56,6 +58,10 @@ export function useNovedades() {
       loading.value = false;
     }
   };
+
+  // ─── GET archivos de una novedad ──────────────────────────────────────────
+  const getArchivoUrl = (novedadId, archivoId) =>
+    `${API_URL}/novedades/${novedadId}/archivos/${archivoId}/file`;
 
   // ─── GET mis novedades (historial del usuario) ────────────────────────────
   const misNovedades = ref([]);
@@ -112,7 +118,7 @@ export function useNovedades() {
     }
   };
 
-  // ─── GET URL archivo ──────────────────────────────────────────────────────
+  // ─── URL legacy (un solo archivo) ────────────────────────────────────────
   const getFileUrl = (id) => `${API_URL}/novedades/${id}/file`;
 
   // ─── DELETE ───────────────────────────────────────────────────────────────
@@ -177,6 +183,7 @@ export function useNovedades() {
     crearNovedad,
     fetchNovedad,
     getFileUrl,
+    getArchivoUrl,
     eliminarNovedad,
     aprobarJefe,
     aprobarRrhh,

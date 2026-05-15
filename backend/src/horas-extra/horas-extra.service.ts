@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HoraExtra } from './entities/hora-extra.entity';
+import { HoraExtraCargue } from './entities/hora-extra-cargue.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
@@ -55,6 +56,8 @@ export class HorasExtraService {
   constructor(
     @InjectRepository(HoraExtra)
     private readonly horaExtraRepo: Repository<HoraExtra>,
+    @InjectRepository(HoraExtraCargue)
+    private readonly cargueRepo: Repository<HoraExtraCargue>,
     @InjectRepository(MallaAsignacion)
     private readonly asignacionRepo: Repository<MallaAsignacion>,
     @InjectRepository(Usuario)
@@ -67,11 +70,22 @@ export class HorasExtraService {
     segmentoId?: number,
   ): Promise<number[] | null> {
     if (!areaId && !segmentoId) return null;
-    const where: any = {};
-    if (areaId) where.area_id = areaId;
-    if (segmentoId) where.segmento_id = segmentoId;
-    const usuarios = await this.usuarioRepo.find({ where, select: ['id_odoo'] });
-    return usuarios.map((u) => u.id_odoo).filter((id) => id != null);
+
+    // OR entre area y segmento: un empleado que coincida con cualquiera de los
+    // dos criterios es válido. Usar AND excluía empleados que solo tenían uno.
+    const conditions: any[] = [];
+    if (areaId) conditions.push({ area_id: areaId });
+    if (segmentoId) conditions.push({ segmento_id: segmentoId });
+
+    const usuarios = await this.usuarioRepo.find({
+      where: conditions,
+      select: ['id_odoo'],
+    });
+
+    const ids = [...new Set(
+      usuarios.map((u) => u.id_odoo).filter((id) => id != null),
+    )];
+    return ids;
   }
 
   private toLocal(utcDate: string): string | null {
@@ -133,10 +147,7 @@ export class HorasExtraService {
     return map;
   }
 
-  private resolverDetallesParaFecha(
-    asignaciones: any[],
-    fecha: string,
-  ): any[] {
+  private resolverDetallesParaFecha(asignaciones: any[], fecha: string): any[] {
     if (!asignaciones?.length) return [];
 
     const toStr = (v: any): string => {
@@ -153,9 +164,7 @@ export class HorasExtraService {
 
     if (vigente?.malla?.detalles?.length) return vigente.malla.detalles;
 
-    const anterior = asignaciones.find(
-      (a) => toStr(a.fecha_inicio) <= fecha,
-    );
+    const anterior = asignaciones.find((a) => toStr(a.fecha_inicio) <= fecha);
     return anterior?.malla?.detalles ?? [];
   }
 
@@ -173,8 +182,19 @@ export class HorasExtraService {
     localOut: string | null,
     turno: any | null,
     esFestivo: boolean,
-  ): Pick<HoraExtra, 'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'> {
-    const result = { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
+  ): Pick<
+    HoraExtra,
+    'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'
+  > {
+    const result = {
+      rn: 0,
+      rndf: 0,
+      rddf: 0,
+      hedo: 0,
+      heno: 0,
+      hefd: 0,
+      hefn: 0,
+    };
 
     if (!localIn || !localOut) return result;
 
@@ -216,8 +236,14 @@ export class HorasExtraService {
         result.hefn = toHex(minsNocturno(inMins, outMins));
       }
     } else {
-      // Día ordinario con malla
-      if (!turno) return result;
+      // Día ordinario sin malla → todas las horas son extra
+      if (!turno) {
+        result.hedo = toHex(minsDiurno(inMins, outMins));
+        result.heno = toHex(minsNocturno(inMins, outMins));
+        result.hedo = Math.round(result.hedo * 100) / 100;
+        result.heno = Math.round(result.heno * 100) / 100;
+        return result;
+      }
 
       const shiftStart = Number(turno.hora_inicio) * 60;
       const shiftEnd = Number(turno.hora_fin) * 60;
@@ -271,34 +297,143 @@ export class HorasExtraService {
     );
     if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
 
-    const domain: any[] = [];
-    if (inicioUTC) domain.push(['check_in', '>=', inicioUTC]);
-    if (finUTC) domain.push(['check_in', '<=', finUTC]);
+    // Dominio para hr.attendance
+    const domainAtt: any[] = [];
+    if (inicioUTC) domainAtt.push(['check_in', '>=', inicioUTC]);
+    if (finUTC) domainAtt.push(['check_in', '<=', finUTC]);
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
-      domain.push(['employee_id.company_id.name', '=', dto.company]);
+      domainAtt.push(['employee_id.company_id.name', '=', dto.company]);
     }
     if (idsPorEstructura && idsPorEstructura.length > 0) {
-      domain.push(['employee_id', 'in', idsPorEstructura]);
+      domainAtt.push(['employee_id', 'in', idsPorEstructura]);
     }
 
-    const attendances = await this.odoo.executeKw<any[]>(
-      'hr.attendance',
-      'search_read',
-      [domain],
-      {
-        fields: ['employee_id', 'check_in', 'check_out', 'department_id'],
-        limit: 30000000,
-        order: 'check_in asc',
-      },
-      uid,
-    );
+    // Dominio para attendance.log (biométrico / app)
+    const domainLog: any[] = [];
+    if (inicioUTC) domainLog.push(['punching_time', '>=', inicioUTC]);
+    if (finUTC) domainLog.push(['punching_time', '<=', finUTC]);
+    if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+      domainLog.push(['company_id.name', '=', dto.company]);
+    }
+    if (idsPorEstructura && idsPorEstructura.length > 0) {
+      domainLog.push(['employee_id', 'in', idsPorEstructura]);
+    }
 
-    if (!attendances.length) return [];
+    // Consultar ambos modelos en paralelo
+    const [attendances, logs] = await Promise.all([
+      this.odoo.executeKw<any[]>(
+        'hr.attendance',
+        'search_read',
+        [domainAtt],
+        {
+          fields: ['employee_id', 'check_in', 'check_out', 'department_id'],
+          limit: 30000000,
+          order: 'check_in asc',
+        },
+        uid,
+      ),
+      this.odoo.executeKw<any[]>(
+        'attendance.log',
+        'search_read',
+        [domainLog],
+        {
+          fields: ['employee_id', 'punching_time', 'x_studio_related_field_j40wn'],
+          limit: 30000000,
+          order: 'punching_time asc',
+        },
+        uid,
+      ),
+    ]);
+
+    if (!attendances.length && !logs.length) return [];
+
+    // Agrupar hr.attendance por empId+fecha
+    const grupos: Record<
+      string,
+      {
+        empId: number;
+        nombre: string;
+        dept: string;
+        fecha: string;
+        records: any[];
+      }
+    > = {};
+
+    for (const att of attendances) {
+      const empId = att.employee_id?.[0];
+      const nombre = att.employee_id?.[1] || 'Desconocido';
+      const localIn = this.toLocal(att.check_in);
+      const fecha = localIn ? localIn.split(' ')[0] : null;
+      if (!fecha || !empId) continue;
+
+      const key = `${empId}_${fecha}`;
+      if (!grupos[key]) {
+        grupos[key] = {
+          empId,
+          nombre,
+          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+          fecha,
+          records: [],
+        };
+      }
+      grupos[key].records.push(att);
+    }
+
+    // Agregar registros de attendance.log para empleados/días no cubiertos por hr.attendance
+    // Agrupar punches por empId+fecha
+    const idsPermitidos = idsPorEstructura ? new Set(idsPorEstructura) : null;
+
+    const logGrupos: Record<string, { empId: number; nombre: string; dept: string; fecha: string; punches: any[] }> = {};
+    for (const log of logs) {
+      const empId = log.employee_id?.[0];
+      const nombre = log.employee_id?.[1] || 'Desconocido';
+      const localTime = this.toLocal(log.punching_time);
+      const fecha = localTime ? localTime.split(' ')[0] : null;
+      if (!fecha || !empId) continue;
+
+      // Filtro de seguridad: si Odoo no aplicó bien el dominio, lo hacemos aquí
+      if (idsPermitidos && !idsPermitidos.has(empId)) continue;
+
+      const key = `${empId}_${fecha}`;
+      if (grupos[key]) continue; // ya cubierto por hr.attendance
+
+      if (!logGrupos[key]) {
+        const dept = log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+        logGrupos[key] = { empId, nombre, dept, fecha, punches: [] };
+      }
+      logGrupos[key].punches.push(log);
+    }
+
+    // Convertir grupos de attendance.log a registros sintéticos compatibles
+    for (const g of Object.values(logGrupos)) {
+      const sorted = g.punches.sort(
+        (a, b) => new Date(a.punching_time).getTime() - new Date(b.punching_time).getTime(),
+      );
+      const primero = sorted[0];
+      const ultimo = sorted[sorted.length - 1];
+      const haySalida =
+        sorted.length > 1 &&
+        new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime() >= 60_000;
+
+      const key = `${g.empId}_${g.fecha}`;
+      grupos[key] = {
+        empId: g.empId,
+        nombre: g.nombre,
+        dept: g.dept,
+        fecha: g.fecha,
+        records: [
+          {
+            employee_id: [g.empId, g.nombre],
+            check_in: primero.punching_time,
+            check_out: haySalida ? ultimo.punching_time : null,
+            department_id: null,
+          },
+        ],
+      };
+    }
 
     const empIds = [
-      ...new Set(
-        attendances.map((a) => a.employee_id?.[0]).filter(Boolean),
-      ),
+      ...new Set(Object.values(grupos).map((g) => g.empId).filter(Boolean)),
     ] as number[];
 
     const empleados = await this.odoo.executeKw<any[]>(
@@ -322,7 +457,9 @@ export class HorasExtraService {
       ? await this.usuarioRepo
           .createQueryBuilder('u')
           .select(['u.identificacion', 'u.cargo'])
-          .where('u.identificacion IN (:...ids)', { ids: cedulas.slice(0, 500) })
+          .where('u.identificacion IN (:...ids)', {
+            ids: cedulas.slice(0, 500),
+          })
           .getMany()
       : [];
     const cargoLocalMap = new Map(
@@ -330,31 +467,6 @@ export class HorasExtraService {
     );
 
     const mallasMap = await this.getMallasMap(empIds);
-
-    const grupos: Record<
-      string,
-      { empId: number; nombre: string; dept: string; fecha: string; records: any[] }
-    > = {};
-
-    for (const att of attendances) {
-      const empId = att.employee_id?.[0];
-      const nombre = att.employee_id?.[1] || 'Desconocido';
-      const localIn = this.toLocal(att.check_in);
-      const fecha = localIn ? localIn.split(' ')[0] : null;
-      if (!fecha || !empId) continue;
-
-      const key = `${empId}_${fecha}`;
-      if (!grupos[key]) {
-        grupos[key] = {
-          empId,
-          nombre,
-          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-          fecha,
-          records: [],
-        };
-      }
-      grupos[key].records.push(att);
-    }
 
     const resultados: HoraExtra[] = [];
 
@@ -390,7 +502,9 @@ export class HorasExtraService {
       const diaSemana = this.getDiaSemana(fecha);
       const turnoDetalles = detalles
         .filter((d: any) => Number(d.dia_semana) === diaSemana)
-        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
+        .sort(
+          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+        );
 
       const turno = turnoDetalles[0] ?? null;
       const cedula = cedulaMap.get(empId) ?? 'N/A';
@@ -427,7 +541,9 @@ export class HorasExtraService {
         calculado_por: dto.calculado_por ?? null,
         es_dominical: esDominical,
         aprobado: null,
-        inicio_turno: turno ? this.decimalToHora(Number(turno.hora_inicio)) : null,
+        inicio_turno: turno
+          ? this.decimalToHora(Number(turno.hora_inicio))
+          : null,
         fin_turno: turno ? this.decimalToHora(Number(turno.hora_fin)) : null,
         // Legacy (entrada anticipada: solo si hay hedo puro antes del turno)
         inicio_extra_entrada: null,
@@ -518,20 +634,22 @@ export class HorasExtraService {
         '(h.hedo > 0 OR h.heno > 0 OR h.hefd > 0 OR h.hefn > 0 OR h.total_minutos_extra > 0)',
       );
 
-    // Filtro por estructura (área/segmento) → busca cédulas locales
+    // Filtro por estructura (área/segmento) → OR entre ambos criterios
     if (filters.area_id || filters.segmento_id) {
-      const where: any = {};
-      if (filters.area_id) where.area_id = filters.area_id;
-      if (filters.segmento_id) where.segmento_id = filters.segmento_id;
+      const conditions: any[] = [];
+      if (filters.area_id) conditions.push({ area_id: filters.area_id });
+      if (filters.segmento_id) conditions.push({ segmento_id: filters.segmento_id });
       const usuarios = await this.usuarioRepo.find({
-        where,
+        where: conditions,
         select: ['identificacion'],
       });
-      const cedulas = usuarios
-        .map((u) => u.identificacion)
-        .filter(Boolean);
+      const cedulas = [...new Set(
+        usuarios.map((u) => u.identificacion).filter(Boolean),
+      )];
       if (!cedulas.length) return [];
-      qb.andWhere('h.cedula IN (:...cedulas)', { cedulas: cedulas.slice(0, 500) });
+      qb.andWhere('h.cedula IN (:...cedulas)', {
+        cedulas: cedulas.slice(0, 500),
+      });
     }
 
     return qb.getMany();
@@ -565,9 +683,16 @@ export class HorasExtraService {
     return { updated: result.affected ?? 0 };
   }
 
-  async aprobarRegistro(id: number, aprobado: boolean | null): Promise<HoraExtra | null> {
+  async aprobarRegistro(
+    id: number,
+    aprobado: boolean | null,
+  ): Promise<HoraExtra | null> {
     await this.horaExtraRepo.update(id, { aprobado });
     return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async exportarCalculado(registros: any[]): Promise<Buffer> {
+    return this._generarExcelDesdeRegistros(registros);
   }
 
   async exportarExcel(filters: {
@@ -580,7 +705,14 @@ export class HorasExtraService {
     area_id?: number;
     segmento_id?: number;
   }): Promise<Buffer> {
-    const registros = await this.getHistorial({ ...filters, soloConExtras: false });
+    const registros = await this.getHistorial({
+      ...filters,
+      soloConExtras: false,
+    });
+    return this._generarExcelDesdeRegistros(registros);
+  }
+
+  private async _generarExcelDesdeRegistros(registros: any[]): Promise<Buffer> {
 
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Reporte HX');
@@ -589,12 +721,16 @@ export class HorasExtraService {
     const COLS = 14; // A-N (sin APROBAR en el Excel)
 
     const fillColor = (argb: string): ExcelJS.Fill => ({
-      type: 'pattern', pattern: 'solid', fgColor: { argb },
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb },
     });
 
     const borderThin: ExcelJS.Borders = {
-      top: { style: 'thin' }, left: { style: 'thin' },
-      bottom: { style: 'thin' }, right: { style: 'thin' },
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' },
       diagonal: { style: 'thin', up: false, down: false },
     };
 
@@ -608,7 +744,9 @@ export class HorasExtraService {
 
     // ── Anchos de columna ──────────────────────────────────────────────────
     const colWidths = [15, 32, 12, 11, 11, 11, 11, 7, 7, 7, 7, 7, 7, 7];
-    colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    colWidths.forEach((w, i) => {
+      ws.getColumn(i + 1).width = w;
+    });
 
     // ── Cabecera global (filas 1-2) ────────────────────────────────────────
     const encabezadosFila1 = [
@@ -623,7 +761,10 @@ export class HorasExtraService {
       cell.value = label;
       cell.fill = fillColor('FF334155');
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-      cell.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
+      cell.alignment = {
+        horizontal: 'center' as const,
+        vertical: 'middle' as const,
+      };
       cell.border = borderThin;
     });
 
@@ -632,12 +773,29 @@ export class HorasExtraService {
       cell.value = ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN'][i];
       cell.fill = fillColor('FF334155');
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-      cell.alignment = { horizontal: 'center' as const, vertical: 'middle' as const };
+      cell.alignment = {
+        horizontal: 'center' as const,
+        vertical: 'middle' as const,
+      };
       cell.border = borderThin;
     });
 
-    const subHeaders = ['Cédula', 'Nombre', 'Fecha', 'Hora Inicial', 'Hora Final',
-                        'Hora Inicial', 'Hora Final', '0', '0', '0', '0', '0', '0', '0'];
+    const subHeaders = [
+      'Cédula',
+      'Nombre',
+      'Fecha',
+      'Hora Inicial',
+      'Hora Final',
+      'Hora Inicial',
+      'Hora Final',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+    ];
     subHeaders.forEach((v, i) => {
       const cell = ws.getCell(2, i + 1);
       cell.value = v;
@@ -660,7 +818,7 @@ export class HorasExtraService {
     });
 
     // Agrupar: empresa → colaborador → filas
-    const empresas = new Map<string, Map<string, HoraExtra[]>>();
+    const empresas = new Map<string, Map<string, any[]>>();
     for (const r of sorted) {
       const emp = r.company ?? 'SIN EMPRESA';
       const colab = `${r.cedula}__${r.nombre}`;
@@ -672,7 +830,15 @@ export class HorasExtraService {
 
     let rowIdx = 3;
     const numFmt = '0.00';
-    const COLS_HX = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'] as const;
+    const COLS_HX = [
+      'rn',
+      'rndf',
+      'rddf',
+      'hedo',
+      'heno',
+      'hefd',
+      'hefn',
+    ] as const;
 
     for (const [empresa, colabMap] of empresas) {
       // ── Fila de empresa ──────────────────────────────────────────────────
@@ -680,8 +846,16 @@ export class HorasExtraService {
       const empCell = ws.getCell(rowIdx, 1);
       empCell.value = empresa.toUpperCase();
       empCell.fill = fillColor('FF1E293B');
-      empCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9, italic: true };
-      empCell.alignment = { horizontal: 'left' as const, vertical: 'middle' as const };
+      empCell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' },
+        size: 9,
+        italic: true,
+      };
+      empCell.alignment = {
+        horizontal: 'left' as const,
+        vertical: 'middle' as const,
+      };
       empCell.border = borderThin;
       ws.getRow(rowIdx).height = 14;
       rowIdx++;
@@ -690,21 +864,39 @@ export class HorasExtraService {
         // ── Filas de datos ───────────────────────────────────────────────
         filas.forEach((r, fi) => {
           const row = ws.getRow(rowIdx);
-          const fechaDisplay = r.fecha ? r.fecha.split('-').reverse().join('/') : '';
-          const horaEntrada = r.fecha_entrada
-            ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '') : '';
-          const horaSalida = r.fecha_salida
-            ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '') : '';
+          const fechaDisplay = r.fecha
+            ? r.fecha.split('-').reverse().join('/')
+            : '';
+          const horaEntrada = r.hora_inicio_laborado
+            ? r.hora_inicio_laborado.slice(0, 5)
+            : r.fecha_entrada
+              ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '')
+              : '';
+          const horaSalida = r.hora_fin_laborado
+            ? r.hora_fin_laborado.slice(0, 5)
+            : r.fecha_salida
+              ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '')
+              : '';
 
           const values = [
-            r.cedula, r.nombre, fechaDisplay,
-            r.inicio_turno ?? '', r.fin_turno ?? '',
-            horaEntrada, horaSalida,
-            Number(r.rn) || 0, Number(r.rndf) || 0, Number(r.rddf) || 0,
-            Number(r.hedo) || 0, Number(r.heno) || 0,
-            Number(r.hefd) || 0, Number(r.hefn) || 0,
+            r.cedula,
+            r.nombre,
+            fechaDisplay,
+            r.inicio_turno ?? '',
+            r.fin_turno ?? '',
+            horaEntrada,
+            horaSalida,
+            Number(r.rn) || 0,
+            Number(r.rndf) || 0,
+            Number(r.rddf) || 0,
+            Number(r.hedo) || 0,
+            Number(r.heno) || 0,
+            Number(r.hefd) || 0,
+            Number(r.hefn) || 0,
           ];
-          values.forEach((v, ci) => { row.getCell(ci + 1).value = v as any; });
+          values.forEach((v, ci) => {
+            row.getCell(ci + 1).value = v as any;
+          });
 
           // Formato numérico cols HX
           for (let c = 8; c <= 14; c++) row.getCell(c).numFmt = numFmt;
@@ -777,12 +969,197 @@ export class HorasExtraService {
         size: 8,
         color: { argb: texto === '' ? 'FFFFFFFF' : 'FF334155' },
       };
-      cell.alignment = { horizontal: 'left' as const, vertical: 'middle' as const, wrapText: true };
+      cell.alignment = {
+        horizontal: 'left' as const,
+        vertical: 'middle' as const,
+        wrapText: true,
+      };
       ws.getRow(rowIdx).height = isNota ? 24 : 13;
       rowIdx++;
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // CARGUE MANUAL DE HORAS EXTRA DESDE EXCEL
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  async generarPlantillaCargue(): Promise<Buffer> {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Cargue Horas Extra');
+
+    ws.columns = [
+      { header: 'CÉDULA', key: 'cedula', width: 15 },
+      { header: 'NOMBRE', key: 'nombre', width: 30 },
+      { header: 'FECHA (YYYY-MM-DD)', key: 'fecha', width: 20 },
+      { header: 'HORA INI. JORNADA', key: 'inicio_turno', width: 18 },
+      { header: 'HORA FIN JORNADA', key: 'fin_turno', width: 18 },
+      { header: 'HORA INI. LABORADO', key: 'hora_inicio_laborado', width: 20 },
+      { header: 'HORA FIN LABORADO', key: 'hora_fin_laborado', width: 20 },
+      { header: 'RN', key: 'rn', width: 8 },
+      { header: 'RNDF', key: 'rndf', width: 8 },
+      { header: 'RDDF', key: 'rddf', width: 8 },
+      { header: 'HEDO', key: 'hedo', width: 8 },
+      { header: 'HENO', key: 'heno', width: 8 },
+      { header: 'HEFD', key: 'hefd', width: 8 },
+      { header: 'HEFN', key: 'hefn', width: 8 },
+    ];
+
+    const headerRow = ws.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF334155' },
+      };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        bottom: { style: 'thin', color: { argb: 'FFFF8F00' } },
+      };
+    });
+    headerRow.height = 22;
+
+    // Fila de ejemplo
+    const exRow = ws.addRow([
+      '1003618766',
+      'EJEMPLO COLABORADOR',
+      '2026-04-28',
+      '07:00',
+      '17:00',
+      '05:56',
+      '22:06',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+    ]);
+    exRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFF8E1' },
+      };
+      cell.font = { italic: true, size: 9, color: { argb: 'FF78716C' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    return Buffer.from(buf);
+  }
+
+  async procesarCargueExcel(
+    fileBuffer: any,
+    meta: {
+      company?: string;
+      departamento?: string;
+      area_id?: number;
+      segmento_id?: number;
+      cargado_por?: string;
+    },
+  ): Promise<{ guardados: number; errores: string[] }> {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(fileBuffer);
+    const ws = wb.worksheets[0];
+
+    const registros: HoraExtraCargue[] = [];
+    const errores: string[] = [];
+
+    const parseNum = (val: any): number => {
+      const n = parseFloat(String(val ?? '0').replace(',', '.'));
+      return isNaN(n) ? 0 : n;
+    };
+
+    const parseText = (val: any): string | null => {
+      const t = String(val ?? '').trim();
+      return t === '' || t === 'null' || t === 'undefined' ? null : t;
+    };
+
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // encabezado
+
+      const nombre = parseText(row.getCell(2).value);
+      const fecha = parseText(row.getCell(3).value);
+
+      if (!nombre || !fecha) {
+        errores.push(`Fila ${rowNumber}: Nombre y Fecha son obligatorios`);
+        return;
+      }
+
+      // Validar formato de fecha
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+        errores.push(
+          `Fila ${rowNumber}: Fecha "${fecha}" no tiene formato YYYY-MM-DD`,
+        );
+        return;
+      }
+
+      const reg = this.cargueRepo.create({
+        cedula: parseText(row.getCell(1).value),
+        nombre,
+        fecha,
+        inicio_turno: parseText(row.getCell(4).value),
+        fin_turno: parseText(row.getCell(5).value),
+        hora_inicio_laborado: parseText(row.getCell(6).value),
+        hora_fin_laborado: parseText(row.getCell(7).value),
+        rn: parseNum(row.getCell(8).value),
+        rndf: parseNum(row.getCell(9).value),
+        rddf: parseNum(row.getCell(10).value),
+        hedo: parseNum(row.getCell(11).value),
+        heno: parseNum(row.getCell(12).value),
+        hefd: parseNum(row.getCell(13).value),
+        hefn: parseNum(row.getCell(14).value),
+        company: meta.company ?? null,
+        departamento: meta.departamento ?? null,
+        area_id: meta.area_id ?? null,
+        segmento_id: meta.segmento_id ?? null,
+        cargado_por: meta.cargado_por ?? null,
+        aprobado: null,
+      });
+
+      registros.push(reg);
+    });
+
+    if (registros.length > 0) {
+      // Guardar en lotes de 100
+      for (let i = 0; i < registros.length; i += 100) {
+        await this.cargueRepo.save(registros.slice(i, i + 100));
+      }
+    }
+
+    return { guardados: registros.length, errores };
+  }
+
+  async getHistorialCargue(filters: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    departamento?: string;
+    area_id?: number;
+    segmento_id?: number;
+  }): Promise<HoraExtraCargue[]> {
+    const qb = this.cargueRepo.createQueryBuilder('c');
+
+    if (filters.startDate)
+      qb.andWhere('c.fecha >= :s', { s: filters.startDate });
+    if (filters.endDate) qb.andWhere('c.fecha <= :e', { e: filters.endDate });
+    if (filters.company)
+      qb.andWhere('c.company = :co', { co: filters.company });
+    if (filters.departamento)
+      qb.andWhere('c.departamento LIKE :d', { d: `%${filters.departamento}%` });
+    if (filters.area_id) qb.andWhere('c.area_id = :a', { a: filters.area_id });
+    if (filters.segmento_id)
+      qb.andWhere('c.segmento_id = :sg', { sg: filters.segmento_id });
+
+    return qb.orderBy('c.nombre', 'ASC').addOrderBy('c.fecha', 'ASC').getMany();
+  }
+
+  async aprobarCargue(id: number, aprobado: boolean | null): Promise<void> {
+    await this.cargueRepo.update(id, { aprobado });
   }
 }

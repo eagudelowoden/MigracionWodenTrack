@@ -55,7 +55,7 @@ export function useNovedades() {
     }
   };
 
-  // ─── POST crear novedad con soporte (multipart/form-data) ─────────────────
+  // ─── POST crear novedad con múltiples archivos (PDF/imagen) ──────────────
   const crearNovedad = async (payload) => {
     try {
       loading.value = true;
@@ -64,16 +64,18 @@ export function useNovedades() {
       fd.append("nombre", payload.nombre);
       fd.append("cedula", payload.cedula);
       fd.append("descripcion", payload.descripcion);
-      fd.append("tipificacion", payload.tipificacion);
+      fd.append("tipificacion", payload.tipificacion ?? "");
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       fd.append("storageMode", payload.storageMode || "local");
-      if (payload.soporte) {
-        fd.append("soporte", payload.soporte);
-      }
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
       fd.append("responsableCargo", payload.responsableCargo ?? "");
+      if (payload.creadoPor != null) fd.append("creadoPor", payload.creadoPor);
+
+      // Múltiples archivos — field name: archivos
+      const archivos = Array.isArray(payload.archivos) ? payload.archivos : (payload.archivos ? [payload.archivos] : []);
+      for (const file of archivos) fd.append("archivos", file);
 
       const res = await axios.post(`${API_URL}/novedades`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -87,6 +89,37 @@ export function useNovedades() {
     } finally {
       loading.value = false;
     }
+  };
+
+  // ─── GET archivos de una novedad ──────────────────────────────────────────
+  const getArchivos = async (novedadId) => {
+    try {
+      const res = await axios.get(`${API_URL}/novedades/${novedadId}/archivos`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando archivos:", e);
+      return [];
+    }
+  };
+
+  // ─── POST subir archivos a novedad existente ──────────────────────────────
+  const subirArchivos = async (novedadId, files) => {
+    const fd = new FormData();
+    const lista = Array.isArray(files) ? files : [files];
+    for (const f of lista) fd.append("archivos", f);
+    const res = await axios.post(`${API_URL}/novedades/${novedadId}/archivos`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  };
+
+  // ─── URL de un archivo adjunto ────────────────────────────────────────────
+  const getArchivoUrl = (novedadId, archivoId) =>
+    `${API_URL}/novedades/${novedadId}/archivos/${archivoId}/file`;
+
+  // ─── DELETE archivo adjunto ───────────────────────────────────────────────
+  const eliminarArchivo = async (novedadId, archivoId) => {
+    await axios.delete(`${API_URL}/novedades/${novedadId}/archivos/${archivoId}`);
   };
 
   // ─── GET detalle de una novedad (incluye fileUrl firmada o local) ─────────
@@ -193,6 +226,20 @@ export function useNovedades() {
       novedades.value = Array.isArray(res.data) ? res.data : [];
     } catch (e) {
       console.error("Error cargando novedades por segmento:", e);
+      novedades.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // ─── MI SEGMENTO: todos en el segmento del coordinador (sin ser responsable) ─
+  const fetchPorMiSegmento = async (idOdoo) => {
+    try {
+      loading.value = true;
+      const res = await axios.get(`${API_URL}/novedades/por-mi-segmento`, { params: { idOdoo } });
+      novedades.value = Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      console.error("Error cargando novedades por mi segmento:", e);
       novedades.value = [];
     } finally {
       loading.value = false;
@@ -311,7 +358,13 @@ export function useNovedades() {
     fetchJefeDeArea,
     fetchPorArea,
     fetchPorSegmento,
+    fetchPorMiSegmento,
     fetchPorDepartamentos,
+    // Archivos adjuntos
+    getArchivos,
+    subirArchivos,
+    getArchivoUrl,
+    eliminarArchivo,
     // Carpetas personalizadas
     estadosCh,
     fetchEstadosCh,

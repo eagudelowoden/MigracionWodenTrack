@@ -12,6 +12,7 @@ import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
 import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { SistemaConfig } from '../sistema-config/entities/sistema-config.entity';
+import { HoraExtraCargue } from '../horas-extra/entities/hora-extra-cargue.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -39,6 +40,7 @@ export const getDatabaseConfig = (
       MallaDetalle,
       MallaAsignacion,
       SistemaConfig,
+      HoraExtraCargue,
     ],
     autoLoadEntities: true,
     synchronize: true,

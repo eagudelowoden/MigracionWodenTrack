@@ -96,6 +96,9 @@ const cargarAnuncioActivo = async () => {
 
 
 const setupSockets = () => {
+  // Cuando el socket reconecta (backend reinició y está listo) → verificar versión de inmediato
+  socket.on('connect', verificarVersion);
+
   socket.on('onNotification', (data) => {
     if (data.is_active === false) {
       anuncioSuperior.value = null;
@@ -110,7 +113,9 @@ const setupSockets = () => {
     }
   });
 };
-// --- 🟢 LÓGICA DE VERSIÓN (HTTP POLLING) ---
+// --- 🟢 LÓGICA DE VERSIÓN ---
+let _retryTimeout = null;
+
 const verificarVersion = async () => {
   try {
     const res = await fetch(`${API_BASE}/version?t=${Date.now()}`);
@@ -123,11 +128,15 @@ const verificarVersion = async () => {
     const versionGuardada = localStorage.getItem('app_version');
 
     if (versionGuardada && versionServidor !== versionGuardada) {
-      nuevaActualizacion.value = true; // El bloqueo solo ocurre si cambia el archivo version.json
+      nuevaActualizacion.value = true;
     } else if (!versionGuardada) {
       localStorage.setItem('app_version', versionServidor);
     }
-  } catch (e) { console.error("Error versión"); }
+  } catch {
+    // Backend posiblemente reiniciando → reintentar en 5 s
+    clearTimeout(_retryTimeout);
+    _retryTimeout = setTimeout(verificarVersion, 5000);
+  }
 };
 
 const recargarPagina = async () => {
@@ -138,13 +147,18 @@ const recargarPagina = async () => {
     localStorage.removeItem('user_session');
     localStorage.removeItem('token');
     window.location.href = '/login';
-  } catch (e) { window.location.reload(true); }
+  } catch { window.location.reload(true); }
 };
 
 onMounted(() => {
-  cargarAnuncioActivo(); // 👈 Carga el activo al entrar
+  cargarAnuncioActivo();
   verificarVersion();
-  setupSockets(); // ✅ ahora existe
-  setInterval(verificarVersion, 60000);
+  setupSockets();
+  // Reducido de 60 s a 20 s como respaldo del socket
+  setInterval(verificarVersion, 20000);
+  // Verificar al volver a la pestaña
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') verificarVersion();
+  });
 });
 </script>

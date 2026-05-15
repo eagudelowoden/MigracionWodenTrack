@@ -8,13 +8,13 @@
 
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-9 h-9 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-amber-500/25">
+          class="flex-shrink-0 w-9 h-9 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-500/25">
           <i class="fas fa-calendar-check text-sm"></i>
         </div>
         <div class="leading-tight">
           <h2 class="text-base font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Asignación
             de Mallas</h2>
-          <p class="text-[9px] text-amber-600 dark:text-amber-500 font-black uppercase tracking-[0.15em]">Horarios
+          <p class="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-[0.15em]">Horarios
             Colaboradores</p>
         </div>
       </div>
@@ -38,31 +38,37 @@
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
             class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 md:w-52 transition-all shadow-sm"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-amber-500' : 'bg-white border-slate-200 text-slate-700 focus:border-amber-500'" />
+            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-400'" />
         </div>
 
         <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
           <button @click="fetchMallasDesdeOdoo" class="p-2 rounded-lg transition-all"
-            :class="isDark ? 'text-slate-400 hover:text-amber-400' : 'text-slate-500 hover:text-amber-500'"
+            :class="isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-500'"
             title="Refrescar">
             <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoadingMallas }"></i>
           </button>
 
           <button @click="downloadMallaTemplate"
-            class="p-2 rounded-lg bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
             title="Descargar Plantilla">
-            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-sm"></i>
+            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <span>Plantilla</span>
           </button>
 
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
-          <label for="fileInputMallas"
-            class="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-amber-500 text-white text-[10px] font-black uppercase rounded-lg cursor-pointer hover:opacity-90 transition-all active:scale-95 shadow-md"
-            :class="{ 'opacity-50 pointer-events-none': isUploading }">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-            <span>{{ isUploading ? 'Cargando...' : 'Subir' }}</span>
-          </label>
-
+          <button @click="intentarCargar" :disabled="isUploading"
+            class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase rounded-full transition-all active:scale-95 disabled:opacity-50"
+            :class="isUploading
+              ? 'bg-[#3B82F6] text-white'
+              : !carguePermitido
+                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
+                : 'bg-[#3B82F6] text-white hover:bg-blue-600'"
+            :title="!carguePermitido ? 'Fuera de ventana de cargue — haz clic para solicitar apertura' : 'Subir archivo de mallas'">
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')"
+              class="text-[10px]"></i>
+            <span>{{ isUploading ? 'Cargando...' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -118,7 +124,7 @@
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span class="text-[11px] font-mono tracking-wide"
                   :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
-                  persona.cc || '—' }}</span>
+                    persona.cc || '—' }}</span>
               </td>
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
                 <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border"
@@ -169,6 +175,60 @@
       </div>
     </div>
 
+    <!-- Modal: fuera de fecha de cargue -->
+    <Transition name="fade">
+      <div v-if="showSolicitudModal"
+        class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
+          :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="px-5 py-4 border-b flex items-center gap-3"
+            :class="isDark ? 'border-white/8 bg-amber-500/8' : 'border-amber-100 bg-amber-50'">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <i class="fas fa-calendar-xmark text-amber-400 text-lg"></i>
+            </div>
+            <div>
+              <h3 class="text-[13px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Fuera de fecha de cargue
+              </h3>
+              <p class="text-[9px] mt-0.5" :class="isDark ? 'text-white/40' : 'text-slate-500'">
+                No hay una ventana de cargue activa para hoy
+              </p>
+            </div>
+          </div>
+
+          <div class="p-5 space-y-3">
+            <p class="text-[10px] leading-relaxed" :class="isDark ? 'text-white/60' : 'text-slate-600'">
+              El administrador ha programado fechas específicas para el cargue de mallas.
+              <span v-if="proximaFechaHabilitada" class="font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                La próxima fecha habilitada es el <em>{{ proximaFechaHabilitada }}</em>.
+              </span>
+            </p>
+
+            <!-- Nota informativa -->
+            <div class="flex items-start gap-2 p-3 rounded-xl text-[9px]"
+              :class="isDark ? 'bg-white/4 border border-white/8 text-white/40' : 'bg-slate-50 border border-slate-200 text-slate-500'">
+              <i class="fas fa-circle-info mt-0.5 shrink-0"></i>
+              Puedes enviar una solicitud de apertura al Super Admin si necesitas cargar mallas hoy.
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button @click="crearSolicitud()"
+                class="flex-1 h-9 rounded-xl text-[10px] font-black uppercase tracking-wide bg-amber-500 text-white hover:bg-amber-400 transition-all flex items-center justify-center gap-1.5">
+                <i class="fas fa-paper-plane text-[9px]"></i> Solicitar apertura
+              </button>
+              <button @click="showSolicitudModal = false"
+                class="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all"
+                :class="isDark ? 'bg-white/5 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal elección -->
     <div v-show="showChoiceModal"
       class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
@@ -177,7 +237,7 @@
         <div class="px-6 pt-6 pb-4">
           <div class="flex items-center gap-3 mb-1">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-              :class="isDark ? 'bg-amber-500/15' : 'bg-amber-50'">
+              :class="isDark ? 'bg-[#3B82F6]/15' : 'bg-amber-50'">
               <i class="fas fa-file-excel text-amber-500 text-base"></i>
             </div>
             <div>
@@ -198,7 +258,7 @@
         <div class="px-6 pb-6 flex flex-col gap-2">
           <button @click="openPreview"
             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all"
-            :class="isDark ? 'border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400' : 'border-amber-400/50 bg-amber-50 hover:bg-amber-100 text-amber-700'">
+            :class="isDark ? 'border-amber-500/40 bg-[#3B82F6]/10 hover:bg-[#3B82F6]/20 text-amber-400' : 'border-amber-400/50 bg-amber-50 hover:bg-amber-100 text-amber-700'">
             <i class="fas fa-eye text-lg"></i>
             <div class="text-left">
               <p class="text-[12px] font-bold">Vista Previa</p>
@@ -263,7 +323,7 @@
           <button @click="cancelAll" class="px-4 py-2 rounded-xl text-[11px] font-bold uppercase border transition-all"
             :class="isDark ? 'border-white/15 text-slate-300' : 'border-slate-200 text-slate-600'">Cancelar</button>
           <button @click="confirmUpload"
-            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center gap-2">
+            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-[#3B82F6] text-white hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center gap-2">
             <i class="fas fa-cloud-arrow-up text-xs"></i>
             Confirmar carga
           </button>
@@ -427,7 +487,20 @@ const {
   currentPage: mallasPage,
   totalPages: mallasPages,
   totalRecords,
+  carguePermitido,
+  proximaFechaHabilitada,
+  showSolicitudModal,
+  crearSolicitud,
 } = useMallasGeneral();
+
+// Intercepta click de "Subir": valida ventana antes de abrir el file picker
+const intentarCargar = () => {
+  if (!carguePermitido.value) {
+    showSolicitudModal.value = true;
+    return;
+  }
+  document.getElementById('fileInputMallas')?.click();
+};
 
 // ── Sincronizar company y cargar mallas ──────────────────────────────────────
 watch(
@@ -438,30 +511,5 @@ watch(
   },
   { immediate: true },
 );
-// En tu ModuloMallaUpload.vue
-const cargarMallas = async () => {
-  try {
-    isLoading.value = true;
-
-    // Empaquetamos los valores actuales
-    const misFiltros = {
-      selectedCompany: selectedCompany.value,
-      selectedDepartment: selectedDepartment.value,
-      selectedArea: selectedArea.value,
-      selectedSegmento: selectedSegmento.value
-    };
-
-    // Llamamos a la función importada
-    const resultado = await fetchMallasDesdeOdoo(misFiltros);
-
-    mallasData.value = resultado;
-    currentPage.value = 1;
-
-  } catch (err) {
-    console.error("Fallo al cargar mallas en el componente:", err);
-  } finally {
-    isLoading.value = false;
-  }
-};
 </script>
 <style></style>

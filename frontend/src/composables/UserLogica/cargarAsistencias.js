@@ -1,5 +1,4 @@
-import { ref, computed, watch } from "vue";
-// import { debounce } from "lodash-es";
+import { ref, computed } from "vue";
 
 export function useCargarAsistencias() {
   const reportData = ref([]);
@@ -8,32 +7,23 @@ export function useCargarAsistencias() {
   const selectedDepartment = ref("");
   const startDate = ref("");
   const endDate = ref("");
-  const selectedCompany = ref(""); // Nueva variable reactiva
+  const selectedCompany = ref("");
   const currentPage = ref(1);
-  const itemsPerPage = ref(15); // Lotes de 10 para diseño compacto
+  const itemsPerPage = ref(15);
   const rawData = ref([]);
   const selectedArea = ref(null);
   const selectedSegmento = ref(null);
-  // Variable para el switch de "Hoy"
   const filterHoy = ref(true);
   const abortController = ref(null);
+  const errorMsg = ref("");
+  // Progreso de carga por chunks: { current: 2, total: 4 }
+  const chunkProgress = ref({ current: 0, total: 0 });
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
+  const MAX_DIAS = 31;
 
-  // Computed para obtener solo la porción de datos que se debe mostrar
-  // CAMBIO AQUÍ: Usamos reportData (que es el computed filtrado del composable)
-  const paginatedData = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage.value;
-    const end = start + itemsPerPage.value;
-    return reporteParaPantalla.value.slice(start, end); // 👈 cambia aquí
-  });
+  // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  const totalPages = computed(() => {
-    return Math.max(
-      1,
-      Math.ceil(reporteParaPantalla.value.length / itemsPerPage.value), // 👈 y aquí
-    );
-  });
   const debounce = (fn, delay) => {
     let timer = null;
     return (...args) => {
@@ -41,67 +31,132 @@ export function useCargarAsistencias() {
       timer = setTimeout(() => fn(...args), delay);
     };
   };
-  let debounceTimeout = null;
 
-  // Agrega esta bandera para controlar la carga inicial
-  let initialLoadDone = false;
-  const fetchReporte = debounce(async () => {
-    if (abortController.value) {
-      abortController.value.abort();
+  /**
+   * Divide un rango [start, end] (YYYY-MM-DD) en trozos de hasta 7 días.
+   * Retorna array de { start, end }.
+   */
+  const splitEnSemanas = (start, end) => {
+    const chunks = [];
+    let cursor = new Date(start + "T00:00:00");
+    const fechaFin = new Date(end + "T00:00:00");
+
+    while (cursor <= fechaFin) {
+      const chunkStart = cursor.toISOString().slice(0, 10);
+      const limite = new Date(cursor);
+      limite.setDate(limite.getDate() + 6);
+      const chunkEnd = (limite <= fechaFin ? limite : fechaFin)
+        .toISOString()
+        .slice(0, 10);
+      chunks.push({ start: chunkStart, end: chunkEnd });
+      cursor.setDate(cursor.getDate() + 7);
     }
-    abortController.value = new AbortController();
+    return chunks;
+  };
 
-    loading.value = true;
+  /**
+   * Valida el rango antes de consultar.
+   * Retorna string con el error o "" si es válido.
+   */
+  const validarRango = () => {
+    if (filterHoy.value) return "";
+
+    if (!startDate.value || !endDate.value)
+      return "Debes seleccionar fecha de inicio y fecha de fin.";
+
+    const inicio = new Date(startDate.value + "T00:00:00");
+    const fin = new Date(endDate.value + "T00:00:00");
+
+    if (fin < inicio)
+      return "La fecha de inicio debe ser anterior a la fecha de fin.";
+
+    const diffDias = (fin - inicio) / (1000 * 60 * 60 * 24);
+    if (diffDias > MAX_DIAS)
+      return `El rango máximo permitido es ${MAX_DIAS} días (1 mes). Seleccionaste ${Math.round(diffDias)} días.`;
+
+    return "";
+  };
+
+  /**
+   * Construye la URL con todos los filtros activos.
+   * chunkStart / chunkEnd sobreescriben las fechas del filtro (para chunking).
+   */
+  const buildUrl = (chunkStart, chunkEnd) => {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
 
+    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    url.searchParams.append("hoy", filterHoy.value.toString());
+    if (chunkStart) url.searchParams.append("startDate", chunkStart);
+    if (chunkEnd) url.searchParams.append("endDate", chunkEnd);
+    if (selectedCompany.value && selectedCompany.value !== "Todas")
+      url.searchParams.append("company", selectedCompany.value);
+
+    if (tieneFiltroDepto) {
+      if (selectedDepartment.value)
+        url.searchParams.append("departamento", selectedDepartment.value);
+      if (selectedSegmento.value)
+        url.searchParams.append("segmento_id", selectedSegmento.value);
+      if (selectedArea.value)
+        url.searchParams.append("area_id", selectedArea.value);
+    } else {
+      if (selectedArea.value)
+        url.searchParams.append("area_id", selectedArea.value);
+      if (selectedSegmento.value)
+        url.searchParams.append("segmento_id", selectedSegmento.value);
+    }
+
+    return url.toString();
+  };
+
+  // ─── Fetch principal ─────────────────────────────────────────────────────────
+
+  let initialLoadDone = false;
+
+  const fetchReporte = debounce(async () => {
+    // Cancelar request anterior si sigue activo
+    if (abortController.value) abortController.value.abort();
+    abortController.value = new AbortController();
+    const signal = abortController.value.signal;
+
+    // Validar rango antes de hacer cualquier llamada
+    const error = validarRango();
+    if (error) {
+      errorMsg.value = error;
+      rawData.value = [];
+      return;
+    }
+
+    errorMsg.value = "";
+    loading.value = true;
+    rawData.value = [];
+    chunkProgress.value = { current: 0, total: 0 };
+
     try {
-      const url = new URL(`${API_BASE_URL}/reporte-novedades`);
-      url.searchParams.append("hoy", filterHoy.value.toString());
-      if (startDate.value)
-        url.searchParams.append("startDate", startDate.value);
-      if (endDate.value) url.searchParams.append("endDate", endDate.value);
-      if (selectedCompany.value && selectedCompany.value !== "Todas") {
-        url.searchParams.append("company", selectedCompany.value);
-      }
-
-      if (tieneFiltroDepto) {
-        // Admin: puede filtrar por lo que quiera
-        if (selectedDepartment.value) {
-          url.searchParams.append("departamento", selectedDepartment.value);
-        }
-        if (selectedSegmento.value) {
-          url.searchParams.append("segmento_id", selectedSegmento.value);
-        }
-        if (selectedArea.value) {
-          url.searchParams.append("area_id", selectedArea.value);
-        }
-        //pruebas
+      if (filterHoy.value) {
+        // ── Modo "Hoy": una sola petición ──────────────────────────────────
+        const res = await fetch(buildUrl(null, null), { signal });
+        if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+        rawData.value = await res.json();
       } else {
-        // Usuario normal: filtrar por su area_id y/o segmento_id del perfil
-        // NO enviamos departamento — los permisos se aplican por estructura
-        if (selectedArea.value) {
-          url.searchParams.append("area_id", selectedArea.value);
-        }
-        if (selectedSegmento.value) {
-          url.searchParams.append("segmento_id", selectedSegmento.value);
+        // ── Modo rango: dividir en semanas y cargar progresivamente ─────────
+        const chunks = splitEnSemanas(startDate.value, endDate.value);
+        chunkProgress.value = { current: 0, total: chunks.length };
+
+        for (const chunk of chunks) {
+          if (signal.aborted) break;
+
+          const res = await fetch(buildUrl(chunk.start, chunk.end), { signal });
+          if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+
+          const chunkData = await res.json();
+          // Agregar al rawData existente → el usuario ve datos parciales
+          rawData.value = [...rawData.value, ...chunkData];
+          chunkProgress.value.current++;
         }
       }
 
-      console.log("URL final:", url.toString());
-      const res = await fetch(url.toString(), {
-        signal: abortController.value.signal,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
-        throw new Error("Error en la respuesta del servidor");
-      }
-
-      const data = await res.json();
-      rawData.value = data;
       initialLoadDone = true;
     } catch (err) {
       if (err.name === "AbortError") {
@@ -109,33 +164,32 @@ export function useCargarAsistencias() {
         return;
       }
       console.error("Error al obtener el reporte:", err);
+      errorMsg.value = "Error al cargar el reporte. Intenta de nuevo.";
       rawData.value = [];
     } finally {
       if (!abortController.value?.signal.aborted) {
         loading.value = false;
+        chunkProgress.value = { current: 0, total: 0 };
       }
     }
   }, 600);
 
-  const clearFilters = () => {
-    search.value = "";
-    selectedDepartment.value = "";
-    startDate.value = "";
-    endDate.value = "";
-    filterHoy.value = false; // Al limpiar filtros, permitimos ver todo
-    selectedCompany.value = ""; // Limpiar compañía
-  };
+  // ─── Computed ────────────────────────────────────────────────────────────────
+
+  const paginatedData = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    return reporteParaPantalla.value.slice(start, start + itemsPerPage.value);
+  });
+
+  const totalPages = computed(() =>
+    Math.max(1, Math.ceil(reporteParaPantalla.value.length / itemsPerPage.value)),
+  );
 
   const departments = computed(() => {
-    if (!rawData.value || rawData.value.length === 0) return [];
-
-    const allDeps = rawData.value
-      .map((item) => item.department_id)
-      .filter(Boolean);
-
-    // Quitamos duplicados y ordenamos
-    return [...new Set(allDeps)].sort();
+    if (!rawData.value?.length) return [];
+    return [...new Set(rawData.value.map((i) => i.department_id).filter(Boolean))].sort();
   });
+
   const filteredReport = computed(() => {
     const s = search.value.toLowerCase().trim();
     const d = selectedDepartment.value;
@@ -145,23 +199,30 @@ export function useCargarAsistencias() {
     return rawData.value.filter((item) => {
       const matchesSearch =
         !s ||
-        String(item.empleado || "")
-          .toLowerCase()
-          .includes(s);
+        String(item.empleado || "").toLowerCase().includes(s) ||
+        String(item.cc || "").includes(s);
       const matchesDept =
         !d || String(item.department_id).trim() === String(d).trim();
-
-      // Filtro de fecha local (asumiendo que item.fecha es YYYY-MM-DD)
       let matchesDate = true;
-      if (start && end) {
-        matchesDate = item.fecha >= start && item.fecha <= end;
-      }
-
+      if (start && end) matchesDate = item.fecha >= start && item.fecha <= end;
       return matchesSearch && matchesDept && matchesDate;
     });
   });
+
+  const reporteParaPantalla = computed(() => {
+    const vistos = new Set();
+    return filteredReport.value.filter((item) => {
+      if (item.tipo !== "LOG CRUDO") return true;
+      const key = `${item.empleado}_${item.fecha}`;
+      if (vistos.has(key)) return false;
+      vistos.add(key);
+      return true;
+    });
+  });
+
+  // ─── Descarga Excel ──────────────────────────────────────────────────────────
+
   const downloadReport = async () => {
-    // Usa exactamente los datos que se ven en pantalla (todos los filtros aplicados)
     const datos = filteredReport.value;
     if (datos.length === 0) {
       alert("No hay datos para exportar");
@@ -170,14 +231,14 @@ export function useCargarAsistencias() {
 
     loading.value = true;
 
-    const formatHoraParaExcel = (value) => {
+    const formatHora = (value) => {
       if (!value || value === "N/A" || value === "null") return "N/A";
       try {
         const partes = value.split(" ");
         if (partes.length < 2) return value;
         const [hh, mm, ss] = partes[1].split(":");
         return `${hh}:${mm}:${ss}`;
-      } catch (e) {
+      } catch {
         return value;
       }
     };
@@ -188,21 +249,18 @@ export function useCargarAsistencias() {
         Cedula: item.cc || "N/A",
         Departamento: item.department_id,
         Fecha: item.fecha,
-        Entrada: formatHoraParaExcel(item.check_in),
-        Salida: formatHoraParaExcel(item.check_out),
+        Entrada: formatHora(item.check_in),
+        Salida: formatHora(item.check_out),
         Estatus_Entrada: item.c_entrada || "N/A",
         Estatus_Salida: item.c_salida || "N/A",
         Estado: item.estado,
       }));
 
-      const response = await fetch(
-        `${API_BASE_URL}/reports/asistencias/export`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dataFiltrada),
-        },
-      );
+      const response = await fetch(`${API_BASE_URL}/reports/asistencias/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataFiltrada),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -238,16 +296,20 @@ export function useCargarAsistencias() {
       loading.value = false;
     }
   };
-  const reporteParaPantalla = computed(() => {
-    const vistos = new Set();
-    return filteredReport.value.filter((item) => {
-      if (item.tipo !== "LOG CRUDO") return true;
-      const key = `${item.empleado}_${item.fecha}`;
-      if (vistos.has(key)) return false;
-      vistos.add(key);
-      return true;
-    });
-  });
+
+  // ─── Limpiar filtros ─────────────────────────────────────────────────────────
+
+  const clearFilters = () => {
+    search.value = "";
+    selectedDepartment.value = "";
+    startDate.value = "";
+    endDate.value = "";
+    filterHoy.value = false;
+    selectedCompany.value = "";
+    errorMsg.value = "";
+  };
+
+  // ─── Exports ─────────────────────────────────────────────────────────────────
 
   return {
     reportData: computed(() => reporteParaPantalla.value),
@@ -265,5 +327,11 @@ export function useCargarAsistencias() {
     selectedArea,
     selectedSegmento,
     departments,
+    errorMsg,
+    chunkProgress,
+    paginatedData,
+    totalPages,
+    currentPage,
+    itemsPerPage,
   };
 }

@@ -17,6 +17,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Novedad } from './entities/novedad.entity';
 import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
+import { NovedadArchivo } from './entities/novedad-archivo.entity';
 import { CreateNovedadDto } from './dto/create-novedad.dto';
 import { SistemaConfigService } from '../sistema-config/sistema-config.service';
 
@@ -26,11 +27,23 @@ export class NovedadesService {
   private readonly s3: S3Client;
   private readonly bucket: string;
 
+  // MIME types permitidos: solo PDF e imágenes
+  private readonly ALLOWED_MIMES = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+  ]);
+
   constructor(
     @InjectRepository(Novedad)
     private readonly novedadRepo: Repository<Novedad>,
     @InjectRepository(NovedadEstadoCh)
     private readonly estadoChRepo: Repository<NovedadEstadoCh>,
+    @InjectRepository(NovedadArchivo)
+    private readonly archivoRepo: Repository<NovedadArchivo>,
     private readonly config: ConfigService,
     private readonly sistemaConfig: SistemaConfigService,
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -96,12 +109,22 @@ export class NovedadesService {
     return `/uploads/novedades/${storageKey}`;
   }
 
+  // ─── Validar archivo (solo PDF e imágenes) ────────────────────────────────
+  private validateFileType(file: Express.Multer.File): void {
+    if (!this.ALLOWED_MIMES.has(file.mimetype)) {
+      throw new Error(
+        `Tipo de archivo no permitido: ${file.originalname}. Solo se aceptan PDF e imágenes (JPG, PNG, GIF, WEBP).`,
+      );
+    }
+  }
+
   // ─── CREATE ────────────────────────────────────────────────────────────────
-  async create(dto: CreateNovedadDto, file: Express.Multer.File) {
-    if (!file) throw new Error('Se requiere un documento de soporte.');
+  async create(dto: CreateNovedadDto, files: Express.Multer.File[]) {
     const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
     const modoEfectivo = dto.storageMode || storageFromDb;
-    const { storageKey, storageMode } = await this.saveFile(file, modoEfectivo);
+
+    // Validar tipos antes de guardar
+    for (const f of files) this.validateFileType(f);
 
     const novedad = this.novedadRepo.create({
       nombre: dto.nombre,
@@ -110,15 +133,7 @@ export class NovedadesService {
       tipificacion: dto.tipificacion,
       fechaInicio: dto.fechaInicio,
       fechaFin: dto.fechaFin,
-      soporteNombreOriginal: file.originalname,
-      soporteStorageKey: storageKey,
-      soporteStorageMode: storageMode,
-      soporteMime: file.mimetype,
-
-      // ─── Responsable — convierte string a number ──────────
-      responsableIdOdoo: dto.responsableIdOdoo
-        ? Number(dto.responsableIdOdoo)
-        : null,
+      responsableIdOdoo: dto.responsableIdOdoo ? Number(dto.responsableIdOdoo) : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,
       creadoPor: dto.creadoPor ? Number(dto.creadoPor) : undefined,
@@ -126,11 +141,114 @@ export class NovedadesService {
 
     const saved = await this.novedadRepo.save(novedad);
 
+    // Guardar archivos adjuntos en novedad_archivos
+    if (files.length) {
+      await this.saveArchivos(saved.id, files, modoEfectivo);
+    }
+
     return {
       success: true,
       message: 'Novedad registrada exitosamente.',
-      data: { id: saved.id, storageMode },
+      data: { id: saved.id, storageMode: modoEfectivo, archivos: files.length },
     };
+  }
+
+  // ─── AGREGAR ARCHIVOS A NOVEDAD EXISTENTE ─────────────────────────────────
+  async addArchivos(novedadId: number, files: Express.Multer.File[]) {
+    const novedad = await this.novedadRepo.findOneBy({ id: novedadId });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+
+    for (const f of files) this.validateFileType(f);
+
+    const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
+    const archivos = await this.saveArchivos(novedadId, files, storageFromDb);
+    return { success: true, archivos };
+  }
+
+  private async saveArchivos(
+    novedadId: number,
+    files: Express.Multer.File[],
+    modo: string,
+  ): Promise<NovedadArchivo[]> {
+    const result: NovedadArchivo[] = [];
+    for (const file of files) {
+      const { storageKey, storageMode } = await this.saveFile(file, modo);
+      const archivo = this.archivoRepo.create({
+        novedadId,
+        nombreOriginal: file.originalname,
+        storageKey,
+        storageMode,
+        mime: file.mimetype,
+        tamano: file.size,
+      });
+      result.push(await this.archivoRepo.save(archivo));
+    }
+    return result;
+  }
+
+  // ─── LISTAR ARCHIVOS DE UNA NOVEDAD ───────────────────────────────────────
+  async getArchivos(novedadId: number) {
+    const novedad = await this.novedadRepo.findOneBy({ id: novedadId });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+
+    const archivos = await this.archivoRepo.find({
+      where: { novedadId },
+      order: { createdAt: 'ASC' },
+    });
+
+    return archivos.map((a) => ({
+      id: a.id,
+      nombreOriginal: a.nombreOriginal,
+      mime: a.mime,
+      tamano: a.tamano,
+      createdAt: a.createdAt,
+      url: `/usuarios/novedades/${novedadId}/archivos/${a.id}/file`,
+    }));
+  }
+
+  // ─── STREAM / REDIRECT ARCHIVO ────────────────────────────────────────────
+  async streamArchivo(novedadId: number, archivoId: number, res: Response) {
+    const archivo = await this.archivoRepo.findOne({
+      where: { id: archivoId, novedadId },
+    });
+    if (!archivo) throw new NotFoundException('Archivo no encontrado.');
+
+    if (archivo.storageMode === 's3') {
+      const url = await this.resolveUrl(archivo.storageKey, 's3');
+      return res.redirect(302, url);
+    }
+
+    const filePath = path.join(this.localDir, archivo.storageKey);
+    if (!fs.existsSync(filePath))
+      throw new NotFoundException('Archivo no encontrado en disco.');
+
+    res.setHeader('Content-Type', archivo.mime || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(archivo.nombreOriginal)}"`,
+    );
+    fs.createReadStream(filePath).pipe(res);
+  }
+
+  // ─── ELIMINAR ARCHIVO ─────────────────────────────────────────────────────
+  async removeArchivo(novedadId: number, archivoId: number) {
+    const archivo = await this.archivoRepo.findOne({
+      where: { id: archivoId, novedadId },
+    });
+    if (!archivo) throw new NotFoundException('Archivo no encontrado.');
+
+    // Borrar físico
+    if (archivo.storageMode === 'local') {
+      const filePath = path.join(this.localDir, archivo.storageKey);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } else if (this.bucket) {
+      await this.s3.send(
+        new DeleteObjectCommand({ Bucket: this.bucket, Key: archivo.storageKey }),
+      );
+    }
+
+    await this.archivoRepo.delete(archivoId);
+    return { success: true, message: 'Archivo eliminado.' };
   }
 
   // ─── FIND ALL ──────────────────────────────────────────────────────────────
@@ -250,6 +368,27 @@ export class NovedadesService {
     return this.novedadesPorCedulas(empleados);
   }
 
+  // ─── MI SEGMENTO: todos en el segmento al que pertenece este usuario ────────
+  // Diferencia vs findPorSegmentoResponsable: NO requiere ser responsable.
+  // Solo necesita que el usuario tenga un segmento_id asignado.
+  async findPorMiSegmento(idOdoo: number) {
+    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
+      await this.dataSource.query(`
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        WHERE  u.segmento_id = (
+                 SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo} LIMIT 1
+               )
+          AND  u.identificacion IS NOT NULL
+        UNION
+        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+        FROM   usuarios_registrados
+        WHERE  id_odoo = ${idOdoo}
+          AND  identificacion IS NOT NULL
+      `);
+    return this.novedadesPorCedulas(empleados);
+  }
+
   // ─── DEPARTAMENTO: todos en los deptos del director ───────────────────────
   async findPorDepartamentos(departamentos: string[]) {
     if (!departamentos.length) return [];
@@ -291,7 +430,35 @@ export class NovedadesService {
       );
     }
 
-    return qb.getMany();
+    const novedades = await qb.getMany();
+
+    // Enriquecer cada novedad con sus archivos
+    const ids = novedades.map((n) => n.id);
+    if (!ids.length) return [];
+
+    const archivos = await this.archivoRepo
+      .createQueryBuilder('a')
+      .where('a.novedad_id IN (:...ids)', { ids })
+      .orderBy('a.created_at', 'ASC')
+      .getMany();
+
+    const archivosPorNovedad = new Map<number, typeof archivos>();
+    for (const a of archivos) {
+      const lista = archivosPorNovedad.get(a.novedadId) ?? [];
+      lista.push(a);
+      archivosPorNovedad.set(a.novedadId, lista);
+    }
+
+    return novedades.map((n) => ({
+      ...n,
+      archivos: (archivosPorNovedad.get(n.id) ?? []).map((a) => ({
+        id: a.id,
+        nombreOriginal: a.nombreOriginal,
+        mime: a.mime,
+        tamano: a.tamano,
+        url: `/usuarios/novedades/${n.id}/archivos/${a.id}/file`,
+      })),
+    }));
   }
 
   // ─── FIND ONE ──────────────────────────────────────────────────────────────
@@ -299,11 +466,14 @@ export class NovedadesService {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
-    const fileUrl = await this.resolveUrl(
-      novedad.soporteStorageKey,
-      novedad.soporteStorageMode,
-    );
-    return { ...novedad, fileUrl };
+    const archivos = await this.getArchivos(id);
+
+    // Mantener fileUrl legacy (por compatibilidad con vistas antiguas)
+    let fileUrl: string | null = null;
+    if (novedad.soporteStorageKey) {
+      fileUrl = await this.resolveUrl(novedad.soporteStorageKey, novedad.soporteStorageMode);
+    }
+    return { ...novedad, fileUrl, archivos };
   }
 
   // ─── STREAM FILE ──────────────────────────────────────────────────────────

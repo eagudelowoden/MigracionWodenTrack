@@ -50,7 +50,7 @@
 
 /* Si está cargando, que se vea naranja como tu tema */
 .btn-download-excel .fa-spin {
-  color: #FF8F00;
+  color: #3B82F6;
 }
 
 .jornada-badge.tarde {
@@ -99,7 +99,7 @@
 }
 
 .btn-upload:hover {
-  background: #FF8F00;
+  background: #3B82F6;
   transform: translateY(-2px);
 }
 
@@ -114,8 +114,8 @@
 }
 /* Card de Estadísticas */
 .stat-card {
-  background: rgba(255, 143, 0, 0.05);
-  border: 1px solid rgba(255, 143, 0, 0.1);
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
   padding: 0.75rem 1.5rem;
   border-radius: 1.25rem;
   display: flex;
@@ -173,9 +173,9 @@
   transition: all 0.3s ease;
 }
 .btn-upload-premium:hover {
-  background: #FF8F00;
+  background: #3B82F6;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(255, 143, 0, 0.2);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2);
 }
 
 /* Badges de Jornada Rediseñados */
@@ -200,11 +200,11 @@
   display: flex;
   align-items: baseline;
   gap: 4px;
-  background: rgba(255, 143, 0, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   padding: 4px 12px;
   border-radius: 10px;
 }
-.stat-val { font-weight: 900; color: #FF8F00; font-size: 14px; }
+.stat-val { font-weight: 900; color: #3B82F6; font-size: 14px; }
   .stat-lab { font-size: 9px; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
 
 /* Botones Mini */
@@ -241,7 +241,7 @@
   height: 4px;
 }
 .table-wrapper-mini::-webkit-scrollbar-thumb {
-  background: rgba(255, 143, 0, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   border-radius: 10px;
 }
 
