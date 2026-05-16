@@ -648,7 +648,8 @@ export class NovedadesService {
     // Enviar correo con adjunto (no bloqueante)
     this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe')
       .then(payload => this.correoService.enviarAprobacionNovedad(payload))
-      .catch(() => {});
+      .then(result => console.log('[Correo Jefe]', result?.mensaje || result))
+      .catch(e => console.error('[Correo Jefe] Error:', e?.message || e));
 
     return saved;
   }
@@ -667,7 +668,8 @@ export class NovedadesService {
     // Enviar correo con adjunto (no bloqueante)
     this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Capital Humano', aprobado, motivo, 'rrhh')
       .then(payload => this.correoService.enviarAprobacionNovedad(payload))
-      .catch(() => {});
+      .then(result => console.log('[Correo RRHH]', result?.mensaje || result))
+      .catch(e => console.error('[Correo RRHH] Error:', e?.message || e));
 
     return saved;
   }

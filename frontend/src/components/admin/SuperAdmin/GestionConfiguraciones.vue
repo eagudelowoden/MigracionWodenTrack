@@ -873,8 +873,8 @@ const correo = ref({
 const cargarConfigCorreo = async () => {
   try {
     const [resCfg, resDest] = await Promise.all([
-      fetch(`${API_URL}/superadmin/correo/config`),
-      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`),
+      fetch(`${API_URL}/superadmin/correo/config`, { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, { cache: 'no-store' }),
     ]);
     if (resCfg.ok) {
       const cfg = await resCfg.json();
@@ -882,9 +882,13 @@ const cargarConfigCorreo = async () => {
       correo.value.form = { host: cfg.host, port: cfg.port, user: cfg.user, pass: '', fromNombre: cfg.fromNombre, habilitado: cfg.habilitado };
     }
     if (resDest.ok) {
-      correo.value.destinatarios = await resDest.json();
+      const lista = await resDest.json();
+      correo.value.destinatarios = Array.isArray(lista) ? lista : [];
     }
-  } catch { emit('error', 'Error al cargar configuración de correo'); }
+  } catch (e) {
+    console.error('[Correo] Error cargando config:', e);
+    emit('error', 'Error al cargar configuración de correo');
+  }
 };
 
 const guardarConfigCorreo = async () => {
@@ -925,17 +929,35 @@ const quitarDestinatario = (email) => {
 };
 
 const guardarDestinatarios = async () => {
+  // Si hay texto pendiente en el input, agregarlo antes de guardar
+  const pendiente = correo.value.nuevoDestinatario.trim().toLowerCase();
+  if (pendiente && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pendiente)) {
+    if (!correo.value.destinatarios.includes(pendiente)) {
+      correo.value.destinatarios.push(pendiente);
+    }
+    correo.value.nuevoDestinatario = '';
+  }
+
+  if (!correo.value.destinatarios.length) {
+    emit('error', 'Escribe al menos un correo destinatario');
+    return;
+  }
+
   correo.value.guardandoDest = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     const res = await fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ destinatarios: correo.value.destinatarios, updatedBy: session.name || 'superadmin' }),
     });
-    if (!res.ok) throw new Error();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     emit('success', 'Destinatarios guardados');
-  } catch { emit('error', 'Error al guardar destinatarios'); }
-  finally { correo.value.guardandoDest = false; }
+  } catch (e) {
+    emit('error', 'Error al guardar destinatarios');
+  } finally {
+    correo.value.guardandoDest = false;
+  }
 };
 
 const enviarCorreoTest = async () => {

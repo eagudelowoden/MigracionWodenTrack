@@ -19,6 +19,7 @@ import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
 import { SuperAdminAnaliticaService } from './superadmin-analitica.service';
 import { SuperAdminAnaliticaController } from './superadmin-analitica.controller';
 import { SuperAdminCorreoService } from './superadmin-correo.service';
+import { CorreoDestinatario } from './entities/correo-destinatario.entity';
 import { SuperAdminCorreoController } from './superadmin-correo.controller';
 import { SuperAdminIAService } from './superadmin-ia.service';
 import { SuperAdminIAController } from './superadmin-ia.controller';
@@ -46,6 +47,7 @@ import { MallasSolicitud } from './entities/mallas-solicitud.entity';
       SesionActiva,
       MensajeInterno,
       MallasSolicitud,
+      CorreoDestinatario,
     ]),
     OdooModule,
     MailModule,

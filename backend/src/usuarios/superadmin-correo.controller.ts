@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Header } from '@nestjs/common';
 import { SuperAdminCorreoService } from './superadmin-correo.service';
 
 @Controller('usuarios/superadmin/correo')
@@ -27,6 +27,8 @@ export class SuperAdminCorreoController {
   }
 
   @Get('novedades-destinatarios')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  @Header('Pragma', 'no-cache')
   getDestinatariosNovedades() {
     return this.svc.getDestinatariosNovedades();
   }

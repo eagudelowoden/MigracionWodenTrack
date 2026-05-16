@@ -13,6 +13,7 @@ import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { SistemaConfig } from '../sistema-config/entities/sistema-config.entity';
 import { HoraExtraCargue } from '../horas-extra/entities/hora-extra-cargue.entity';
+import { CorreoDestinatario } from '../usuarios/entities/correo-destinatario.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -41,6 +42,7 @@ export const getDatabaseConfig = (
     MallaAsignacion,
     SistemaConfig,
     HoraExtraCargue,
+    CorreoDestinatario,
   ],
   autoLoadEntities: true,
   synchronize: true,

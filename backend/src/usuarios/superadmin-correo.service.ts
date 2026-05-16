@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { SistemaConfigService } from '../sistema-config/sistema-config.service';
+import { CorreoDestinatario } from './entities/correo-destinatario.entity';
 import * as nodemailer from 'nodemailer';
 
 const K = {
@@ -17,6 +20,8 @@ export class SuperAdminCorreoService {
   constructor(
     private readonly cfg: SistemaConfigService,
     private readonly env: ConfigService,
+    @InjectRepository(CorreoDestinatario)
+    private readonly destRepo: Repository<CorreoDestinatario>,
   ) {}
 
   // ── Fallback a .env si la BD no tiene valores ─────────────────
@@ -141,14 +146,21 @@ export class SuperAdminCorreoService {
     }
   }
 
-  // ── Destinatarios de novedades ───────────────────────────────
+  // ── Destinatarios de novedades (tabla correo_destinatarios) ──
   async getDestinatariosNovedades(): Promise<string[]> {
-    const raw = await this.cfg.get('correo_novedades_destinatarios', '[]');
-    try { return JSON.parse(raw); } catch { return []; }
+    const rows = await this.destRepo.find({ where: { tipo: 'novedades' } });
+    return rows.map(r => r.email);
   }
 
   async saveDestinatariosNovedades(destinatarios: string[], updatedBy: string): Promise<{ ok: boolean }> {
-    await this.cfg.set('correo_novedades_destinatarios', JSON.stringify(destinatarios), updatedBy);
+    // Borra todos los actuales del tipo 'novedades' y reinserta
+    await this.destRepo.delete({ tipo: 'novedades' });
+    if (destinatarios.length > 0) {
+      const entities = destinatarios.map(email =>
+        this.destRepo.create({ tipo: 'novedades', email: email.toLowerCase().trim(), creado_por: updatedBy }),
+      );
+      await this.destRepo.save(entities);
+    }
     return { ok: true };
   }
 
