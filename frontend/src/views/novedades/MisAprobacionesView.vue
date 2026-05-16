@@ -739,21 +739,35 @@
             </div>
         </teleport>
 
-        <!-- Toast de éxito -->
+        <!-- Toast aprobación -->
         <teleport to="body">
             <transition name="fade-msg">
                 <div v-if="toast.visible"
-                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border"
-                    :class="toast.tipo === 'aprobada'
-                        ? 'bg-emerald-500 border-emerald-400 text-white'
-                        : 'bg-red-500 border-red-400 text-white'">
-                    <i :class="toast.tipo === 'aprobada' ? 'fas fa-circle-check' : 'fas fa-circle-xmark'" class="text-lg"></i>
-                    <div>
-                        <p class="text-[11px] font-black uppercase tracking-wide">
-                            Novedad {{ toast.tipo }}
-                        </p>
-                        <p class="text-[10px] opacity-80 mt-0.5">{{ toast.nombre }} · Correo enviado</p>
+                    class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2.5 px-5 py-4 rounded-2xl shadow-2xl border max-w-xs w-full"
+                    :class="toast.tipo === 'aprobada' ? 'bg-[#1e3a5f] border-emerald-500/40 text-white' : 'bg-[#1e3a5f] border-red-500/40 text-white'">
+                    <!-- Fila principal -->
+                    <div class="flex items-start gap-3">
+                        <i :class="toast.tipo === 'aprobada' ? 'fas fa-circle-check text-emerald-400' : 'fas fa-circle-xmark text-red-400'" class="text-lg mt-0.5 shrink-0"></i>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[11px] font-black uppercase tracking-widest">Novedad {{ toast.tipo }}</p>
+                            <p class="text-[10px] font-semibold opacity-70 mt-0.5 truncate">{{ toast.nombre }}</p>
+                        </div>
+                        <button @click="cerrarToast" class="opacity-40 hover:opacity-100 transition-opacity shrink-0">
+                            <i class="fas fa-xmark text-xs"></i>
+                        </button>
                     </div>
+                    <!-- Estado del correo -->
+                    <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-semibold"
+                        :class="toast.correoOk ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'">
+                        <i :class="toast.correoOk ? 'fas fa-envelope-circle-check' : 'fas fa-envelope-open-text'" class="text-sm"></i>
+                        <span class="flex-1">{{ toast.correoMsg }}</span>
+                    </div>
+                    <!-- Botón Reenviar si falló -->
+                    <button v-if="!toast.correoOk" @click="reenviarToast" :disabled="toast.reenvioLoading"
+                        class="flex items-center justify-center gap-2 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                        <i :class="toast.reenvioLoading ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
+                        {{ toast.reenvioLoading ? 'Reenviando...' : 'Reenviar correo' }}
+                    </button>
                 </div>
             </transition>
         </teleport>
@@ -770,7 +784,7 @@ const emit = defineEmits(['volver']);
 
 const {
     novedades, loading,
-    aprobarJefe, getFileUrl,
+    aprobarJefe, reenviarCorreo, getFileUrl,
     fetchPorArea, fetchPorSegmento, fetchPorMiSegmento, fetchPorDepartamentos,
     // Carpetas (tipo = 'coordinador')
     estadosCh, fetchEstadosCh, crearEstadoCh, editarEstadoCh, eliminarEstadoCh, cambiarEstadoCh,
@@ -1034,7 +1048,9 @@ const asignarCarpeta = async (nombreEstado) => {
 
 // ─── Modal aprobar/rechazar ───────────────────────────────────────
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
-const toast = ref({ visible: false, tipo: '', nombre: '' });
+const toast = ref({ visible: false, tipo: '', nombre: '', correoOk: false, correoMsg: '', reenviarId: null, reenvioLoading: false });
+
+const cerrarToast = () => { toast.value.visible = false; };
 
 const abrirAccion = (item, tipo) => {
     accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '', loading: false };
@@ -1044,16 +1060,33 @@ const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
     accionModal.value.loading = true;
     try {
-        await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+        const result = await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
         const tipoLabel = accionModal.value.tipo === 1 ? 'aprobada' : 'rechazada';
-        toast.value = { visible: true, tipo: tipoLabel, nombre: accionModal.value.nombre };
+        toast.value = {
+            visible: true,
+            tipo: tipoLabel,
+            nombre: accionModal.value.nombre,
+            correoOk: result?.correo?.ok ?? false,
+            correoMsg: result?.correo?.mensaje ?? 'Sin información',
+            reenviarId: accionModal.value.id,
+            reenvioLoading: false,
+        };
         accionModal.value.open = false;
-        setTimeout(() => { toast.value.visible = false; }, 4000);
+        setTimeout(() => { toast.value.visible = false; }, 7000);
     } catch (e) {
         console.error('Error:', e);
     } finally {
         accionModal.value.loading = false;
     }
+};
+
+const reenviarToast = async () => {
+    toast.value.reenvioLoading = true;
+    const result = await reenviarCorreo(toast.value.reenviarId, 'jefe');
+    toast.value.correoOk = result?.ok ?? false;
+    toast.value.correoMsg = result?.mensaje ?? 'Sin respuesta';
+    toast.value.reenvioLoading = false;
+    setTimeout(() => { toast.value.visible = false; }, 5000);
 };
 </script>
 

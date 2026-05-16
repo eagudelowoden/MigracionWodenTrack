@@ -641,17 +641,19 @@ export class NovedadesService {
     novedad.aprobadoJefe = aprobado;
     novedad.motivoJefe = motivo;
     novedad.fechaAprobacionJefe = new Date();
-
     this.actualizarEstadoGeneral(novedad);
     const saved = await this.novedadRepo.save(novedad);
 
-    // Enviar correo con adjunto (no bloqueante)
-    this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe')
-      .then(payload => this.correoService.enviarAprobacionNovedad(payload))
-      .then(result => console.log('[Correo Jefe]', result?.mensaje || result))
-      .catch(e => console.error('[Correo Jefe] Error:', e?.message || e));
+    // Enviar correo y devolver resultado
+    let correo = { ok: false, mensaje: 'Correo no enviado' };
+    try {
+      const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe');
+      correo = await this.correoService.enviarAprobacionNovedad(payload);
+    } catch (e) {
+      correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
+    }
 
-    return saved;
+    return { ...saved, correo };
   }
 
   async aprobarRrhh(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string) {
@@ -661,17 +663,37 @@ export class NovedadesService {
     novedad.aprobadoRrhh = aprobado;
     novedad.motivoRrhh = motivo;
     novedad.fechaAprobacionRrhh = new Date();
-
     this.actualizarEstadoGeneral(novedad);
     const saved = await this.novedadRepo.save(novedad);
 
-    // Enviar correo con adjunto (no bloqueante)
-    this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Capital Humano', aprobado, motivo, 'rrhh')
-      .then(payload => this.correoService.enviarAprobacionNovedad(payload))
-      .then(result => console.log('[Correo RRHH]', result?.mensaje || result))
-      .catch(e => console.error('[Correo RRHH] Error:', e?.message || e));
+    // Enviar correo y devolver resultado
+    let correo = { ok: false, mensaje: 'Correo no enviado' };
+    try {
+      const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Capital Humano', aprobado, motivo, 'rrhh');
+      correo = await this.correoService.enviarAprobacionNovedad(payload);
+    } catch (e) {
+      correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
+    }
 
-    return saved;
+    return { ...saved, correo };
+  }
+
+  async reenviarCorreo(id: number, rol: 'jefe' | 'rrhh', reenviadoPorNombre?: string) {
+    const novedad = await this.novedadRepo.findOne({ where: { id } });
+    if (!novedad) throw new Error('Novedad no encontrada');
+
+    const aprobado = rol === 'jefe' ? novedad.aprobadoJefe : novedad.aprobadoRrhh;
+    const motivo   = rol === 'jefe' ? novedad.motivoJefe   : novedad.motivoRrhh;
+    if (aprobado === null || aprobado === undefined) {
+      return { ok: false, mensaje: 'La novedad aún no ha sido procesada' };
+    }
+
+    try {
+      const payload = await this.buildCorreoPayload(novedad, reenviadoPorNombre || 'Sistema', aprobado, motivo || '', rol);
+      return await this.correoService.enviarAprobacionNovedad(payload);
+    } catch (e) {
+      return { ok: false, mensaje: e?.message || 'Error al reenviar correo' };
+    }
   }
 
   private async buildCorreoPayload(

@@ -194,6 +194,20 @@ export function useNovedades() {
       throw e;
     }
   };
+
+  const reenviarCorreo = async (id, rol) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      const res = await axios.post(`${API_URL}/novedades/${id}/reenviar-correo`, {
+        rol,
+        reenviadoPorNombre: session.name || 'Sistema',
+      });
+      return res.data;
+    } catch (e) {
+      return { ok: false, mensaje: e?.response?.data?.message || 'Error al reenviar' };
+    }
+  };
+
   const jefe = ref(null);
 
   const fetchJefeDeArea = async (department) => {
@@ -358,6 +372,7 @@ export function useNovedades() {
     aprobarNovedad,
     aprobarJefe,
     aprobarRrhh,
+    reenviarCorreo,
     jefe,
     fetchJefeDeArea,
     fetchPorArea,

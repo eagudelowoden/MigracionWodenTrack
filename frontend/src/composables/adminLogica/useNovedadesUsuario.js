@@ -179,6 +179,19 @@ export function useNovedades() {
     }
   };
 
+  const reenviarCorreo = async (id, rol) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      const res = await axios.post(`${API_URL}/novedades/${id}/reenviar-correo`, {
+        rol,
+        reenviadoPorNombre: session.name || 'Sistema',
+      });
+      return res.data;
+    } catch (e) {
+      return { ok: false, mensaje: e?.response?.data?.message || 'Error al reenviar' };
+    }
+  };
+
   return {
     novedades,
     loading,
@@ -191,6 +204,7 @@ export function useNovedades() {
     eliminarNovedad,
     aprobarJefe,
     aprobarRrhh,
+    reenviarCorreo,
     jefe,
     fetchJefeDeArea,
     misNovedades,

@@ -218,6 +218,15 @@ export class NovedadesController {
     return this.novedadesService.aprobarRrhh(+id, dto.aprobado, dto.motivo, (dto as any).aprobadoPorNombre);
   }
 
+  @Post(':id/reenviar-correo')
+  reenviarCorreo(
+    @Param('id') id: string,
+    @Body('rol') rol: 'jefe' | 'rrhh',
+    @Body('reenviadoPorNombre') reenviadoPorNombre?: string,
+  ) {
+    return this.novedadesService.reenviarCorreo(+id, rol || 'jefe', reenviadoPorNombre);
+  }
+
   /**
    * POST /novedades/:id/estado-ch
    * Asigna una carpeta a una novedad

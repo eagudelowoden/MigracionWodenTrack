@@ -14,7 +14,10 @@
       "Bash(curl -s -X POST http://localhost:8082/mantenimiento -H \"Content-Type: application/json\" -d \"{\\\\\"enabled\\\\\":false}\")",
       "Bash(findstr \"Modo Mantenimiento\" \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\backend\\\\web.config\")",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\\" -Name | Where-Object { $_ -match '\\\\.env' -or $_ -eq '.env' })",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(findstr /C:\"start\" /C:\"main\" /C:\"script\")",
+      "Bash(node dist/main.js)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")"
     ]
   }
 }
