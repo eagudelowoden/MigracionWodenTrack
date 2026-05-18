@@ -2,7 +2,8 @@
   <div class="h-full flex flex-col">
 
     <!-- ── Panel de selección ─────────────────────────────────────────────── -->
-    <div v-if="!subModule"
+    <!-- v-show (no v-if) para que keep-alive conserve su caché al volver -->
+    <div v-show="!subModule"
       class="h-full flex flex-col items-center justify-center animate-fade-in relative overflow-hidden rounded-xl bg-[#1f2937]">
 
       <!-- Círculos decorativos de fondo -->
@@ -98,22 +99,26 @@
       </div>
     </div>
 
-    <!-- ── Sub-vistas ──────────────────────────────────────────────────────── -->
-    <template v-else>
-      <!-- Botón volver -->
-      <button @click="subModule = null"
-        class="self-start flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border"
-        :class="isDark
-          ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500'
-          : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 shadow-sm'">
-        <i class="fas fa-arrow-left text-[8px]"></i> Volver
-      </button>
+    <!-- ── Botón volver (solo visible cuando hay submodulo activo) ────────── -->
+    <button v-if="subModule" @click="subModule = null"
+      class="self-start flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border"
+      :class="isDark
+        ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500'
+        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 shadow-sm'">
+      <i class="fas fa-arrow-left text-[8px]"></i> Volver
+    </button>
 
+    <!-- ── Sub-vistas con keep-alive ─────────────────────────────────────────
+         keep-alive debe estar SIEMPRE en el DOM (no dentro de v-if) para que
+         conserve el estado y los filtros de cada módulo al cambiar de pestaña.
+         onMounted (y la petición inicial) solo se ejecuta la primera vez.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <keep-alive>
       <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />
       <NovedadesRRHH v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
       <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
       <MisAprobaciones v-else-if="subModule === 'jefe'" :isDark="isDark" @volver="subModule = null" />
-    </template>
+    </keep-alive>
 
   </div>
 </template>

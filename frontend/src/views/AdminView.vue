@@ -227,9 +227,11 @@
           </div>
         </div>
 
-        <!-- Módulo activo -->
+        <!-- Módulo activo — keep-alive preserva datos y filtros al cambiar de ruta -->
         <router-view v-else v-slot="{ Component }">
-          <component :is="Component" :isDark="isDark" :company="selectedCompany" />
+          <keep-alive>
+            <component :is="Component" :isDark="isDark" :company="selectedCompany" />
+          </keep-alive>
         </router-view>
 
       </div>
