@@ -339,6 +339,7 @@ const SECTIONS = [
             'admin.novedades.user',
             'admin.novedades.admin',
             'admin.novedades.rrhh',
+            'admin.novedades.jefe',
         ],
     },
 ];
@@ -382,6 +383,7 @@ const MODULO_LABELS = {
     'admin.novedades.user':   { nombre: 'Rol Empleado',          desc: 'Puede registrar y gestionar sus propias novedades' },
     'admin.novedades.admin':  { nombre: 'Rol Administrador',     desc: 'Gestión completa de novedades del equipo' },
     'admin.novedades.rrhh':   { nombre: 'Rol RRHH',             desc: 'Auditoría, revisión y aprobación de novedades' },
+    'admin.novedades.jefe':   { nombre: 'Rol Jefe / Mi Equipo', desc: 'Ve y gestiona las novedades de su equipo (área o segmento según su alcance asignado)' },
 };
 
 const props = defineProps({

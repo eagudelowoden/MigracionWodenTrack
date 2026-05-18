@@ -21,7 +21,7 @@
           deseas acceder</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-2xl px-6 relative z-10">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-3xl px-6 relative z-10">
 
         <!-- Admin Card -->
         <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin')" @click="subModule = 'admin'"
@@ -56,6 +56,24 @@
             <p
               class="text-[9px] font-bold uppercase tracking-widest mt-1 text-white/50 group-hover:text-sky-200 transition-colors">
               Nómina</p>
+          </div>
+        </button>
+
+        <!-- Jefe / Mi Equipo Card -->
+        <button v-if="isSuperAdmin || hasPerm('admin.novedades.jefe')" @click="subModule = 'jefe'"
+          class="group relative flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1.5 hover:shadow-2xl active:scale-[0.98]"
+          :class="isDark
+            ? 'bg-white/15 border-white/25 backdrop-blur-sm hover:bg-white/25 hover:border-amber-300/50 hover:shadow-amber-400/20'
+            : 'bg-white/15 border-white/25 backdrop-blur-sm hover:bg-white/25 hover:border-white/50 hover:shadow-amber-400/20'">
+          <div
+            class="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 bg-amber-400/20 text-white group-hover:bg-amber-400 group-hover:shadow-lg group-hover:shadow-amber-400/40">
+            <i class="fas fa-users text-xl"></i>
+          </div>
+          <div class="text-center relative">
+            <h3 class="font-black uppercase text-[11px] tracking-wide text-white">Mi Equipo</h3>
+            <p
+              class="text-[9px] font-bold uppercase tracking-widest mt-1 text-white/50 group-hover:text-amber-200 transition-colors">
+              Novedades</p>
           </div>
         </button>
 
@@ -94,6 +112,7 @@
       <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />
       <NovedadesRRHH v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
       <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
+      <MisAprobaciones v-else-if="subModule === 'jefe'" :isDark="isDark" @volver="subModule = null" />
     </template>
 
   </div>
@@ -104,6 +123,7 @@ import { ref, inject } from 'vue';
 import NovedadesAdmin from './novedadesadminView.vue';
 import NovedadesRRHH from './novedadesRRHView.vue';
 import NovedadesUsuario from './novedadesusuarioView.vue';
+import MisAprobaciones from './MisAprobacionesView.vue';
 
 const props = defineProps({
   isDark: Boolean,

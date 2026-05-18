@@ -343,9 +343,6 @@
                   class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Mot. Jefe</th>
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
-                  Mot. Capital</th>
-                <th
                   class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">
                   Acciones</th>
               </tr>
@@ -458,15 +455,6 @@
                 <!-- Motivo jefe -->
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                   <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
-                    class="cursor-pointer text-[12px] font-bold text-[#3B82F6] hover:underline">
-                    <i class="fas fa-comment-alt mr-1"></i>Ver
-                  </span>
-                  <span v-else class="text-[11px] opacity-30">—</span>
-                </td>
-
-                <!-- Motivo RRHH -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                  <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh, 'Motivo Capital Humano')"
                     class="cursor-pointer text-[12px] font-bold text-[#3B82F6] hover:underline">
                     <i class="fas fa-comment-alt mr-1"></i>Ver
                   </span>
@@ -791,66 +779,10 @@
             :class="isDark ? 'text-slate-300' : 'text-slate-700'">
             <i class="fas fa-eye text-[#3B82F6] w-3"></i> Ver soporte
           </button>
-          <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
-          <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
-            :disabled="itemMenuActual?.aprobadoRrhh === 1"
-            class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed"
-            :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
-            <i class="fas fa-check w-3"></i> Aprobar
-          </button>
-          <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
-            :disabled="itemMenuActual?.aprobadoRrhh === 0"
-            class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed"
-            :class="isDark ? 'text-red-400' : 'text-red-500'">
-            <i class="fas fa-xmark w-3"></i> Rechazar
-          </button>
         </div>
       </transition>
     </teleport>
 
-    <!-- Modal aprobar/rechazar RRHH -->
-    <teleport to="body">
-      <div v-if="accionModal.open"
-        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-        @mousedown.self="accionModal.open = false">
-        <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
-          :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-          <div class="flex items-center gap-2">
-            <i :class="accionModal.tipo === 1 ? 'fas fa-check-circle text-emerald-500' : 'fas fa-times-circle text-red-400'"
-              class="text-lg"></i>
-            <h3 class="text-sm font-black uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
-              {{ accionModal.tipo === 1 ? 'Aprobar' : 'Rechazar' }} novedad
-            </h3>
-          </div>
-          <p class="text-[10px] font-bold opacity-60" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
-            accionModal.nombre }}</p>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[9px] font-black uppercase tracking-widest"
-              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              Motivo <span class="text-red-400">*</span>
-            </label>
-            <textarea v-model="accionModal.motivo" rows="3"
-              :placeholder="accionModal.tipo === 1 ? 'Motivo de aprobación...' : 'Motivo de rechazo...'"
-              class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
-              :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
-            </textarea>
-          </div>
-          <div class="flex gap-2 pt-1">
-            <button @click="accionModal.open = false"
-              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border transition-all"
-              :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-slate-200' : 'border-slate-200 text-slate-500 hover:text-slate-700'">
-              Cancelar
-            </button>
-            <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim() || accionModal.loading"
-              class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-red-500 text-white hover:bg-red-600'">
-              <i v-if="accionModal.loading" class="fas fa-spinner fa-spin text-[9px]"></i>
-              {{ accionModal.loading ? 'Procesando...' : 'Confirmar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </teleport>
 
     <!-- Modal ver motivo -->
     <teleport to="body">
@@ -877,41 +809,6 @@
       </div>
     </teleport>
 
-    <!-- Toast notificación aprobación -->
-    <teleport to="body">
-      <transition name="toast-slide">
-        <div v-if="toast.visible"
-          class="fixed bottom-6 right-6 z-[200] flex flex-col gap-2.5 px-5 py-4 rounded-2xl shadow-2xl border max-w-xs w-full bg-[#1e3a5f] text-white"
-          :class="toast.tipo === 'aprobado' ? 'border-emerald-500/40' : 'border-red-500/40'">
-          <!-- Fila principal -->
-          <div class="flex items-start gap-3">
-            <i :class="toast.tipo === 'aprobado' ? 'fas fa-circle-check text-emerald-400' : 'fas fa-circle-xmark text-red-400'"
-              class="text-lg mt-0.5 shrink-0"></i>
-            <div class="flex-1 min-w-0">
-              <p class="text-[11px] font-black uppercase tracking-widest">
-                Novedad {{ toast.tipo === 'aprobado' ? 'Aprobada' : 'Rechazada' }}
-              </p>
-              <p class="text-[10px] font-semibold opacity-70 mt-0.5 truncate">{{ toast.nombre }}</p>
-            </div>
-            <button @click="cerrarToast" class="opacity-40 hover:opacity-100 transition-opacity shrink-0">
-              <i class="fas fa-xmark text-xs"></i>
-            </button>
-          </div>
-          <!-- Estado del correo -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-semibold"
-            :class="toast.correoOk ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'">
-            <i :class="toast.correoOk ? 'fas fa-envelope-circle-check' : 'fas fa-envelope-open-text'" class="text-sm"></i>
-            <span class="flex-1">{{ toast.correoMsg }}</span>
-          </div>
-          <!-- Botón Reenviar si falló -->
-          <button v-if="!toast.correoOk" @click="reenviarToast" :disabled="toast.reenvioLoading"
-            class="flex items-center justify-center gap-2 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
-            <i :class="toast.reenvioLoading ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
-            {{ toast.reenvioLoading ? 'Reenviando...' : 'Reenviar correo' }}
-          </button>
-        </div>
-      </transition>
-    </teleport>
 
   </div>
 </template>
@@ -928,8 +825,6 @@ const {
   error,
   fetchNovedades,
   fetchNovedad,
-  aprobarRrhh,
-  reenviarCorreo,
   eliminarNovedad,
   getFileUrl,
   // Carpetas CH (tipo = 'rrhh')
@@ -960,19 +855,6 @@ const menuAbierto = ref(null);
 const itemMenuActual = ref(null);
 const menuPos = ref({ x: 0, y: 0 });
 const motivoModal = ref({ open: false, titulo: '', texto: '' });
-const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
-const toast = ref({ visible: false, tipo: '', nombre: '', correoOk: false, correoMsg: '', reenviarId: null, reenvioLoading: false });
-
-const cerrarToast = () => { toast.value.visible = false; };
-
-const reenviarToast = async () => {
-  toast.value.reenvioLoading = true;
-  const result = await reenviarCorreo(toast.value.reenviarId, 'rrhh');
-  toast.value.correoOk = result?.ok ?? false;
-  toast.value.correoMsg = result?.mensaje ?? 'Sin respuesta';
-  toast.value.reenvioLoading = false;
-  setTimeout(() => { toast.value.visible = false; }, 5000);
-};
 
 // Modal gestión estados CH
 const modalEstados = ref({ open: false });
@@ -1188,35 +1070,6 @@ const toggleMenu = (event, id) => {
   menuAbierto.value = id;
 };
 
-// ─── Modal aprobar/rechazar ───────────────────────────────────────
-const abrirAccion = (item, tipo) => {
-  accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '' };
-};
-
-const confirmarAccion = async () => {
-  if (!accionModal.value.motivo.trim()) return;
-  accionModal.value.loading = true;
-  try {
-    const nombre = accionModal.value.nombre;
-    const tipo = accionModal.value.tipo;
-    const result = await aprobarRrhh(accionModal.value.id, tipo, accionModal.value.motivo);
-    accionModal.value.open = false;
-    toast.value = {
-      visible: true,
-      tipo: tipo === 1 ? 'aprobado' : 'rechazado',
-      nombre,
-      correoOk: result?.correo?.ok ?? false,
-      correoMsg: result?.correo?.mensaje ?? 'Sin información',
-      reenviarId: accionModal.value.id,
-      reenvioLoading: false,
-    };
-    setTimeout(() => { toast.value.visible = false; }, 7000);
-  } catch (e) {
-    console.error('Error en confirmarAccion:', e);
-  } finally {
-    accionModal.value.loading = false;
-  }
-};
 
 // ─── Modal ver motivo ─────────────────────────────────────────────
 const verMotivo = (texto, titulo = 'Motivo') => {

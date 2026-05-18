@@ -17,7 +17,11 @@
       "Bash(npm run *)",
       "Bash(findstr /C:\"start\" /C:\"main\" /C:\"script\")",
       "Bash(node dist/main.js)",
-      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")"
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(findstr /S /I \"lectura\\\\|lectura_\\\\|read\\\\|readonly\\\\|view_only\" \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\")",
+      "Bash(findstr /I \"novedad\")"
     ]
   }
 }

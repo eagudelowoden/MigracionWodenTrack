@@ -106,8 +106,6 @@
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Inicio</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
                                 <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital Humano</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mot. Capital</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mot. Jefe</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
                                 <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Acciones</th>
@@ -143,16 +141,6 @@
                                             <i class="fas fa-eye text-[12px]"></i>
                                         </span>
                                     </div>
-                                </td>
-                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                    <EstadoBadge :valor="item.aprobadoRrhh" />
-                                </td>
-                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                    <span v-if="item.motivoRrhh" @click="verMotivo(item.motivoRrhh, 'Motivo Capital Humano')"
-                                        class="cursor-pointer text-[11px] font-bold text-[#3B82F6] hover:underline">
-                                        <i class="fas fa-comment-alt mr-1"></i>Ver
-                                    </span>
-                                    <span v-else class="text-[11px] opacity-30">—</span>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
@@ -230,7 +218,6 @@
                                 <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Estado</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Jefe</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Capital</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
                                 <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Soporte</th>
                             </tr>
@@ -271,9 +258,6 @@
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <EstadoBadge :valor="item.aprobadoJefe" mini />
-                                </td>
-                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                                    <EstadoBadge :valor="item.aprobadoRrhh" mini />
                                 </td>
                                 <!-- Mi Carpeta (coordinador) -->
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
@@ -614,11 +598,19 @@
                             :class="isDark ? 'text-white' : 'text-slate-700'">
                             <i class="fas fa-eye text-[#3B82F6] mr-2"></i>Soporte
                         </span>
-                        <button @click="soporteModal.open = false"
-                            class="w-7 h-7 rounded-lg flex items-center justify-center border"
-                            :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
-                            <i class="fas fa-xmark text-xs"></i>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <a v-if="soporteModal.isPdf || soporteModal.isImage"
+                                :href="soporteModal.url" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                :class="isDark ? 'bg-[#273045] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
+                                <i class="fas fa-arrow-up-right-from-square text-[9px]"></i> Abrir
+                            </a>
+                            <button @click="soporteModal.open = false"
+                                class="w-7 h-7 rounded-lg flex items-center justify-center border"
+                                :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                                <i class="fas fa-xmark text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
                         :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
@@ -654,43 +646,6 @@
                         :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">Cerrar</button>
                 </div>
             </div>
-        </teleport>
-
-        <!-- Menú contextual (tab pendientes) -->
-        <teleport to="body">
-            <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
-            <transition name="fade-msg">
-                <div v-if="menuAbierto !== null" class="fixed z-50 w-48 rounded-xl border shadow-2xl overflow-hidden"
-                    :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
-
-                    <button @click="verSoporte(itemMenuActual); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
-                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                        <i class="fas fa-eye text-[#3B82F6] w-3"></i> Ver soporte
-                    </button>
-
-                    <button @click="abrirCarpeta(itemMenuActual); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
-                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                        <i class="fas fa-folder-open text-[#3B82F6] w-3"></i> Enviar a carpeta
-                    </button>
-
-                    <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
-
-                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
-                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
-                        <i class="fas fa-check w-3"></i> Aprobar
-                    </button>
-
-                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
-                        :class="isDark ? 'text-red-400' : 'text-red-500'">
-                        <i class="fas fa-xmark w-3"></i> Rechazar
-                    </button>
-                </div>
-            </transition>
         </teleport>
 
         <!-- Modal aprobar/rechazar -->
@@ -745,24 +700,21 @@
                 <div v-if="toast.visible"
                     class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2.5 px-5 py-4 rounded-2xl shadow-2xl border max-w-xs w-full"
                     :class="toast.tipo === 'aprobada' ? 'bg-[#1e3a5f] border-emerald-500/40 text-white' : 'bg-[#1e3a5f] border-red-500/40 text-white'">
-                    <!-- Fila principal -->
                     <div class="flex items-start gap-3">
                         <i :class="toast.tipo === 'aprobada' ? 'fas fa-circle-check text-emerald-400' : 'fas fa-circle-xmark text-red-400'" class="text-lg mt-0.5 shrink-0"></i>
                         <div class="flex-1 min-w-0">
                             <p class="text-[11px] font-black uppercase tracking-widest">Novedad {{ toast.tipo }}</p>
                             <p class="text-[10px] font-semibold opacity-70 mt-0.5 truncate">{{ toast.nombre }}</p>
                         </div>
-                        <button @click="cerrarToast" class="opacity-40 hover:opacity-100 transition-opacity shrink-0">
+                        <button @click="toast.visible = false" class="opacity-40 hover:opacity-100 transition-opacity shrink-0">
                             <i class="fas fa-xmark text-xs"></i>
                         </button>
                     </div>
-                    <!-- Estado del correo -->
                     <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-semibold"
                         :class="toast.correoOk ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'">
                         <i :class="toast.correoOk ? 'fas fa-envelope-circle-check' : 'fas fa-envelope-open-text'" class="text-sm"></i>
                         <span class="flex-1">{{ toast.correoMsg }}</span>
                     </div>
-                    <!-- Botón Reenviar si falló -->
                     <button v-if="!toast.correoOk" @click="reenviarToast" :disabled="toast.reenvioLoading"
                         class="flex items-center justify-center gap-2 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
                         <i :class="toast.reenvioLoading ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
@@ -771,6 +723,45 @@
                 </div>
             </transition>
         </teleport>
+
+        <!-- Menú contextual (tab pendientes) -->
+        <teleport to="body">
+            <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
+            <transition name="fade-msg">
+                <div v-if="menuAbierto !== null" class="fixed z-50 w-48 rounded-xl border shadow-2xl overflow-hidden"
+                    :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+
+                    <button @click="verSoporte(itemMenuActual); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-eye text-[#3B82F6] w-3"></i> Ver soporte
+                    </button>
+
+                    <button @click="abrirCarpeta(itemMenuActual); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-folder-open text-[#3B82F6] w-3"></i> Enviar a carpeta
+                    </button>
+
+                    <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
+
+                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
+                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                        <i class="fas fa-check w-3"></i> Aprobar
+                    </button>
+
+                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
+                        :class="isDark ? 'text-red-400' : 'text-red-500'">
+                        <i class="fas fa-xmark w-3"></i> Rechazar
+                    </button>
+
+                </div>
+            </transition>
+        </teleport>
+
     </div>
 </template>
 
@@ -1050,8 +1041,6 @@ const asignarCarpeta = async (nombreEstado) => {
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
 const toast = ref({ visible: false, tipo: '', nombre: '', correoOk: false, correoMsg: '', reenviarId: null, reenvioLoading: false });
 
-const cerrarToast = () => { toast.value.visible = false; };
-
 const abrirAccion = (item, tipo) => {
     accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '', loading: false };
 };
@@ -1088,6 +1077,7 @@ const reenviarToast = async () => {
     toast.value.reenvioLoading = false;
     setTimeout(() => { toast.value.visible = false; }, 5000);
 };
+
 </script>
 
 <style scoped>
