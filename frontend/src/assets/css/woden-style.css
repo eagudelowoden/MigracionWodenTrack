@@ -4,7 +4,11 @@
 }
 
 * {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Layout Responsivo */
@@ -21,7 +25,6 @@
 .woden-card {
   width: 100%;
   max-width: 350px;
-  min-height: 480px;
   padding: 2.5rem 1.8rem;
   border-radius: 2.5rem;
   display: flex;
@@ -177,5 +180,5 @@
   opacity: 0.5;
 }
 .theme-dark .woden-input-base::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgb(255, 255, 255);
 }

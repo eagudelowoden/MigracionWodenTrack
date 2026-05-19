@@ -32,7 +32,11 @@
       "Bash(node -e \"const s=require\\('fs'\\).statSync\\('assets/cometa-de-viento.png'\\); console.log\\('Tamaño archivo:', s.size, 'bytes'\\);\")",
       "Bash(npx @capacitor/assets --version)",
       "Bash(copy \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\Movil-Ionic\\\\WodenTrack\\\\assets\\\\cometa-de-viento.png\" \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\Movil-Ionic\\\\WodenTrack\\\\assets\\\\icon\\\\favicon.png\")",
-      "Bash(ls /mnt/c/Users/e.agudelo/Documents/Movil-Ionic/WodenTrack/assets/icon/)"
+      "Bash(ls /mnt/c/Users/e.agudelo/Documents/Movil-Ionic/WodenTrack/assets/icon/)",
+      "Bash(npx @capacitor/assets generate --iconBackgroundColor \"#080d25\" --iconBackgroundColorDark \"#080d25\" --splashBackgroundColor \"#080d25\")",
+      "Bash(npx @capacitor/assets generate --iconBackgroundColor \"#ffffff\" --iconBackgroundColorDark \"#ffffff\" --splashBackgroundColor \"#080d25\")",
+      "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK'\\)\")",
+      "Bash(node add-padding.js)"
     ]
   }
 }

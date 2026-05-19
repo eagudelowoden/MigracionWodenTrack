@@ -1,13 +1,13 @@
 <template>
   <div class="min-h-screen flex items-center justify-center p-4 font-sans relative overflow-hidden transition-colors duration-700"
     :class="isDark ? 'bg-[#3F4A6E] text-white' : 'bg-[#F8FAFC] text-slate-900'">
-    
+
     <div class="absolute inset-0 z-0 pointer-events-none">
       <div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse"
            :class="isDark ? 'bg-orange-500/15' : 'bg-orange-200/40'"></div>
       <div class="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] animate-float"
            :class="isDark ? 'bg-blue-400/10' : 'bg-blue-100/50'"></div>
-      
+
       <div class="absolute inset-0 opacity-[0.35]"
            :class="isDark ? 'brightness-200' : 'brightness-50'"
            style="background-image: radial-gradient(circle, #475569 1px, transparent 1px); background-size: 28px 28px; mask-image: radial-gradient(ellipse at center, black, transparent 95%);">
@@ -22,7 +22,7 @@
             Panel de Control Central
           </span>
         </div>
-        
+
         <h1 class="text-4xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">
           <span class="text-[#FF8F00] drop-shadow-[0_0_15px_rgba(255,143,0,0.4)]">Woden</span>
           <span :class="isDark ? 'text-white' : 'text-slate-800'"> Control</span>
@@ -33,7 +33,7 @@
       </header>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         <button @click="selectRole('/marcacion')" class="role-card group" :class="cardClass">
           <div class="icon-box bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
             <i class="fas fa-fingerprint text-2xl"></i>
@@ -58,8 +58,8 @@
         </button>
 
         <button v-if="session?.isSuperAdmin || session?.permisos?.['super.superadmin']"
-          @click="selectRole('/super-admin')" 
-          class="role-card group border-[#FF8F00]/20" 
+          @click="selectRole('/super-admin')"
+          class="role-card group border-[#FF8F00]/20"
           :class="[cardClass, isDark ? 'shadow-[0_15px_40px_-15px_rgba(0,0,0,0.6)]' : 'shadow-lg']">
           <div class="icon-box bg-[#FF8F00]/10 text-[#FF8F00] group-hover:bg-[#FF8F00] group-hover:text-black group-hover:shadow-[0_0_20px_rgba(255,143,0,0.5)]">
             <i class="fas fa-crown text-2xl"></i>
@@ -73,7 +73,7 @@
       </div>
 
       <footer class="pt-8 flex flex-col items-center gap-5">
-        <button @click="toggleTheme" 
+        <button @click="toggleTheme"
                 class="flex items-center gap-2.5 px-6 py-2 rounded-full border transition-all hover:scale-105 active:scale-95 shadow-md"
                 :class="isDark ? 'bg-white/10 border-white/20 text-slate-300 hover:text-white' : 'bg-white border-slate-200 text-slate-600'">
           <i class="fas text-[12px]" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
@@ -93,9 +93,9 @@ const router = useRouter();
 const session = ref(null);
 const { isDark, toggleTheme } = useAttendance();
 
-const cardClass = computed(() => 
-  isDark.value 
-    ? 'bg-[#1e293b]/40 border-white/10 hover:bg-[#334155]/60 hover:border-white/20 shadow-2xl' 
+const cardClass = computed(() =>
+  isDark.value
+    ? 'bg-[#1e293b]/40 border-white/10 hover:bg-[#334155]/60 hover:border-white/20 shadow-2xl'
     : 'bg-white/80 border-white shadow-xl hover:bg-white hover:shadow-2xl'
 );
 

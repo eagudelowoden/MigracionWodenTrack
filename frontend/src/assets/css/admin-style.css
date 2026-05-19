@@ -15,7 +15,11 @@
   font-family: "Inter", sans-serif;
 }
 * {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 body {
@@ -25,7 +29,11 @@ body {
     #1e293b 0%,
     var(--woden-bg-main) 100%
   );
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: white;
   min-height: 100vh;
 }
@@ -137,7 +145,7 @@ body {
 /* --- TEMAS (COLORES DINÁMICOS) --- */
 /* DARK MODE */
 .theme-dark {
-  background-color: #1e293b;
+  background-color: #3d4966;
   color: #e2e8f0;
 }
 .sidebar.theme-dark {
