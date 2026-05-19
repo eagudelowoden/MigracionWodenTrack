@@ -24,7 +24,11 @@
       "Bash(findstr /I \"novedad\")",
       "Bash(Select-Object Name)",
       "Bash(ls \"C:\\\\Users\\\\e.agudelo\\\\Documents\")",
-      "Bash(node -e \"const a=require\\('./angular.json'\\); const c=a.projects.app.architect.build.configurations; console.log\\(JSON.stringify\\(c, null, 2\\)\\)\")"
+      "Bash(node -e \"const a=require\\('./angular.json'\\); const c=a.projects.app.architect.build.configurations; console.log\\(JSON.stringify\\(c, null, 2\\)\\)\")",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(git commit --amend -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
