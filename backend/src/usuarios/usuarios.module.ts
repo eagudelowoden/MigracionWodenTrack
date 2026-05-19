@@ -33,6 +33,7 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
 import { SuperAdminSolicitudesService } from './superadmin-solicitudes.service';
 import { SuperAdminSolicitudesController } from './superadmin-solicitudes.controller';
 import { MallasSolicitud } from './entities/mallas-solicitud.entity';
+import { ReporteFalla } from './entities/reporte-falla.entity';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { MallasSolicitud } from './entities/mallas-solicitud.entity';
       MensajeInterno,
       MallasSolicitud,
       CorreoDestinatario,
+      ReporteFalla,
     ]),
     OdooModule,
     MailModule,

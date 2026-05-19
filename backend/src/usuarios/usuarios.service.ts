@@ -20,6 +20,7 @@ import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Area } from './entities/area.entity';
+import { ReporteFalla } from './entities/reporte-falla.entity';
 import { MailModule } from '../logsEmail/mail.module';
 import { MailService } from '../logsEmail/mail.service';
 import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
@@ -68,6 +69,9 @@ export class UsuariosService {
     private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
+
+    @InjectRepository(ReporteFalla)
+    private readonly reporteFallaRepo: Repository<ReporteFalla>,
   ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -2421,34 +2425,28 @@ export class UsuariosService {
     return await this.usuarioRepo.find(queryOptions);
   }
 
-  private readonly reportesPath = path.join(process.cwd(), 'uploads', 'reportes-falla.json');
-
   async reportarFalla(data: { empleado_id: number; nombre: string; descripcion: string }) {
-    let reportes: any[] = [];
-    if (fs.existsSync(this.reportesPath)) {
-      try { reportes = JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch {}
-    }
-    const nuevo = { ...data, fecha: new Date().toISOString(), id: Date.now(), resuelto: false };
-    reportes.unshift(nuevo);
-    const dir = path.dirname(this.reportesPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(this.reportesPath, JSON.stringify(reportes, null, 2));
+    const reporte = this.reporteFallaRepo.create({
+      empleado_id:  data.empleado_id,
+      nombre:       data.nombre,
+      descripcion:  data.descripcion,
+      resuelto:     false,
+    });
+    await this.reporteFallaRepo.save(reporte);
     return { status: 'success', message: 'Reporte enviado. Gracias por reportar.' };
   }
 
   async getReportesFalla() {
-    if (!fs.existsSync(this.reportesPath)) return [];
-    try { return JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch { return []; }
+    return this.reporteFallaRepo.find({
+      order: { fecha: 'DESC' },
+    });
   }
 
   async resolverFalla(id: number) {
-    if (!fs.existsSync(this.reportesPath)) throw new NotFoundException('No hay reportes');
-    let reportes: any[] = [];
-    try { reportes = JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch { return []; }
-    const reporte = reportes.find(r => r.id === id);
+    const reporte = await this.reporteFallaRepo.findOne({ where: { id } });
     if (!reporte) throw new NotFoundException('Reporte no encontrado');
     reporte.resuelto = true;
-    fs.writeFileSync(this.reportesPath, JSON.stringify(reportes, null, 2));
+    await this.reporteFallaRepo.save(reporte);
     return { status: 'success' };
   }
 

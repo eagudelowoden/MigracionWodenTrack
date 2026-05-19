@@ -33,7 +33,7 @@ export class ApkService {
     if (!fileExists) {
       return {
         exists: false,
-        version: "N/A",
+        version: this.configService.get<string>('APP_VERSION') || '1.0.0', // versión real aunque no haya archivo
         size: "0",
         lastUpdate: null,
         downloadUrl: null,
