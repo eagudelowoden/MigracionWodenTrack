@@ -23,7 +23,8 @@
       "Bash(findstr /S /I \"lectura\\\\|lectura_\\\\|read\\\\|readonly\\\\|view_only\" \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\")",
       "Bash(findstr /I \"novedad\")",
       "Bash(Select-Object Name)",
-      "Bash(ls \"C:\\\\Users\\\\e.agudelo\\\\Documents\")"
+      "Bash(ls \"C:\\\\Users\\\\e.agudelo\\\\Documents\")",
+      "Bash(node -e \"const a=require\\('./angular.json'\\); const c=a.projects.app.architect.build.configurations; console.log\\(JSON.stringify\\(c, null, 2\\)\\)\")"
     ]
   }
 }
