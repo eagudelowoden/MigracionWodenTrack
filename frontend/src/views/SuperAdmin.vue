@@ -4,29 +4,29 @@ import { useRouter, useRoute } from 'vue-router';
 
 // ── Constantes de navegación ──────────────────────────────────────────────────
 const NAV_ITEMS = {
-  stats:         { icon:'fas fa-chart-pie',           label:'Dashboard',    color:'text-blue-400',    bg:'bg-blue-500/10' },
-  apk:           { icon:'fab fa-android',             label:'APK',          color:'text-emerald-400', bg:'bg-emerald-500/10' },
-  companies:     { icon:'fas fa-building-columns',    label:'Empresas',     color:'text-purple-400',  bg:'bg-purple-500/10' },
-  users:         { icon:'fas fa-users',               label:'Personal',     color:'text-indigo-400',  bg:'bg-indigo-500/10' },
-  notifications: { icon:'fas fa-bell',                label:'Avisos',       color:'text-rose-400',    bg:'bg-rose-500/10' },
-  estructura:    { icon:'fas fa-sitemap',             label:'Organización', color:'text-cyan-400',    bg:'bg-cyan-500/10' },
-  mallas:        { icon:'fas fa-calendar-days',       label:'Mallas',       color:'text-amber-400',   bg:'bg-amber-500/10' },
-  analitica:     { icon:'fas fa-chart-line',          label:'Analítica HR', color:'text-fuchsia-400', bg:'bg-fuchsia-500/10' },
-  sesiones:      { icon:'fas fa-lock',                label:'Sesiones',     color:'text-emerald-400', bg:'bg-emerald-500/10' },
-  mensajes:      { icon:'fas fa-message',             label:'Mensajes',     color:'text-sky-400',     bg:'bg-sky-500/10' },
-  recordatorios: { icon:'fas fa-clock',               label:'Recordatorios',color:'text-violet-400',  bg:'bg-violet-500/10' },
-  config:        { icon:'fas fa-sliders',             label:'Configuración',color:'text-slate-400',   bg:'bg-slate-500/10' },
-  api:           { icon:'fas fa-plug',                label:'API Externa',  color:'text-teal-400',    bg:'bg-teal-500/10' },
-  solicitudes:   { icon:'fas fa-inbox',               label:'Solicitudes',  color:'text-amber-400',   bg:'bg-amber-500/10' },
-  reportes:      { icon:'fas fa-triangle-exclamation',label:'Rep. Falla',   color:'text-red-400',     bg:'bg-red-500/10' },
+  stats: { icon: 'fas fa-chart-pie', label: 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  companies: { icon: 'fas fa-building-columns', label: 'Empresas', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  users: { icon: 'fas fa-users', label: 'Personal', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+  notifications: { icon: 'fas fa-bell', label: 'Avisos', color: 'text-rose-400', bg: 'bg-rose-500/10' },
+  estructura: { icon: 'fas fa-sitemap', label: 'Organización', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+  mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
+  sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  mensajes: { icon: 'fas fa-message', label: 'Mensajes', color: 'text-sky-400', bg: 'bg-sky-500/10' },
+  recordatorios: { icon: 'fas fa-clock', label: 'Recordatorios', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+  config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
+  api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
+  solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
 };
 
 const MODULE_LABELS = {
-  stats:'Dashboard', apk:'APK', companies:'Empresas', users:'Personal',
-  notifications:'Avisos', estructura:'Organización', mallas:'Mallas',
-  analitica:'Analítica HR', sesiones:'Sesiones', mensajes:'Mensajes',
-  recordatorios:'Recordatorios', config:'Configuración', api:'API Externa',
-  solicitudes:'Solicitudes', reportes:'Rep. de Falla',
+  stats: 'Dashboard', apk: 'APK', companies: 'Empresas', users: 'Personal',
+  notifications: 'Avisos', estructura: 'Organización', mallas: 'Mallas',
+  analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
+  recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
+  solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -61,21 +61,21 @@ const { logout, isDark, toggleTheme, employee } = useAttendance();
 
 // ── Sistema de permisos por módulo ────────────────────────────────────────────
 const TAB_PERMS = {
-  stats:         'super.dashboard',
-  apk:           'super.gestionarapk',
-  companies:     'super.companias',
-  users:         'super.personal',
+  stats: 'super.dashboard',
+  apk: 'super.gestionarapk',
+  companies: 'super.companias',
+  users: 'super.personal',
   notifications: 'super.avisos',
-  estructura:    'super.organizacion',
-  mallas:        'super.mallas',
-  analitica:     'super.analitica',
-  sesiones:      'super.sesiones',
-  mensajes:      'super.mensajes',
+  estructura: 'super.organizacion',
+  mallas: 'super.mallas',
+  analitica: 'super.analitica',
+  sesiones: 'super.sesiones',
+  mensajes: 'super.mensajes',
   recordatorios: 'super.recordatorios',
-  config:        'super.configuracion',
-  api:           'super.api',
-  solicitudes:   'super.solicitudes',
-  reportes:      'super.reportes',
+  config: 'super.configuracion',
+  api: 'super.api',
+  solicitudes: 'super.solicitudes',
+  reportes: 'super.reportes',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -171,7 +171,7 @@ const hasPerm = (user, slug) => {
 };
 // --- Estado Local Restante ---
 const isSidebarOpen = ref(true);
-const showUserMenu  = ref(false);
+const showUserMenu = ref(false);
 
 // Nombre de pila (formato "Apellido1 Apellido2 Nombre1 Nombre2" → "Nombre1")
 const displayName = computed(() => {
@@ -271,13 +271,11 @@ onMounted(async () => {
       style="background:#3b82f6">
       <i class="fas fa-bars text-sm"></i>
     </button>
-    <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
-      class="lg:hidden fixed inset-0 bg-black/60 z-[45]"></div>
+    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="lg:hidden fixed inset-0 bg-black/60 z-[45]"></div>
 
     <!-- ═══════════ SIDEBAR ═══════════ -->
-    <aside class="sa-sidebar"
-      :class="[isDark ? 'sa-sidebar-dark' : 'sa-sidebar-light',
-               isSidebarOpen ? 'sa-sidebar-open' : 'sa-sidebar-closed']">
+    <aside class="sa-sidebar" :class="[isDark ? 'sa-sidebar-dark' : 'sa-sidebar-light',
+    isSidebarOpen ? 'sa-sidebar-open' : 'sa-sidebar-closed']">
 
       <!-- Botón colapsar -->
       <button @click="isSidebarOpen = !isSidebarOpen" class="sa-collapse-btn"
@@ -303,21 +301,17 @@ onMounted(async () => {
       <!-- Nav items -->
       <nav class="sa-nav">
         <template v-for="(item, key) in NAV_ITEMS" :key="key">
-          <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label"
-            class="sa-nav-item"
-            :class="[
-              !isSidebarOpen && 'lg:justify-center',
-              currentTab === key
-                ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
-                : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
-            ]">
+          <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label" class="sa-nav-item" :class="[
+            !isSidebarOpen && 'lg:justify-center',
+            currentTab === key
+              ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
+              : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
+          ]">
             <div v-if="currentTab === key" class="sa-nav-bar"></div>
-            <!-- Icono: azul inactivo; blanco (dark) / slate (light) cuando activo -->
             <div class="sa-nav-icon">
-              <i :class="item.icon"
-                :style="currentTab === key
-                  ? (isDark ? 'color:#fff' : 'color:#1e293b')
-                  : 'color:#60a5fa'"></i>
+              <i :class="item.icon" :style="isDark
+                ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
+                : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
             </div>
             <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
           </button>
@@ -330,25 +324,17 @@ onMounted(async () => {
       <div v-if="isSA" class="px-2 pb-1 shrink-0">
         <p v-if="isSidebarOpen" class="sa-section-label">Dev Nav</p>
         <button v-for="d in [
-          { path:'/super-admin', icon:'fas fa-shield-halved', label:'Super Admin' },
-          { path:'/admin',       icon:'fas fa-user-shield',   label:'Admin' },
-          { path:'/marcacion',   icon:'fas fa-fingerprint',   label:'Marcación' },
-        ]" :key="d.path" @click="router.push(d.path)" :title="d.label"
-          class="sa-dev-btn" :class="!isSidebarOpen && 'lg:justify-center'">
+          { path: '/super-admin', icon: 'fas fa-shield-halved', label: 'Super Admin' },
+          { path: '/admin', icon: 'fas fa-user-shield', label: 'Admin' },
+          { path: '/marcacion', icon: 'fas fa-fingerprint', label: 'Marcación' },
+        ]" :key="d.path" @click="router.push(d.path)" :title="d.label" class="sa-dev-btn"
+          :class="!isSidebarOpen && 'lg:justify-center'">
           <i :class="d.icon" class="text-[10px] shrink-0"></i>
           <span v-if="isSidebarOpen">{{ d.label }}</span>
         </button>
       </div>
 
-      <!-- Footer sidebar: solo icono de tema -->
-      <div class="sa-sidebar-footer" :class="isDark ? 'border-white/[0.06]' : 'border-slate-200'">
-        <button @click="toggleTheme" class="sa-footer-btn"
-          :class="[isDark ? 'sa-footer-btn-dark' : 'sa-footer-btn-light', !isSidebarOpen && 'lg:justify-center']">
-          <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="shrink-0 text-[13px]"
-            :style="isDark ? 'color:#facc15' : 'color:#818cf8'"></i>
-          <span v-if="isSidebarOpen" class="text-[9px]">{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</span>
-        </button>
-      </div>
+
     </aside>
 
     <!-- ═══════════ MAIN ═══════════ -->
@@ -371,23 +357,19 @@ onMounted(async () => {
 
         <!-- Derecha: 1-Sistema Activo · 2-Tema · 3-Usuario (con dropdown) -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- 1. Sistema activo -->
-          <div class="sa-status-badge">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span class="text-[9px] font-black uppercase tracking-widest text-emerald-500">Sistema Activo</span>
-          </div>
+          <!-- 1. Ssistema activo -->
 
           <!-- 2. Toggle tema — solo ícono, sin texto -->
-          <button @click="toggleTheme" class="sa-theme-btn"
-            :class="isDark ? 'sa-theme-dark' : 'sa-theme-light'" title="Cambiar tema">
+          <button @click="toggleTheme" class="sa-theme-btn" :class="isDark ? 'sa-theme-dark' : 'sa-theme-light'"
+            title="Cambiar tema">
             <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-[11px]"
               :style="isDark ? 'color:#facc15' : 'color:#818cf8'"></i>
           </button>
 
           <!-- 3. Usuario con dropdown -->
           <div class="relative" v-if="employee?.name">
-            <button @click="showUserMenu = !showUserMenu"
-              class="sa-user-chip" :class="isDark ? 'sa-user-dark' : 'sa-user-light'">
+            <button @click="showUserMenu = !showUserMenu" class="sa-user-chip"
+              :class="isDark ? 'sa-user-dark' : 'sa-user-light'">
               <div class="sa-user-avatar">
                 <span class="text-[10px] font-black" style="color:#3b82f6">
                   {{ displayName.charAt(0) }}
@@ -396,8 +378,7 @@ onMounted(async () => {
               <div class="leading-tight text-left">
                 <p class="text-[8px] font-semibold uppercase tracking-widest opacity-40"
                   :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
-                <p class="text-[11px] font-bold"
-                  :class="isDark ? 'text-white' : 'text-slate-800'">{{ displayName }}</p>
+                <p class="text-[11px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ displayName }}</p>
               </div>
               <i class="fas fa-chevron-down text-[8px] opacity-30 ml-1 transition-transform"
                 :class="showUserMenu ? 'rotate-180' : ''"></i>
@@ -405,14 +386,14 @@ onMounted(async () => {
 
             <!-- Dropdown -->
             <Transition name="dropdown">
-              <div v-if="showUserMenu"
-                class="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1 z-50 shadow-xl"
+              <div v-if="showUserMenu" class="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1 z-50 shadow-xl"
                 :class="isDark ? 'bg-[#273045] border-white/10' : 'bg-white border-slate-200'">
                 <div class="px-3 py-2 border-b" :class="isDark ? 'border-white/[0.06]' : 'border-slate-100'">
                   <p class="text-[9px] font-bold uppercase tracking-widest opacity-40"
                     :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
-                  <p class="text-[11px] font-bold mt-0.5"
-                    :class="isDark ? 'text-white' : 'text-slate-800'">{{ displayName }}</p>
+                  <p class="text-[11px] font-bold mt-0.5" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    displayName
+                  }}</p>
                 </div>
                 <button @click="logout(); showUserMenu = false"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
@@ -429,33 +410,49 @@ onMounted(async () => {
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats','apk','companies','users','notifications','estructura','config','api']" :key="tab">
-          <div v-if="currentTab === tab && canAccess(tab)"
-            class="sa-card animate-fade-in"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'config', 'api']"
+          :key="tab">
+          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
-            <GestionDashboard      v-if="tab==='stats'"         :isDark="isDark" />
-            <GestionApk            v-if="tab==='apk'"           :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionCompanias      v-if="tab==='companies'"     :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionUsuarios       v-if="tab==='users'"         :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" @open-perms="openPerms($event)" />
-            <Notificaciones        v-if="tab==='notifications'" :isDark="isDark" :apiUrl="API_URL" @notification-sent="showNotification('Notificación enviada')" />
-            <GestionEstructura     v-if="tab==='estructura'"    :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios" :areas="areas" :segmentos="segmentos" :areasAgrupadas="areasAgrupadas" :departamentosDisponibles="segmentos.map(s=>s.nombre)" @save="handleSaveEstructura" @update-area="handleUpdateArea" @refresh="fetchOrganizacion" />
-            <GestionConfiguraciones v-if="tab==='config'"       :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionApiExterna     v-if="tab==='api'"           :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
+            <GestionDashboard v-if="tab === 'stats'" :isDark="isDark" />
+            <GestionApk v-if="tab === 'apk'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionCompanias v-if="tab === 'companies'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionUsuarios v-if="tab === 'users'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
+            <Notificaciones v-if="tab === 'notifications'" :isDark="isDark" :apiUrl="API_URL"
+              @notification-sent="showNotification('Notificación enviada')" />
+            <GestionEstructura v-if="tab === 'estructura'" :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios"
+              :areas="areas" :segmentos="segmentos" :areasAgrupadas="areasAgrupadas"
+              :departamentosDisponibles="segmentos.map(s => s.nombre)" @save="handleSaveEstructura"
+              @update-area="handleUpdateArea" @refresh="fetchOrganizacion" />
+            <GestionConfiguraciones v-if="tab === 'config'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionApiExterna v-if="tab === 'api'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
           </div>
         </template>
 
         <!-- Módulos de altura completa -->
-        <template v-for="tab in ['mallas','analitica','sesiones','mensajes','recordatorios','solicitudes','reportes']" :key="tab">
-          <div v-if="currentTab === tab && canAccess(tab)"
-            class="sa-card sa-card-full animate-fade-in"
+        <template
+          v-for="tab in ['mallas', 'analitica', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes']"
+          :key="tab">
+          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
-            <GestionMallas        v-if="tab==='mallas'"         :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionAnalitica     v-if="tab==='analitica'"      :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionSesiones      v-if="tab==='sesiones'"       :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionMensajes      v-if="tab==='mensajes'"       :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionRecordatorios v-if="tab==='recordatorios'"  :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <GestionSolicitudes   v-if="tab==='solicitudes'"    :isDark="isDark" @success="showNotification($event)" @error="showNotification($event,'error')" />
-            <ModuloReportesFalla  v-if="tab==='reportes'"       :isDark="isDark" />
+            <GestionMallas v-if="tab === 'mallas'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionAnalitica v-if="tab === 'analitica'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionSesiones v-if="tab === 'sesiones'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionMensajes v-if="tab === 'mensajes'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionRecordatorios v-if="tab === 'recordatorios'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <GestionSolicitudes v-if="tab === 'solicitudes'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" />
+            <ModuloReportesFalla v-if="tab === 'reportes'" :isDark="isDark" />
           </div>
         </template>
 
@@ -472,193 +469,566 @@ onMounted(async () => {
 
 <style scoped>
 /* ══ LAYOUT RAÍZ ══ */
-.sa-root { display:flex; height:100vh; overflow:hidden; font-family:'Inter',system-ui,sans-serif; }
-.sa-dark  { background:#1e2535; color:#fff; }
-.sa-light { background:#f1f5f9; color:#1e293b; }
+.sa-root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.sa-dark {
+  background: #1e2535;
+  color: #fff;
+}
+
+.sa-light {
+  background: #f1f5f9;
+  color: #1e293b;
+}
 
 /* ══ TOAST ══ */
 .sa-toast {
-  position:fixed; top:20px; right:20px; z-index:100;
-  display:flex; align-items:center; gap:10px;
-  padding:10px 18px; border-radius:14px; border:1px solid;
-  backdrop-filter:blur(16px); box-shadow:0 20px 40px rgba(0,0,0,0.3);
-  font-size:11px; font-weight:700;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 1px solid;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  font-size: 11px;
+  font-weight: 700;
 }
-.sa-toast-ok  { background:rgba(6,78,59,.9);  border-color:rgba(52,211,153,.25); color:#6ee7b7; }
-.sa-toast-err { background:rgba(127,29,29,.9); border-color:rgba(252,165,165,.25); color:#fca5a5; }
-.toast-enter-active,.toast-leave-active { transition:all .3s ease; }
-.toast-enter-from,.toast-leave-to { opacity:0; transform:translateX(20px); }
+
+.sa-toast-ok {
+  background: rgba(6, 78, 59, .9);
+  border-color: rgba(52, 211, 153, .25);
+  color: #6ee7b7;
+}
+
+.sa-toast-err {
+  background: rgba(127, 29, 29, .9);
+  border-color: rgba(252, 165, 165, .25);
+  color: #fca5a5;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all .3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
 
 /* ══ SIDEBAR ══ */
 .sa-sidebar {
-  position:relative; z-index:50; height:100vh;
-  display:flex; flex-direction:column; flex-shrink:0;
-  transition:width .3s ease; overflow:hidden;
-  border-right:1px solid;
+  position: relative;
+  z-index: 50;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width .3s ease;
+  overflow: hidden;
+  border-right: 1px solid;
 }
-.sa-sidebar-dark  { background:#273045; border-color:rgba(255,255,255,0.06); }
-.sa-sidebar-light { background:#fff;    border-color:#e2e8f0; box-shadow:2px 0 8px rgba(0,0,0,0.04); }
-.sa-sidebar-open   { width:220px; }
-.sa-sidebar-closed { width:0; }
-@media(min-width:1024px) { .sa-sidebar-closed { width:60px; } }
+
+.sa-sidebar-dark {
+  background: #273045;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.sa-sidebar-light {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.sa-sidebar-open {
+  width: 220px;
+}
+
+.sa-sidebar-closed {
+  width: 0;
+}
+
+@media(min-width:1024px) {
+  .sa-sidebar-closed {
+    width: 60px;
+  }
+}
 
 /* Colapsar */
 .sa-collapse-btn {
-  position:absolute; right:-12px; top:24px; z-index:60;
-  width:24px; height:24px; border-radius:50%; border:1px solid;
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .2s;
+  position: absolute;
+  right: -12px;
+  top: 24px;
+  z-index: 60;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s;
 }
-.sa-collapse-dark  { background:#273045; border-color:rgba(255,255,255,0.1); color:rgba(255,255,255,0.5); }
-.sa-collapse-light { background:#fff;    border-color:#e2e8f0; color:#94a3b8; }
-.sa-collapse-btn:hover { border-color:#3b82f6; color:#3b82f6; }
+
+.sa-collapse-dark {
+  background: #273045;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sa-collapse-light {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+
+.sa-collapse-btn:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
 
 /* Brand */
-.sa-brand { display:flex; align-items:center; gap:10px; padding:18px 14px 14px; flex-shrink:0; }
-.sa-brand-icon {
-  width:34px; height:34px; border-radius:10px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(135deg,#2563eb,#3b82f6);
-  box-shadow:0 4px 12px rgba(59,130,246,0.35);
+.sa-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 14px 14px;
+  flex-shrink: 0;
 }
-.sa-brand-name { font-size:13px; font-weight:900; letter-spacing:-.02em; text-transform:uppercase; line-height:1; }
-.sa-brand-sub  { font-size:8px;  font-weight:600; letter-spacing:.2em; text-transform:uppercase; opacity:.3; margin-top:2px; }
+
+.sa-brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.sa-brand-name {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.sa-brand-sub {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  opacity: .3;
+  margin-top: 2px;
+}
 
 /* Divisor */
-.sa-divider { margin:0 12px 8px; height:1px; flex-shrink:0; background:rgba(255,255,255,0.06); }
-.sa-light .sa-divider { background:#f1f5f9; }
+.sa-divider {
+  margin: 0 12px 8px;
+  height: 1px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sa-light .sa-divider {
+  background: #f1f5f9;
+}
 
 /* Nav */
-.sa-nav { flex:1; padding:0 8px; overflow-y:auto; overflow-x:hidden; }
-.sa-nav::-webkit-scrollbar { display:none; }
-.sa-nav { scrollbar-width:none; }
+.sa-nav {
+  flex: 1;
+  padding: 0 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sa-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.sa-nav {
+  scrollbar-width: none;
+}
 
 .sa-nav-item {
-  width:100%; display:flex; align-items:center; gap:10px;
-  padding:7px 8px; border-radius:10px; margin-bottom:2px;
-  position:relative; cursor:pointer; border:none; background:none;
-  transition:all .15s ease; overflow:hidden;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all .15s ease;
+  overflow: hidden;
 }
+
 /* Activo dark: gris suave sobre sidebar oscuro */
-.sa-nav-active-dark  { background:rgba(255,255,255,0.1); color:#fff; }
+.sa-nav-active-dark {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 /* Activo light: gris claro sobre sidebar blanco */
-.sa-nav-active-light { background:#e8edf5; color:#1e293b; }
-.sa-nav-idle-dark   { color:rgba(255,255,255,0.55); }
-.sa-nav-idle-dark:hover  { background:rgba(255,255,255,0.06); color:#fff; }
-.sa-nav-idle-light  { color:#64748b; }
-.sa-nav-idle-light:hover { background:#f1f5f9; color:#1e293b; }
+.sa-nav-active-light {
+  background: #e8edf5;
+  color: #1e293b;
+}
+
+.sa-nav-idle-dark {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sa-nav-idle-dark:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.sa-nav-idle-light {
+  color: #64748b;
+}
+
+.sa-nav-idle-light:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
 
 .sa-nav-bar {
-  position:absolute; left:0; top:50%; transform:translateY(-50%);
-  width:3px; height:18px; border-radius:0 4px 4px 0;
-  background:#3b82f6; box-shadow:0 0 8px #3b82f6;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 4px 4px 0;
+  background: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6;
 }
+
 .sa-nav-icon {
-  width:26px; height:26px; border-radius:8px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-size:11px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
 }
-.sa-nav-icon-active { background:rgba(59,130,246,0.2); color:#60a5fa; }
-.sa-nav-label { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; }
+
+.sa-nav-icon-active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.sa-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
 /* Sección dev */
-.sa-section-label { font-size:8px; font-weight:900; letter-spacing:.25em; text-transform:uppercase; opacity:.25; padding:0 8px; margin-bottom:4px; }
-.sa-dev-btn {
-  width:100%; display:flex; align-items:center; gap:8px;
-  padding:6px 8px; border-radius:8px; margin-bottom:2px;
-  font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  color:rgba(59,130,246,0.5); border:none; background:none; cursor:pointer;
-  transition:all .15s;
+.sa-section-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  opacity: .25;
+  padding: 0 8px;
+  margin-bottom: 4px;
 }
-.sa-dev-btn:hover { color:#3b82f6; background:rgba(59,130,246,0.08); }
+
+.sa-dev-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color .15s;
+}
+
+.sa-sidebar-dark .sa-dev-btn { color: #94a3b8; }
+.sa-sidebar-dark .sa-dev-btn:hover { color: #cbd5e1; }
+
+.sa-sidebar-light .sa-dev-btn { color: #64748b; }
+.sa-sidebar-light .sa-dev-btn:hover { color: #334155; }
 
 /* Footer sidebar */
-.sa-sidebar-footer { padding:8px 8px 14px; border-top:1px solid; flex-shrink:0; }
+.sa-sidebar-footer {
+  padding: 8px 8px 14px;
+  border-top: 1px solid;
+  flex-shrink: 0;
+}
+
 .sa-footer-btn {
-  width:100%; display:flex; align-items:center; gap:8px;
-  padding:6px 8px; border-radius:8px; margin-bottom:2px;
-  font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  border:none; background:none; cursor:pointer; transition:all .15s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all .15s;
 }
-.sa-footer-btn-dark  { color:rgba(255,255,255,0.35); }
-.sa-footer-btn-dark:hover  { color:#fff; background:rgba(255,255,255,0.06); }
-.sa-footer-btn-light { color:#94a3b8; }
-.sa-footer-btn-light:hover { color:#1e293b; background:#f1f5f9; }
+
+.sa-footer-btn-dark {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.sa-footer-btn-dark:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sa-footer-btn-light {
+  color: #94a3b8;
+}
+
+.sa-footer-btn-light:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
 .sa-logout-btn {
-  width:100%; display:flex; align-items:center; gap:8px;
-  padding:6px 8px; border-radius:8px;
-  font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  color:rgba(239,68,68,0.5); border:none; background:none; cursor:pointer; transition:all .15s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(239, 68, 68, 0.5);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all .15s;
 }
-.sa-logout-btn:hover { color:#ef4444; background:rgba(239,68,68,0.08); }
+
+.sa-logout-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
 
 /* ══ MAIN ══ */
-.sa-main { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+.sa-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
 
 /* Header */
 .sa-header {
-  height:52px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 20px; border-bottom:1px solid;
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid;
 }
-.sa-header-dark  { background:#273045; border-color:rgba(255,255,255,0.06); }
-.sa-header-light { background:#fff;    border-color:#e2e8f0; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
 
-.sa-breadcrumb-root { font-size:10px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; flex-shrink:0; }
-.sa-breadcrumb-page { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.sa-header-dark {
+  background: #273045;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.sa-header-light {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.sa-breadcrumb-root {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.sa-breadcrumb-page {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
 
 .sa-status-badge {
-  display:none; align-items:center; gap:6px;
-  padding:4px 12px; border-radius:999px; border:1px solid rgba(52,211,153,0.25);
-  background:rgba(52,211,153,0.06);
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.06);
 }
-@media(min-width:640px) { .sa-status-badge { display:flex; } }
+
+@media(min-width:640px) {
+  .sa-status-badge {
+    display: flex;
+  }
+}
 
 .sa-theme-btn {
-  width:32px; height:32px; border-radius:10px; border:1px solid;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  transition:all .2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s;
 }
-.sa-theme-dark  { border-color:rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); }
-.sa-theme-dark:hover  { background:rgba(255,255,255,0.1); }
-.sa-theme-light { border-color:#e2e8f0; background:#f8fafc; }
-.sa-theme-light:hover { background:#e2e8f0; }
+
+.sa-theme-dark {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sa-theme-dark:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sa-theme-light {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.sa-theme-light:hover {
+  background: #e2e8f0;
+}
 
 .sa-user-chip {
-  display:flex; align-items:center; gap:8px;
-  padding:5px 12px; border-radius:12px; border:1px solid; cursor:default;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 12px;
+  border: 1px solid;
+  cursor: default;
 }
-.sa-user-dark  { border-color:rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); }
-.sa-user-light { border-color:#e2e8f0; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+
+.sa-user-dark {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sa-user-light {
+  border-color: #e2e8f0;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
 .sa-user-avatar {
-  width:24px; height:24px; border-radius:8px; flex-shrink:0;
-  background:rgba(59,130,246,0.15);
-  display:flex; align-items:center; justify-content:center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: rgba(59, 130, 246, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ══ CONTENIDO ══ */
 .sa-content {
-  flex:1; min-height:0; padding:16px;
-  display:flex; flex-direction:column; gap:0;
-  overflow:hidden;
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
 }
-.sa-content-dark  { background:#1e2535; }
-.sa-content-light { background:#f1f5f9; }
+
+.sa-content-dark {
+  background: #1e2535;
+}
+
+.sa-content-light {
+  background: #f1f5f9;
+}
 
 /* ══ CARD / CONTAINER MÓDULOS ══ */
 /* Todos los cards llenan el área de contenido */
 .sa-card {
-  flex:1; min-height:0;
-  border-radius:14px; border:1px solid; overflow:hidden;
-  padding:16px;
-  display:flex; flex-direction:column;
+  flex: 1;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
+
 /* Módulos de altura completa: sin padding, el módulo llena borde a borde */
-.sa-card-full { padding:0; }
-.sa-card-dark  { background:#1e2535; border-color:rgba(255,255,255,0.07); }
-.sa-card-light { background:#f8fafc; border-color:#e2e8f0; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+.sa-card-full {
+  padding: 0;
+}
+
+.sa-card-dark {
+  background: #1e2535;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.sa-card-light {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
 
 /* Dropdown usuario */
-.dropdown-enter-active, .dropdown-leave-active { transition:all .18s ease; }
-.dropdown-enter-from, .dropdown-leave-to { opacity:0; transform:translateY(-6px) scale(0.97); }
-</style>
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all .18s ease;
+}
 
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+}
+</style>

@@ -36,7 +36,8 @@
       "Bash(npx @capacitor/assets generate --iconBackgroundColor \"#080d25\" --iconBackgroundColorDark \"#080d25\" --splashBackgroundColor \"#080d25\")",
       "Bash(npx @capacitor/assets generate --iconBackgroundColor \"#ffffff\" --iconBackgroundColorDark \"#ffffff\" --splashBackgroundColor \"#080d25\")",
       "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK'\\)\")",
-      "Bash(node add-padding.js)"
+      "Bash(node add-padding.js)",
+      "Bash(awk -F: 'prev && $2==prev+1 && prev_line !~ />$/ {print prev\": \"prev_line; print $2\": \"$0} {prev=$2; prev_line=$0}')"
     ]
   }
 }
