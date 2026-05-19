@@ -19,6 +19,7 @@ import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue'
 import GestionMensajes from '../components/admin/SuperAdmin/GestionMensajes.vue';
 import GestionRecordatorios from '../components/admin/SuperAdmin/GestionRecordatorios.vue';
 import GestionSolicitudes from '../components/admin/SuperAdmin/GestionSolicitudes.vue';
+import ModuloReportesFalla from '../components/admin/ModuloReportesFalla.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
 
@@ -47,6 +48,7 @@ const TAB_PERMS = {
   config:        'super.configuracion',
   api:           'super.api',
   solicitudes:   'super.solicitudes',
+  reportes:      'super.reportes',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -315,6 +317,7 @@ onMounted(async () => {
             config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-500', bg: 'bg-slate-500/10' },
             api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
             solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            reportes: { icon: 'fas fa-bug', label: 'Rep. Falla', color: 'text-red-500', bg: 'bg-red-500/10' },
           }" :key="key">
             <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label"
               class="group w-full flex items-center gap-3 rounded-xl transition-all duration-150 relative" :class="[
@@ -528,6 +531,10 @@ onMounted(async () => {
         <div v-if="currentTab === 'solicitudes' && canAccess('solicitudes')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
           <GestionSolicitudes :isDark="isDark" @success="showNotification($event)"
             @error="showNotification($event, 'error')" />
+        </div>
+
+        <div v-if="currentTab === 'reportes' && canAccess('reportes')" class="animate-fade-in flex-1 min-h-0 flex flex-col">
+          <ModuloReportesFalla :isDark="isDark" />
         </div>
 
       </div>

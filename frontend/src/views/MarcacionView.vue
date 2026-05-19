@@ -41,7 +41,10 @@
 
       <!-- Botones entrada / salida -->
       <div class="action-grid grid grid-cols-2 gap-4">
-        <button @click="handleAttendance" :disabled="loading || employee.is_inside || employee.day_completed"
+
+        <!-- ENTRADA -->
+        <button @click="handleAttendance('in')"
+          :disabled="loading || employee.is_inside || employee.day_completed"
           class="action-card btn-entrada group disabled:opacity-20 disabled:grayscale active:scale-95 transition-all"
           :class="{ 'border-emerald-500/50': employee.day_completed }">
           <div
@@ -57,9 +60,16 @@
           <span class="text-[10px] font-black uppercase tracking-widest">
             {{ employee.day_completed ? 'Completado' : (employee.is_inside ? 'Ya ingresaste' : 'Entrada') }}
           </span>
+          <!-- Hora de entrada -->
+          <span v-if="employee.hora_entrada"
+            class="mt-1.5 text-[9px] font-bold tabular-nums opacity-70 tracking-wide">
+            {{ employee.hora_entrada }}
+          </span>
         </button>
 
-        <button @click="handleAttendance" :disabled="loading || !employee.is_inside || employee.day_completed"
+        <!-- SALIDA -->
+        <button @click="handleAttendance('out')"
+          :disabled="loading || !employee.is_inside || employee.day_completed"
           class="action-card btn-salida group disabled:opacity-20 disabled:grayscale active:scale-95 transition-all">
           <div
             class="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-white/10 shadow-sm transition-transform group-hover:not-disabled:scale-110">
@@ -70,7 +80,13 @@
           <span class="text-[10px] font-black uppercase tracking-widest">
             {{ employee.day_completed ? 'Finalizado' : 'Salida' }}
           </span>
+          <!-- Hora de salida -->
+          <span v-if="employee.hora_salida"
+            class="mt-1.5 text-[9px] font-bold tabular-nums opacity-70 tracking-wide">
+            {{ employee.hora_salida }}
+          </span>
         </button>
+
       </div>
 
       <!-- Separador -->
@@ -557,6 +573,7 @@ const submitColectiva = async () => {
 .fade-modal-leave-to {
   opacity: 0;
 }
+
 
 .fade-msg-enter-active,
 .fade-msg-leave-active {

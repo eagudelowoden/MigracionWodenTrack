@@ -22,7 +22,8 @@
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(findstr /S /I \"lectura\\\\|lectura_\\\\|read\\\\|readonly\\\\|view_only\" \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\")",
       "Bash(findstr /I \"novedad\")",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(ls \"C:\\\\Users\\\\e.agudelo\\\\Documents\")"
     ]
   }
 }

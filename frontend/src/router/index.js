@@ -124,6 +124,12 @@ const routes = [
     component: () => import("../views/Public/DownloadView.vue"),
     meta: { isPublic: true },
   },
+
+  // Redirect de rutas movidas
+  { path: "/admin/reportes-falla", redirect: "/super-admin/reportes" },
+
+  // Catch-all: redirige a login
+  { path: "/:pathMatch(.*)*", redirect: "/login" },
 ];
 
 const router = createRouter({

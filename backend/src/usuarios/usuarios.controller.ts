@@ -23,8 +23,8 @@ export class UsuariosController {
   }
 
   @Post('attendance')
-  async attendance(@Body() body: { employee_id: number }) {
-    return await this.usuariosService.attendance(body.employee_id);
+  async attendance(@Body() body: { employee_id: number; action?: 'in' | 'out' }) {
+    return await this.usuariosService.attendance(body.employee_id, body.action);
   }
 
   @Get('mallas')
@@ -81,6 +81,28 @@ export class UsuariosController {
    * NUEVO: Consulta el estado actual del empleado antes de mostrar los botones.
    * Esto evitará que aparezca el botón "ENTRADA" si ya tiene una sesión abierta.
    */
+  @Get('malla-hoy/:employee_id')
+  async getMallaHoy(@Param('employee_id') employee_id: string) {
+    return await this.usuariosService.getMallaHoy(Number(employee_id));
+  }
+
+  @Post('reportar-falla')
+  async reportarFalla(
+    @Body() body: { empleado_id: number; nombre: string; descripcion: string },
+  ) {
+    return await this.usuariosService.reportarFalla(body);
+  }
+
+  @Get('reportes-falla')
+  async getReportesFalla() {
+    return await this.usuariosService.getReportesFalla();
+  }
+
+  @Patch('reportes-falla/:id/resolver')
+  async resolverFalla(@Param('id') id: string) {
+    return await this.usuariosService.resolverFalla(Number(id));
+  }
+
   @Get('attendance-status/:employee_id')
   async getStatus(@Param('employee_id') employee_id: string) {
     try {

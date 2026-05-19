@@ -315,7 +315,17 @@ export class UsuariosService {
     return await this.permisoRepo.save(nuevoPermiso);
   }
 
-  async attendance(employee_id: number) {
+  // Helper: UTC string de Odoo → hora formateada Colombia "10:35 AM"
+  private formatHoraColombia(utcStr: string): string {
+    return new Date(utcStr + ' UTC').toLocaleTimeString('es-CO', {
+      timeZone: 'America/Bogota',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  async attendance(employee_id: number, action?: 'in' | 'out') {
     // Race condition guard: reject concurrent markings for the same employee
     if (this.markingInProgress.has(employee_id)) {
       return {
@@ -484,9 +494,37 @@ export class UsuariosService {
         }
       }
 
-      // 6. REGISTRO FINAL EN ODOO (USANDO UTC)
+      // 6. VALIDACIÓN DE ACCIÓN vs ESTADO REAL
+      // Si el frontend envía action explícito, verificamos que coincida con el estado real.
+      // Esto previene que un doble clic o estado stale genere entrada+salida simultánea.
+      if (action === 'in' && activeSession) {
+        return {
+          status: 'error',
+          type: 'already_inside',
+          message: 'Ya tienes una entrada activa. Marca salida primero.',
+          is_inside: true,
+          day_completed: false,
+          check_in_at: this.formatHoraColombia(lastAtt[0].check_in),
+          check_out_at: null,
+        };
+      }
+      if (action === 'out' && !activeSession) {
+        return {
+          status: 'error',
+          type: 'not_inside',
+          message: 'No tienes una entrada activa para registrar salida.',
+          is_inside: false,
+          day_completed: false,
+          check_in_at: null,
+          check_out_at: null,
+        };
+      }
+
+      // 7. REGISTRO FINAL EN ODOO (USANDO UTC)
       let typeResult = '';
-      // IMPORTANTE: Enviamos fechaHoraISO (UTC)
+      let checkInAt: string | null = null;
+      let checkOutAt: string | null = null;
+
       if (activeSession) {
         await this.odoo.executeKw(
           'hr.attendance',
@@ -499,6 +537,8 @@ export class UsuariosService {
           uid,
         );
         typeResult = 'out';
+        checkInAt  = this.formatHoraColombia(lastAtt[0].check_in);
+        checkOutAt = this.formatHoraColombia(fechaHoraISO);
       } else {
         await this.odoo.executeKw(
           'hr.attendance',
@@ -514,9 +554,11 @@ export class UsuariosService {
           uid,
         );
         typeResult = 'in';
+        checkInAt  = this.formatHoraColombia(fechaHoraISO);
+        checkOutAt = null;
       }
 
-      // 7. RESPUESTA
+      // 8. RESPUESTA
       const finalStatus = await this.getAttendanceStatus(employee_id);
       return {
         status: 'success',
@@ -527,6 +569,8 @@ export class UsuariosService {
         malla: infoMalla,
         is_inside: finalStatus.is_inside,
         day_completed: finalStatus.day_completed,
+        check_in_at: checkInAt,
+        check_out_at: checkOutAt,
       };
     } catch (error) {
       console.error('Error crítico en attendance:', error);
@@ -2023,6 +2067,14 @@ export class UsuariosService {
 
       let dayCompleted = false;
 
+      let checkInAt: string | null = null;
+      let checkOutAt: string | null = null;
+
+      // Hora de entrada de la sesión abierta
+      if (isInside && lastAtt.length > 0) {
+        checkInAt = this.formatHoraColombia(lastAtt[0].check_in);
+      }
+
       // 3. Si no está adentro, verificamos si ya terminó su jornada hoy
       if (!isInside) {
         const registroHoy = await this.odoo.executeKw<any[]>(
@@ -2035,19 +2087,68 @@ export class UsuariosService {
               ['check_out', '!=', false],
             ],
           ],
-          { fields: ['id'], limit: 1, order: 'check_in desc' },
+          { fields: ['id', 'check_in', 'check_out'], limit: 1, order: 'check_in desc' },
           uid,
         );
         dayCompleted = registroHoy && registroHoy.length > 0;
+        if (dayCompleted) {
+          checkInAt  = this.formatHoraColombia(registroHoy[0].check_in);
+          checkOutAt = this.formatHoraColombia(registroHoy[0].check_out);
+        }
       }
 
-      console.log('--- STATUS FINAL ---', { isInside, dayCompleted });
-      return { is_inside: isInside, day_completed: dayCompleted };
+      return { is_inside: isInside, day_completed: dayCompleted, check_in_at: checkInAt, check_out_at: checkOutAt };
     } catch (e) {
       console.error('Error en getAttendanceStatus:', e);
-      return { is_inside: false, day_completed: false };
+      return { is_inside: false, day_completed: false, check_in_at: null, check_out_at: null };
     }
   }
+  async getMallaHoy(employee_id: number) {
+    try {
+      const uid = await this.odoo.authenticate();
+      const ahoraCol = new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+      );
+
+      const contracts = await this.odoo.executeKw<any[]>(
+        'hr.contract',
+        'search_read',
+        [[['employee_id', '=', employee_id], ['state', 'in', ['open', 'draft']]]],
+        { fields: ['resource_calendar_id'], limit: 1 },
+        uid,
+      );
+
+      if (!contracts?.length || !contracts[0].resource_calendar_id) {
+        return { tiene_malla: false, nombre: null, turnos: [] };
+      }
+
+      const calId = contracts[0].resource_calendar_id[0];
+      const calNombre = contracts[0].resource_calendar_id[1];
+      const dayOfWeek = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
+
+      const turnos = await this.odoo.executeKw<any[]>(
+        'resource.calendar.attendance',
+        'search_read',
+        [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeek]]],
+        { fields: ['hour_from', 'hour_to', 'name'], order: 'hour_from asc' },
+        uid,
+      );
+
+      return {
+        tiene_malla: turnos.length > 0,
+        nombre: calNombre,
+        turnos: turnos.map(t => ({
+          entrada: this.formatDecimal(t.hour_from),
+          salida: this.formatDecimal(t.hour_to),
+          nombre: t.name || null,
+        })),
+      };
+    } catch (e) {
+      console.warn('Error obteniendo malla del día:', e);
+      return { tiene_malla: false, nombre: null, turnos: [] };
+    }
+  }
+
   // Función auxiliar para convertir 8.5 a "08:30"
   private formatDecimal(decimal: number): string {
     const hrs = Math.floor(decimal);
@@ -2318,6 +2419,37 @@ export class UsuariosService {
     }
 
     return await this.usuarioRepo.find(queryOptions);
+  }
+
+  private readonly reportesPath = path.join(process.cwd(), 'uploads', 'reportes-falla.json');
+
+  async reportarFalla(data: { empleado_id: number; nombre: string; descripcion: string }) {
+    let reportes: any[] = [];
+    if (fs.existsSync(this.reportesPath)) {
+      try { reportes = JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch {}
+    }
+    const nuevo = { ...data, fecha: new Date().toISOString(), id: Date.now(), resuelto: false };
+    reportes.unshift(nuevo);
+    const dir = path.dirname(this.reportesPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(this.reportesPath, JSON.stringify(reportes, null, 2));
+    return { status: 'success', message: 'Reporte enviado. Gracias por reportar.' };
+  }
+
+  async getReportesFalla() {
+    if (!fs.existsSync(this.reportesPath)) return [];
+    try { return JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch { return []; }
+  }
+
+  async resolverFalla(id: number) {
+    if (!fs.existsSync(this.reportesPath)) throw new NotFoundException('No hay reportes');
+    let reportes: any[] = [];
+    try { reportes = JSON.parse(fs.readFileSync(this.reportesPath, 'utf8')); } catch { return []; }
+    const reporte = reportes.find(r => r.id === id);
+    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    reporte.resuelto = true;
+    fs.writeFileSync(this.reportesPath, JSON.stringify(reportes, null, 2));
+    return { status: 'success' };
   }
 
   async removerModuloPermiso(
