@@ -28,7 +28,11 @@
       "Bash(git rm *)",
       "Bash(git add *)",
       "Bash(git commit --amend -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node -e \"const s=require\\('fs'\\).statSync\\('assets/cometa-de-viento.png'\\); console.log\\('Tamaño archivo:', s.size, 'bytes'\\);\")",
+      "Bash(npx @capacitor/assets --version)",
+      "Bash(copy \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\Movil-Ionic\\\\WodenTrack\\\\assets\\\\cometa-de-viento.png\" \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\Movil-Ionic\\\\WodenTrack\\\\assets\\\\icon\\\\favicon.png\")",
+      "Bash(ls /mnt/c/Users/e.agudelo/Documents/Movil-Ionic/WodenTrack/assets/icon/)"
     ]
   }
 }

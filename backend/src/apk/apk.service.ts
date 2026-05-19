@@ -17,8 +17,7 @@ export class ApkService {
     
     // EXPLICACIÓN: En lugar de import.meta.env, usamos configService.
     // Esto buscará VITE_API_URL en tu archivo .env del backend.
-    const baseUrl = this.configService.get<string>('VITE_API_URL') || 
-                    this.configService.get<string>('API_EXTERNAL_URL') || 
+    const baseUrl = this.configService.get<string>('APP_BASE_URL') ||
                     'http://localhost:8082';
 
     let changelog = ["Preparando nueva versión..."];
