@@ -3,5 +3,5 @@ backend/node_modules/
 frontend/node_modules/
 dist/
 .env
+.env.*
 .env.local
-.env.production

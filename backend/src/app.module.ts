@@ -21,9 +21,13 @@ import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 
 @Module({
   imports: [
-    // 1. Carga de variables de entorno
+    // 1. Carga de variables de entorno según NODE_ENV
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env',
+      ],
     }),
 
     // 2. Configuración Asíncrona de la Base de Datos (SQL Server)
