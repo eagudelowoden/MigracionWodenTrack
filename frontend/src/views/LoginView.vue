@@ -1,19 +1,39 @@
 <template>
   <div
-    class="h-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none"
+    class="h-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none relative"
     :class="isDark ? 'bg-[#0B0F19]' : 'bg-[#F4F6FA]'">
-    <div class="w-full max-w-sm rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 border"
+
+    <!-- FONDO ESTILO BANCARIO / PREMIUM -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <!-- Patrón de cuadrícula/puntos muy sutil (Opcional, pero da mucha textura premium) -->
+      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+        style="background-image: radial-gradient(#111827 1px, transparent 1px); background-size: 24px 24px;">
+      </div>
+
+      <!-- Resplandor 1: Azul institucional (Arriba a la izquierda) -->
+      <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
+        :class="isDark ? 'bg-blue-500/10' : 'bg-blue-400/20'">
+      </div>
+
+      <!-- Resplandor 2: El color de tu marca WodenTrack (Abajo a la derecha) -->
+      <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
+        :class="isDark ? 'bg-[#e88710]/10' : 'bg-[#e88710]/15'">
+      </div>
+    </div>
+
+    <!-- TARJETA DE LOGIN (Se le agregó 'backdrop-blur' para efecto cristal moderno) -->
+    <div class="w-full max-w-sm rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 border z-10"
       :class="isDark
-        ? 'bg-[#161B26] border-[#222938]'
-        : 'bg-white border-transparent shadow-[0_10px_30px_rgba(0,0,0,0.04)]'">
+        ? 'bg-[#161B26]/90 border-[#222938] backdrop-blur-md'
+        : 'bg-white/90 border-transparent shadow-[0_20px_50px_rgba(0,0,0,0.03)] backdrop-blur-md'">
       <div>
         <div class="flex justify-end mb-4">
-          <i class="fa-solid fa-shield-shield text-xs opacity-40" :class="isDark ? 'text-white' : 'text-slate-600'"></i>
+          <i class="fa-solid fa-shield-halved text-xs opacity-40" :class="isDark ? 'text-white' : 'text-slate-600'"></i>
         </div>
 
         <div class="mb-8 text-left">
           <h1 class="text-2xl font-bold tracking-tight mb-1" :class="isDark ? 'text-white' : 'text-[#111827]'">
-            Bienvenido a <span class="text-[#2563EB] font-extrabold ml-0.5">WodenTrack</span>
+            Bienvenido a <span class="text-[#e88710] font-extrabold ml-0.5">WodenTrack</span>
           </h1>
           <p class="text-xs font-normal" :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">
             Identifícate para continuar
