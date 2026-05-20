@@ -6,8 +6,8 @@
     <div v-else class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1.5">
 
       <!-- Header -->
-      <div class="flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0"
-        :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
+      <div class="flex items-center gap-2 px-3 py-2 rounded-md border shrink-0"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <div class="flex items-center gap-2 shrink-0">
           <div class="w-6 h-6 flex items-center justify-center rounded-lg bg-[#3B82F6] text-white shrink-0">
@@ -34,8 +34,8 @@
           </div>
           <!-- Botón ir al listado -->
           <button @click="vistaActiva = 'aprobaciones'"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest border transition-all hover:brightness-110 active:scale-[0.98]"
-            :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'">
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wide border transition-all hover:brightness-110 active:scale-[0.98]"
+            :class="isDark ? 'bg-[#161B26] border-[#222938] text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'">
             <i class="fas fa-table-list text-[#3B82F6] text-[10px]"></i>
             Novedades Equipo
           </button>
@@ -46,8 +46,8 @@
       <div class="flex-1 flex gap-1.5 overflow-hidden min-h-0">
 
         <!-- Formulario -->
-        <div class="flex flex-col overflow-hidden rounded-xl border transition-all duration-300 w-full"
-          :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
+        <div class="flex flex-col overflow-hidden rounded-md border transition-all duration-300 w-full"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
           <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
 
@@ -55,10 +55,10 @@
 
               <!-- Nombre -->
               <div class="flex flex-col gap-1">
-                <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
                 <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
-                  :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
+                  :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                   <i class="fas fa-user-circle text-[#3B82F6]/60 text-xs"></i>
                   <input type="text" v-model="form.nombre" placeholder="Nombre completo..." required
                     class="bg-transparent w-full font-semibold outline-none placeholder:text-slate-500 text-xs"
@@ -68,12 +68,12 @@
 
               <!-- Jefe de área -->
               <div v-if="jefe" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
-                :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-slate-50 border-slate-200'">
+                :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
                 <div class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
                   {{ jefe.name?.charAt(0) ?? '?' }}
                 </div>
                 <div class="flex flex-col flex-1 min-w-0">
-                  <span class="text-[8px] font-bold uppercase tracking-widest opacity-40"
+                  <span class="text-[8px] font-bold uppercase tracking-wide opacity-40"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
                   <span class="text-[11px] font-bold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ jefe.name }}</span>
                   <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job || '' }}</span>
@@ -86,10 +86,10 @@
               <!-- Cédula + Fecha Inicio + Fecha Fin en una fila -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div class="flex flex-col gap-1">
-                  <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                  <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
                   <div class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                     <i class="fas fa-id-card text-[#3B82F6]/60 text-xs"></i>
                     <input type="number" v-model="form.cedula" placeholder="N° identificación..." required
                       class="bg-transparent w-full font-semibold outline-none placeholder:text-slate-500 text-xs"
@@ -97,38 +97,38 @@
                   </div>
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                  <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
                   <input type="date" v-model="form.fechaInicio" required
                     class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+                    :class="isDark ? 'bg-[#161B26] border-[#222938] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                  <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
                   <input type="date" v-model="form.fechaFin" required
                     class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+                    :class="isDark ? 'bg-[#161B26] border-[#222938] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
                 </div>
               </div>
 
               <!-- Descripción -->
               <div class="flex flex-col gap-1">
-                <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Descripción</label>
                 <textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
                   class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
-                  :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
+                  :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
                 </textarea>
               </div>
 
               <!-- Tipificación -->
               <div class="flex flex-col gap-1">
-                <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipificación</label>
                 <select v-model="form.tipificacion" required
                   class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                  :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
+                  :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
                   <option value="" disabled>Seleccione el tipo de novedad...</option>
                   <option v-for="tip in TIPIFICACIONES" :key="tip" :value="tip">{{ tip }}</option>
                 </select>
@@ -136,7 +136,7 @@
 
               <!-- Archivos adjuntos (múltiples) -->
               <div class="flex flex-col gap-1.5">
-                <label class="text-[9px] font-semibold uppercase tracking-widest ml-0.5"
+                <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   Archivos de Soporte
                   <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos, 20 MB c/u</span>
@@ -145,7 +145,7 @@
                 <!-- Zona de drop -->
                 <div @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop"
                   class="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer"
-                  :class="[dragOver ? 'border-[#3B82F6] bg-[#3B82F6]/5' : (isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-200 bg-slate-50')]"
+                  :class="[dragOver ? 'border-[#3B82F6] bg-[#3B82F6]/5' : (isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50')]"
                   @click="$refs.fileInput.click()">
                   <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
                   <span class="flex-1 text-[10px] font-medium text-slate-400">
@@ -162,7 +162,7 @@
                 <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1 max-h-[136px] overflow-y-auto pr-0.5">
                   <div v-for="(file, idx) in archivosSeleccionados" :key="idx"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
-                    :class="isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-100 bg-white'">
+                    :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-100 bg-white'">
                     <i :class="['text-sm shrink-0', getFileIcon(file)]"></i>
                     <span class="flex-1 text-[10px] font-medium truncate"
                       :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{ file.name }}</span>
@@ -194,14 +194,14 @@
 
             <!-- Footer -->
             <div class="flex items-center justify-between pt-3 mt-auto border-t"
-              :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
               <button @click.prevent="resetForm" type="button"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] border"
-                :class="isDark ? 'text-slate-500 border-[#2d3548] hover:text-slate-300 hover:border-slate-500' : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300'">
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wide transition-all active:scale-[0.98] border"
+                :class="isDark ? 'text-slate-500 border-[#222938] hover:text-slate-300 hover:border-slate-500' : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300'">
                 <i class="fas fa-rotate-left text-[9px]"></i> Limpiar
               </button>
               <button type="submit" :disabled="loading"
-                class="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-semibold uppercase tracking-widest text-[9px] transition-all active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-wait"
+                class="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-semibold uppercase tracking-wide text-[9px] transition-all active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-wait"
                 :class="isDark ? 'bg-[#3B82F6] text-white hover:brightness-110' : 'bg-[#0B0F19] text-white hover:bg-slate-700'">
                 <i v-if="loading" class="fas fa-circle-notch fa-spin text-[9px]"></i>
                 <i v-else class="fas fa-check-circle text-[9px] group-hover:scale-110 transition-transform"></i>

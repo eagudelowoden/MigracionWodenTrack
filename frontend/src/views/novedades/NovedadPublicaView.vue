@@ -4,11 +4,11 @@
 
         <!-- Header -->
         <header class="w-full px-3 sm:px-5 py-2.5 sm:py-3 border-b flex items-center justify-between shrink-0"
-            :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200 shadow-sm'">
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
 
             <div class="flex items-center gap-2 sm:gap-3">
                 <div
-                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#3B82F6] flex items-center justify-center shadow-sm shrink-0">
+                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-[#3B82F6] flex items-center justify-center shadow-sm shrink-0">
                     <i class="fas fa-file-signature text-white text-[10px] sm:text-xs"></i>
                 </div>
                 <div>
@@ -16,7 +16,7 @@
                         :class="isDark ? 'text-white' : 'text-slate-800'">
                         Registro <span class="text-[#3B82F6]">Novedad</span>
                     </h1>
-                    <p class="text-[7px] font-bold opacity-40 uppercase tracking-widest hidden sm:block"
+                    <p class="text-[7px] font-bold opacity-40 uppercase tracking-wide hidden sm:block"
                         :class="isDark ? 'text-slate-400' : 'text-slate-500'">Woden Track</p>
                 </div>
             </div>
@@ -24,12 +24,12 @@
             <div class="flex items-center gap-1.5 sm:gap-2">
                 <button @click="isDark = !isDark"
                     class="w-7 h-7 sm:p-2 flex items-center justify-center rounded-lg border transition-all"
-                    :class="isDark ? 'border-[#2d3548] bg-[#161B26] text-yellow-400' : 'border-slate-200 bg-white text-slate-500'">
+                    :class="isDark ? 'border-[#222938] bg-[#161B26] text-yellow-400' : 'border-slate-200 bg-white text-slate-500'">
                     <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-[10px] sm:text-xs"></i>
                 </button>
                 <button @click="router.push('/marcacion')"
-                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest transition-all hover:text-[#3B82F6] hover:border-[#3B82F6]/40"
-                    :class="isDark ? 'border-[#2d3548] bg-[#161B26] text-slate-400' : 'border-slate-200 bg-white text-slate-500'">
+                    class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide transition-all hover:text-[#3B82F6] hover:border-[#3B82F6]/40"
+                    :class="isDark ? 'border-[#222938] bg-[#161B26] text-slate-400' : 'border-slate-200 bg-white text-slate-500'">
                     <i class="fas fa-arrow-left text-[9px]"></i>
                     <span class="hidden sm:inline">Volver</span>
                 </button>

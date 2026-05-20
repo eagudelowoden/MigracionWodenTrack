@@ -152,3 +152,86 @@
   background: rgba(59, 130, 246, 0.25);
   color: #ffffff;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   SCROLLBARS ULTRA SUTILES — estilo Vercel/Linear
+   Aparecen solo al hover sobre elementos scrollables.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Webkit (Chrome / Edge / Safari) — scrollbar fino y sutil */
+.admin-layout *::-webkit-scrollbar,
+.sa-root *::-webkit-scrollbar,
+.custom-scroll::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-layout *::-webkit-scrollbar-track,
+.sa-root *::-webkit-scrollbar-track,
+.custom-scroll::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-layout *::-webkit-scrollbar-thumb,
+.sa-root *::-webkit-scrollbar-thumb,
+.custom-scroll::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.0);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+/* Thumb aparece al hover sobre el elemento scrollable */
+.admin-layout *:hover::-webkit-scrollbar-thumb,
+.sa-root *:hover::-webkit-scrollbar-thumb,
+.custom-scroll:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.25);
+}
+
+.admin-layout *::-webkit-scrollbar-thumb:hover,
+.sa-root *::-webkit-scrollbar-thumb:hover,
+.custom-scroll::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.45);
+}
+
+/* Theme light scrollbar */
+.theme-light *::-webkit-scrollbar-thumb,
+[class*="theme-light"] *::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.0);
+}
+
+.theme-light *:hover::-webkit-scrollbar-thumb,
+[class*="theme-light"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.theme-light *::-webkit-scrollbar-thumb:hover,
+[class*="theme-light"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.30);
+}
+
+/* Esquina del scrollbar (donde se cruzan vertical y horizontal) */
+.admin-layout *::-webkit-scrollbar-corner,
+.sa-root *::-webkit-scrollbar-corner,
+.custom-scroll::-webkit-scrollbar-corner,
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox — scroll thin nativo */
+.admin-layout,
+.sa-root,
+.custom-scroll,
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(136, 136, 136, 0.25) transparent;
+}
+
+.theme-light,
+[class*="theme-light"] {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
