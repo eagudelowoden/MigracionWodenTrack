@@ -90,7 +90,7 @@
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(161, 161, 170, 0.25);
   border-radius: 10px;
 }
 
@@ -104,23 +104,21 @@
 .sa-dark  *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 .sa-light *::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
 
-/* ── Tablas en modo oscuro — fondo azul oscuro estándar ── */
+/* ── Tablas en modo oscuro — paleta zinc neutra (Vercel-style) ── */
 .sa-dark table                     { width: 100%; border-collapse: collapse; }
-.sa-dark table thead tr            { background: #162030 !important; }
-.sa-dark table thead th            { color: rgba(255,255,255,0.55) !important; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-.sa-dark table tbody tr            { background: #1a2840; }
-.sa-dark table tbody tr:nth-child(even) { background: #1e2d47; }
-.sa-dark table tbody tr:hover      { background: rgba(59,130,246,0.06) !important; }
-.sa-dark table tbody td            { border-top: 1px solid rgba(255,255,255,0.04); }
+.sa-dark table thead tr            { background: #131316; }
+.sa-dark table thead th            { color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sa-dark table tbody tr            { background: transparent; }
+.sa-dark table tbody tr:hover      { background: rgba(255,255,255,0.025); }
+.sa-dark table tbody td            { border-top: 1px solid rgba(255,255,255,0.05); }
 
 /* ── Tablas en modo claro ── */
 .sa-light table                    { width: 100%; border-collapse: collapse; }
-.sa-light table thead tr           { background: #f1f5f9 !important; }
-.sa-light table thead th           { color: #64748b !important; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-.sa-light table tbody tr           { background: #ffffff; }
-.sa-light table tbody tr:nth-child(even) { background: #f8fafc; }
-.sa-light table tbody tr:hover     { background: #eff6ff !important; }
-.sa-light table tbody td           { border-top: 1px solid #e2e8f0; }
+.sa-light table thead tr           { background: #fafafa; }
+.sa-light table thead th           { color: #71717a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sa-light table tbody tr           { background: transparent; }
+.sa-light table tbody tr:hover     { background: #f4f4f5; }
+.sa-light table tbody td           { border-top: 1px solid #ececec; }
 
 /* ── Áreas con scroll dentro de módulos ── */
 .sa-dark  .overflow-y-auto,
