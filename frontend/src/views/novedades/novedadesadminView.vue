@@ -57,7 +57,8 @@
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
-                <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
+                <div
+                  class="flex items-center gap-2.5 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
                   :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                   <i class="fas fa-user-circle text-[#3B82F6]/60 text-xs"></i>
                   <input type="text" v-model="form.nombre" placeholder="Nombre completo..." required
@@ -69,16 +70,20 @@
               <!-- Jefe de área -->
               <div v-if="jefe" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
                 :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
-                <div class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
+                <div
+                  class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
                   {{ jefe.name?.charAt(0) ?? '?' }}
                 </div>
                 <div class="flex flex-col flex-1 min-w-0">
                   <span class="text-[8px] font-bold uppercase tracking-wide opacity-40"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
-                  <span class="text-[11px] font-bold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ jefe.name }}</span>
-                  <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job || '' }}</span>
+                  <span class="text-[11px] font-bold uppercase truncate"
+                    :class="isDark ? 'text-white' : 'text-slate-800'">{{ jefe.name }}</span>
+                  <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{
+                    jefe.job || '' }}</span>
                 </div>
-                <span class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-[#3B82F6]/10 text-[#3B82F6]">
+                <span
+                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-[#3B82F6]/10 text-[#3B82F6]">
                   <i class="fas fa-user-tie text-[8px]"></i>Responsable
                 </span>
               </div>
@@ -88,7 +93,8 @@
                 <div class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
-                  <div class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
+                  <div
+                    class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
                     :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                     <i class="fas fa-id-card text-[#3B82F6]/60 text-xs"></i>
                     <input type="number" v-model="form.cedula" placeholder="N° identificación..." required
@@ -139,7 +145,8 @@
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   Archivos de Soporte
-                  <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos, 20 MB c/u</span>
+                  <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10
+                    archivos, 20 MB c/u</span>
                 </label>
 
                 <!-- Zona de drop -->
@@ -149,17 +156,20 @@
                   @click="$refs.fileInput.click()">
                   <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
                   <span class="flex-1 text-[10px] font-medium text-slate-400">
-                    {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` : 'Arrastra o haz clic para seleccionar...' }}
+                    {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` :
+                    'Arrastra o haz clic para seleccionar...' }}
                   </span>
                   <input ref="fileInput" type="file" multiple @change="onFilesChange" class="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
-                  <span class="shrink-0 px-3 py-1 rounded-md bg-[#3B82F6] text-white text-[9px] font-semibold uppercase">
+                  <span
+                    class="shrink-0 px-3 py-1 rounded-md bg-[#3B82F6] text-white text-[9px] font-semibold uppercase">
                     Elegir
                   </span>
                 </div>
 
                 <!-- Lista de archivos seleccionados -->
-                <div v-if="archivosSeleccionados.length" class="flex flex-col gap-1 max-h-[136px] overflow-y-auto pr-0.5">
+                <div v-if="archivosSeleccionados.length"
+                  class="flex flex-col gap-1 max-h-[136px] overflow-y-auto pr-0.5">
                   <div v-for="(file, idx) in archivosSeleccionados" :key="idx"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
                     :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-100 bg-white'">
@@ -185,7 +195,8 @@
 
             <!-- Mensaje estado submit -->
             <transition name="fade-msg">
-              <div v-if="submitStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border"
+              <div v-if="submitStatus"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border"
                 :class="submitStatus === 'ok' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'">
                 <i :class="submitStatus === 'ok' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
                 {{ submitMessage }}
