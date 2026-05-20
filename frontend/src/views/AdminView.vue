@@ -32,8 +32,8 @@
             <i class="fas fa-user-check text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Asistencias</span>
-          <div v-if="route.path === '/admin/asistencias'"
-            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
+          <div v-if="route.path === '/admin/asistencias'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r">
+          </div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.mallas']"
@@ -46,8 +46,7 @@
             <i class="fas fa-cloud-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue Mallas</span>
-          <div v-if="route.path === '/admin/mallas'"
-            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
+          <div v-if="route.path === '/admin/mallas'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.calculos']"
@@ -60,8 +59,8 @@
             <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
-          <div v-if="route.path === '/admin/horas-extra'"
-            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
+          <div v-if="route.path === '/admin/horas-extra'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r">
+          </div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['horas.ver_cargue_ch']"
@@ -73,7 +72,7 @@
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue HX</span>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Gestión Horas</span>
           <div v-if="route.path === '/admin/cargue-horas-ch'"
             class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
@@ -152,11 +151,9 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <div class="flex items-center gap-3">
-          <button @click="isSidebarOpen = !isSidebarOpen"
-            class="transition-colors p-1.5 rounded-md"
-            :class="isDark
-              ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]'
-              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'">
+          <button @click="isSidebarOpen = !isSidebarOpen" class="transition-colors p-1.5 rounded-md" :class="isDark
+            ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]'
+            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'">
             <i class="fas fa-bars text-[13px]"></i>
           </button>
 
@@ -180,30 +177,7 @@
 
         <div class="flex items-center gap-3">
           <!-- Saludo con avatar circular + status dot (Vercel style) -->
-          <div class="hidden md:flex items-center gap-2.5 h-8 pl-2 pr-3 rounded-full border transition-all"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] hover:border-[#3B82F6]/40'
-              : 'bg-slate-50 border-slate-200 hover:border-slate-300'">
-            <!-- Avatar con inicial + status dot online -->
-            <div class="relative">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-                style="background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">
-                {{ initial }}
-              </div>
-              <!-- Punto verde online -->
-              <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#16a34a]"
-                :class="isDark ? 'ring-2 ring-[#0B0F19]' : 'ring-2 ring-slate-50'"></div>
-            </div>
-            <!-- Texto -->
-            <div class="flex flex-col leading-none">
-              <span class="text-[9px] font-medium"
-                :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Hola,</span>
-              <span class="text-[12px] font-semibold mt-0.5"
-                :class="isDark ? 'text-white' : 'text-slate-900'">
-                {{ displayName }}
-              </span>
-            </div>
-          </div>
+
 
           <!-- Botones Entrada/Salida -->
           <div class="flex items-center gap-1.5">
@@ -217,6 +191,31 @@
               <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
               <span class="hidden md:inline">Salida</span>
             </button>
+          </div>
+          <div
+            class="hidden md:flex items-center gap-3 h-9 pl-2 pr-3 rounded-md border transition-all duration-150 cursor-default select-none font-sans"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] hover:border-[#2A344A]'
+              : 'bg-white border-[#EAEAEA] hover:border-[#D1D1D1]'">
+
+            <div
+              class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium tracking-wider uppercase border transition-colors duration-150"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
+                : 'bg-[#FAFAFA] border-[#EAEAEA] text-[#444444]'">
+              {{ initial }}
+            </div>
+
+            <div class="flex flex-col justify-center">
+              <span class="text-[10px] tracking-wider uppercase font-medium leading-none"
+                :class="isDark ? 'text-[#888888]' : 'text-[#666666]'">
+                Hola,
+              </span>
+              <span class="text-[13px] font-semibold tracking-tight mt-0.5 leading-none"
+                :class="isDark ? 'text-white' : 'text-[#111111]'">
+                {{ displayName }}
+              </span>
+            </div>
           </div>
         </div>
       </header>
