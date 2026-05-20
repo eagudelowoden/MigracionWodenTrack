@@ -47,7 +47,7 @@
           <button @click="fetchMallasDesdeOdoo"
             class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
+              : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
             title="Refrescar">
             <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingMallas }"></i>
           </button>
