@@ -315,9 +315,9 @@ onMounted(async () => {
         </div>
         <div v-if="isSidebarOpen">
           <p class="sa-brand-name" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Woden<span style="color:#3b82f6">Admin</span>
+            Super<span style="color:#3b82f6">Admin</span>
           </p>
-          <p class="sa-brand-sub">Control Panel</p>
+          <p class="sa-brand-sub">Consola</p>
         </div>
       </div>
 
@@ -426,7 +426,7 @@ onMounted(async () => {
                     :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
                   <p class="text-[11px] font-bold mt-0.5" :class="isDark ? 'text-white' : 'text-slate-800'">{{
                     displayName
-                  }}</p>
+                    }}</p>
                 </div>
                 <button @click="logout(); showUserMenu = false"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
@@ -854,11 +854,21 @@ onMounted(async () => {
   transition: color .15s;
 }
 
-.sa-sidebar-dark .sa-dev-btn { color: #94a3b8; }
-.sa-sidebar-dark .sa-dev-btn:hover { color: #cbd5e1; }
+.sa-sidebar-dark .sa-dev-btn {
+  color: #94a3b8;
+}
 
-.sa-sidebar-light .sa-dev-btn { color: #64748b; }
-.sa-sidebar-light .sa-dev-btn:hover { color: #334155; }
+.sa-sidebar-dark .sa-dev-btn:hover {
+  color: #cbd5e1;
+}
+
+.sa-sidebar-light .sa-dev-btn {
+  color: #64748b;
+}
+
+.sa-sidebar-light .sa-dev-btn:hover {
+  color: #334155;
+}
 
 /* Footer sidebar */
 .sa-sidebar-footer {
