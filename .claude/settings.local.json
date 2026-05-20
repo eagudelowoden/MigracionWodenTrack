@@ -37,7 +37,10 @@
       "Bash(npx @capacitor/assets generate --iconBackgroundColor \"#ffffff\" --iconBackgroundColorDark \"#ffffff\" --splashBackgroundColor \"#080d25\")",
       "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK'\\)\")",
       "Bash(node add-padding.js)",
-      "Bash(awk -F: 'prev && $2==prev+1 && prev_line !~ />$/ {print prev\": \"prev_line; print $2\": \"$0} {prev=$2; prev_line=$0}')"
+      "Bash(awk -F: 'prev && $2==prev+1 && prev_line !~ />$/ {print prev\": \"prev_line; print $2\": \"$0} {prev=$2; prev_line=$0}')",
+      "Bash(grep -c 'class=.*border-r\"$' \"C:/Users/e.agudelo/Documents/MigracionWodenTrack/frontend/src/components/admin/ModuloCalculos.vue\")",
+      "Bash(perl -i -0pe 's/\\(class=\"[^\"]*?\\)\"\\\\s*\\\\n\\\\s+class=\"\\([^\"]+\\)\"/$1 $2\"/g' ModuloCalculos.vue)",
+      "Bash(grep -c 'class=.*border-r\"$' ModuloCalculos.vue)"
     ]
   }
 }

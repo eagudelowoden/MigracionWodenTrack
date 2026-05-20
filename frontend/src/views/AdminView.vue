@@ -179,26 +179,42 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <!-- Saludo Hola, Nombre -->
-          <p class="hidden md:flex items-baseline gap-1 text-[12px]"
-            :class="isDark ? 'text-[#B0B7C3]' : 'text-slate-600'">
-            <span>Hola,</span>
-            <span class="font-semibold text-[#3B82F6]">
-              {{ employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) || 'Usuario' }}
-            </span>
-          </p>
+          <!-- Saludo con avatar circular + status dot (Vercel style) -->
+          <div class="hidden md:flex items-center gap-2.5 h-8 pl-2 pr-3 rounded-full border transition-all"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] hover:border-[#3B82F6]/40'
+              : 'bg-slate-50 border-slate-200 hover:border-slate-300'">
+            <!-- Avatar con inicial + status dot online -->
+            <div class="relative">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
+                style="background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">
+                {{ initial }}
+              </div>
+              <!-- Punto verde online -->
+              <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#16a34a]"
+                :class="isDark ? 'ring-2 ring-[#0B0F19]' : 'ring-2 ring-slate-50'"></div>
+            </div>
+            <!-- Texto -->
+            <div class="flex flex-col leading-none">
+              <span class="text-[9px] font-medium"
+                :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Hola,</span>
+              <span class="text-[12px] font-semibold mt-0.5"
+                :class="isDark ? 'text-white' : 'text-slate-900'">
+                {{ displayName }}
+              </span>
+            </div>
+          </div>
 
           <!-- Botones Entrada/Salida -->
-          <div class="flex items-center gap-1.5 border-l pl-3"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+          <div class="flex items-center gap-1.5">
             <button @click="handleAttendance" :disabled="loading || employee?.is_inside || employee?.day_completed"
               class="btn-header-smart in group">
-              <div class="icon-box-smart"><i class="fas fa-sign-in-alt"></i></div>
+              <div class="icon-box-smart"><i class="fas fa-arrow-right-to-bracket"></i></div>
               <span class="hidden md:inline">Entrada</span>
             </button>
             <button @click="handleAttendance" :disabled="loading || !employee?.is_inside || employee?.day_completed"
               class="btn-header-smart out group">
-              <div class="icon-box-smart"><i class="fas fa-sign-out-alt"></i></div>
+              <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
               <span class="hidden md:inline">Salida</span>
             </button>
           </div>
@@ -293,6 +309,18 @@ const {
 
 // Expone employee a las vistas hijas (NovedadesPanelView lo inyecta)
 provide('adminEmployee', employee);
+
+// ── Display helpers para el saludo ───────────────────────────────────────────
+const displayName = computed(() => {
+  const raw = employee.value?.name?.split(' ')[2]?.toLowerCase();
+  if (!raw) return 'Usuario';
+  return raw.replace(/^\w/, c => c.toUpperCase());
+});
+
+const initial = computed(() => {
+  const n = displayName.value;
+  return n ? n.charAt(0).toUpperCase() : 'U';
+});
 
 // ── Config de módulos (mantenimiento) ─────────────────────────────────────────
 const API_URL = import.meta.env.VITE_API_URL;

@@ -192,61 +192,47 @@
           <thead class="sticky top-0 z-30">
             <tr class="bg-[#0B0F19]">
               <th colspan="2"
-                class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r"
-                class="border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#222938] text-[#888888]">
                 Colaborador
               </th>
               <th
-                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
-                class="border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#222938] text-[#888888]">
                 Fecha
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
-                class="border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#222938] text-[#888888]">
                 Jornada
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
-                class="border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#222938] text-[#888888]">
                 Tiempo laborado
               </th>
               <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                class="px-2 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r w-12"
-                class="border-[#222938] text-[#888888]">
+                class="px-2 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r w-12 border-[#222938] text-[#888888]">
                 {{ col }}
               </th>
               <th
-                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b w-20"
-                class="border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b w-20 border-[#222938] text-[#888888]">
                 Aprobar
               </th>
             </tr>
             <tr class="bg-[#0B0F19]">
-              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r w-28"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r w-28 border-[#222938] text-[#6a6a72]">
                 Cédula</th>
-              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72]">
                 Nombre</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-24"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-24 border-[#222938] text-[#6a6a72]">
                 </th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#222938] text-[#6a6a72]">
                 Inicio</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#222938] text-[#6a6a72]">
                 Fin</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#222938] text-[#6a6a72]">
                 Entrada</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
-                class="border-[#222938] text-[#6a6a72]">
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#222938] text-[#6a6a72]">
                 Salida</th>
               <th v-for="_ in 7" :key="_"
-                class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r"
-                class="border-[#222938] text-[#6a6a72]">
+                class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72]">
                 hrs</th>
               <th class="px-3 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></th>
             </tr>

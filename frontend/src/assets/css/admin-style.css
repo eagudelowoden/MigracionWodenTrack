@@ -476,22 +476,38 @@ main.flex-1 {
   @apply h-16 flex items-center px-4 shrink-0;
 }
 /* Botones de Acción en Header */
-/* ─── BOTONES ENTRADA / SALIDA — Vercel flat style ─────────────── */
+/* ─── BOTONES ENTRADA / SALIDA — Vercel premium con profundidad ─── */
 .btn-header-smart {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 5px;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.005em;
   text-transform: none;
-  transition: all 0.15s ease;
-  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid;
   cursor: pointer;
   font-family: 'Geist', 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Brillo sutil tipo Linear / Vercel — gradiente interno */
+.btn-header-smart::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%);
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.btn-header-smart:hover:not(:disabled)::before {
+  opacity: 0.7;
 }
 
 .icon-box-smart {
@@ -506,38 +522,57 @@ main.flex-1 {
 .icon-box-smart i {
   font-size: 10px;
   opacity: 0.95;
+  position: relative;
+  z-index: 1;
 }
 
-.btn-header-smart:hover:not(:disabled) .icon-box-smart {
-  transform: none;
+.btn-header-smart > span,
+.btn-header-smart > div {
+  position: relative;
+  z-index: 1;
 }
 
-/* IN (Entrada) — verde sobrio Vercel */
+/* IN (Entrada) — verde con depth */
 .btn-header-smart.in {
   background: #16a34a;
-  border-color: #16a34a;
+  border-color: #15803d;
   color: #ffffff;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 1px 2px 0 rgba(22, 163, 74, 0.25);
 }
 
 .btn-header-smart.in:hover:not(:disabled) {
   background: #15803d;
-  border-color: #15803d;
+  border-color: #166534;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 6px 0 rgba(22, 163, 74, 0.35);
+  transform: translateY(-0.5px);
 }
 
-/* OUT (Salida) — rojo sobrio Vercel */
+/* OUT (Salida) — rojo con depth */
 .btn-header-smart.out {
   background: #dc2626;
-  border-color: #dc2626;
+  border-color: #b91c1c;
   color: #ffffff;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 1px 2px 0 rgba(220, 38, 38, 0.25);
 }
 
 .btn-header-smart.out:hover:not(:disabled) {
   background: #b91c1c;
-  border-color: #b91c1c;
+  border-color: #991b1b;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 6px 0 rgba(220, 38, 38, 0.35);
+  transform: translateY(-0.5px);
 }
 
 .btn-header-smart:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  transition-duration: 0.08s;
 }
 
 /* Estado Desactivado (Vercel ghost) */
@@ -545,12 +580,16 @@ main.flex-1 {
   background: transparent;
   color: #71717a;
   border-color: #222938;
+  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
   filter: none;
 }
 
-/* En modo light, disabled debe verse */
+.btn-header-smart:disabled::before {
+  opacity: 0;
+}
+
 .theme-light .btn-header-smart:disabled,
 [class*="theme-light"] .btn-header-smart:disabled {
   border-color: #e5e7eb;
