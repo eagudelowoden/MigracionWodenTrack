@@ -94,32 +94,48 @@
       </nav>
 
       <!-- Dev Nav: solo DESARROLLADOR -->
-      <div v-if="employee?.isSuperAdmin" class="px-2 pb-1 space-y-1 border-t"
-        :class="isDark ? 'border-white/5' : 'border-slate-100'">
-        <p v-if="isSidebarOpen" class="px-1 pt-2 text-[8px] font-black uppercase opacity-40 tracking-widest">Dev Nav</p>
+      <div v-if="employee?.isSuperAdmin" class="px-3 pb-2 space-y-1 border-t transition-colors"
+        :class="isDark ? 'border-[#222938]' : 'border-[#EAEAEA]'">
+
+        <p v-if="isSidebarOpen" class="px-2 pt-3 text-[9px] font-medium uppercase tracking-widest select-none"
+          :class="isDark ? 'text-[#888888]' : 'text-[#666666]'">
+          Dev Nav
+        </p>
+
         <button @click="router.push('/super-admin')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
+          :class="isDark
+            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-shield-halved text-[#3B82F6] text-xs"></i>
+            <i class="fas fa-shield-halved text-xs transition-colors"
+              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Super Admin</span>
+          <span v-if="isSidebarOpen" class="capitalize">Super Admin</span>
         </button>
+
         <button @click="router.push('/admin')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
+          :class="isDark
+            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-user-shield text-[#3B82F6] text-xs"></i>
+            <i class="fas fa-user-shield text-xs transition-colors"
+              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Admin</span>
+          <span v-if="isSidebarOpen" class="capitalize">Admin</span>
         </button>
+
         <button @click="router.push('/marcacion')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:bg-[#3B82F6]/20"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
+          :class="isDark
+            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-fingerprint text-[#3B82F6] text-xs"></i>
+            <i class="fas fa-fingerprint text-xs transition-colors"
+              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-wide">Marcación</span>
+          <span v-if="isSidebarOpen" class="capitalize">Marcación</span>
         </button>
       </div>
 
