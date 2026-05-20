@@ -2,24 +2,47 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
-// ── Constantes de navegación ──────────────────────────────────────────────────
-const NAV_ITEMS = {
-  stats: { icon: 'fas fa-chart-pie', label: 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  companies: { icon: 'fas fa-building-columns', label: 'Empresas', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  users: { icon: 'fas fa-users', label: 'Personal', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-  notifications: { icon: 'fas fa-bell', label: 'Avisos', color: 'text-rose-400', bg: 'bg-rose-500/10' },
-  estructura: { icon: 'fas fa-sitemap', label: 'Organización', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-  mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
-  sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  mensajes: { icon: 'fas fa-message', label: 'Mensajes', color: 'text-sky-400', bg: 'bg-sky-500/10' },
-  recordatorios: { icon: 'fas fa-clock', label: 'Recordatorios', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-  config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
-  api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
-  solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
-};
+// ── Constantes de navegación (agrupadas por categoría) ───────────────────────
+const NAV_GROUPS = [
+  {
+    label: 'Gestión',
+    items: {
+      stats: { icon: 'fas fa-chart-pie', label: 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+      users: { icon: 'fas fa-users', label: 'Personal', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+      estructura: { icon: 'fas fa-sitemap', label: 'Organización', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+      companies: { icon: 'fas fa-building-columns', label: 'Empresas', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    },
+  },
+  {
+    label: 'Operación',
+    items: {
+      mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
+      sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    },
+  },
+  {
+    label: 'Comunicación',
+    items: {
+      notifications: { icon: 'fas fa-bell', label: 'Avisos', color: 'text-rose-400', bg: 'bg-rose-500/10' },
+      mensajes: { icon: 'fas fa-message', label: 'Mensajes', color: 'text-sky-400', bg: 'bg-sky-500/10' },
+      recordatorios: { icon: 'fas fa-clock', label: 'Recordatorios', color: 'text-violet-400', bg: 'bg-violet-500/10' },
+    },
+  },
+  {
+    label: 'Sistema',
+    items: {
+      apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+      api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
+      config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
+      reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
+    },
+  },
+];
+
+// Mapa plano para acceso rápido por key (icon/label en otros lugares del código)
+const NAV_ITEMS = NAV_GROUPS.reduce((acc, g) => ({ ...acc, ...g.items }), {});
 
 const MODULE_LABELS = {
   stats: 'Dashboard', apk: 'APK', companies: 'Empresas', users: 'Personal',
@@ -86,6 +109,8 @@ const canAccess = (tabKey) => {
   const perm = TAB_PERMS[tabKey];
   return perm ? !!employee.value?.permisos?.[perm] : false;
 };
+
+const groupHasAccess = (group) => Object.keys(group.items).some(canAccess);
 
 const currentTab = computed(() => route.params.tab || 'stats');
 const navigateTo = (key) => router.push(`/super-admin/${key}`);
@@ -298,23 +323,31 @@ onMounted(async () => {
 
       <div class="sa-divider"></div>
 
-      <!-- Nav items -->
+      <!-- Nav items (agrupados por categoría) -->
       <nav class="sa-nav">
-        <template v-for="(item, key) in NAV_ITEMS" :key="key">
-          <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label" class="sa-nav-item" :class="[
-            !isSidebarOpen && 'lg:justify-center',
-            currentTab === key
-              ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
-              : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
-          ]">
-            <div v-if="currentTab === key" class="sa-nav-bar"></div>
-            <div class="sa-nav-icon">
-              <i :class="item.icon" :style="isDark
-                ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
-                : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
-            </div>
-            <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
-          </button>
+        <template v-for="(group, gIdx) in NAV_GROUPS" :key="group.label">
+          <!-- Label de grupo (solo si hay items accesibles) -->
+          <div v-if="groupHasAccess(group)" class="sa-nav-group">
+            <p v-if="isSidebarOpen" class="sa-nav-group-label">{{ group.label }}</p>
+            <div v-else class="sa-nav-group-divider lg:block hidden"></div>
+
+            <template v-for="(item, key) in group.items" :key="key">
+              <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label" class="sa-nav-item" :class="[
+                !isSidebarOpen && 'lg:justify-center',
+                currentTab === key
+                  ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
+                  : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
+              ]">
+                <div v-if="currentTab === key" class="sa-nav-bar"></div>
+                <div class="sa-nav-icon">
+                  <i :class="item.icon" :style="isDark
+                    ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
+                    : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
+                </div>
+                <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
+              </button>
+            </template>
+          </div>
         </template>
       </nav>
 
@@ -387,7 +420,7 @@ onMounted(async () => {
             <!-- Dropdown -->
             <Transition name="dropdown">
               <div v-if="showUserMenu" class="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1 z-50 shadow-xl"
-                :class="isDark ? 'bg-[#273045] border-white/10' : 'bg-white border-slate-200'">
+                :class="isDark ? 'bg-[#131316] border-white/10' : 'bg-white border-slate-200'">
                 <div class="px-3 py-2 border-b" :class="isDark ? 'border-white/[0.06]' : 'border-slate-100'">
                   <p class="text-[9px] font-bold uppercase tracking-widest opacity-40"
                     :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
@@ -477,7 +510,7 @@ onMounted(async () => {
 }
 
 .sa-dark {
-  background: #1e2535;
+  background: #0a0a0a;
   color: #fff;
 }
 
@@ -541,7 +574,7 @@ onMounted(async () => {
 }
 
 .sa-sidebar-dark {
-  background: #273045;
+  background: #131316;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -583,7 +616,7 @@ onMounted(async () => {
 }
 
 .sa-collapse-dark {
-  background: #273045;
+  background: #131316;
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
 }
@@ -663,6 +696,49 @@ onMounted(async () => {
 
 .sa-nav {
   scrollbar-width: none;
+}
+
+/* Grupo de navegación */
+.sa-nav-group {
+  margin-bottom: 10px;
+}
+
+.sa-nav-group:last-child {
+  margin-bottom: 0;
+}
+
+.sa-nav-group-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  opacity: .35;
+  padding: 0 10px;
+  margin-bottom: 6px;
+  margin-top: 2px;
+}
+
+.sa-sidebar-dark .sa-nav-group-label {
+  color: #94a3b8;
+}
+
+.sa-sidebar-light .sa-nav-group-label {
+  color: #64748b;
+}
+
+/* Separador entre grupos cuando sidebar está colapsado (solo desktop) */
+.sa-nav-group-divider {
+  height: 1px;
+  margin: 6px 12px 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sa-sidebar-light .sa-nav-group-divider {
+  background: #e2e8f0;
+}
+
+.sa-nav-group:first-child .sa-nav-group-divider {
+  display: none !important;
 }
 
 .sa-nav-item {
@@ -869,7 +945,7 @@ onMounted(async () => {
 }
 
 .sa-header-dark {
-  background: #273045;
+  background: #131316;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -984,7 +1060,7 @@ onMounted(async () => {
 }
 
 .sa-content-dark {
-  background: #1e2535;
+  background: #0a0a0a;
 }
 
 .sa-content-light {
@@ -1010,7 +1086,7 @@ onMounted(async () => {
 }
 
 .sa-card-dark {
-  background: #1e2535;
+  background: #0a0a0a;
   border-color: rgba(255, 255, 255, 0.07);
 }
 

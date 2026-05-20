@@ -1,46 +1,35 @@
 <template>
-  <div class="h-full flex flex-col gap-3 animate-fade-in">
+  <div class="gm-root h-full flex flex-col gap-3 animate-fade-in" :class="isDark ? 'gm-dark' : 'gm-light'">
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
-      :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
-      <div class="flex items-center gap-3">
-        <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
-          <i class="fas fa-calendar-alt text-blue-500 text-xs"></i>
+    <header class="gm-header">
+      <div class="gm-header-left">
+        <div class="gm-header-icon">
+          <i class="fas fa-calendar-days"></i>
         </div>
         <div>
-          <h2 class="text-[11px] font-semibold uppercase tracking-wider"
-            :class="isDark ? 'text-white' : 'text-slate-700'">Gestión de Mallas</h2>
-          <p class="text-[9px] font-medium opacity-40 uppercase tracking-wide"
-            :class="isDark ? 'text-white' : 'text-slate-500'">
-            {{ mallas.length }} mallas · {{ mallasFiltradas.length }} mostrando
-          </p>
+          <p class="gm-eyebrow">Mallas horarias</p>
+          <h2 class="gm-title">{{ mallas.length }} mallas · {{ mallasFiltradas.length }} visibles</h2>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <button @click="descargarPlantilla"
-          class="h-7 px-3 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all flex items-center gap-1.5"
-          :class="isDark ? 'border-white/10 text-white/50 hover:bg-white/5 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
-          <i class="fas fa-download text-[9px]"></i> Plantilla
+      <div class="gm-header-right">
+        <button @click="descargarPlantilla" class="gm-btn-ghost" title="Descargar plantilla Excel">
+          <i class="fas fa-download"></i>
+          Plantilla
         </button>
-        <button @click="panelUpload = !panelUpload"
-          class="h-7 px-3 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all flex items-center gap-1.5"
-          :class="panelUpload
-            ? 'bg-indigo-500 border-indigo-500 text-white'
-            : isDark ? 'border-white/10 text-white/50 hover:bg-white/5 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-50'">
-          <i class="fas fa-file-excel text-[9px]"></i> Carga masiva
+        <button @click="panelUpload = !panelUpload" class="gm-btn-ghost"
+          :class="panelUpload ? 'is-active' : ''">
+          <i class="fas fa-file-excel"></i>
+          Carga masiva
         </button>
-        <button @click="panelForm = !panelForm"
-          class="h-8 px-4 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-2"
-          :class="panelForm
-            ? 'bg-slate-500 text-white'
-            : 'bg-blue-500 text-white hover:bg-blue-400'">
-          <i :class="panelForm ? 'fas fa-times' : 'fas fa-plus'" class="text-[10px]"></i>
-          {{ panelForm ? 'Cancelar' : 'Nueva Malla' }}
+        <button @click="panelForm = !panelForm" class="gm-btn-primary"
+          :class="panelForm ? 'is-cancel' : ''">
+          <i :class="panelForm ? 'fas fa-times' : 'fas fa-plus'"></i>
+          {{ panelForm ? 'Cancelar' : 'Nueva malla' }}
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- PANEL: REPORTE POR DEPARTAMENTO -->
     <div class="rounded-xl border overflow-hidden transition-all shrink-0"
@@ -149,7 +138,7 @@
                       <div class="flex flex-wrap gap-1">
                         <span v-for="d in malla.detalles" :key="d.dia_semana"
                           class="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                          :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-50 text-amber-600'">
+                          :class="isDark ? 'bg-[#2563eb]/15 text-[#93c5fd]' : 'bg-[#eff6ff] text-[#1d4ed8]'">
                           {{ DIAS_SHORT[d.dia_semana] }}
                           {{ formatHora(d.hora_inicio) }}-{{ formatHora(d.hora_fin) }}
                         </span>
@@ -170,14 +159,14 @@
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
         <div class="px-3 py-2 border-b flex items-center gap-2"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
-          <i class="fas fa-file-excel text-indigo-400 text-[10px]"></i>
+          <i class="fas fa-file-excel text-[#2563eb] text-[10px]"></i>
           <span class="text-[10px] font-semibold uppercase tracking-wider opacity-60"
             :class="isDark ? 'text-white' : 'text-slate-600'">Crear mallas desde Excel</span>
         </div>
         <div class="p-4 flex items-center gap-4">
           <label
             class="flex-1 flex flex-col items-center gap-2 border-2 border-dashed rounded-xl py-6 cursor-pointer transition-all"
-            :class="isDark ? 'border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'">
+            :class="isDark ? 'border-white/10 hover:border-[#2563eb] hover:bg-[#2563eb]/5' : 'border-slate-200 hover:border-[#2563eb] hover:bg-[#eff6ff]'">
             <i class="fas fa-cloud-upload-alt text-2xl opacity-30"
               :class="isDark ? 'text-white' : 'text-slate-400'"></i>
             <span class="text-[10px] font-semibold uppercase tracking-wide opacity-50"
@@ -199,7 +188,7 @@
           </div>
 
           <button @click="subirExcel" :disabled="!archivoExcel || cargandoExcel"
-            class="h-10 px-5 rounded-xl bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-indigo-400 transition-all flex items-center gap-2 shrink-0">
+            class="h-10 px-5 rounded-xl bg-[#2563eb] text-white text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-[#1d4ed8] transition-all flex items-center gap-2 shrink-0">
             <i class="fas text-[10px]" :class="cargandoExcel ? 'fa-circle-notch fa-spin' : 'fa-upload'"></i>
             {{ cargandoExcel ? 'Procesando...' : 'Subir' }}
           </button>
@@ -241,16 +230,16 @@
                 :class="isDark ? 'text-white' : 'text-slate-600'">Nombre *</label>
               <input v-model="form.nombre" type="text" placeholder="(ADM) ADMIN-001 Colombia L-V 7-17"
                 class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all" :class="isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
+                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-[#2563eb]'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-[#2563eb]'" />
             </div>
             <div>
               <label class="block text-[9px] font-bold uppercase tracking-wider mb-1 opacity-50"
                 :class="isDark ? 'text-white' : 'text-slate-600'">Compañía</label>
               <input v-model="form.compania" type="text" placeholder="(CO) WODEN COLOMBIA SAS"
                 class="w-full px-3 py-2 rounded-lg border text-[11px] outline-none transition-all" :class="isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/50'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
+                  ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-[#2563eb]'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300 focus:border-[#2563eb]'" />
             </div>
           </div>
 
@@ -270,7 +259,7 @@
                       <button @click="toggleHeaderDropdown('inicio')"
                         class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1 group"
                         :class="headerDropdown === 'inicio'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#2563eb] text-white'
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora inicio
@@ -292,7 +281,7 @@
                           <div v-for="h in horasFiltradas(searchHoraInicio)" :key="h.value"
                             @click="aplicarHoraATodos('inicio', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="isDark ? 'hover:bg-blue-500/20 text-white hover:text-blue-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            :class="isDark ? 'hover:bg-[#2563eb]/20 text-white hover:text-[#93c5fd]' : 'hover:bg-[#eff6ff] text-slate-700 hover:text-[#1d4ed8]'">
                             {{ h.label }}
                           </div>
                         </div>
@@ -306,7 +295,7 @@
                       <button @click="toggleHeaderDropdown('fin')"
                         class="flex items-center gap-1.5 font-semibold uppercase tracking-wider transition-all rounded-lg px-2 py-1"
                         :class="headerDropdown === 'fin'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#2563eb] text-white'
                           : isDark ? 'opacity-50 hover:opacity-100 text-white hover:bg-white/10' : 'opacity-50 hover:opacity-100 text-slate-600 hover:bg-slate-200'">
                         <i class="fas fa-clock text-[9px]"></i>
                         Hora fin
@@ -327,7 +316,7 @@
                           <div v-for="h in horasFiltradas(searchHoraFin)" :key="h.value"
                             @click="aplicarHoraATodos('fin', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all"
-                            :class="isDark ? 'hover:bg-blue-500/20 text-white hover:text-blue-400' : 'hover:bg-amber-50 text-slate-700 hover:text-amber-600'">
+                            :class="isDark ? 'hover:bg-[#2563eb]/20 text-white hover:text-[#93c5fd]' : 'hover:bg-[#eff6ff] text-slate-700 hover:text-[#1d4ed8]'">
                             {{ h.label }}
                           </div>
                         </div>
@@ -347,7 +336,7 @@
                   ]">
                   <td class="px-3 py-2">
                     <input type="checkbox" v-model="detalle.activo"
-                      class="w-3.5 h-3.5 accent-blue-500 cursor-pointer" />
+                      class="w-3.5 h-3.5 accent-[#2563eb] cursor-pointer" />
                   </td>
                   <td class="px-3 py-2 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">
                     {{ DIAS[detalle.dia_semana] }}
@@ -377,8 +366,8 @@
                           <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
                             @click="selectRowHora(detalle, 'inicio', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all" :class="[
-                              detalle.hora_inicio === h.value ? 'text-blue-500 font-black' : '',
-                              isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                              detalle.hora_inicio === h.value ? 'text-[#2563eb] font-black' : '',
+                              isDark ? 'hover:bg-[#2563eb]/20 text-white' : 'hover:bg-[#eff6ff] text-slate-700'
                             ]">
                             {{ h.label }}
                           </div>
@@ -411,8 +400,8 @@
                           <div v-for="h in horasFiltradas(searchRow)" :key="h.value"
                             @click="selectRowHora(detalle, 'fin', h.value)"
                             class="px-3 py-1.5 cursor-pointer text-[11px] font-semibold transition-all" :class="[
-                              detalle.hora_fin === h.value ? 'text-blue-500 font-black' : '',
-                              isDark ? 'hover:bg-blue-500/20 text-white' : 'hover:bg-amber-50 text-slate-700'
+                              detalle.hora_fin === h.value ? 'text-[#2563eb] font-black' : '',
+                              isDark ? 'hover:bg-[#2563eb]/20 text-white' : 'hover:bg-[#eff6ff] text-slate-700'
                             ]">
                             {{ h.label }}
                           </div>
@@ -424,8 +413,8 @@
                   <td class="px-3 py-2">
                     <select v-model="detalle.periodo" :disabled="!detalle.activo"
                       class="rounded-lg border px-2 py-1 text-[10px] outline-none transition-all" :class="isDark
-                        ? 'bg-white/5 border-white/10 text-white focus:border-blue-500/50'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-400'">
+                        ? 'bg-white/5 border-white/10 text-white focus:border-[#2563eb]'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-[#2563eb]'">
                       <option value="morning">Diurna</option>
                       <option value="afternoon">Tarde</option>
                       <option value="night">Nocturna</option>
@@ -513,7 +502,7 @@
           <!-- Botón guardar -->
           <div class="flex justify-end">
             <button @click="crearMalla" :disabled="guardando || !form.nombre.trim()"
-              class="h-9 px-6 rounded-xl bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-blue-400 transition-all flex items-center gap-2">
+              class="h-9 px-6 rounded-xl bg-[#2563eb] text-white text-[10px] font-bold uppercase tracking-wide disabled:opacity-30 hover:bg-[#1d4ed8] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2">
               <i class="fas text-[10px]" :class="guardando ? 'fa-circle-notch fa-spin' : 'fa-save'"></i>
               {{ guardando ? 'Guardando...' : 'Guardar Malla' }}
             </button>
@@ -536,8 +525,8 @@
           <input v-model="filterMalla" type="text" placeholder="Buscar malla..."
             class="w-full pl-7 pr-2.5 py-1 rounded-lg border text-[10px] font-medium outline-none transition-all"
             :class="isDark
-              ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-blue-500/40'
-              : 'bg-white border-slate-200 text-slate-700 placeholder-slate-300 focus:border-blue-400'" />
+              ? 'bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-[#2563eb]'
+              : 'bg-white border-slate-200 text-slate-700 placeholder-slate-300 focus:border-[#2563eb]'" />
         </div>
 
         <span class="text-[9px] font-semibold uppercase tracking-wider opacity-40 ml-auto"
@@ -553,7 +542,7 @@
       </div>
 
       <div v-if="cargando" class="flex-1 flex items-center justify-center">
-        <i class="fas fa-circle-notch fa-spin text-blue-500 text-lg"></i>
+        <i class="fas fa-circle-notch fa-spin text-[#2563eb] text-lg"></i>
       </div>
 
       <div v-else-if="!mallasFiltradas.length" class="flex-1 flex flex-col items-center justify-center">
@@ -584,7 +573,7 @@
               <div v-if="malla.detalles?.length" class="flex flex-wrap gap-1 mt-2">
                 <span v-for="d in malla.detalles.slice().sort((a, b) => a.dia_semana - b.dia_semana)" :key="d.id"
                   class="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                  :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-50 text-amber-600'">
+                  :class="isDark ? 'bg-[#2563eb]/15 text-[#93c5fd]' : 'bg-[#eff6ff] text-[#1d4ed8]'">
                   {{ DIAS_SHORT[d.dia_semana] }}
                   {{ formatHora(d.hora_inicio) }}-{{ formatHora(d.hora_fin) }}
                 </span>
@@ -951,6 +940,156 @@ onMounted(cargarMallas);
 </script>
 
 <style scoped>
+/* ── VARIABLES de marca (Vercel-style + color funcional) ─────────── */
+.gm-light {
+  --gm-brand: #2563eb;
+  --gm-brand-soft: #eff6ff;
+  --gm-brand-text: #1d4ed8;
+  --gm-on: #16a34a;
+  --gm-text: #09090b;
+  --gm-text-muted: #52525b;
+  --gm-text-soft: #a1a1aa;
+  --gm-border: #ececec;
+  --gm-border-strong: #e2e2e2;
+  --gm-bg: #ffffff;
+  --gm-bg-soft: #fafafa;
+}
+
+.gm-dark {
+  --gm-brand: #60a5fa;
+  --gm-brand-soft: rgba(96, 165, 250, 0.12);
+  --gm-brand-text: #93c5fd;
+  --gm-on: #4ade80;
+  --gm-text: #fafafa;
+  --gm-text-muted: #a1a1aa;
+  --gm-text-soft: #71717a;
+  --gm-border: #27272a;
+  --gm-border-strong: #3f3f46;
+  --gm-bg: #18181b;
+  --gm-bg-soft: #131316;
+}
+
+/* ── HEADER nuevo ────────────────────────────────────────────────── */
+.gm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.gm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.gm-header-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--gm-brand-soft);
+  color: var(--gm-brand-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.gm-eyebrow {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--gm-text-soft);
+  margin-bottom: 1px;
+  line-height: 1;
+}
+
+.gm-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--gm-text);
+  line-height: 1.15;
+}
+
+.gm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gm-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 5px;
+  background: var(--gm-bg);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text-muted);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 500;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.gm-btn-ghost i {
+  font-size: 9.5px;
+}
+
+.gm-btn-ghost:hover {
+  background: var(--gm-bg-soft);
+  color: var(--gm-text);
+  border-color: var(--gm-border-strong);
+}
+
+.gm-btn-ghost.is-active {
+  background: var(--gm-brand-soft);
+  color: var(--gm-brand-text);
+  border-color: var(--gm-brand);
+}
+
+.gm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 5px;
+  background: var(--gm-brand);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.gm-btn-primary i {
+  font-size: 10px;
+}
+
+.gm-btn-primary:hover:not(.is-cancel) {
+  background: var(--gm-brand-text);
+  box-shadow: 0 3px 10px -2px rgba(37, 99, 235, 0.35);
+}
+
+.gm-btn-primary.is-cancel {
+  background: var(--gm-bg);
+  color: var(--gm-text-muted);
+  border: 1px solid var(--gm-border-strong);
+}
+
+.gm-btn-primary.is-cancel:hover {
+  background: var(--gm-bg-soft);
+  color: var(--gm-text);
+}
+
 .custom-scroll::-webkit-scrollbar {
   width: 4px;
 }
