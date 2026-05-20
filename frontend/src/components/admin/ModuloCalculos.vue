@@ -1,154 +1,177 @@
 <template>
-  <div class="h-full animate-fade-in flex flex-col gap-2">
+  <div class="h-full animate-fade-in flex flex-col gap-3">
 
-    <!-- ── Tabs de módulo ──────────────────────────────────────────────────── -->
-    <div class="flex items-center gap-1 p-1 rounded-xl w-fit"
+    <!-- ── Tabs (Vercel segmented) ───────────────────────────────────────── -->
+    <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
       v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')"
-      :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+      :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
       <button @click="activeTab = 'calculos'"
-        class="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5"
+        class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
         :class="activeTab === 'calculos'
-          ? 'bg-[#3B82F6] text-white'
-          : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-calculator text-[9px]"></i>Cálculos
+          ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+          : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+        <i class="fas fa-calculator text-[10px]"></i>Cálculos
       </button>
       <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
-        class="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5"
+        class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
         :class="activeTab === 'cargue'
-          ? 'bg-[#3B82F6] text-white'
-          : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-file-arrow-up text-[9px]"></i>Cargue Horas
+          ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+          : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+        <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
       </button>
     </div>
 
-    <!-- ══ TAB CÁLCULOS ══════════════════════════════════════════════════════ -->
+    <!-- ══ TAB CÁLCULOS ════════════════════════════════════════════════════ -->
     <template v-if="activeTab === 'calculos'">
 
-    <!-- ── Barra de controles ──────────────────────────────────────────────── -->
-    <div class="flex flex-wrap items-end gap-2 p-2 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-[#f8fafc] border-slate-200'">
+      <!-- ── Toolbar con filtros (Vercel) ───────────────────────────────── -->
+      <div class="rounded-md border"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-      <!-- Desde -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[8px] font-semibold uppercase tracking-widest"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde</label>
-        <input type="date" v-model="startDate"
-          class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-      </div>
+        <!-- Sección filtros -->
+        <div class="flex flex-wrap items-end gap-3 px-3 py-2.5">
 
-      <!-- Hasta -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[8px] font-semibold uppercase tracking-widest"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta</label>
-        <input type="date" v-model="endDate"
-          class="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border outline-none transition-colors"
-          :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-      </div>
-
-      <!-- Filtro Nombre -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[8px] font-semibold uppercase tracking-widest"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Nombre</label>
-        <div class="relative">
-          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
-          <input v-model="filterNombre" type="text" placeholder="Buscar..."
-            class="pl-7 pr-2.5 py-1.5 text-[10px] font-semibold rounded-lg border outline-none w-36 transition-colors"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-        </div>
-      </div>
-
-      <!-- Filtro Cargo -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[8px] font-semibold uppercase tracking-widest"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargo</label>
-        <div class="relative">
-          <select v-model="filterCargo"
-            class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-40 cursor-pointer transition-colors"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-            <option value="">Todos los cargos</option>
-            <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
-          </select>
-          <i
-            class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-400 pointer-events-none"></i>
-        </div>
-      </div>
-
-      <!-- Filtro Departamento -->
-      <div v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" class="flex flex-col gap-1">
-        <label class="text-[8px] font-semibold uppercase tracking-widest"
-          :class="isDark ? 'text-slate-400' : 'text-slate-500'">Departamento</label>
-        <div class="relative">
-          <select v-model="filterDepartamento"
-            class="pl-2.5 pr-7 py-1.5 text-[10px] font-semibold rounded-lg border outline-none appearance-none w-44 cursor-pointer transition-colors"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-            <option value="">Todos los departamentos</option>
-            <option v-for="d in opcionesDepartamentos" :key="d" :value="d">{{ d }}</option>
-          </select>
-          <i
-            class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-400 pointer-events-none"></i>
-        </div>
-      </div>
-
-      <!-- Solo con extras -->
-      <label class="flex items-center gap-2 cursor-pointer select-none self-end pb-1.5">
-        <div class="relative">
-          <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
-          <div class="w-8 h-4 rounded-full transition-colors peer-checked:bg-blue-500"
-            :class="isDark ? 'bg-white/10' : 'bg-slate-200'"></div>
-          <div
-            class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm">
+          <!-- Rango de fechas -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              Desde
+            </label>
+            <input type="date" v-model="startDate"
+              class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
           </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              Hasta
+            </label>
+            <input type="date" v-model="endDate"
+              class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+          </div>
+
+          <!-- Separador visual -->
+          <div class="h-7 w-px self-end" :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'"></div>
+
+          <!-- Buscar nombre -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              Nombre
+            </label>
+            <div class="relative">
+              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
+                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+              <input v-model="filterNombre" type="text" placeholder="Buscar…"
+                class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                  : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+            </div>
+          </div>
+
+          <!-- Cargo -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              Cargo
+            </label>
+            <div class="relative">
+              <select v-model="filterCargo"
+                class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none w-40 cursor-pointer transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
+                <option value="">Todos</option>
+                <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
+              </select>
+              <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
+                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+            </div>
+          </div>
+
+          <!-- Departamento -->
+          <div v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" class="flex flex-col gap-1">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              Departamento
+            </label>
+            <div class="relative">
+              <select v-model="filterDepartamento"
+                class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none w-44 cursor-pointer transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
+                <option value="">Todos</option>
+                <option v-for="d in opcionesDepartamentos" :key="d" :value="d">{{ d }}</option>
+              </select>
+              <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
+                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+            </div>
+          </div>
+
+          <!-- Toggle solo extras -->
+          <label class="flex items-center gap-2 cursor-pointer select-none self-end pb-1">
+            <div class="relative">
+              <input type="checkbox" v-model="soloConExtras" class="sr-only peer" />
+              <div class="w-7 h-4 rounded-full transition-colors peer-checked:bg-[#3B82F6]"
+                :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'"></div>
+              <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform peer-checked:translate-x-3"></div>
+            </div>
+            <span class="text-[11px] font-medium whitespace-nowrap"
+              :class="isDark ? 'text-[#E2E8F0]' : 'text-slate-700'">Solo con extras</span>
+          </label>
         </div>
-        <span class="text-[9px] font-semibold uppercase tracking-wide whitespace-nowrap"
-          :class="isDark ? 'text-slate-300' : 'text-slate-600'">Solo con extras</span>
-      </label>
 
-      <!-- Acciones -->
-      <div class="flex items-center gap-1.5 ml-auto self-end">
+        <!-- Separador entre filtros y acciones -->
+        <div class="border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></div>
 
-        <!-- Calcular -->
-        <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
-          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 text-white"
-          :class="isDark
-            ? 'bg-blue-600 hover:bg-white/[0.03]0'
-            : 'bg-blue-500 hover:bg-[#2563EB]'">
-          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
-          <span>{{ isCalculating ? 'Calculando...' : 'Calcular' }}</span>
-        </button>
+        <!-- Sección acciones (Vercel button bar) -->
+        <div class="flex items-center gap-2 px-3 py-2"
+          :class="isDark ? 'bg-[#0B0F19]/40' : 'bg-slate-50/60'">
 
-        <!-- Guardar -->
-        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
-          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 text-white"
-          :class="isDark
-            ? 'bg-emerald-600 hover:bg-emerald-500'
-            : 'bg-emerald-500 hover:bg-emerald-600'">
-          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
-          <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
-        </button>
+          <!-- Refrescar (ghost) -->
+          <button @click="handleCargar" :disabled="isLoading"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-40"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
+            title="Refrescar historial">
+            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
+          </button>
 
-        <!-- Refrescar historial -->
-        <button @click="handleCargar" :disabled="isLoading"
-          class="w-7 h-7 rounded-full border flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
-          :class="isDark
-            ? 'border-[#222938] text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-white/[0.03]0/10'
-            : 'border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-300 hover:bg-white/[0.03]'"
-          title="Refrescar historial">
-          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
-        </button>
+          <!-- Excel (ghost secondary) -->
+          <button @click="handleExportar" :disabled="isExporting || !registros.length"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+            <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <span>{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
+          </button>
 
-        <!-- Excel -->
-        <button @click="handleExportar" :disabled="isExporting || !registros.length"
-          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
-          :class="isDark
-            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
-            : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'">
-          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
-          <span>{{ isExporting ? 'Exportando...' : 'Excel' }}</span>
-        </button>
+          <div class="flex-1"></div>
 
+          <!-- Calcular (secondary) -->
+          <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+            <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
+            <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
+          </button>
+
+          <!-- Guardar (primary Vercel blue) -->
+          <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 text-white bg-[#3B82F6] hover:bg-[#2563EB]">
+            <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
+            <span>{{ isSaving ? 'Guardando…' : 'Guardar' }}</span>
+          </button>
+
+        </div>
       </div>
-    </div>
 
     <!-- ── Nota sexagesimal ───────────────────────────────────────────────── -->
     <!-- <div class="px-4 py-1.5 rounded-xl text-[9px] font-medium"
@@ -158,67 +181,74 @@
       15 min = 0,25 &nbsp;|&nbsp; 30 min = 0,50 &nbsp;|&nbsp; 45 min = 0,75 &nbsp;|&nbsp; 60 min = 1,0
     </div> -->
 
-    <!-- ── Tabla principal ────────────────────────────────────────────────── -->
-    <div class="flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
+    <!-- ── Tabla (Vercel) ─────────────────────────────────────────────────── -->
+    <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
-        <table class="w-full border-separate border-spacing-0 text-[10px]">
+        <table class="w-full border-separate border-spacing-0 text-[11px]">
 
-          <!-- Encabezado -->
+          <!-- Encabezado uniforme -->
           <thead class="sticky top-0 z-30">
-            <tr :class="isDark ? 'bg-[#161B26]' : 'bg-[#334155]'">
+            <tr class="bg-[#0B0F19]">
               <th colspan="2"
-                class="px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-r border-[#222938] text-white">
-                COLABORADOR
+                class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r"
+                class="border-[#222938] text-[#888888]">
+                Colaborador
               </th>
               <th
-                class="px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-r border-[#222938] text-white">
-                FECHA
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
+                class="border-[#222938] text-[#888888]">
+                Fecha
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-r border-[#222938] text-white">
-                JORNADA LABORAL
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
+                class="border-[#222938] text-[#888888]">
+                Jornada
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-r border-[#222938] text-white">
-                TIEMPO LABORADO
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r"
+                class="border-[#222938] text-[#888888]">
+                Tiempo laborado
               </th>
               <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                class="px-2 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-r border-[#222938] text-white w-12">
+                class="px-2 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r w-12"
+                class="border-[#222938] text-[#888888]">
                 {{ col }}
               </th>
               <th
-                class="px-3 py-2 text-center text-[9px] font-semibold uppercase tracking-wider border-b border-[#222938] text-white w-20">
-                APROBAR
+                class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b w-20"
+                class="border-[#222938] text-[#888888]">
+                Aprobar
               </th>
             </tr>
-            <tr :class="isDark ? 'bg-[#161B26]' : 'bg-[#475569]'">
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-28">
+            <tr class="bg-[#0B0F19]">
+              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r w-28"
+                class="border-[#222938] text-[#6a6a72]">
                 Cédula</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300">
+              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r"
+                class="border-[#222938] text-[#6a6a72]">
                 Nombre</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-24">
-                Fecha</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-20">
-                Hora Ini.</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-20">
-                Hora Fin</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-20">
-                Hora Ini.</th>
-              <th
-                class="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider border-b border-r border-[#222938] text-slate-300 w-20">
-                Hora Fin</th>
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-24"
+                class="border-[#222938] text-[#6a6a72]">
+                </th>
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
+                class="border-[#222938] text-[#6a6a72]">
+                Inicio</th>
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
+                class="border-[#222938] text-[#6a6a72]">
+                Fin</th>
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
+                class="border-[#222938] text-[#6a6a72]">
+                Entrada</th>
+              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20"
+                class="border-[#222938] text-[#6a6a72]">
+                Salida</th>
               <th v-for="_ in 7" :key="_"
-                class="px-2 py-1.5 text-[8px] font-bold text-center tracking-wider border-b border-r border-[#222938] text-slate-400">
-                0</th>
-              <th class="px-3 py-1.5 border-b border-[#222938] text-slate-300"></th>
+                class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r"
+                class="border-[#222938] text-[#6a6a72]">
+                hrs</th>
+              <th class="px-3 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></th>
             </tr>
           </thead>
 
@@ -250,9 +280,11 @@
 
               <!-- Cabecera empresa -->
               <tr v-if="item.tipo === 'empresa'">
-                <td colspan="15" class="px-4 py-2 text-[9px] font-semibold uppercase tracking-widest text-white border-b"
-                  :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-[#334155] border-slate-600'">
-                  <i class="fas fa-building mr-2 opacity-70"></i>{{ item.data.empresa }}
+                <td colspan="15" class="px-4 py-2 text-[10px] font-medium border-b"
+                  :class="isDark
+                    ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'">
+                  <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
                 </td>
               </tr>
 
@@ -317,38 +349,44 @@
                 <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <div class="flex items-center justify-center gap-1">
                     <button @click="handleAprobar(item.data.id, true)"
-                      class="w-6 h-6 rounded flex items-center justify-center transition-all"
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
                       :class="item.data.aprobado === true
-                        ? 'bg-emerald-500 text-white shadow-sm'
-                        : (isDark ? 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50')">
+                        ? 'bg-[#16a34a] border-[#16a34a] text-white'
+                        : (isDark
+                            ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40'
+                            : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
                       <i class="fas fa-check text-[9px]"></i>
                     </button>
                     <button @click="handleAprobar(item.data.id, false)"
-                      class="w-6 h-6 rounded flex items-center justify-center transition-all"
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
                       :class="item.data.aprobado === false
-                        ? 'bg-rose-500 text-white shadow-sm'
-                        : (isDark ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50')">
+                        ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                        : (isDark
+                            ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
+                            : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')">
                       <i class="fas fa-times text-[9px]"></i>
                     </button>
                   </div>
                 </td>
               </tr>
 
-              <!-- Subtotal colaborador -->
+              <!-- Subtotal colaborador (Vercel sutil) -->
               <tr v-else-if="item.tipo === 'subtotal'">
-                <td colspan="7" class="px-3 py-2 border-b border-r text-[9px] font-semibold uppercase italic" :class="isDark
-                  ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]'
-                  : 'bg-blue-50 border-blue-200 text-blue-800'">
+                <td colspan="7" class="px-3 py-2 border-b border-r text-[10px] font-medium"
+                  :class="isDark
+                    ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
+                    : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                   Subtotal — {{ item.data.nombre }}
                 </td>
                 <td v-for="col in COLS_HX" :key="col"
-                  class="px-2 py-2 border-b border-r text-center text-[10px] font-semibold" :class="isDark
-                    ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]'
-                    : 'bg-blue-50 border-blue-200 text-blue-700'">
+                  class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
+                  :class="isDark
+                    ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
+                    : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                   {{ formatDecimal(item.data.subtotales[col]) }}
                 </td>
                 <td class="border-b"
-                  :class="isDark ? 'bg-[#3B82F6]/10 border-[#3B82F6]/20' : 'bg-blue-50 border-blue-200'">
+                  :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
                 </td>
               </tr>
 
@@ -357,25 +395,30 @@
         </table>
       </div>
 
-      <!-- Paginación -->
-      <div v-if="filasAplanadas.length > 0" class="px-4 py-2 border-t flex items-center justify-between"
-        :class="isDark ? 'border-[#222938] bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
-        <span class="text-[10px] font-bold uppercase" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          Registros: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ totalRegistros }}</span>
+      <!-- Paginación (Vercel) -->
+      <div v-if="filasAplanadas.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
+        :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+        <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+          <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ totalRegistros }}</span>
+          {{ totalRegistros === 1 ? 'registro' : 'registros' }}
         </span>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
           <button @click="currentPage--" :disabled="currentPage === 1"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-[#222938] hover:bg-[#161B26]/40 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'">
+            class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
             <i class="fas fa-chevron-left text-[9px]"></i>
           </button>
-          <div class="px-3 py-1 rounded-lg text-[11px] font-bold border"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-300 text-slate-900'">
+          <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
+            :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
             {{ currentPage }} / {{ totalPages }}
           </div>
           <button @click="currentPage++" :disabled="currentPage >= totalPages"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-[#222938] hover:bg-[#161B26]/40 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'">
+            class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
             <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
@@ -385,43 +428,45 @@
     </template>
     <!-- ══ FIN TAB CÁLCULOS ══════════════════════════════════════════════════ -->
 
-    <!-- ══ TAB CARGUE HORAS ══════════════════════════════════════════════════ -->
+    <!-- ══ TAB CARGUE HORAS (Vercel) ════════════════════════════════════════ -->
     <template v-else-if="activeTab === 'cargue'">
       <div class="flex flex-col gap-3 flex-1 overflow-hidden">
 
-        <!-- Barra superior -->
-        <div class="flex items-center gap-2 flex-wrap p-2 px-4 rounded-2xl border transition-all duration-300 shadow-sm"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-[#f8fafc] border-slate-200'">
+        <!-- Toolbar -->
+        <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
           <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 border"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 border"
             :class="isDark
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-              : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'">
-            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'"></i>
-            Descargar Plantilla
+              ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-download'" class="text-[10px]"></i>
+            Descargar plantilla
           </button>
 
-          <div class="flex-1 text-[9px] font-medium px-3 py-1.5 rounded-lg border"
-            :class="isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'">
-            <i class="fas fa-circle-info mr-1"></i>
-            Descarga la plantilla, llénala y súbela aquí. El sistema guardará los registros automáticamente con tu área.
+          <div class="flex-1 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-[5px] border min-w-[280px]"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#888888]'
+              : 'bg-slate-50 border-slate-200 text-slate-500'">
+            <i class="fas fa-circle-info text-[10px] text-[#3B82F6]"></i>
+            <span>Descarga la plantilla, complétala y súbela aquí. El sistema asignará los registros automáticamente.</span>
           </div>
         </div>
 
-        <!-- Tarjeta principal de cargue -->
-        <div class="flex-1 rounded-xl border flex flex-col overflow-hidden transition-all duration-300"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
+        <!-- Card principal -->
+        <div class="flex-1 rounded-md border flex flex-col overflow-hidden"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-          <!-- Zona de drop -->
-          <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-xl border-2 border-dashed cursor-pointer transition-all"
+          <!-- Drop zone -->
+          <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-md border border-dashed cursor-pointer transition-all"
             :class="[
               isDragOver
-                ? 'border-[#3B82F6] bg-[#3B82F6]/10'
+                ? 'border-[#3B82F6] bg-[#3B82F6]/[0.06]'
                 : (isDark
-                    ? 'border-[#222938] bg-[#161B26]/60 hover:border-[#3B82F6]/40 hover:bg-[#3B82F6]/5'
-                    : 'border-slate-200 bg-slate-50 hover:border-[#3B82F6]/40 hover:bg-white/[0.03]/30'),
-              archivoSeleccionado ? (isDark ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-emerald-400/50 bg-emerald-50/50') : ''
+                    ? 'border-[#222938] hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/[0.03]'
+                    : 'border-slate-300 hover:border-[#3B82F6]/50 hover:bg-slate-50/60'),
+              archivoSeleccionado ? 'border-[#16a34a] bg-[#16a34a]/[0.04]' : ''
             ]"
             @dragover.prevent="isDragOver = true"
             @dragleave="isDragOver = false"
@@ -430,52 +475,58 @@
 
             <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
 
-            <!-- Icono -->
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all"
+            <!-- Icono limpio Vercel -->
+            <div class="w-12 h-12 rounded-md flex items-center justify-center transition-all"
               :class="archivoSeleccionado
-                ? (isDark ? 'bg-emerald-500/20' : 'bg-emerald-100 shadow-emerald-200')
-                : (isDark ? 'bg-[#3B82F6]/15 shadow-[#3B82F6]/10' : 'bg-blue-100 shadow-blue-200')">
-              <i class="text-3xl transition-all"
+                ? (isDark ? 'bg-[#16a34a]/10 text-[#4ade80]' : 'bg-green-50 text-[#16a34a]')
+                : (isDark ? 'bg-[#3B82F6]/10 text-[#60A5FA]' : 'bg-blue-50 text-[#3B82F6]')">
+              <i class="text-[18px] transition-all"
                 :class="[
-                  archivoSeleccionado ? 'fas fa-file-check text-emerald-500' : 'fas fa-file-arrow-up text-[#3B82F6]',
+                  archivoSeleccionado ? 'fas fa-file-circle-check' : 'fas fa-file-arrow-up',
                   isDragOver ? 'scale-110' : ''
                 ]"></i>
             </div>
 
             <!-- Texto -->
             <div class="text-center">
-              <p class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
-                {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel aquí o haz clic para seleccionar' }}
+              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel o haz clic para seleccionar' }}
               </p>
-              <p class="text-[9px] mt-1.5 font-medium" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                {{ archivoSeleccionado ? 'Archivo listo para cargar' : 'Formatos aceptados: .xlsx, .xls' }}
+              <p class="text-[11px] mt-1" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                {{ archivoSeleccionado ? 'Archivo listo para cargar' : 'Formatos: .xlsx, .xls' }}
               </p>
             </div>
 
             <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
-              class="px-3 py-1 rounded-lg text-[9px] font-bold border transition-colors"
-              :class="isDark ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10' : 'border-rose-300 text-rose-500 hover:bg-rose-50'">
-              <i class="fas fa-times mr-1"></i>Quitar archivo
+              class="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors"
+              :class="isDark
+                ? 'border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#f87171]/40'
+                : 'border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300'">
+              <i class="fas fa-times mr-1 text-[9px]"></i>Quitar
             </button>
           </div>
 
           <!-- Mensajes de estado -->
-          <div v-if="cargueSuccessMsg" class="mx-4 mb-3 px-4 py-2 rounded-lg text-[10px] font-bold border flex items-center gap-2"
-            :class="isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
-            <i class="fas fa-circle-check text-sm"></i>{{ cargueSuccessMsg }}
+          <div v-if="cargueSuccessMsg" class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2"
+            :class="isDark
+              ? 'bg-[#16a34a]/[0.08] border-[#16a34a]/30 text-[#4ade80]'
+              : 'bg-green-50 border-green-200 text-green-700'">
+            <i class="fas fa-circle-check text-[12px]"></i>{{ cargueSuccessMsg }}
           </div>
-          <div v-if="cargueErrorMsg" class="mx-4 mb-3 px-4 py-2 rounded-lg text-[10px] font-bold border flex items-center gap-2"
-            :class="isDark ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'">
-            <i class="fas fa-triangle-exclamation text-sm"></i>{{ cargueErrorMsg }}
+          <div v-if="cargueErrorMsg" class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2"
+            :class="isDark
+              ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+              : 'bg-red-50 border-red-200 text-red-700'">
+            <i class="fas fa-triangle-exclamation text-[12px]"></i>{{ cargueErrorMsg }}
           </div>
 
-          <!-- Pie: botón guardar -->
-          <div class="px-4 py-3 border-t flex items-center justify-end"
-            :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50'">
+          <!-- Footer con botón guardar -->
+          <div class="px-4 py-2.5 border-t flex items-center justify-end"
+            :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
             <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
-              class="flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 bg-blue-500 hover:bg-[#2563EB] text-white">
-              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-xs"></i>
-              {{ isUploading ? 'Guardando...' : 'Guardar Cargue' }}
+              class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] hover:bg-[#2563EB] text-white">
+              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
+              {{ isUploading ? 'Guardando…' : 'Guardar cargue' }}
             </button>
           </div>
 

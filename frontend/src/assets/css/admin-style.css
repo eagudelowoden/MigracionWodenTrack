@@ -480,10 +480,10 @@ main.flex-1 {
 .btn-header-smart {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 6px;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 5px;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -504,8 +504,8 @@ main.flex-1 {
 }
 
 .icon-box-smart i {
-  font-size: 11px;
-  opacity: 0.9;
+  font-size: 10px;
+  opacity: 0.95;
 }
 
 .btn-header-smart:hover:not(:disabled) .icon-box-smart {

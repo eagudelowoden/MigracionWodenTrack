@@ -1,112 +1,118 @@
 <template>
   <div class="h-full animate-fade-in flex flex-col gap-2 font-round-custom">
 
-    <!-- Barra superior asignación -->
-    <div
-      class="flex flex-wrap items-center justify-between gap-3 p-2 px-4 rounded-2xl border transition-all duration-300 -mt-1 shadow-sm"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-[#f8fafc] border-slate-200'">
+    <!-- Toolbar (Vercel compacto) -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-      <div class="flex items-center gap-3">
-        <div
-          class="flex-shrink-0 w-9 h-9 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center">
-          <i class="fas fa-calendar-check text-sm"></i>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
+          <i class="fas fa-calendar-check text-[11px]"></i>
         </div>
-        <div class="leading-tight">
-          <h2 class="text-base font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Asignación
-            de Mallas</h2>
-          <p class="text-[9px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-[0.15em]">Horarios
-            Colaboradores</p>
-        </div>
+        <h2 class="text-[13px] font-semibold tracking-tight"
+          :class="isDark ? 'text-white' : 'text-slate-900'">
+          Asignación de Mallas
+        </h2>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-1.5">
 
         <template v-if="hasPerm('admin.filtro_departamento')">
           <div class="relative">
             <select v-model="selectedDepartment"
-              class="pl-3 pr-8 py-1.5 text-[10px] font-semibold uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm"
-              :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-600'">
-              <option value="">DEPARTAMENTOS</option>
+              class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-40 transition-all"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
+              <option value="">Todos los departamentos</option>
               <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
             </select>
-            <i
-              class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none"></i>
+            <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
+              :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
           </div>
         </template>
 
         <div class="relative">
-          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
-          <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
-            class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 md:w-52 transition-all shadow-sm"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
+            :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+          <input v-model="searchQuery" type="text" placeholder="Buscar…"
+            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 md:w-48 transition-all"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+              : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
         </div>
 
-        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-[#222938] pl-2">
-          <button @click="fetchMallasDesdeOdoo" class="p-2 rounded-lg transition-all"
-            :class="isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-500'"
+        <div class="flex items-center gap-1.5 border-l pl-1.5 ml-0.5"
+          :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+
+          <button @click="fetchMallasDesdeOdoo"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
             title="Refrescar">
-            <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': isLoadingMallas }"></i>
+            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingMallas }"></i>
           </button>
 
           <button @click="downloadMallaTemplate"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[10px] font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+            class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50"
             :class="isDark
-              ? 'bg-transparent border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'"
             title="Descargar Plantilla">
-            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-download'" class="text-[10px]"></i>
             <span>Plantilla</span>
           </button>
 
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
           <button @click="intentarCargar" :disabled="isUploading"
-            class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-semibold uppercase rounded-md transition-all active:scale-[0.98] disabled:opacity-50"
+            class="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium rounded-[5px] transition-all active:scale-[0.98] disabled:opacity-50 border"
             :class="isUploading
-              ? 'bg-[#3B82F6] text-white border border-[#3B82F6]'
+              ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
               : !carguePermitido
                 ? (isDark
-                    ? 'bg-transparent border border-[#222938] text-[#888888] hover:text-white hover:bg-white/[0.03]'
-                    : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50')
-                : 'bg-[#3B82F6] text-white border border-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB]'"
+                    ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:bg-white/[0.03]'
+                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50')
+                : 'bg-[#3B82F6] text-white border-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB]'"
             :title="!carguePermitido ? 'Fuera de ventana de cargue — haz clic para solicitar apertura' : 'Subir archivo de mallas'">
             <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')" class="text-[10px]"></i>
-            <span>{{ isUploading ? 'Cargando...' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
+            <span>{{ isUploading ? 'Cargando…' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Tabla asignaciones -->
-    <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
+    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30">
-            <tr :class="isDark ? 'bg-[#0B0F19]' : 'bg-[#f8fafc]'">
-              <th
-                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+            <!-- Header con fondo oscuro consistente (dark theme look incluso en light) -->
+            <tr class="bg-[#0B0F19]">
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 <div class="flex items-center gap-2"><i class="fas fa-user-circle opacity-60"></i> Colaborador</div>
               </th>
-              <th
-                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Cédula</th>
-              <th
-                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Cargo</th>
-              <th
-                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Departamento</th>
-              <th
-                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Malla</th>
-              <th
-                class="px-4 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Jornada</th>
-              <th
-                class="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
-                Horario</th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Cédula
+              </th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Cargo
+              </th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Departamento
+              </th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Malla
+              </th>
+              <th class="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Jornada
+              </th>
+              <th class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+                Horario
+              </th>
             </tr>
           </thead>
 

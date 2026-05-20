@@ -6,19 +6,16 @@
       :style="{ backgroundColor: isDark ? '#161B26' : '#ffffff' }"
       :class="[isSidebarOpen ? 'w-56' : 'w-16', isDark ? 'border-[#222938]' : 'border-slate-200']">
 
-      <!-- Logo -->
-      <div class="relative h-16 flex items-center px-5 shrink-0 overflow-hidden">
-        <div class="flex items-center group cursor-default">
-          <div class="w-1 h-5 bg-[#3B82F6] rounded-full group-hover:h-7 transition-all duration-300"></div>
-          <div class="h-4 w-[1px] mx-3 opacity-20" :class="isDark ? 'bg-white' : 'bg-slate-900'"></div>
+      <!-- Logo (compacto Vercel) -->
+      <div class="relative h-11 flex items-center px-4 shrink-0 overflow-hidden border-b"
+        :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+        <div class="flex items-center gap-2 group cursor-default">
+          <div class="w-1 h-4 bg-[#3B82F6] rounded-sm"></div>
           <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in whitespace-nowrap">
-            <span class="text-sm font-black tracking-tight uppercase transition-colors duration-300"
+            <span class="text-[13px] font-semibold tracking-tight"
               :class="isDark ? 'text-white' : 'text-slate-900'">Woden</span>
-            <span class="ml-1 text-sm font-light tracking-widest text-[#3B82F6] uppercase">Track</span>
+            <span class="ml-0.5 text-[13px] font-medium text-[#3B82F6]">Track</span>
           </div>
-        </div>
-        <div class="absolute bottom-0 left-4 right-4 h-[1px]"
-          :class="isDark ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent' : 'bg-gradient-to-r from-transparent via-slate-200 to-transparent'">
         </div>
       </div>
 
@@ -150,61 +147,60 @@
     <!-- ── Main ────────────────────────────────────────────────────────────── -->
     <main class="flex-1 flex flex-col min-w-0 h-full">
 
-      <!-- Header -->
-      <header class="h-14 flex items-center justify-between px-6 shrink-0 z-40 transition-all"
-        :class="isDark ? 'bg-[#161B26] border-b border-[#222938]' : 'bg-white border-b border-slate-200'">
+      <!-- Header (estilo GitHub / Vercel compacto) -->
+      <header class="h-11 flex items-center justify-between px-3 shrink-0 z-40 transition-all border-b"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
           <button @click="isSidebarOpen = !isSidebarOpen"
-            class="transition-colors p-1.5 rounded-md hover:bg-white/[0.03] dark:hover:bg-white/[0.03]"
-            :class="isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-900'">
-            <i class="fas fa-bars-staggered text-lg"></i>
+            class="transition-colors p-1.5 rounded-md"
+            :class="isDark
+              ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'">
+            <i class="fas fa-bars text-[13px]"></i>
           </button>
 
           <div v-if="allCompanies.length > 0"
-            class="company-selector flex items-center gap-3 px-3 py-1.5 rounded-md transition-all min-w-[280px] border focus-within:border-[#3B82F6] focus-within:ring-1 focus-within:ring-[#3B82F6]"
+            class="flex items-center gap-2 px-2.5 h-7 rounded-md transition-all min-w-[220px] border focus-within:border-[#3B82F6] focus-within:ring-1 focus-within:ring-[#3B82F6]"
             :class="isDark
               ? 'bg-[#0B0F19] border-[#222938]'
-              : 'bg-slate-50 border-slate-200 hover:border-[#3B82F6]'">
-            <i class="fas fa-building text-[#3B82F6] text-xs"></i>
+              : 'bg-slate-50 border-slate-200 hover:border-slate-300'">
+            <i class="fas fa-building text-[#3B82F6] text-[10px]"></i>
             <select v-model="selectedCompany"
-              class="flex-1 bg-transparent text-[11px] font-semibold outline-none cursor-pointer appearance-none transition-colors"
+              class="flex-1 bg-transparent text-[11px] font-medium outline-none cursor-pointer appearance-none transition-colors"
               :class="isDark ? 'text-white' : 'text-slate-800'">
               <option v-for="comp in allCompanies" :key="comp.id" :value="comp.name"
-                class="dark:bg-[#161B26] dark:text-white">
+                :class="isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-800'">
                 {{ comp.name }}
               </option>
             </select>
-            <i class="fas fa-angle-down text-[10px]" :class="isDark ? 'text-white/40' : 'text-slate-400'"></i>
+            <i class="fas fa-chevron-down text-[8px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
           </div>
         </div>
 
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-3">
+          <!-- Saludo Hola, Nombre -->
+          <p class="hidden md:flex items-baseline gap-1 text-[12px]"
+            :class="isDark ? 'text-[#B0B7C3]' : 'text-slate-600'">
+            <span>Hola,</span>
+            <span class="font-semibold text-[#3B82F6]">
+              {{ employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) || 'Usuario' }}
+            </span>
+          </p>
+
+          <!-- Botones Entrada/Salida -->
+          <div class="flex items-center gap-1.5 border-l pl-3"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
             <button @click="handleAttendance" :disabled="loading || employee?.is_inside || employee?.day_completed"
               class="btn-header-smart in group">
-              <div class="icon-box-smart"><i class="fas fa-sign-in-alt text-[10px]"></i></div>
+              <div class="icon-box-smart"><i class="fas fa-sign-in-alt"></i></div>
               <span class="hidden md:inline">Entrada</span>
             </button>
             <button @click="handleAttendance" :disabled="loading || !employee?.is_inside || employee?.day_completed"
               class="btn-header-smart out group">
-              <div class="icon-box-smart"><i class="fas fa-sign-out-alt text-[10px]"></i></div>
+              <div class="icon-box-smart"><i class="fas fa-sign-out-alt"></i></div>
               <span class="hidden md:inline">Salida</span>
             </button>
-          </div>
-
-          <div class="flex items-center gap-2 border-l pl-5"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-            <div class="text-right">
-              <p class="text-[12px] font-medium leading-tight"
-                :class="isDark ? 'text-white' : 'text-slate-900'">
-                {{ employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) || 'Usuario' }}
-              </p>
-              <p class="text-[10px] font-normal leading-tight mt-0.5"
-                :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                Administrador
-              </p>
-            </div>
           </div>
         </div>
       </header>
