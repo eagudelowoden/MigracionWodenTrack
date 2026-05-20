@@ -4,17 +4,17 @@
     <!-- Barra superior asignación -->
     <div
       class="flex flex-wrap items-center justify-between gap-3 p-2 px-4 rounded-2xl border transition-all duration-300 -mt-1 shadow-sm"
-      :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-[#f8fafc] border-slate-200'">
 
       <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-9 h-9 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center shadow-md shadow-blue-500/25">
+          class="flex-shrink-0 w-9 h-9 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center">
           <i class="fas fa-calendar-check text-sm"></i>
         </div>
         <div class="leading-tight">
           <h2 class="text-base font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-800'">Asignación
             de Mallas</h2>
-          <p class="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-[0.15em]">Horarios
+          <p class="text-[9px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-[0.15em]">Horarios
             Colaboradores</p>
         </div>
       </div>
@@ -24,8 +24,8 @@
         <template v-if="hasPerm('admin.filtro_departamento')">
           <div class="relative">
             <select v-model="selectedDepartment"
-              class="pl-3 pr-8 py-1.5 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm"
-              :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
+              class="pl-3 pr-8 py-1.5 text-[10px] font-semibold uppercase rounded-lg border outline-none appearance-none cursor-pointer w-40 transition-all shadow-sm"
+              :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-600'">
               <option value="">DEPARTAMENTOS</option>
               <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
             </select>
@@ -38,10 +38,10 @@
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
           <input v-model="searchQuery" type="text" placeholder="BUSCAR..."
             class="pl-8 pr-3 py-1.5 text-[10px] font-bold uppercase rounded-lg border outline-none w-40 md:w-52 transition-all shadow-sm"
-            :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-700 focus:border-blue-400'" />
+            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]' : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
         </div>
 
-        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-white/10 pl-2">
+        <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-[#222938] pl-2">
           <button @click="fetchMallasDesdeOdoo" class="p-2 rounded-lg transition-all"
             :class="isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-500'"
             title="Refrescar">
@@ -49,7 +49,10 @@
           </button>
 
           <button @click="downloadMallaTemplate"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[10px] font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+            :class="isDark
+              ? 'bg-transparent border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'"
             title="Descargar Plantilla">
             <i :class="isLoadingDownload ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
             <span>Plantilla</span>
@@ -58,12 +61,14 @@
           <input type="file" id="fileInputMallas" class="hidden" @change="handleFileSelect" :disabled="isUploading"
             accept=".xlsx,.xls" />
           <button @click="intentarCargar" :disabled="isUploading"
-            class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase rounded-full transition-all active:scale-95 disabled:opacity-50"
+            class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-semibold uppercase rounded-md transition-all active:scale-[0.98] disabled:opacity-50"
             :class="isUploading
-              ? 'bg-[#3B82F6] text-white'
+              ? 'bg-[#3B82F6] text-white border border-[#3B82F6]'
               : !carguePermitido
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
-                : 'bg-[#3B82F6] text-white hover:bg-blue-600'"
+                ? (isDark
+                    ? 'bg-transparent border border-[#222938] text-[#888888] hover:text-white hover:bg-white/[0.03]'
+                    : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50')
+                : 'bg-[#3B82F6] text-white border border-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB]'"
             :title="!carguePermitido ? 'Fuera de ventana de cargue — haz clic para solicitar apertura' : 'Subir archivo de mallas'">
             <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')" class="text-[10px]"></i>
             <span>{{ isUploading ? 'Cargando...' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
@@ -74,33 +79,33 @@
 
     <!-- Tabla asignaciones -->
     <div class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300"
-      :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
         <table class="w-full border-separate border-spacing-0">
-          <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#334155]'">
+          <thead class="sticky top-0 z-30">
+            <tr :class="isDark ? 'bg-[#0B0F19]' : 'bg-[#f8fafc]'">
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 <div class="flex items-center gap-2"><i class="fas fa-user-circle opacity-60"></i> Colaborador</div>
               </th>
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Cédula</th>
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Cargo</th>
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Departamento</th>
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Malla</th>
               <th
-                class="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Jornada</th>
               <th
-                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest border-b border-white/10 text-white">
+                class="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wide border-b border-[#222938] text-[#888888]">
                 Horario</th>
             </tr>
           </thead>
@@ -114,35 +119,35 @@
 
             <tr v-else v-for="(persona, index) in paginatedMallas" :key="index"
               class="group transition-all duration-150"
-              :class="[index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent', isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-amber-50/50']">
+              :class="[index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent', isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]']">
 
-              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="text-[11px] font-bold uppercase tracking-tight"
                   :class="isDark ? 'text-white' : 'text-slate-900'">{{ persona.nombre }}</span>
               </td>
-              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="text-[11px] font-mono tracking-wide"
                   :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ persona.cc || '—' }}</span>
               </td>
-              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border"
-                  :class="isDark ? 'bg-white/5 text-slate-300 border-white/10' : 'bg-slate-100 text-slate-700 border-slate-200'">{{
+                  :class="isDark ? 'bg-[#161B26]/40 text-slate-300 border-[#222938]' : 'bg-slate-100 text-slate-700 border-slate-200'">{{
                     persona.cargo }}</span>
               </td>
               <td class="px-4 py-3 border-b text-[10px] font-bold"
-                :class="isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
                   persona.departamento }}</td>
-              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-                <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase border italic tracking-wider shadow-sm"
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <span class="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border italic tracking-wider shadow-sm"
                   :style="{ backgroundColor: isDark ? '#E39C2D20' : '#E39C2D10', borderColor: isDark ? '#E39C2D40' : '#E39C2D30', color: '#E39C2D' }">{{
                     persona.malla }}</span>
               </td>
-              <td class="px-4 py-3 text-center uppercase text-[9px] font-black border-b"
-                :class="isDark ? 'border-white/5 text-slate-300' : 'border-slate-100 text-slate-600'">{{
+              <td class="px-4 py-3 text-center uppercase text-[9px] font-semibold border-b"
+                :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">{{
                   persona.jornada }}
               </td>
               <td class="px-4 py-3 text-right font-bold text-[11px] border-b"
-                :class="isDark ? 'border-white/5 text-white' : 'border-slate-100 text-slate-800'">{{ persona.horario
+                :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-800'">{{ persona.horario
                 }}</td>
             </tr>
           </tbody>
@@ -150,23 +155,23 @@
       </div>
 
       <div v-if="paginatedMallas?.length" class="px-4 py-2 border-t flex items-center justify-between shadow-inner"
-        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
+        :class="isDark ? 'border-[#222938] bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
         <span class="text-[10px] font-bold uppercase" :class="isDark ? 'text-[#D8DAE3]' : 'text-slate-600'">
           Total: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ totalRecords }}</span>
         </span>
         <div class="flex items-center gap-3">
           <button @click="mallasPage--" :disabled="mallasPage === 1"
             class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            :class="isDark ? 'border-[#222938] hover:bg-[#161B26]/40 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
             <i class="fas fa-chevron-left text-[9px]"></i>
           </button>
           <div class="px-3 py-1 rounded-lg text-[11px] font-bold border"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-300 text-slate-900 shadow-sm'">
+            :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-300 text-slate-900 shadow-sm'">
             {{ mallasPage }} <span class="mx-1.5 opacity-40">/</span> {{ mallasPages }}
           </div>
           <button @click="mallasPage++" :disabled="mallasPage >= mallasPages"
             class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-white/10 hover:bg-white/5 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            :class="isDark ? 'border-[#222938] hover:bg-[#161B26]/40 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
             <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
@@ -178,16 +183,16 @@
       <div v-if="showSolicitudModal"
         class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
         <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
-          :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
           <!-- Header -->
           <div class="px-5 py-4 border-b flex items-center gap-3"
-            :class="isDark ? 'border-white/8 bg-amber-500/8' : 'border-amber-100 bg-amber-50'">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-              <i class="fas fa-calendar-xmark text-amber-400 text-lg"></i>
+            :class="isDark ? 'border-white/8 bg-[#3B82F6]/8' : 'border-amber-100 bg-amber-50'">
+            <div class="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
+              <i class="fas fa-calendar-xmark text-[#3B82F6] text-lg"></i>
             </div>
             <div>
-              <h3 class="text-[13px] font-black" :class="isDark ? 'text-white' : 'text-slate-800'">
+              <h3 class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
                 Fuera de fecha de cargue
               </h3>
               <p class="text-[9px] mt-0.5" :class="isDark ? 'text-white/40' : 'text-slate-500'">
@@ -213,12 +218,12 @@
 
             <div class="flex gap-2 pt-1">
               <button @click="crearSolicitud()"
-                class="flex-1 h-9 rounded-xl text-[10px] font-black uppercase tracking-wide bg-amber-500 text-white hover:bg-amber-400 transition-all flex items-center justify-center gap-1.5">
+                class="flex-1 h-9 rounded-xl text-[10px] font-semibold uppercase tracking-wide bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-all flex items-center justify-center gap-1.5">
                 <i class="fas fa-paper-plane text-[9px]"></i> Solicitar apertura
               </button>
               <button @click="showSolicitudModal = false"
                 class="h-9 px-4 rounded-xl text-[10px] font-bold uppercase tracking-wide transition-all"
-                :class="isDark ? 'bg-white/5 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                :class="isDark ? 'bg-[#161B26]/40 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
                 Cerrar
               </button>
             </div>
@@ -231,12 +236,12 @@
     <div v-show="showChoiceModal"
       class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
-        :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="px-6 pt-6 pb-4">
           <div class="flex items-center gap-3 mb-1">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center"
               :class="isDark ? 'bg-[#3B82F6]/15' : 'bg-amber-50'">
-              <i class="fas fa-file-excel text-amber-500 text-base"></i>
+              <i class="fas fa-file-excel text-[#3B82F6] text-base"></i>
             </div>
             <div>
               <h3 class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Archivo cargado</h3>
@@ -244,8 +249,8 @@
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ pendingFileName }}</p>
             </div>
           </div>
-          <div class="mt-3 px-3 py-2 rounded-xl flex items-center gap-2" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
-            <i class="fas fa-table-list text-amber-500 text-xs"></i>
+          <div class="mt-3 px-3 py-2 rounded-xl flex items-center gap-2" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-50'">
+            <i class="fas fa-table-list text-[#3B82F6] text-xs"></i>
             <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
               {{ previewRows.length }} registro{{ previewRows.length !== 1 ? 's' : '' }} detectado{{
                 previewRows.length !==
@@ -265,7 +270,7 @@
           </button>
           <button @click="uploadDirect"
             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all"
-            :class="isDark ? 'border-white/10 bg-white/5 hover:bg-white/10 text-slate-200' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'">
+            :class="isDark ? 'border-[#222938] bg-[#161B26]/40 hover:bg-white/10 text-slate-200' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'">
             <i class="fas fa-cloud-arrow-up text-lg"></i>
             <div class="text-left">
               <p class="text-[12px] font-bold">Subir directamente</p>
@@ -282,9 +287,9 @@
     <div v-show="showPreviewModal"
       class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[80vh]"
-        :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between px-5 py-4 border-b"
-          :class="isDark ? 'border-white/10' : 'border-slate-100'">
+          :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
           <h3 class="text-[12px] font-bold uppercase tracking-widest" :class="isDark ? 'text-white' : 'text-slate-800'">
             Vista Previa</h3>
           <button @click="cancelAll" class="w-7 h-7 flex items-center justify-center rounded-lg"
@@ -295,21 +300,21 @@
         <div class="flex-1 overflow-auto custom-scrollbar">
           <table class="w-full border-separate border-spacing-0">
             <thead class="sticky top-0 z-10">
-              <tr :class="isDark ? 'bg-[#253045]' : 'bg-slate-50'">
+              <tr :class="isDark ? 'bg-[#161B26]' : 'bg-slate-50'">
                 <th class="px-3 py-2 text-left text-[10px] font-bold uppercase border-b w-8"
-                  :class="isDark ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'">#</th>
+                  :class="isDark ? 'border-[#222938] text-slate-500' : 'border-slate-200 text-slate-400'">#</th>
                 <th v-for="h in previewHeaders" :key="h"
                   class="px-3 py-2 text-left text-[10px] font-bold uppercase border-b whitespace-nowrap"
-                  :class="isDark ? 'border-white/10 text-slate-300' : 'border-slate-200 text-slate-600'">{{ h }}</th>
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-200 text-slate-600'">{{ h }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, i) in previewRows" :key="i">
                 <td class="px-3 py-2 border-b font-mono text-[9px]"
-                  :class="isDark ? 'border-white/5 text-slate-500' : 'border-slate-100 text-slate-400'">{{ i + 1 }}
+                  :class="isDark ? 'border-[#222938] text-slate-500' : 'border-slate-100 text-slate-400'">{{ i + 1 }}
                 </td>
                 <td v-for="(cell, ci) in row" :key="ci" class="px-3 py-2 border-b"
-                  :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                  :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <span class="text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ cell }}</span>
                 </td>
               </tr>
@@ -317,11 +322,11 @@
           </table>
         </div>
         <div class="px-5 py-4 border-t flex items-center justify-between gap-3"
-          :class="isDark ? 'border-white/10 bg-[#161b2c]' : 'border-slate-100 bg-slate-50'">
+          :class="isDark ? 'border-[#222938] bg-[#161b2c]' : 'border-slate-100 bg-slate-50'">
           <button @click="cancelAll" class="px-4 py-2 rounded-xl text-[11px] font-bold uppercase border transition-all"
             :class="isDark ? 'border-white/15 text-slate-300' : 'border-slate-200 text-slate-600'">Cancelar</button>
           <button @click="confirmUpload"
-            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-[#3B82F6] text-white hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center gap-2">
+            class="px-5 py-2 rounded-xl text-[11px] font-bold uppercase bg-[#3B82F6] text-white hover:bg-[#2563EB] active:scale-[0.98] transition-all flex items-center gap-2">
             <i class="fas fa-cloud-arrow-up text-xs"></i>
             Confirmar carga
           </button>
@@ -333,12 +338,12 @@
     <div v-show="showResultModal"
       class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[3px]">
       <div class="w-full max-w-sm rounded-2xl shadow-2xl border overflow-hidden"
-        :class="isDark ? 'bg-[#1e2538] border-white/10' : 'bg-white border-slate-200'">
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b"
           :class="isDark ? 'border-white/8' : 'border-slate-100'">
-          <span class="text-[10px] font-black uppercase tracking-[0.2em]"
+          <span class="text-[10px] font-semibold uppercase tracking-[0.2em]"
             :class="isDark ? 'text-slate-400' : 'text-slate-400'">Resultado de Carga</span>
           <button @click="showResultModal = false"
             class="w-6 h-6 flex items-center justify-center rounded-lg transition-colors"
@@ -354,10 +359,10 @@
             <!-- Exitosos -->
             <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1"
               :class="isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-200'">
-              <span class="text-2xl font-black" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+              <span class="text-2xl font-semibold" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
                 {{ uploadProcesados?.length ?? 0 }}
               </span>
-              <span class="text-[9px] font-black uppercase tracking-widest text-center"
+              <span class="text-[9px] font-semibold uppercase tracking-widest text-center"
                 :class="isDark ? 'text-emerald-500' : 'text-emerald-700'">
                 <i class="fas fa-check mr-1"></i>Asignadas
               </span>
@@ -366,12 +371,12 @@
             <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1"
               :class="uploadErrors?.length
                 ? (isDark ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-rose-50 border border-rose-200')
-                : (isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200')">
-              <span class="text-2xl font-black"
+                : (isDark ? 'bg-[#161B26]/40 border border-[#222938]' : 'bg-slate-50 border border-slate-200')">
+              <span class="text-2xl font-semibold"
                 :class="uploadErrors?.length ? (isDark ? 'text-rose-400' : 'text-rose-500') : (isDark ? 'text-slate-500' : 'text-slate-400')">
                 {{ uploadErrors?.length ?? 0 }}
               </span>
-              <span class="text-[9px] font-black uppercase tracking-widest text-center"
+              <span class="text-[9px] font-semibold uppercase tracking-widest text-center"
                 :class="uploadErrors?.length ? (isDark ? 'text-rose-500' : 'text-rose-600') : (isDark ? 'text-slate-500' : 'text-slate-400')">
                 <i class="fas fa-triangle-exclamation mr-1"></i>Errores
               </span>
@@ -394,7 +399,7 @@
 
           <!-- ── Lista de errores ────────────────────────────────────────── -->
           <div v-if="uploadErrors?.length > 0" class="mb-4">
-            <p class="text-[9px] font-black uppercase tracking-widest mb-2 px-1"
+            <p class="text-[9px] font-semibold uppercase tracking-widest mb-2 px-1"
               :class="isDark ? 'text-rose-400' : 'text-rose-500'">
               Detalle de errores
             </p>
@@ -402,7 +407,7 @@
               :class="isDark ? 'border-white/8 bg-white/[0.03]' : 'border-slate-100 bg-slate-50'">
               <div v-for="(err, i) in uploadErrors" :key="i"
                 class="flex items-start gap-3 px-3 py-2 border-b last:border-b-0"
-                :class="isDark ? 'border-white/5' : 'border-slate-100'">
+                :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="text-[9px] font-mono font-bold mt-0.5 px-1.5 py-0.5 rounded flex-shrink-0"
                   :class="isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-500'">
                   F{{ err.fila }}
@@ -418,7 +423,7 @@
           <!-- Botón descarga reporte (opcional) -->
           <button v-if="uploadProcesados?.length || uploadErrors?.length"
             @click="descargarReporteCarga"
-            class="w-full mb-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            class="w-full mb-2 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             :class="isDark
               ? 'border-white/15 text-slate-300 hover:bg-white/8'
               : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
@@ -427,10 +432,10 @@
           </button>
 
           <button @click="showResultModal = false"
-            class="w-full py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98]"
+            class="w-full py-2.5 rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.98]"
             :class="(!uploadErrors?.length && uploadProcesados?.length)
-              ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20'
-              : (isDark ? 'bg-white/8 text-slate-200 hover:bg-white/12' : 'bg-slate-900 text-white hover:opacity-90')">
+              ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg'
+              : (isDark ? 'bg-white/8 text-slate-200 hover:bg-white/12' : 'bg-[#0B0F19] text-white hover:opacity-90')">
             {{ (!uploadErrors?.length && uploadProcesados?.length) ? '¡Listo!' : 'Cerrar' }}
           </button>
         </div>

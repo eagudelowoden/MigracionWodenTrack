@@ -886,27 +886,27 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   height: 100%; display: flex; flex-direction: column;
   font-family: 'Inter', system-ui, sans-serif; overflow: hidden;
 }
-.cfg-dark  { background: #1e2535; color: #fff; }
-.cfg-light { background: #f8fafc; color: #1e293b; }
+.cfg-dark  { background: transparent; color: #fff; }
+.cfg-light { background: transparent; color: #1e293b; }
 
 /* ── HEADER ───────────────────────────────────────────────── */
 .cfg-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 22px 14px; flex-shrink: 0; border-bottom: 1px solid;
+  padding: 12px 16px 10px; flex-shrink: 0; border-bottom: 1px solid;
 }
-.cfg-header-dark  { background: #273045; border-color: rgba(255,255,255,.07); }
-.cfg-header-light { background: #fff;    border-color: #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
-.cfg-header-left  { display: flex; align-items: center; gap: 12px; }
+.cfg-header-dark  { background: transparent; border-color: rgba(255,255,255,.07); }
+.cfg-header-light { background: transparent; border-color: #ececec; }
+.cfg-header-left  { display: flex; align-items: center; gap: 9px; }
 
 .cfg-header-icon {
-  width: 38px; height: 38px; border-radius: 10px;
+  width: 30px; height: 30px; border-radius: 7px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.cfg-icon-dark  { background: rgba(249,115,22,.1);  border: 1px solid rgba(249,115,22,.18); }
-.cfg-icon-light { background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.14); }
+.cfg-icon-dark  { background: rgba(249,115,22,.12); }
+.cfg-icon-light { background: #fff7ed; }
 
-.cfg-title    { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; line-height: 1; }
-.cfg-subtitle { font-size: 10px; font-weight: 500; margin-top: 3px; opacity: .5; }
+.cfg-title    { font-size: 14px; font-weight: 600; letter-spacing: -0.012em; line-height: 1.15; }
+.cfg-subtitle { font-size: 10px; font-weight: 500; margin-top: 2px; opacity: 0.55; }
 
 .cfg-status-badge {
   display: inline-flex; align-items: center; gap: 6px;
@@ -920,20 +920,24 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 
 .cfg-btn-save {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 8px; border: none;
-  background: linear-gradient(135deg,#f97316,#ea580c); color: #fff;
-  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+  padding: 6px 12px; height: 28px; border-radius: 5px; border: none;
+  background: #2563eb; color: #fff;
+  font-size: 11px; font-weight: 600;
   cursor: pointer; transition: all .15s;
+  font-family: inherit;
 }
-.cfg-btn-save:hover:not(:disabled) { filter: brightness(1.1); }
+.cfg-btn-save:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 3px 10px -2px rgba(37, 99, 235, 0.35);
+}
 .cfg-btn-save:disabled { opacity: .5; cursor: default; }
 
 /* ── TABS ─────────────────────────────────────────────────── */
 .cfg-tabs {
   display: flex; padding: 0 22px; border-bottom: 1px solid; flex-shrink: 0;
 }
-.cfg-tabs-dark  { background: #1e2535; border-color: rgba(255,255,255,.07); }
-.cfg-tabs-light { background: #f8fafc; border-color: #e2e8f0; }
+.cfg-tabs-dark  { background: transparent; border-color: rgba(255,255,255,.07); }
+.cfg-tabs-light { background: transparent; border-color: #ececec; }
 
 .cfg-tab {
   position: relative; display: inline-flex; align-items: center; gap: 6px;

@@ -340,14 +340,14 @@ const guardarDeptos = async () => {
 }
 
 .gp-modal-dark {
-    --bg: #18181b;
-    --bg-soft: #131316;
+    --bg: #161B26;
+    --bg-soft: #0B0F19;
     --bg-active: #1f1f23;
-    --border: #27272a;
-    --border-strong: #3f3f46;
+    --border: #222938;
+    --border-strong: #2A3245;
     --text: #fafafa;
-    --text-muted: #a1a1aa;
-    --text-soft: #71717a;
+    --text-muted: #B0B7C3;
+    --text-soft: #888888;
     /* Gris ZINC puro neutro */
     --brand: #d4d4d8;
     --brand-soft: rgba(212, 212, 216, 0.08);

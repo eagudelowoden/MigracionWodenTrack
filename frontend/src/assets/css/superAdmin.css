@@ -104,13 +104,13 @@
 .sa-dark  *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 .sa-light *::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
 
-/* ── Tablas en modo oscuro — paleta zinc neutra (Vercel-style) ── */
+/* ── Tablas en modo oscuro — Geist Soft Dark ── */
 .sa-dark table                     { width: 100%; border-collapse: collapse; }
-.sa-dark table thead tr            { background: #131316; }
-.sa-dark table thead th            { color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sa-dark table thead tr            { background: #0B0F19; }
+.sa-dark table thead th            { color: #888888; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 .sa-dark table tbody tr            { background: transparent; }
-.sa-dark table tbody tr:hover      { background: rgba(255,255,255,0.025); }
-.sa-dark table tbody td            { border-top: 1px solid rgba(255,255,255,0.05); }
+.sa-dark table tbody tr:hover      { background: rgba(255,255,255,0.02); }
+.sa-dark table tbody td            { border-top: 1px solid #222938; color: #E2E8F0; }
 
 /* ── Tablas en modo claro ── */
 .sa-light table                    { width: 100%; border-collapse: collapse; }

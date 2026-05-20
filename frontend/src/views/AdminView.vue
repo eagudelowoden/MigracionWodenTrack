@@ -1,10 +1,10 @@
 <template>
   <div class="admin-layout transition-colors duration-500" :class="isDark ? 'theme-dark' : 'theme-light'">
 
-    <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
-    <aside class="relative flex flex-col transition-all duration-500 ease-in-out z-50 border-r"
-      :style="{ backgroundColor: isDark ? '#273045' : '#ffffff' }"
-      :class="[isSidebarOpen ? 'w-56' : 'w-16', isDark ? 'border-white/5 shadow-2xl shadow-black/40' : 'border-slate-200 shadow-sm']">
+    <!-- ── Sidebar (Geist full-bleed) ──────────────────────────────────────── -->
+    <aside class="relative flex flex-col transition-all duration-300 ease-out z-50 border-r"
+      :style="{ backgroundColor: isDark ? '#161B26' : '#ffffff' }"
+      :class="[isSidebarOpen ? 'w-56' : 'w-16', isDark ? 'border-[#222938]' : 'border-slate-200']">
 
       <!-- Logo -->
       <div class="relative h-16 flex items-center px-5 shrink-0 overflow-hidden">
@@ -29,70 +29,70 @@
           @click="router.push('/admin/asistencias')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
           :class="route.path === '/admin/asistencias'
-            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-user-check text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Asistencias</span>
           <div v-if="route.path === '/admin/asistencias'"
-            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.mallas']"
           @click="router.push('/admin/mallas')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
           :class="route.path === '/admin/mallas'
-            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-cloud-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue Mallas</span>
           <div v-if="route.path === '/admin/mallas'"
-            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.calculos']"
           @click="router.push('/admin/horas-extra')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
           :class="route.path === '/admin/horas-extra'
-            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
           <div v-if="route.path === '/admin/horas-extra'"
-            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['horas.ver_cargue_ch']"
           @click="router.push('/admin/cargue-horas-ch')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
           :class="route.path === '/admin/cargue-horas-ch'
-            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Cargue HX</span>
           <div v-if="route.path === '/admin/cargue-horas-ch'"
-            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
           @click="router.push('/admin/novedades')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
           :class="route.path.startsWith('/admin/novedades')
-            ? (isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-bullhorn text-xs transition-transform group-hover:scale-110"></i>
           </div>
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Novedades</span>
           <div v-if="route.path.startsWith('/admin/novedades')"
-            class="absolute left-0 w-1 h-4 bg-[#3B82F6] rounded-r-full shadow-[0_0_8px_#3B82F6]"></div>
+            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
       </nav>
@@ -151,25 +151,27 @@
     <main class="flex-1 flex flex-col min-w-0 h-full">
 
       <!-- Header -->
-      <header class="h-16 flex items-center justify-between px-6 shrink-0 z-40 transition-all"
-        :class="isDark ? 'bg-[#273045] border-b border-white/5' : 'bg-white border-b border-slate-200 shadow-sm'">
+      <header class="h-14 flex items-center justify-between px-6 shrink-0 z-40 transition-all"
+        :class="isDark ? 'bg-[#161B26] border-b border-[#222938]' : 'bg-white border-b border-slate-200'">
 
         <div class="flex items-center gap-6">
-          <button @click="isSidebarOpen = !isSidebarOpen" class="text-slate-400 hover:text-[#273045] transition-colors">
+          <button @click="isSidebarOpen = !isSidebarOpen"
+            class="transition-colors p-1.5 rounded-md hover:bg-white/[0.03] dark:hover:bg-white/[0.03]"
+            :class="isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-900'">
             <i class="fas fa-bars-staggered text-lg"></i>
           </button>
 
           <div v-if="allCompanies.length > 0"
-            class="company-selector flex items-center gap-3 px-4 py-2 rounded-xl transition-all min-w-[320px] border"
+            class="company-selector flex items-center gap-3 px-3 py-1.5 rounded-md transition-all min-w-[280px] border focus-within:border-[#3B82F6] focus-within:ring-1 focus-within:ring-[#3B82F6]"
             :class="isDark
-              ? 'bg-[#0f172a] border-white/10 shadow-lg shadow-black/20'
-              : 'bg-slate-50 border-slate-200 shadow-inner hover:border-[#3B82F6]'">
+              ? 'bg-[#0B0F19] border-[#222938]'
+              : 'bg-slate-50 border-slate-200 hover:border-[#3B82F6]'">
             <i class="fas fa-building text-[#3B82F6] text-xs"></i>
             <select v-model="selectedCompany"
-              class="flex-1 bg-transparent text-[11px] font-black uppercase outline-none cursor-pointer appearance-none transition-colors"
+              class="flex-1 bg-transparent text-[11px] font-semibold outline-none cursor-pointer appearance-none transition-colors"
               :class="isDark ? 'text-white' : 'text-slate-800'">
               <option v-for="comp in allCompanies" :key="comp.id" :value="comp.name"
-                class="dark:bg-[#1e293b] dark:text-white">
+                class="dark:bg-[#161B26] dark:text-white">
                 {{ comp.name }}
               </option>
             </select>
@@ -178,7 +180,7 @@
         </div>
 
         <div class="flex items-center gap-6">
-          <div class="flex items-center bg-slate-500/10 p-1 rounded-xl gap-1">
+          <div class="flex items-center gap-1.5">
             <button @click="handleAttendance" :disabled="loading || employee?.is_inside || employee?.day_completed"
               class="btn-header-smart in group">
               <div class="icon-box-smart"><i class="fas fa-sign-in-alt text-[10px]"></i></div>
@@ -191,16 +193,15 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2 border-l border-slate-300 dark:border-white/10 pl-6">
+          <div class="flex items-center gap-2 border-l pl-5"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
             <div class="text-right">
-              <p class="text-[11px] font-bold leading-none" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                ¡Hola,
-                <span class="text-[15px] font-black text-[#3B82F6]">
-                  {{employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase())}}
-                </span>!
+              <p class="text-[12px] font-medium leading-tight"
+                :class="isDark ? 'text-white' : 'text-slate-900'">
+                {{ employee?.name?.split(' ')[2]?.toLowerCase()?.replace(/^\w/, c => c.toUpperCase()) || 'Usuario' }}
               </p>
-              <p class="text-[9px] font-medium leading-tight mt-0.5"
-                :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <p class="text-[10px] font-normal leading-tight mt-0.5"
+                :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                 Administrador
               </p>
             </div>
@@ -209,7 +210,8 @@
       </header>
 
       <!-- Contenido — router-view con props compartidos -->
-      <div class="flex-1 p-4 overflow-hidden font-round-custom bg-slate-50/50 dark:bg-[#f5f5f5]/40 custom-scroll">
+      <div class="flex-1 p-4 overflow-hidden font-round-custom custom-scroll"
+        :style="{ backgroundColor: isDark ? '#0B0F19' : '#f8fafc' }">
 
         <!-- Mantenimiento del módulo activo -->
         <div v-if="moduleKeyFromRoute && !moduloActivo(moduleKeyFromRoute)"
@@ -242,7 +244,7 @@
     <!-- ── Toast recordatorio automático ─────────────────────────────────────── -->
     <transition name="fade">
       <div v-if="toastRecordatorio" class="fixed top-5 right-5 z-50 w-80 rounded-2xl border shadow-2xl overflow-hidden"
-        :class="isDark ? 'bg-[#1e293b] border-violet-500/30' : 'bg-white border-violet-200'">
+        :class="isDark ? 'bg-[#161B26] border-violet-500/30' : 'bg-white border-violet-200'">
         <div class="h-1 bg-gradient-to-r from-violet-500 to-blue-500"></div>
         <div class="px-4 py-3 flex items-start gap-3">
           <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">

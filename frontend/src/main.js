@@ -1,6 +1,7 @@
 // frontend/src/main.js
 import { createApp } from 'vue'
 import './style.css'
+import './assets/css/geist-typography.css' // Vercel-style tipografía global
 import App from './App.vue'
 import router from './router' // <--- Importa el router con seguridad desde el otro archivo
 

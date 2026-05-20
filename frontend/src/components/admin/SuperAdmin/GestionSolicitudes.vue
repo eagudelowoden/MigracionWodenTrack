@@ -305,39 +305,39 @@ onMounted(cargar);
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 22px 24px;
+  padding: 14px 16px;
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
 }
-.sol-dark  { background: #1e2535; color: #fff; }
-.sol-light { background: #f8fafc; color: #1e293b; }
+.sol-dark  { background: transparent; color: #fff; }
+.sol-light { background: transparent; color: #1e293b; }
 
 /* ── HEADER ───────────────────────────────────────────────── */
 .sol-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 }
-.sol-header-left { display: flex; align-items: center; gap: 12px; }
+.sol-header-left { display: flex; align-items: center; gap: 9px; }
 
 .sol-header-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
+  width: 30px; height: 30px;
+  border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.sol-icon-dark  { background: rgba(251,191,36,.1);  border: 1px solid rgba(251,191,36,.15); }
-.sol-icon-light { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.12); }
+.sol-icon-dark  { background: rgba(251,191,36,.12); }
+.sol-icon-light { background: #fffbeb; }
 
 .sol-title {
-  font-size: 13px; font-weight: 900;
-  text-transform: uppercase; letter-spacing: .05em; line-height: 1;
+  font-size: 14px; font-weight: 600;
+  letter-spacing: -0.012em; line-height: 1.15;
 }
 .sol-subtitle {
   font-size: 10px; font-weight: 500;
-  margin-top: 3px; letter-spacing: .02em;
+  margin-top: 2px; letter-spacing: 0.01em; opacity: 0.6;
 }
 .sol-sub-sep { margin: 0 4px; }
 

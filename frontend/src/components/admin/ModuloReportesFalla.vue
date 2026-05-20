@@ -182,47 +182,47 @@ onMounted(cargar);
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 22px 24px;
+  padding: 14px 16px;
   gap: 0;
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
 }
-.rf-dark  { background: #1e2535; color: #fff; }
-.rf-light { background: #f8fafc; color: #1e293b; }
+.rf-dark  { background: transparent; color: #fff; }
+.rf-light { background: transparent; color: #1e293b; }
 
 /* ── HEADER ───────────────────────────────────────────────── */
 .rf-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
-.rf-header-left { display: flex; align-items: center; gap: 12px; }
+.rf-header-left { display: flex; align-items: center; gap: 9px; }
 
 .rf-header-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
+  width: 30px; height: 30px;
+  border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.rf-icon-dark  { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.15); }
-.rf-icon-light { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.12); }
+.rf-icon-dark  { background: rgba(248,113,113,.12); }
+.rf-icon-light { background: #fef2f2; }
 
 .rf-title {
-  font-size: 13px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  line-height: 1;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
 }
-.rf-title-sub { font-weight: 400; font-size: 12px; }
+.rf-title-sub { font-weight: 400; font-size: 12px; opacity: 0.5; }
 
 .rf-subtitle {
   font-size: 10px;
   font-weight: 500;
-  margin-top: 3px;
-  letter-spacing: .02em;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+  opacity: 0.6;
 }
 
 .rf-btn-refresh {

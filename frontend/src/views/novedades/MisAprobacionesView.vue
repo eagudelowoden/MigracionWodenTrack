@@ -3,14 +3,14 @@
 
         <!-- Header -->
         <div class="flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+            :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
 
             <div class="flex items-center gap-2 shrink-0">
                 <div class="w-6 h-6 flex items-center justify-center rounded-lg bg-[#3B82F6] text-white shrink-0">
                     <i class="fas fa-users text-[10px]"></i>
                 </div>
                 <div>
-                    <h2 class="text-sm font-black uppercase tracking-tight leading-none"
+                    <h2 class="text-sm font-semibold uppercase tracking-tight leading-none"
                         :class="isDark ? 'text-white' : 'text-slate-800'">
                         Novedades <span class="text-[#3B82F6]">Mi Equipo</span>
                     </h2>
@@ -27,20 +27,20 @@
                 <div class="flex items-center rounded-lg border overflow-hidden"
                     :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'">
                     <button @click="activeTab = 'pendientes'"
-                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+                        class="px-2.5 py-1.5 text-[8px] font-semibold uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'pendientes'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
                         <i class="fas fa-clock-rotate-left text-[8px]"></i>
                         Por Aprobar
                         <span v-if="pendientes.length > 0"
-                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-black"
+                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-semibold"
                             :class="activeTab === 'pendientes' ? 'bg-black/20 text-black' : 'bg-[#3B82F6]/20 text-[#3B82F6]'">
                             {{ pendientes.length }}
                         </span>
                     </button>
                     <button @click="activeTab = 'historial'"
-                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+                        class="px-2.5 py-1.5 text-[8px] font-semibold uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'historial'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
@@ -48,14 +48,14 @@
                         Historial
                     </button>
                     <button @click="activeTab = 'carpetas'"
-                        class="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+                        class="px-2.5 py-1.5 text-[8px] font-semibold uppercase tracking-widest transition-all flex items-center gap-1"
                         :class="activeTab === 'carpetas'
                             ? 'bg-[#3B82F6] text-white'
                             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
                         <i class="fas fa-folder text-[8px]"></i>
                         Carpetas
                         <span v-if="novedadesEnCarpeta > 0"
-                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-black"
+                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[7px] font-semibold"
                             :class="activeTab === 'carpetas' ? 'bg-black/20 text-black' : 'bg-[#3B82F6]/20 text-[#3B82F6]'">
                             {{ novedadesEnCarpeta }}
                         </span>
@@ -64,15 +64,15 @@
 
                 <!-- Botón carpetas -->
                 <button @click="modalCarpetas.open = true"
-                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all hover:brightness-110"
-                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-[#3B82F6]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/30 text-[#3B82F6]'">
+                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-semibold uppercase tracking-widest transition-all hover:brightness-110"
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-[#3B82F6]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/30 text-[#3B82F6]'">
                     <i class="fas fa-folder-plus text-[9px]"></i> Carpetas
                 </button>
 
                 <!-- Botón volver -->
                 <button @click="$emit('volver')"
-                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all hover:brightness-110 active:scale-95"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 shadow-sm'">
+                    class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-semibold uppercase tracking-widest border transition-all hover:brightness-110 active:scale-[0.98]"
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 shadow-sm'">
                     <i class="fas fa-arrow-left text-[8px]"></i> Volver
                 </button>
             </div>
@@ -80,11 +80,11 @@
 
         <!-- Contenido -->
         <div class="flex-1 flex flex-col overflow-hidden rounded-xl border min-h-0"
-            :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+            :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
 
             <div v-if="loading" class="flex-1 flex items-center justify-center gap-2">
                 <i class="fas fa-circle-notch fa-spin text-[#3B82F6]"></i>
-                <span class="text-[11px] font-black uppercase tracking-widest opacity-50"
+                <span class="text-[11px] font-semibold uppercase tracking-widest opacity-50"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando...</span>
             </div>
 
@@ -93,7 +93,7 @@
                 <div v-if="pendientes.length === 0" class="flex-1 flex items-center justify-center">
                     <div class="flex flex-col items-center gap-2 opacity-40">
                         <i class="fas fa-check-circle text-3xl text-emerald-500"></i>
-                        <p class="text-[11px] font-black uppercase tracking-widest"
+                        <p class="text-[11px] font-semibold uppercase tracking-widest"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">Sin novedades pendientes</p>
                     </div>
                 </div>
@@ -102,27 +102,27 @@
                     <table class="w-full border-separate border-spacing-0">
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#334155]">
-                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Colaborador</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Inicio</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
-                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mot. Jefe</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
-                                <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Acciones</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Inicio</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Fin</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Descripción</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Mot. Jefe</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Mi Carpeta</th>
+                                <th class="px-4 py-2.5 text-right text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="(item, idx) in pendientes" :key="item.id"
                                 :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/50']">
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]/50']">
 
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-black text-[#3B82F6] shrink-0">
+                                        <div class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-semibold text-[#3B82F6] shrink-0">
                                             {{ item.nombre?.charAt(0) ?? '?' }}
                                         </div>
                                         <div>
-                                            <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
+                                            <p class="text-[10px] font-semibold uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
                                             <p class="text-[10px] opacity-50">CC: {{ item.cedula }}</p>
                                         </div>
                                     </div>
@@ -156,8 +156,8 @@
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <div class="flex items-center justify-end">
                                         <button @click.stop="toggleMenu($event, item.id)"
-                                            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-95"
-                                            :class="isDark ? 'bg-[#273045] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105 active:scale-[0.98]"
+                                            :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
                                             <i class="fas fa-ellipsis-vertical text-[10px]"></i>
                                         </button>
                                     </div>
@@ -167,8 +167,8 @@
                     </table>
                 </div>
 
-                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                         Por aprobar: <span class="text-[#3B82F6]">{{ pendientes.length }}</span>
                     </p>
                 </div>
@@ -179,7 +179,7 @@
                 <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b shrink-0"
                     :class="isDark ? 'border-[#2d3548] bg-[#1a2035]' : 'border-slate-100 bg-slate-50'">
                     <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 flex-1 min-w-[160px]"
-                        :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-200 bg-white'">
+                        :class="isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-200 bg-white'">
                         <i class="fas fa-search text-[#3B82F6] text-[9px]"></i>
                         <input v-model="histBuscar" type="text" placeholder="Buscar colaborador..."
                             class="bg-transparent text-[10px] font-bold outline-none w-full placeholder:font-normal placeholder:text-slate-500"
@@ -187,7 +187,7 @@
                     </div>
                     <select v-model="histEstado"
                         class="px-2.5 py-1.5 rounded-lg border text-[10px] font-bold outline-none"
-                        :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
+                        :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
                         <option value="">Todos los estados</option>
                         <option value="nueva">🟠 Nuevas</option>
                         <option value="pendiente">🟡 En revisión</option>
@@ -196,7 +196,7 @@
                     </select>
                     <button v-if="histBuscar || histEstado" @click="histBuscar=''; histEstado=''"
                         class="p-1.5 rounded-lg border text-[10px] transition-colors"
-                        :class="isDark ? 'border-[#2d3548] bg-[#273045] text-slate-400 hover:text-[#3B82F6]' : 'border-slate-200 bg-white text-slate-500 hover:text-[#3B82F6]'">
+                        :class="isDark ? 'border-[#2d3548] bg-[#161B26] text-slate-400 hover:text-[#3B82F6]' : 'border-slate-200 bg-white text-slate-500 hover:text-[#3B82F6]'">
                         <i class="fas fa-rotate-left"></i>
                     </button>
                 </div>
@@ -204,7 +204,7 @@
                 <div v-if="historialFiltrado.length === 0" class="flex-1 flex items-center justify-center">
                     <div class="flex flex-col items-center gap-2 opacity-40">
                         <i class="fas fa-inbox text-3xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
-                        <p class="text-[11px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin novedades</p>
+                        <p class="text-[11px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin novedades</p>
                     </div>
                 </div>
 
@@ -212,28 +212,28 @@
                     <table class="w-full border-separate border-spacing-0">
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#334155]">
-                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Colaborador</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Inicio</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Fin</th>
-                                <th class="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Descripción</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Estado</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Jefe</th>
-                                <th class="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Mi Carpeta</th>
-                                <th class="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-widest border-b border-white/10 text-white">Soporte</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Inicio</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Fin</th>
+                                <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Descripción</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Estado</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Jefe</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Mi Carpeta</th>
+                                <th class="px-4 py-2.5 text-right text-[9px] font-semibold uppercase tracking-widest border-b border-[#222938] text-white">Soporte</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="(item, idx) in historialFiltrado" :key="'h-'+item.id"
                                 :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/50']">
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]/50']">
 
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-black text-[#3B82F6] shrink-0">
+                                        <div class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-semibold text-[#3B82F6] shrink-0">
                                             {{ item.nombre?.charAt(0) ?? '?' }}
                                         </div>
                                         <div>
-                                            <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
+                                            <p class="text-[10px] font-semibold uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ item.nombre }}</p>
                                             <p class="text-[9px] opacity-50">CC: {{ item.cedula }}</p>
                                         </div>
                                     </div>
@@ -265,8 +265,8 @@
                                 </td>
                                 <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                     <button @click="verSoporte(item)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
-                                        :class="isDark ? 'bg-[#273045] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-widest transition-all hover:brightness-110 active:scale-[0.98]"
+                                        :class="isDark ? 'bg-[#161B26] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
                                         <i class="fas fa-eye text-[#3B82F6]"></i> Ver
                                     </button>
                                 </td>
@@ -275,8 +275,8 @@
                     </table>
                 </div>
 
-                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                         Historial: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ historialFiltrado.length }}</span>
                         / {{ novedades.length }}
                     </p>
@@ -286,7 +286,7 @@
                 <div v-if="!estadosCh.length" class="flex-1 flex items-center justify-center">
                     <div class="flex flex-col items-center gap-3 opacity-40">
                         <i class="fas fa-folder-plus text-3xl text-[#3B82F6]"></i>
-                        <p class="text-[11px] font-black uppercase tracking-widest text-center"
+                        <p class="text-[11px] font-semibold uppercase tracking-widest text-center"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                             No tienes carpetas creadas.<br>
                             <span class="font-normal normal-case tracking-normal">Usa "Mis Carpetas" para crear una.</span>
@@ -302,12 +302,12 @@
                         <!-- Cabecera clicable para desplegar -->
                         <button @click="toggleCarpeta(carpeta.id)"
                             class="w-full flex items-center justify-between px-4 py-3 transition-colors"
-                            :class="isDark ? 'bg-[#273045] hover:bg-[#2d3a50]' : 'bg-slate-50 hover:bg-slate-100'">
+                            :class="isDark ? 'bg-[#161B26] hover:bg-[#2d3a50]' : 'bg-slate-50 hover:bg-slate-100'">
                             <div class="flex items-center gap-2.5">
                                 <i :class="carpeta.icono" :style="{ color: carpeta.color }" class="text-sm w-4 text-center"></i>
-                                <span class="text-[11px] font-black uppercase tracking-widest"
+                                <span class="text-[11px] font-semibold uppercase tracking-widest"
                                     :style="{ color: carpeta.color }">{{ carpeta.nombre }}</span>
-                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-black"
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-semibold"
                                     :style="{ color: carpeta.color, background: carpeta.color + '20' }">
                                     {{ carpeta.items.length }}
                                 </span>
@@ -329,25 +329,25 @@
                                 <table class="w-full border-separate border-spacing-0">
                                     <thead>
                                         <tr :class="isDark ? 'bg-[#1a2035]' : 'bg-white'">
-                                            <th class="px-4 py-2 text-left text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Colaborador</th>
-                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Inicio</th>
-                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Fin</th>
-                                            <th class="px-4 py-2 text-left text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Descripción</th>
-                                            <th class="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Estado</th>
-                                            <th class="px-4 py-2 text-right text-[8px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Mover</th>
+                                            <th class="px-4 py-2 text-left text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Colaborador</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Inicio</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Fin</th>
+                                            <th class="px-4 py-2 text-left text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Descripción</th>
+                                            <th class="px-4 py-2 text-center text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Estado</th>
+                                            <th class="px-4 py-2 text-right text-[8px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Mover</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="(nov, idx) in carpeta.items" :key="'c-'+nov.id"
                                             :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : 'bg-transparent',
-                                            isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-blue-50/50']">
+                                            isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-white/[0.03]/50']">
                                             <td class="px-4 py-2.5 border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                                 <div class="flex items-center gap-2">
-                                                    <div class="w-6 h-6 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[9px] font-black text-[#3B82F6] shrink-0">
+                                                    <div class="w-6 h-6 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
                                                         {{ nov.nombre?.charAt(0) ?? '?' }}
                                                     </div>
                                                     <div>
-                                                        <p class="text-[10px] font-black uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ nov.nombre }}</p>
+                                                        <p class="text-[10px] font-semibold uppercase" :class="isDark ? 'text-white' : 'text-slate-800'">{{ nov.nombre }}</p>
                                                         <p class="text-[9px] opacity-50">CC: {{ nov.cedula }}</p>
                                                     </div>
                                                 </div>
@@ -372,8 +372,8 @@
                                             </td>
                                             <td class="px-4 py-2.5 text-right border-t" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                                                 <button @click="abrirCarpeta(nov)"
-                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
-                                                    :class="isDark ? 'bg-[#273045] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-widest transition-all hover:brightness-110"
+                                                    :class="isDark ? 'bg-[#161B26] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
                                                     <i class="fas fa-folder-open text-[8px]"></i> Mover
                                                 </button>
                                             </td>
@@ -385,8 +385,8 @@
                     </div>
                 </div>
 
-                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#273045]' : 'border-slate-100 bg-slate-50'">
-                    <p class="text-[9px] font-black uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                <div class="px-4 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#2d3548] bg-[#161B26]' : 'border-slate-100 bg-slate-50'">
+                    <p class="text-[9px] font-semibold uppercase tracking-widest" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                         Carpetas: <span class="text-[#3B82F6]">{{ estadosCh.length }}</span>
                         &nbsp;·&nbsp; Novedades asignadas: <span :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesEnCarpeta }}</span>
                     </p>
@@ -404,40 +404,40 @@
                     style="background:rgba(0,0,0,0.7)" @click.self="modalCarpetas.open = false">
 
                     <div class="w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden"
-                        :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                        :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
 
                         <!-- Header -->
                         <div class="flex items-center justify-between px-5 py-3.5 border-b"
                             :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                             <div class="flex items-center gap-2">
                                 <i class="fas fa-folder-plus text-[#3B82F6]"></i>
-                                <h3 class="text-sm font-black uppercase tracking-widest"
+                                <h3 class="text-sm font-semibold uppercase tracking-widest"
                                     :class="isDark ? 'text-white' : 'text-slate-800'">Mis Carpetas</h3>
                             </div>
                             <button @click="modalCarpetas.open = false"
                                 class="w-7 h-7 rounded-lg flex items-center justify-center border"
-                                :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                                :class="isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
                                 <i class="fas fa-xmark text-xs"></i>
                             </button>
                         </div>
 
                         <!-- Formulario crear / editar -->
                         <div class="px-5 py-4 border-b" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                            <p class="text-[9px] font-black uppercase tracking-widest mb-3"
+                            <p class="text-[9px] font-semibold uppercase tracking-widest mb-3"
                                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                                 {{ editandoCarpeta ? '✏️ Editando carpeta' : 'Nueva carpeta' }}
                             </p>
                             <div class="flex gap-2">
                                 <input v-model="nuevaCarpeta.nombre" type="text" placeholder="Nombre..."
                                     class="flex-1 px-3 py-2 rounded-lg border text-[11px] font-bold outline-none focus:ring-1 focus:ring-[#3B82F6]/40"
-                                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'"
+                                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'"
                                     @keyup.enter="guardarCarpeta" />
                                 <input type="color" v-model="nuevaCarpeta.color"
                                     class="w-9 h-9 rounded-lg border cursor-pointer p-0.5 shrink-0"
-                                    :class="isDark ? 'bg-[#273045] border-[#2d3548]' : 'bg-white border-slate-200'" />
+                                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'" />
                                 <select v-model="nuevaCarpeta.icono"
                                     class="px-2 py-2 rounded-lg border text-[10px] font-bold outline-none shrink-0"
-                                    :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
+                                    :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-700'">
                                     <option value="fas fa-folder">📁 Carpeta</option>
                                     <option value="fas fa-box-archive">📦 Archivo</option>
                                     <option value="fas fa-clock">⏰ Espera</option>
@@ -450,13 +450,13 @@
                                     <option value="fas fa-tag">🏷️ Etiqueta</option>
                                 </select>
                                 <button @click="guardarCarpeta" :disabled="!nuevaCarpeta.nombre.trim() || loadingCarpeta"
-                                    class="px-3 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-95 disabled:opacity-40 flex items-center gap-1"
+                                    class="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase italic tracking-widest transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 flex items-center gap-1"
                                     :class="editandoCarpeta ? 'bg-emerald-500 text-white' : 'bg-[#3B82F6] text-white'">
                                     <i v-if="loadingCarpeta" class="fas fa-circle-notch fa-spin text-[9px]"></i>
                                     <i v-else :class="editandoCarpeta ? 'fas fa-check' : 'fas fa-plus'" class="text-[9px]"></i>
                                 </button>
                                 <button v-if="editandoCarpeta" @click="cancelarEdicionCarpeta"
-                                    class="px-2 py-2 rounded-lg border text-[10px] font-black"
+                                    class="px-2 py-2 rounded-lg border text-[10px] font-semibold"
                                     :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
                                     <i class="fas fa-xmark text-[9px]"></i>
                                 </button>
@@ -465,7 +465,7 @@
                             <!-- Preview -->
                             <div v-if="nuevaCarpeta.nombre.trim()" class="mt-2 flex items-center gap-1.5">
                                 <span class="text-[9px] opacity-50" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Vista previa:</span>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-current/20 bg-current/10"
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-widest border border-current/20 bg-current/10"
                                     :style="{ color: nuevaCarpeta.color }">
                                     <i :class="nuevaCarpeta.icono"></i>
                                     {{ nuevaCarpeta.nombre }}
@@ -479,7 +479,7 @@
 
                         <!-- Lista de mis carpetas -->
                         <div class="px-5 py-3 max-h-64 overflow-y-auto">
-                            <p class="text-[9px] font-black uppercase tracking-widest mb-2"
+                            <p class="text-[9px] font-semibold uppercase tracking-widest mb-2"
                                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                                 Mis Carpetas ({{ estadosCh.length }})
                             </p>
@@ -490,10 +490,10 @@
                             <div v-else class="flex flex-col gap-1.5">
                                 <div v-for="est in estadosCh" :key="est.id"
                                     class="flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
-                                    :class="[isDark ? 'bg-[#273045] border-[#3d4558]' : 'bg-slate-50 border-slate-200',
+                                    :class="[isDark ? 'bg-[#161B26] border-[#3d4558]' : 'bg-slate-50 border-slate-200',
                                         editandoCarpeta?.id === est.id ? 'ring-1 ring-[#3B82F6]' : '']">
                                     <div class="flex items-center gap-2">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-current/20 bg-current/10"
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-widest border border-current/20 bg-current/10"
                                             :style="{ color: est.color }">
                                             <i :class="est.icono"></i>
                                             {{ est.nombre }}
@@ -530,23 +530,23 @@
                 class="fixed inset-0 z-[65] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="carpetaModal.open = false">
                 <div class="w-full max-w-xs rounded-2xl border shadow-2xl overflow-hidden"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
 
                     <div class="flex items-center justify-between px-4 py-3 border-b"
                         :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-folder-open text-[#3B82F6]"></i>
-                            <h3 class="text-[11px] font-black uppercase tracking-widest"
+                            <h3 class="text-[11px] font-semibold uppercase tracking-widest"
                                 :class="isDark ? 'text-white' : 'text-slate-800'">Mi Carpeta</h3>
                         </div>
                         <button @click="carpetaModal.open = false"
                             class="w-6 h-6 rounded-lg flex items-center justify-center border"
-                            :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                            :class="isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
                             <i class="fas fa-xmark text-[10px]"></i>
                         </button>
                     </div>
                     <div class="px-4 pt-3 pb-1">
-                        <p class="text-[10px] font-black uppercase opacity-50"
+                        <p class="text-[10px] font-semibold uppercase opacity-50"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                             {{ carpetaModal.nombreColaborador }}
                         </p>
@@ -591,23 +591,23 @@
                 class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="soporteModal.open = false">
                 <div class="w-full max-w-2xl h-[70vh] rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
                     <div class="flex items-center justify-between px-4 py-2.5 border-b shrink-0"
                         :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'">
-                        <span class="text-[11px] font-black uppercase tracking-widest"
+                        <span class="text-[11px] font-semibold uppercase tracking-widest"
                             :class="isDark ? 'text-white' : 'text-slate-700'">
                             <i class="fas fa-eye text-[#3B82F6] mr-2"></i>Soporte
                         </span>
                         <div class="flex items-center gap-2">
                             <a v-if="soporteModal.isPdf || soporteModal.isImage"
                                 :href="soporteModal.url" target="_blank" rel="noopener noreferrer"
-                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all hover:brightness-110"
-                                :class="isDark ? 'bg-[#273045] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-widest transition-all hover:brightness-110"
+                                :class="isDark ? 'bg-[#161B26] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
                                 <i class="fas fa-arrow-up-right-from-square text-[9px]"></i> Abrir
                             </a>
                             <button @click="soporteModal.open = false"
                                 class="w-7 h-7 rounded-lg flex items-center justify-center border"
-                                :class="isDark ? 'bg-[#273045] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
+                                :class="isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
                                 <i class="fas fa-xmark text-xs"></i>
                             </button>
                         </div>
@@ -633,16 +633,16 @@
                 class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="motivoModal.open = false">
                 <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-comment-alt text-[#3B82F6]"></i>
-                        <h3 class="text-sm font-black uppercase tracking-widest"
+                        <h3 class="text-sm font-semibold uppercase tracking-widest"
                             :class="isDark ? 'text-white' : 'text-slate-800'">{{ motivoModal.titulo }}</h3>
                     </div>
                     <p class="text-[15px] font-medium leading-relaxed"
                         :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ motivoModal.texto }}</p>
                     <button @click="motivoModal.open = false"
-                        class="py-2 rounded-lg text-[10px] font-black uppercase italic border"
+                        class="py-2 rounded-lg text-[10px] font-semibold uppercase italic border"
                         :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">Cerrar</button>
                 </div>
             </div>
@@ -654,11 +654,11 @@
                 class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
                 @mousedown.self="accionModal.open = false">
                 <div class="w-full max-w-sm rounded-2xl border p-6 flex flex-col gap-4 shadow-2xl"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
                     <div class="flex items-center gap-2">
                         <i :class="accionModal.tipo === 1 ? 'fas fa-check-circle text-emerald-500' : 'fas fa-times-circle text-red-400'"
                             class="text-lg"></i>
-                        <h3 class="text-sm font-black uppercase tracking-widest"
+                        <h3 class="text-sm font-semibold uppercase tracking-widest"
                             :class="isDark ? 'text-white' : 'text-slate-800'">
                             {{ accionModal.tipo === 1 ? 'Aprobar' : 'Rechazar' }} novedad
                         </h3>
@@ -667,24 +667,24 @@
                         {{ accionModal.nombre }}
                     </p>
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[9px] font-black uppercase tracking-widest"
+                        <label class="text-[9px] font-semibold uppercase tracking-widest"
                             :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                             Motivo <span class="text-red-400">*</span>
                         </label>
                         <textarea v-model="accionModal.motivo" rows="3"
                             :placeholder="accionModal.tipo === 1 ? 'Motivo de aprobación...' : 'Motivo de rechazo...'"
                             class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none placeholder:text-slate-500"
-                            :class="isDark ? 'bg-[#273045] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
+                            :class="isDark ? 'bg-[#161B26] border-[#2d3548] text-white' : 'bg-white border-slate-200 text-slate-800'">
                         </textarea>
                     </div>
                     <div class="flex gap-2 pt-1">
                         <button @click="accionModal.open = false"
-                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic border"
+                            class="flex-1 py-2 rounded-lg text-[10px] font-semibold uppercase italic border"
                             :class="isDark ? 'border-[#2d3548] text-slate-400' : 'border-slate-200 text-slate-500'">
                             Cancelar
                         </button>
                         <button @click="confirmarAccion" :disabled="!accionModal.motivo.trim() || accionModal.loading"
-                            class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
+                            class="flex-1 py-2 rounded-lg text-[10px] font-semibold uppercase italic transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
                             :class="accionModal.tipo === 1 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'">
                             <i v-if="accionModal.loading" class="fas fa-circle-notch fa-spin text-[9px]"></i>
                             {{ accionModal.loading ? 'Procesando...' : 'Confirmar' }}
@@ -703,7 +703,7 @@
                     <div class="flex items-start gap-3">
                         <i :class="toast.tipo === 'aprobada' ? 'fas fa-circle-check text-emerald-400' : 'fas fa-circle-xmark text-red-400'" class="text-lg mt-0.5 shrink-0"></i>
                         <div class="flex-1 min-w-0">
-                            <p class="text-[11px] font-black uppercase tracking-widest">Novedad {{ toast.tipo }}</p>
+                            <p class="text-[11px] font-semibold uppercase tracking-widest">Novedad {{ toast.tipo }}</p>
                             <p class="text-[10px] font-semibold opacity-70 mt-0.5 truncate">{{ toast.nombre }}</p>
                         </div>
                         <button @click="toast.visible = false" class="opacity-40 hover:opacity-100 transition-opacity shrink-0">
@@ -716,7 +716,7 @@
                         <span class="flex-1">{{ toast.correoMsg }}</span>
                     </div>
                     <button v-if="!toast.correoOk" @click="reenviarToast" :disabled="toast.reenvioLoading"
-                        class="flex items-center justify-center gap-2 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                        class="flex items-center justify-center gap-2 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-semibold uppercase tracking-widest transition-all disabled:opacity-50">
                         <i :class="toast.reenvioLoading ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
                         {{ toast.reenvioLoading ? 'Reenviando...' : 'Reenviar correo' }}
                     </button>
@@ -730,16 +730,16 @@
             <transition name="fade-msg">
                 <div v-if="menuAbierto !== null" class="fixed z-50 w-48 rounded-xl border shadow-2xl overflow-hidden"
                     :style="{ top: menuPos.y + 'px', left: menuPos.x + 'px' }"
-                    :class="isDark ? 'bg-[#1e2538] border-[#2d3548]' : 'bg-white border-slate-200'">
+                    :class="isDark ? 'bg-[#161B26] border-[#2d3548]' : 'bg-white border-slate-200'">
 
                     <button @click="verSoporte(itemMenuActual); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
                         :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                         <i class="fas fa-eye text-[#3B82F6] w-3"></i> Ver soporte
                     </button>
 
                     <button @click="abrirCarpeta(itemMenuActual); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-widest transition-all hover:bg-[#3B82F6]/10"
                         :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                         <i class="fas fa-folder-open text-[#3B82F6] w-3"></i> Enviar a carpeta
                     </button>
@@ -747,13 +747,13 @@
                     <div class="border-t mx-2" :class="isDark ? 'border-[#2d3548]' : 'border-slate-100'"></div>
 
                     <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-widest transition-all hover:bg-emerald-500/10"
                         :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
                         <i class="fas fa-check w-3"></i> Aprobar
                     </button>
 
                     <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all hover:bg-red-500/10"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-widest transition-all hover:bg-red-500/10"
                         :class="isDark ? 'text-red-400' : 'text-red-500'">
                         <i class="fas fa-xmark w-3"></i> Rechazar
                     </button>
@@ -811,9 +811,9 @@ const EstadoBadge = defineComponent({
     setup(p) {
         return () => {
             const v = p.valor;
-            if (v === 1) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' }, [h('i', { class: 'fas fa-check' }), !p.mini && ' Aprobado'].filter(Boolean));
-            if (v === 0) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-red-500/10 text-red-400 border border-red-500/20' }, [h('i', { class: 'fas fa-xmark' }), !p.mini && ' Rechazado'].filter(Boolean));
-            return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20' }, [h('i', { class: 'fas fa-clock' }), !p.mini && ' Pendiente'].filter(Boolean));
+            if (v === 1) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' }, [h('i', { class: 'fas fa-check' }), !p.mini && ' Aprobado'].filter(Boolean));
+            if (v === 0) return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-red-500/10 text-red-400 border border-red-500/20' }, [h('i', { class: 'fas fa-xmark' }), !p.mini && ' Rechazado'].filter(Boolean));
+            return h('span', { class: 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20' }, [h('i', { class: 'fas fa-clock' }), !p.mini && ' Pendiente'].filter(Boolean));
         };
     }
 });
@@ -823,7 +823,7 @@ const FolderEstado = defineComponent({
     setup(p) {
         return () => {
             const cfg = getEstadoVisual(p.nov);
-            return h('span', { class: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${cfg.bg}` }, [
+            return h('span', { class: `inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-widest border ${cfg.bg}` }, [
                 h('i', { class: cfg.icon, style: { color: cfg.color } }),
                 h('span', { style: { color: cfg.color } }, cfg.label)
             ]);
@@ -841,7 +841,7 @@ const CarpetaBadge = defineComponent({
             if (est) {
                 return h('button', {
                     onClick: () => emitBadge('click'),
-                    class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border cursor-pointer hover:opacity-80 transition-opacity',
+                    class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-widest border cursor-pointer hover:opacity-80 transition-opacity',
                     style: { borderColor: est.color + '33', background: est.color + '15' }
                 }, [
                     h('i', { class: est.icono, style: { color: est.color } }),
@@ -850,7 +850,7 @@ const CarpetaBadge = defineComponent({
             }
             return h('button', {
                 onClick: () => emitBadge('click'),
-                class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-dashed transition-all hover:border-[#3B82F6]/50 hover:text-[#3B82F6] text-slate-400 border-slate-300/30'
+                class: 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-widest border border-dashed transition-all hover:border-[#3B82F6]/50 hover:text-[#3B82F6] text-slate-400 border-slate-300/30'
             }, [h('i', { class: 'fas fa-folder-plus text-[9px]' }), h('span', 'Asignar')]);
         };
     }

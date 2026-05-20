@@ -420,7 +420,7 @@ onMounted(async () => {
             <!-- Dropdown -->
             <Transition name="dropdown">
               <div v-if="showUserMenu" class="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1 z-50 shadow-xl"
-                :class="isDark ? 'bg-[#131316] border-white/10' : 'bg-white border-slate-200'">
+                :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                 <div class="px-3 py-2 border-b" :class="isDark ? 'border-white/[0.06]' : 'border-slate-100'">
                   <p class="text-[9px] font-bold uppercase tracking-widest opacity-40"
                     :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
@@ -510,7 +510,7 @@ onMounted(async () => {
 }
 
 .sa-dark {
-  background: #0a0a0a;
+  background: #0B0F19;
   color: #fff;
 }
 
@@ -574,8 +574,8 @@ onMounted(async () => {
 }
 
 .sa-sidebar-dark {
-  background: #131316;
-  border-color: rgba(255, 255, 255, 0.06);
+  background: #161B26;
+  border-color: #222938;
 }
 
 .sa-sidebar-light {
@@ -616,7 +616,7 @@ onMounted(async () => {
 }
 
 .sa-collapse-dark {
-  background: #131316;
+  background: #161B26;
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
 }
@@ -757,46 +757,48 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* Activo dark: gris suave sobre sidebar oscuro */
+/* Activo dark (Geist): fondo iluminado sutil */
 .sa-nav-active-dark {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
 }
 
 /* Activo light: gris claro sobre sidebar blanco */
 .sa-nav-active-light {
-  background: #e8edf5;
-  color: #1e293b;
+  background: #f4f4f5;
+  color: #09090b;
 }
 
 .sa-nav-idle-dark {
-  color: rgba(255, 255, 255, 0.55);
+  color: #888888;
+  transition: all 0.2s ease;
 }
 
 .sa-nav-idle-dark:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+  color: #ffffff;
 }
 
 .sa-nav-idle-light {
-  color: #64748b;
+  color: #6b7280;
+  transition: all 0.2s ease;
 }
 
 .sa-nav-idle-light:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #fafafa;
+  color: #09090b;
 }
 
+/* Línea vertical 2px azul de marca — Geist style, sin glow */
 .sa-nav-bar {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
+  width: 2px;
   height: 18px;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0;
   background: #3b82f6;
-  box-shadow: 0 0 8px #3b82f6;
 }
 
 .sa-nav-icon {
@@ -945,8 +947,8 @@ onMounted(async () => {
 }
 
 .sa-header-dark {
-  background: #131316;
-  border-color: rgba(255, 255, 255, 0.06);
+  background: #161B26;
+  border-color: #222938;
 }
 
 .sa-header-light {
@@ -999,7 +1001,7 @@ onMounted(async () => {
 }
 
 .sa-theme-dark {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #222938;
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1027,7 +1029,7 @@ onMounted(async () => {
 }
 
 .sa-user-dark {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #222938;
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1060,7 +1062,7 @@ onMounted(async () => {
 }
 
 .sa-content-dark {
-  background: #0a0a0a;
+  background: #0B0F19;
 }
 
 .sa-content-light {
@@ -1086,8 +1088,8 @@ onMounted(async () => {
 }
 
 .sa-card-dark {
-  background: #0a0a0a;
-  border-color: rgba(255, 255, 255, 0.07);
+  background: #0B0F19;
+  border-color: #222938;
 }
 
 .sa-card-light {

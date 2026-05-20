@@ -578,25 +578,25 @@ onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos()]);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
 }
-.api-dark  { background: #1e2535; color: #fff; }
-.api-light { background: #f8fafc; color: #1e293b; }
+.api-dark  { background: transparent; color: #fff; }
+.api-light { background: transparent; color: #1e293b; }
 
 /* ── HEADER ───────────────────────────────────────────────── */
 .api-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 14px;
+  padding: 14px 16px 10px;
   flex-shrink: 0;
 }
-.api-header-left { display: flex; align-items: center; gap: 12px; }
+.api-header-left { display: flex; align-items: center; gap: 9px; }
 .api-header-icon {
-  width: 38px; height: 38px; border-radius: 10px;
+  width: 30px; height: 30px; border-radius: 7px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.api-icon-dark  { background: rgba(255,143,0,.1);  border: 1px solid rgba(255,143,0,.18); }
-.api-icon-light { background: rgba(255,143,0,.08); border: 1px solid rgba(255,143,0,.14); }
-.api-title      { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; line-height: 1; }
-.api-title-sub  { font-weight: 400; font-size: 12px; }
-.api-subtitle   { font-size: 10px; font-weight: 500; margin-top: 3px; letter-spacing: .02em; }
+.api-icon-dark  { background: rgba(255,143,0,.12); }
+.api-icon-light { background: #fff7ed; }
+.api-title      { font-size: 14px; font-weight: 600; letter-spacing: -0.012em; line-height: 1.15; }
+.api-title-sub  { font-weight: 400; font-size: 12px; opacity: 0.5; }
+.api-subtitle   { font-size: 10px; font-weight: 500; margin-top: 2px; letter-spacing: 0.01em; opacity: 0.6; }
 
 /* ── TABS ─────────────────────────────────────────────────── */
 .api-tabs {
@@ -876,7 +876,7 @@ onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos()]);
   width: 100%; max-width: 380px;
   border-radius: 14px; border: 1px solid; overflow: hidden;
 }
-.api-modal-dark  { background: #1e2538; border-color: rgba(255,255,255,.1); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.api-modal-dark  { background: #18181b; border-color: rgba(255,255,255,.08); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
 .api-modal-light { background: #fff;    border-color: #e2e8f0;              box-shadow: 0 24px 60px rgba(0,0,0,.15); }
 
 .api-modal-head {

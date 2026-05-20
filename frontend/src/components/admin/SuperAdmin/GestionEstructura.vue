@@ -373,9 +373,9 @@ const saveEdit = (areaId) => {
     --text-muted: #52525b;
     --text-soft: #a1a1aa;
     /* Azul de marca refinado (no muy saturado) */
-    --brand: #2563eb;
-    --brand-soft: #eff6ff;
-    --brand-text: #1d4ed8;
+    --brand: #3B82F6;
+    --brand-soft: rgba(59, 130, 246, 0.08);
+    --brand-text: #2563EB;
     /* Verde para segmentos y estado activo */
     --on: #16a34a;
     --on-soft: #f0fdf4;
@@ -393,18 +393,18 @@ const saveEdit = (areaId) => {
 }
 
 .ge-dark {
-    --bg: #18181b;
-    --bg-soft: #131316;
-    --bg-hover: #1f1f23;
-    --border: #27272a;
-    --border-strong: #3f3f46;
+    --bg: #161B26;
+    --bg-soft: #0B0F19;
+    --bg-hover: #1F2533;
+    --border: #222938;
+    --border-strong: #2A3245;
     --text: #fafafa;
-    --text-muted: #a1a1aa;
-    --text-soft: #71717a;
+    --text-muted: #B0B7C3;
+    --text-soft: #888888;
     /* Azul calmo para dark theme */
-    --brand: #60a5fa;
-    --brand-soft: rgba(96, 165, 250, 0.12);
-    --brand-text: #93c5fd;
+    --brand: #3B82F6;
+    --brand-soft: rgba(59, 130, 246, 0.10);
+    --brand-text: #60A5FA;
     --on: #4ade80;
     --on-soft: rgba(74, 222, 128, 0.12);
     --on-text: #86efac;

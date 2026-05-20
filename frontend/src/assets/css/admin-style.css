@@ -476,61 +476,90 @@ main.flex-1 {
   @apply h-16 flex items-center px-4 shrink-0;
 }
 /* Botones de Acción en Header */
+/* ─── BOTONES ENTRADA / SALIDA — Vercel flat style ─────────────── */
 .btn-header-smart {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px; /* Más compacto verticalmente */
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
   cursor: pointer;
-  color: white;
+  font-family: 'Geist', 'Inter', sans-serif;
 }
 
-/* Caja de icono interna para resaltar el símbolo */
 .icon-box-smart {
-  width: 22px;
-  height: 22px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 7px;
-  transition: transform 0.2s ease;
+  background: transparent;
+  width: auto;
+  height: auto;
+}
+
+.icon-box-smart i {
+  font-size: 11px;
+  opacity: 0.9;
 }
 
 .btn-header-smart:hover:not(:disabled) .icon-box-smart {
-  transform: scale(1.1);
+  transform: none;
 }
 
-/* Colores Dinámicos con Degradados Suaves */
+/* IN (Entrada) — verde sobrio Vercel */
 .btn-header-smart.in {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
 }
 
+.btn-header-smart.in:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+/* OUT (Salida) — rojo sobrio Vercel */
 .btn-header-smart.out {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.15);
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
 }
 
-/* Estado Desactivado (Compacto y Elegante) */
+.btn-header-smart.out:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-header-smart:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Estado Desactivado (Vercel ghost) */
 .btn-header-smart:disabled {
   background: transparent;
-  color: #eaecf0; /* slate-400 */
-  box-shadow: none;
-  opacity: 0.3;
+  color: #71717a;
+  border-color: #222938;
+  opacity: 0.5;
   cursor: not-allowed;
-  filter: grayscale(1);
+  filter: none;
+}
+
+/* En modo light, disabled debe verse */
+.theme-light .btn-header-smart:disabled,
+[class*="theme-light"] .btn-header-smart:disabled {
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  background: #fafafa;
 }
 
 .btn-header-smart:disabled .icon-box-smart {
-  background: rgba(148, 163, 184, 0.1);
+  background: transparent;
 }
 .sidebar-header {
   @apply transition-all duration-300;
