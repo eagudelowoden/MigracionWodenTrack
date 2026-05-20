@@ -9,8 +9,7 @@
         <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
           <i class="fas fa-clipboard-list text-[11px]"></i>
         </div>
-        <h2 class="text-[13px] font-semibold tracking-tight"
-          :class="isDark ? 'text-white' : 'text-slate-900'">
+        <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Asistencias
         </h2>
       </div>
@@ -23,8 +22,8 @@
           :class="filterHoy
             ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
             : (isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300')"
+              ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300')"
           title="Filtrar solo hoy">
           <i class="fas text-[10px]" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
           Hoy
@@ -76,8 +75,7 @@
           :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
 
           <button @click="clearFilters"
-            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all"
-            :class="isDark
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
               : 'bg-white border-slate-200 text-slate-500 hover:text-[#dc2626] hover:border-rose-300'"
             title="Limpiar filtros">
@@ -85,10 +83,9 @@
           </button>
 
           <button @click="fetchReporte"
-            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#f5f5f7] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
             title="Refrescar">
             <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': loading }"></i>
           </button>
@@ -106,29 +103,27 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg"
-      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border"
-      :class="isDark
-        ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
-        : 'bg-red-50 border-red-200 text-red-700'">
+    <div v-if="errorMsg" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+      ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+      : 'bg-red-50 border-red-200 text-red-700'">
       <i class="fas fa-circle-exclamation text-[11px]"></i>
       {{ errorMsg }}
     </div>
 
     <!-- Progreso de carga por chunks -->
     <div v-if="loading && chunkProgress.total > 1"
-      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-3 border"
-      :class="isDark
+      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-3 border" :class="isDark
         ? 'bg-[#3B82F6]/[0.08] border-[#3B82F6]/30 text-[#60A5FA]'
         : 'bg-blue-50 border-blue-200 text-blue-700'">
       <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
       <span class="shrink-0">Cargando datos…</span>
-      <div class="flex-1 h-1 rounded-full overflow-hidden"
-        :class="isDark ? 'bg-[#222938]' : 'bg-blue-200'">
+      <div class="flex-1 h-1 rounded-full overflow-hidden" :class="isDark ? 'bg-[#222938]' : 'bg-blue-200'">
         <div class="h-full bg-[#3B82F6] transition-all duration-500 rounded-full"
           :style="{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }"></div>
       </div>
-      <span class="shrink-0 tabular-nums font-semibold">{{ Math.round((chunkProgress.current / chunkProgress.total) * 100) }}%</span>
+      <span class="shrink-0 tabular-nums font-semibold">{{ Math.round((chunkProgress.current / chunkProgress.total) *
+        100)
+      }}%</span>
     </div>
 
     <!-- Tabla -->
@@ -139,23 +134,29 @@
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30">
             <!-- Header siempre oscuro (consistente con otros módulos) -->
-            <tr class="bg-[#0B0F19]">
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+            <tr class="bg-[#1e2538]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Colaborador
               </th>
-              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Identificación
               </th>
-              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Entrada
               </th>
-              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Salida
               </th>
-              <th class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Estatus entrada
               </th>
-              <th class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Estatus salida
               </th>
             </tr>
@@ -181,12 +182,10 @@
                     <i class="fas fa-user text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-500'"></i>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-[12px] font-semibold"
-                      :class="isDark ? 'text-white' : 'text-slate-900'">
+                    <span class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
                       {{ item.empleado }}
                     </span>
-                    <span class="text-[10px] font-normal mt-0.5"
-                      :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                    <span class="text-[10px] font-normal mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                       {{ item.department_id || 'Sin departamento' }}
                     </span>
                   </div>
@@ -228,7 +227,7 @@
                     {{ item.c_salida || 'OK' }}
                   </span>
                   <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
-                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
+                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest text-white">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
                 </div>

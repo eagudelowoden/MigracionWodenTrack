@@ -9,8 +9,7 @@
         <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
           <i class="fas fa-file-arrow-up text-[11px]"></i>
         </div>
-        <h2 class="text-[13px] font-semibold tracking-tight"
-          :class="isDark ? 'text-white' : 'text-slate-900'">
+        <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Cargue Horas CH
         </h2>
       </div>
@@ -41,8 +40,8 @@
         </div>
 
         <!-- Departamento -->
-        <input v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin"
-          v-model="filterDepartamento" type="text" placeholder="Departamento…"
+        <input v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" v-model="filterDepartamento" type="text"
+          placeholder="Departamento…"
           class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-36 transition-all"
           :class="isDark
             ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
@@ -69,40 +68,57 @@
 
           <!-- Header siempre oscuro -->
           <thead class="sticky top-0 z-30">
-            <tr class="bg-[#0B0F19]">
+            <tr class="bg-[#1e2538]">
               <th colspan="2"
-                class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                 Colaborador
               </th>
-              <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#222938] text-[#888888]">
+              <th
+                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                 Fecha
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                 Jornada
               </th>
               <th colspan="2"
-                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#222938] text-[#888888]">
+                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                 Tiempo laborado
               </th>
               <th v-for="col in COLS_HX" :key="col"
-                class="px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#222938] text-[#888888] w-12">
+                class="px-2 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-12">
                 {{ col.toUpperCase() }}
               </th>
-              <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888] w-24">
+              <th
+                class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7] w-24">
                 Cargado por
               </th>
             </tr>
-            <tr class="bg-[#0B0F19]">
-              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-28">Cédula</th>
-              <th class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72]">Nombre</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-24"></th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-20">Inicio</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-20">Fin</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-20">Entrada</th>
-              <th class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72] w-20">Salida</th>
+            <tr class="bg-[#1e2538]">
+              <th
+                class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-28">
+                Cédula</th>
+              <th
+                class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                Nombre</th>
+              <th
+                class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+              </th>
+              <th
+                class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                Inicio</th>
+              <th
+                class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                Fin</th>
+              <th
+                class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                Entrada</th>
+              <th
+                class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                Salida</th>
               <th v-for="_ in 7" :key="_"
-                class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#222938] text-[#6a6a72]">hrs</th>
+                class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                hrs</th>
               <th class="px-3 py-1.5 border-b border-[#222938]"></th>
             </tr>
           </thead>
@@ -111,8 +127,8 @@
             <!-- Loading -->
             <tr v-if="isLoading" v-for="n in 8" :key="'sk-' + n">
               <td colspan="15" class="px-3 py-3">
-                <div class="h-3 w-full rounded animate-pulse"
-                  :class="isDark ? 'bg-[#222938]/40' : 'bg-slate-100'"></div>
+                <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#222938]/40' : 'bg-slate-100'">
+                </div>
               </td>
             </tr>
 
@@ -124,8 +140,7 @@
                     :class="isDark ? 'bg-[#3B82F6]/10 text-[#60A5FA]' : 'bg-blue-50 text-[#3B82F6]'">
                     <i class="fas fa-file-arrow-up text-lg"></i>
                   </div>
-                  <p class="text-[11px] font-medium"
-                    :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                  <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                     No hay cargues en este rango de fechas
                   </p>
                 </div>
@@ -137,10 +152,9 @@
 
               <!-- Cabecera empresa -->
               <tr v-if="item.tipo === 'empresa'">
-                <td colspan="15" class="px-4 py-2 text-[10px] font-medium border-b"
-                  :class="isDark
-                    ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
-                    : 'bg-slate-100 border-slate-200 text-slate-700'">
+                <td colspan="15" class="px-4 py-2 text-[10px] font-medium border-b" :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
+                  : 'bg-slate-100 border-slate-200 text-slate-700'">
                   <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
                 </td>
               </tr>
@@ -156,8 +170,8 @@
                   {{ item.data.cedula || '—' }}
                 </td>
                 <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <div class="text-[11px] font-medium"
-                    :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
+                  <div class="text-[11px] font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+                    item.data.nombre }}</div>
                 </td>
                 <td class="px-3 py-2 border-b border-r text-center text-[11px]"
                   :class="isDark ? 'border-[#222938] text-[#E2E8F0]' : 'border-slate-100 text-slate-700'">
@@ -179,8 +193,8 @@
                   :class="isDark ? 'border-[#222938] text-[#4ade80]' : 'border-slate-100 text-[#16a34a]'">
                   {{ item.data.hora_fin_laborado || '—' }}
                 </td>
-                <td v-for="col in COLS_HX" :key="col"
-                  class="px-2 py-2 border-b border-r text-center text-[11px]" :class="[
+                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center text-[11px]"
+                  :class="[
                     isDark ? 'border-[#222938]' : 'border-slate-100',
                     Number(item.data[col]) > 0
                       ? (isDark ? 'text-[#60A5FA] font-medium' : 'text-[#3B82F6] font-medium')
@@ -196,15 +210,13 @@
 
               <!-- Subtotal -->
               <tr v-else-if="item.tipo === 'subtotal'">
-                <td colspan="7" class="px-3 py-2 border-b border-r text-[10px] font-medium"
-                  :class="isDark
-                    ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
-                    : 'bg-blue-50/50 border-slate-200 text-blue-700'">
+                <td colspan="7" class="px-3 py-2 border-b border-r text-[10px] font-medium" :class="isDark
+                  ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
+                  : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                   Subtotal — {{ item.data.nombre }}
                 </td>
                 <td v-for="col in COLS_HX" :key="col"
-                  class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
-                  :class="isDark
+                  class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold" :class="isDark
                     ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
                     : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                   {{ formatDecimal(item.data.subtotales[col]) }}
@@ -256,25 +268,25 @@ import { ref, onMounted, watch } from 'vue';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
 const props = defineProps({
-    isDark: Boolean,
-    company: String,
+  isDark: Boolean,
+  company: String,
 });
 
 const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const isSuperAdmin = session.isSuperAdmin || false;
 
 const {
-    isLoading,
-    filasPaginadas,
-    filasAplanadas,
-    currentPage,
-    totalPages,
-    totalRegistros,
-    COLS_HX,
-    cargarHistorial,
-    formatFecha,
-    formatDecimal,
-    hasPerm,
+  isLoading,
+  filasPaginadas,
+  filasAplanadas,
+  currentPage,
+  totalPages,
+  totalRegistros,
+  COLS_HX,
+  cargarHistorial,
+  formatFecha,
+  formatDecimal,
+  hasPerm,
 } = useCargueHoras();
 
 const startDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
@@ -283,12 +295,12 @@ const filterNombre = ref('');
 const filterDepartamento = ref('');
 
 async function handleCargar() {
-    await cargarHistorial({
-        startDate: startDate.value,
-        endDate: endDate.value,
-        company: props.company,
-        departamento: filterDepartamento.value || undefined,
-    });
+  await cargarHistorial({
+    startDate: startDate.value,
+    endDate: endDate.value,
+    company: props.company,
+    departamento: filterDepartamento.value || undefined,
+  });
 }
 
 watch([startDate, endDate, filterNombre, filterDepartamento], () => { handleCargar(); });

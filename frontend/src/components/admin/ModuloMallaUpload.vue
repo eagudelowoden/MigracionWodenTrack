@@ -9,8 +9,7 @@
         <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
           <i class="fas fa-calendar-check text-[11px]"></i>
         </div>
-        <h2 class="text-[13px] font-semibold tracking-tight"
-          :class="isDark ? 'text-white' : 'text-slate-900'">
+        <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Asignación de Mallas
         </h2>
       </div>
@@ -46,8 +45,7 @@
           :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
 
           <button @click="fetchMallasDesdeOdoo"
-            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all"
-            :class="isDark
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
             title="Refrescar">
@@ -72,11 +70,12 @@
               ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
               : !carguePermitido
                 ? (isDark
-                    ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:bg-white/[0.03]'
-                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50')
+                  ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:bg-white/[0.03]'
+                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50')
                 : 'bg-[#3B82F6] text-white border-[#3B82F6] hover:bg-[#2563EB] hover:border-[#2563EB]'"
             :title="!carguePermitido ? 'Fuera de ventana de cargue — haz clic para solicitar apertura' : 'Subir archivo de mallas'">
-            <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')" class="text-[10px]"></i>
+            <i :class="isUploading ? 'fas fa-spinner fa-spin' : (!carguePermitido ? 'fas fa-lock' : 'fas fa-cloud-arrow-up')"
+              class="text-[10px]"></i>
             <span>{{ isUploading ? 'Cargando…' : (!carguePermitido ? 'Bloqueado' : 'Subir') }}</span>
           </button>
         </div>
@@ -91,26 +90,33 @@
         <table class="w-full border-separate border-spacing-0">
           <thead class="sticky top-0 z-30">
             <!-- Header con fondo oscuro consistente (dark theme look incluso en light) -->
-            <tr class="bg-[#0B0F19]">
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+            <tr class="bg-[#1e2538]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 <div class="flex items-center gap-2"><i class="fas fa-user-circle opacity-60"></i> Colaborador</div>
               </th>
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Cédula
               </th>
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Cargo
               </th>
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Departamento
               </th>
-              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Malla
               </th>
-              <th class="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Jornada
               </th>
-              <th class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#222938] text-[#888888]">
+              <th
+                class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
                 Horario
               </th>
             </tr>
@@ -133,7 +139,8 @@
               </td>
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="text-[11px] font-mono tracking-wide"
-                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ persona.cc || '—' }}</span>
+                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
+                    persona.cc || '—' }}</span>
               </td>
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <span class="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase border"
@@ -144,7 +151,8 @@
                 :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
                   persona.departamento }}</td>
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <span class="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border italic tracking-wider shadow-sm"
+                <span
+                  class="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border italic tracking-wider shadow-sm"
                   :style="{ backgroundColor: isDark ? '#E39C2D20' : '#E39C2D10', borderColor: isDark ? '#E39C2D40' : '#E39C2D30', color: '#E39C2D' }">{{
                     persona.malla }}</span>
               </td>
@@ -255,7 +263,8 @@
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ pendingFileName }}</p>
             </div>
           </div>
-          <div class="mt-3 px-3 py-2 rounded-xl flex items-center gap-2" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-50'">
+          <div class="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
+            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-50'">
             <i class="fas fa-table-list text-[#3B82F6] text-xs"></i>
             <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
               {{ previewRows.length }} registro{{ previewRows.length !== 1 ? 's' : '' }} detectado{{
@@ -374,10 +383,9 @@
               </span>
             </div>
             <!-- Errores -->
-            <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1"
-              :class="uploadErrors?.length
-                ? (isDark ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-rose-50 border border-rose-200')
-                : (isDark ? 'bg-[#161B26]/40 border border-[#222938]' : 'bg-slate-50 border border-slate-200')">
+            <div class="flex-1 rounded-xl p-3 flex flex-col items-center gap-1" :class="uploadErrors?.length
+              ? (isDark ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-rose-50 border border-rose-200')
+              : (isDark ? 'bg-[#161B26]/40 border border-[#222938]' : 'bg-slate-50 border border-slate-200')">
               <span class="text-2xl font-semibold"
                 :class="uploadErrors?.length ? (isDark ? 'text-rose-400' : 'text-rose-500') : (isDark ? 'text-slate-500' : 'text-slate-400')">
                 {{ uploadErrors?.length ?? 0 }}
@@ -427,8 +435,7 @@
 
           <!-- ── Acciones ────────────────────────────────────────────────── -->
           <!-- Botón descarga reporte (opcional) -->
-          <button v-if="uploadProcesados?.length || uploadErrors?.length"
-            @click="descargarReporteCarga"
+          <button v-if="uploadProcesados?.length || uploadErrors?.length" @click="descargarReporteCarga"
             class="w-full mb-2 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest border transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             :class="isDark
               ? 'border-white/15 text-slate-300 hover:bg-white/8'
