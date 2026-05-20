@@ -1,103 +1,93 @@
 <template>
-  <div class="h-screen overflow-hidden flex items-center justify-center transition-all duration-700 p-4"
-    :class="isDark ? 'dark theme-dark bg-[#1a1f35]' : 'light theme-light bg-[#eef2f7]'"
-  >
-    <div class="woden-card relative" :class="isDark ? 'card-dark' : 'card-light'">
-
+  <div
+    class="h-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none"
+    :class="isDark ? 'bg-[#0B0F19]' : 'bg-[#F4F6FA]'">
+    <div class="w-full max-w-sm rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 border"
+      :class="isDark
+        ? 'bg-[#161B26] border-[#222938]'
+        : 'bg-white border-transparent shadow-[0_10px_30px_rgba(0,0,0,0.04)]'">
       <div>
-        <!-- Status -->
-        <div class="flex items-center gap-2 mb-8">
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span class="text-[8px] font-black uppercase tracking-[0.2em]"
-            :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
-            Conexión Segura
-          </span>
+        <div class="flex justify-end mb-4">
+          <i class="fa-solid fa-shield-shield text-xs opacity-40" :class="isDark ? 'text-white' : 'text-slate-600'"></i>
         </div>
 
-        <!-- Logo -->
-        <div class="text-center mb-10">
-          <div class="app-icon-box mx-auto mb-5" :class="isDark ? 'app-icon-dark' : 'app-icon-light'">
-            <i class="fa-solid fa-grip app-icon-inner"></i>
-          </div>
-          <h1 class="login-title mb-2">
-            <span :class="isDark ? 'text-white' : 'text-[#111827]'">Woden</span><span class="text-[#ff8f00]">Track</span>
+        <div class="mb-8 text-left">
+          <h1 class="text-2xl font-bold tracking-tight mb-1" :class="isDark ? 'text-white' : 'text-[#111827]'">
+            Bienvenido a <span class="text-[#2563EB] font-extrabold ml-0.5">WodenTrack</span>
           </h1>
-          <p class="text-[9px] font-semibold uppercase tracking-[0.35em]"
-            :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+          <p class="text-xs font-normal" :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">
             Identifícate para continuar
           </p>
         </div>
 
-        <!-- Inputs -->
         <div class="space-y-4">
-          <div class="input-wrapper">
-            <input v-model="form.usuario" type="text" placeholder="Usuario"
-              class="woden-input-base modern-input" @keyup.enter="handleLogin" autocomplete="off">
-            <span class="field-icon-wrap">
-              <i class="fa-regular fa-circle-user"></i>
-            </span>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium"
+              :class="isDark ? 'text-[#8895B3]' : 'text-[#334155]'">Usuario</label>
+            <input v-model="form.usuario" type="text" placeholder="Ingresa tu usuario"
+              class="w-full h-11 rounded-xl px-4 text-xs font-medium transition-all duration-150 outline-none border"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#2563EB]'
+                : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin"
+              autocomplete="off">
           </div>
 
-          <div class="input-wrapper">
-            <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Contraseña"
-              class="woden-input-base modern-input pr-10" @keyup.enter="handleLogin">
-            <span class="field-icon-wrap">
-              <i class="fa-solid fa-fingerprint"></i>
-            </span>
-            <button @click="showPassword = !showPassword" type="button"
-              class="absolute right-3 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-100 opacity-35"
-              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
-            </button>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-medium"
+              :class="isDark ? 'text-[#8895B3]' : 'text-[#334155]'">Contraseña</label>
+            <div class="relative">
+              <input v-model="form.password" :type="showPassword ? 'text' : 'password'"
+                placeholder="Ingresa tu contraseña"
+                class="w-full h-11 rounded-xl pl-4 pr-12 text-xs font-medium transition-all duration-150 outline-none border"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#2563EB]'
+                  : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin">
+              <button @click="showPassword = !showPassword" type="button"
+                class="absolute right-4 top-1/2 -translate-y-1/2 transition-opacity duration-150 opacity-40 hover:opacity-100"
+                :class="isDark ? 'text-white' : 'text-slate-600'">
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+              </button>
+            </div>
           </div>
 
           <Transition name="fade">
             <p v-if="message.text && message.type === 'error'"
-              class="text-[9px] font-bold uppercase tracking-widest text-rose-400 text-center pt-1">
-              <i class="fas fa-circle-exclamation mr-1"></i>{{ message.text }}
+              class="text-xs font-medium text-rose-500 pt-1 flex items-center gap-1.5 justify-center">
+              <i class="fas fa-circle-exclamation"></i> {{ message.text }}
             </p>
           </Transition>
         </div>
       </div>
 
-      <div class="mt-8">
-        <!-- Botón -->
-        <button @click="handleLogin" :disabled="loading" class="modern-btn mb-6 active:scale-[0.98]">
+      <div class="mt-8 space-y-5">
+        <button @click="handleLogin" :disabled="loading"
+          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed shadow-sm">
           <template v-if="!loading">
-            <i class="fa-solid fa-arrow-right-to-bracket"></i>
-            <span>Entrar al Sistema</span>
+            <span>Continuar</span>
           </template>
-          <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+          <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
         </button>
 
-        <!-- Theme toggle -->
-        <div class="flex flex-col items-center gap-2">
-          <button @click="toggleTheme"
-            class="text-[10px] font-semibold uppercase tracking-widest transition-colors flex items-center gap-1.5"
-            :class="isDark ? 'text-slate-500 hover:text-slate-200' : 'text-slate-400 hover:text-[#ff8f00]'">
-            <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-[10px]"></i>
-            Modo {{ isDark ? 'Claro' : 'Oscuro' }}
-          </button>
-        </div>
+        <div class="border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></div>
 
-        <!-- Download link -->
-        <div class="flex flex-col items-center gap-2 mt-4">
-          <router-link to="/download"
-            class="text-[9px] font-bold text-[#ff8f00] uppercase tracking-widest hover:opacity-70 transition-opacity flex items-center gap-1">
-            <i class="fab fa-android"></i> Descargar Aplicación
+        <div class="flex items-center justify-between text-[11px] font-medium px-0.5">
+          <button @click="toggleTheme" class="transition-colors flex items-center gap-1.5"
+            :class="isDark ? 'text-[#8895B3] hover:text-white' : 'text-[#64748B] hover:text-[#2563EB]'">
+            <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
+            <span>{{ isDark ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+          </button>
+
+          <router-link to="/download" class="transition-colors flex items-center gap-1.5"
+            :class="isDark ? 'text-[#8895B3] hover:text-white' : 'text-[#64748B] hover:text-[#2563EB]'">
+            <i class="fab fa-android"></i>
+            <span>Descargar APK</span>
           </router-link>
-          <p class="text-[7px] font-bold uppercase tracking-[0.4em] opacity-20"
-            :class="isDark ? 'text-slate-300' : 'text-slate-500'">v{{ appVersion }}</p>
         </div>
       </div>
 
     </div>
   </div>
 </template>
-
 <script setup>
 import '../assets/css/woden-style.css';
 import { ref, onMounted } from 'vue';
@@ -132,17 +122,22 @@ onMounted(async () => {
   transform: rotate(-8deg);
   transition: transform 0.3s ease;
 }
-.app-icon-box:hover { transform: rotate(0deg) scale(1.05); }
+
+.app-icon-box:hover {
+  transform: rotate(0deg) scale(1.05);
+}
 
 .app-icon-light {
   background: #ffffff;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
 }
+
 .app-icon-dark {
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
+
 .app-icon-inner {
   font-size: 1.35rem;
   color: #3b5bdb;
@@ -168,8 +163,14 @@ onMounted(async () => {
   z-index: 10;
   pointer-events: none;
 }
-.theme-light .field-icon-wrap { color: #94a3b8; }
-.theme-dark  .field-icon-wrap { color: rgba(255, 255, 255, 0.28); }
+
+.theme-light .field-icon-wrap {
+  color: #94a3b8;
+}
+
+.theme-dark .field-icon-wrap {
+  color: rgba(255, 255, 255, 0.28);
+}
 
 /* ─── Botón moderno ───────────────────────────────────── */
 .modern-btn {
@@ -191,25 +192,53 @@ onMounted(async () => {
   box-shadow: 0 8px 22px -4px rgba(59, 91, 219, 0.45);
   transition: all 0.25s ease;
 }
+
 .modern-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 14px 30px -4px rgba(59, 91, 219, 0.55);
 }
-.modern-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.modern-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
 /* ─── Transición error ────────────────────────────────── */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 
 /* ─── Animaciones base ────────────────────────────────── */
 @keyframes ping {
-  75%, 100% { transform: scale(2.5); opacity: 0; }
+
+  75%,
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
-.animate-ping { animation: ping 2s infinite; }
+
+.animate-ping {
+  animation: ping 2s infinite;
+}
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
-.animate-spin { animation: spin 1s linear infinite; }
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 </style>
