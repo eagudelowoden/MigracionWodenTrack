@@ -1,11 +1,11 @@
 <template>
   <div class="h-full animate-fade-in flex flex-col gap-3">
 
-    <!-- ── Toolbar (Vercel compacto) ─────────────────────────────────────── -->
-    <div class="flex flex-wrap items-end gap-3 px-3 py-2.5 rounded-md border"
+    <!-- ── Toolbar (Vercel ultra compacto, sin labels) ───────────────────── -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-      <div class="flex items-center gap-2 self-center mr-1">
+      <div class="flex items-center gap-2">
         <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
           <i class="fas fa-file-arrow-up text-[11px]"></i>
         </div>
@@ -15,63 +15,40 @@
         </h2>
       </div>
 
-      <!-- Separador -->
-      <div class="h-7 w-px self-end" :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'"></div>
+      <div class="flex flex-wrap items-center gap-1.5">
 
-      <!-- Desde -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-          Desde
-        </label>
-        <input type="date" v-model="startDate"
-          class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-          :class="isDark
-            ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-            : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-      </div>
+        <!-- Rango fechas (agrupadas con separador) -->
+        <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border transition-all"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'">
+          <input v-model="startDate" type="date"
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+            :class="isDark ? 'text-white' : 'text-slate-700'" />
+          <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
+          <input v-model="endDate" type="date"
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+            :class="isDark ? 'text-white' : 'text-slate-700'" />
+        </div>
 
-      <!-- Hasta -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-          Hasta
-        </label>
-        <input type="date" v-model="endDate"
-          class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-          :class="isDark
-            ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-            : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-      </div>
-
-      <!-- Nombre -->
-      <div class="flex flex-col gap-1">
-        <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-          Nombre
-        </label>
+        <!-- Nombre -->
         <div class="relative">
           <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
             :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          <input v-model="filterNombre" type="text" placeholder="Buscar…"
-            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 transition-all"
+          <input v-model="filterNombre" type="text" placeholder="Nombre…"
+            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-36 transition-all"
             :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
               : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
         </div>
-      </div>
 
-      <!-- Departamento -->
-      <div v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" class="flex flex-col gap-1">
-        <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-          Departamento
-        </label>
-        <input v-model="filterDepartamento" type="text" placeholder="Filtrar…"
-          class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-44 transition-all"
+        <!-- Departamento -->
+        <input v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin"
+          v-model="filterDepartamento" type="text" placeholder="Departamento…"
+          class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-36 transition-all"
           :class="isDark
             ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
             : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-      </div>
 
-      <!-- Refrescar -->
-      <div class="ml-auto self-end">
+        <!-- Refrescar -->
         <button @click="handleCargar" :disabled="isLoading"
           class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
           :class="isDark

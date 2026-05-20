@@ -1,24 +1,69 @@
 <template>
   <div class="h-full animate-fade-in flex flex-col gap-3">
 
-    <!-- ── Tabs (Vercel segmented) ───────────────────────────────────────── -->
-    <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
-      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')"
-      :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
-      <button @click="activeTab = 'calculos'"
-        class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
-        :class="activeTab === 'calculos'
-          ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-          : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-calculator text-[10px]"></i>Cálculos
-      </button>
-      <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
-        class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
-        :class="activeTab === 'cargue'
-          ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-          : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
-      </button>
+    <!-- ── Header row: Tabs (izq) + Acciones (der) ───────────────────────── -->
+    <div class="flex items-center justify-between gap-3 flex-wrap"
+      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')">
+
+      <!-- Tabs (Vercel segmented) -->
+      <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
+        :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+        <button @click="activeTab = 'calculos'"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+          :class="activeTab === 'calculos'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-calculator text-[10px]"></i>Cálculos
+        </button>
+        <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+          :class="activeTab === 'cargue'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
+        </button>
+      </div>
+
+      <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
+      <div v-if="activeTab === 'calculos'" class="flex items-center gap-1.5">
+
+        <!-- Refrescar (icon button con borde azul sutil) -->
+        <button @click="handleCargar" :disabled="isLoading"
+          class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-40"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#888888] hover:text-white hover:border-[#3B82F6]/60 hover:bg-[#3B82F6]/[0.05]'
+            : 'bg-white border-[#3B82F6]/30 text-slate-500 hover:text-[#3B82F6] hover:border-[#3B82F6]/60 hover:bg-[#3B82F6]/[0.05]'"
+          title="Refrescar historial">
+          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
+        </button>
+
+        <!-- Exportar -->
+        <button @click="handleExportar" :disabled="isExporting || !registros.length"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
+            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
+          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+          <span>{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
+        </button>
+
+        <!-- Calcular -->
+        <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
+            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
+          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
+          <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
+        </button>
+
+        <!-- Guardar (primary brand fill) -->
+        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563EB] hover:border-[#2563EB]">
+          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
+          <span>{{ isSaving ? 'Guardando…' : 'Guardar' }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- ══ TAB CÁLCULOS ════════════════════════════════════════════════════ -->
@@ -124,53 +169,6 @@
           </label>
         </div>
 
-        <!-- Separador entre filtros y acciones -->
-        <div class="border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></div>
-
-        <!-- Sección acciones (Vercel button bar) -->
-        <div class="flex items-center gap-2 px-3 py-2"
-          :class="isDark ? 'bg-[#0B0F19]/40' : 'bg-slate-50/60'">
-
-          <!-- Refrescar (ghost) -->
-          <button @click="handleCargar" :disabled="isLoading"
-            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-40"
-            :class="isDark
-              ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'"
-            title="Refrescar historial">
-            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
-          </button>
-
-          <!-- Excel (ghost secondary) -->
-          <button @click="handleExportar" :disabled="isExporting || !registros.length"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-            :class="isDark
-              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-            <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
-            <span>{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
-          </button>
-
-          <div class="flex-1"></div>
-
-          <!-- Calcular (secondary) -->
-          <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-            :class="isDark
-              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-            <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
-            <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
-          </button>
-
-          <!-- Guardar (primary Vercel blue) -->
-          <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 text-white bg-[#3B82F6] hover:bg-[#2563EB]">
-            <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
-            <span>{{ isSaving ? 'Guardando…' : 'Guardar' }}</span>
-          </button>
-
-        </div>
       </div>
 
     <!-- ── Nota sexagesimal ───────────────────────────────────────────────── -->

@@ -1,7 +1,7 @@
 <template>
   <div class="gm-root h-full flex flex-col gap-3 animate-fade-in" :class="isDark ? 'gm-dark' : 'gm-light'">
 
-    <!-- HEADER -->
+    <!-- HEADER + TABS -->
     <header class="gm-header">
       <div class="gm-header-left">
         <div class="gm-header-icon">
@@ -14,19 +14,36 @@
       </div>
 
       <div class="gm-header-right">
+        <!-- Tabs Vercel segmented -->
+        <div class="flex items-center gap-0.5 p-0.5 rounded-md border"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+          <button @click="activeView = 'listado'"
+            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeView === 'listado'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-list text-[10px]"></i>Listado
+          </button>
+          <button @click="activeView = 'crear'"
+            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeView === 'crear'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-plus text-[10px]"></i>Crear
+          </button>
+          <button @click="activeView = 'masivo'"
+            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeView === 'masivo'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-file-excel text-[10px]"></i>Carga masiva
+          </button>
+        </div>
+
+        <!-- Botón utilitario Plantilla -->
         <button @click="descargarPlantilla" class="gm-btn-ghost" title="Descargar plantilla Excel">
           <i class="fas fa-download"></i>
           Plantilla
-        </button>
-        <button @click="panelUpload = !panelUpload" class="gm-btn-ghost"
-          :class="panelUpload ? 'is-active' : ''">
-          <i class="fas fa-file-excel"></i>
-          Carga masiva
-        </button>
-        <button @click="panelForm = !panelForm" class="gm-btn-primary"
-          :class="panelForm ? 'is-cancel' : ''">
-          <i :class="panelForm ? 'fas fa-times' : 'fas fa-plus'"></i>
-          {{ panelForm ? 'Cancelar' : 'Nueva malla' }}
         </button>
       </div>
     </header>
@@ -155,7 +172,7 @@
 
     <!-- PANEL: CARGA MASIVA EXCEL -->
     <Transition name="slide-down">
-      <div v-if="panelUpload" class="rounded-xl border overflow-hidden transition-all"
+      <div v-if="activeView === 'masivo'" class="rounded-xl border overflow-hidden transition-all"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
         <div class="px-3 py-2 border-b flex items-center gap-2"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
@@ -214,7 +231,7 @@
     <!-- PANEL: FORMULARIO CREAR MALLA -->
     <!-- overflow-visible permite que los dropdowns de hora en el Domingo no queden ocultos -->
     <Transition name="slide-down">
-      <div v-if="panelForm" class="rounded-xl border transition-all"
+      <div v-if="activeView === 'crear'" class="rounded-xl border transition-all"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
         <div class="px-3 py-2 border-b rounded-t-xl"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
@@ -511,8 +528,9 @@
       </div>
     </Transition>
 
-    <!-- TABLA DE MALLAS EXISTENTES -->
-    <div class="flex-1 min-h-0 rounded-xl border overflow-hidden transition-all flex flex-col"
+    <!-- TABLA DE MALLAS EXISTENTES (solo en tab Listado) -->
+    <div v-if="activeView === 'listado'"
+      class="flex-1 min-h-0 rounded-xl border overflow-hidden transition-all flex flex-col"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
 
       <!-- Header con búsqueda -->
@@ -693,8 +711,8 @@ const reduccionInicial = () => ({ activa: false, horas: 2, dia: null });
 // ── Estado ──────────────────────────────────────────────────
 const mallas = ref([]);
 const cargando = ref(false);
-const panelForm = ref(false);
-const panelUpload = ref(false);
+// Tab activo: 'listado' | 'crear' | 'masivo'
+const activeView = ref('listado');
 const form = ref(formularioInicial());
 const guardando = ref(false);
 const mallaAEliminar = ref(null);
@@ -851,7 +869,7 @@ const crearMalla = async () => {
     });
     if (!res.ok) throw new Error((await res.json()).message || 'Error');
     emit('success', 'Malla creada correctamente');
-    panelForm.value = false;
+    activeView.value = 'listado';
     form.value = formularioInicial();
     reduccion.value = reduccionInicial();
     await cargarMallas();
