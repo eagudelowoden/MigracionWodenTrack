@@ -20,6 +20,18 @@
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
         </button>
+        <button @click="handleTabNovedades('aprobadas')"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-circle-check text-[10px]"></i>Novedades Aprobadas
+        </button>
+        <button @click="handleTabNovedades('hx')"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'hx'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-chart-bar text-[10px]"></i>Novedades HX
+        </button>
       </div>
 
       <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
@@ -58,7 +70,9 @@
         <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
           class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563EB] hover:border-[#2563EB]">
           <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
-          <span>{{ isSaving ? 'Guardando…' : 'Guardar' }}</span>
+          <span v-if="isSaving">Guardando…</span>
+          <span v-else-if="selectedRecords.length">Guardar ({{ selectedRecords.length }})</span>
+          <span v-else>Guardar todo</span>
         </button>
       </div>
     </div>
@@ -98,10 +112,10 @@
           <!-- Separador visual -->
           <div class="h-7 w-px self-end" :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'"></div>
 
-          <!-- Buscar nombre -->
+          <!-- Buscar nombre/cédula -->
           <div class="flex flex-col gap-1">
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
-              Nombre
+              Nombre / Cédula
             </label>
             <div class="relative">
               <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
@@ -187,6 +201,14 @@
             <!-- Encabezado uniforme -->
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
+                <!-- Checkbox select-all -->
+                <th rowspan="2" class="px-2 py-2 text-center border-b border-r w-8 border-[#f5f5f7]">
+                  <input type="checkbox"
+                    :checked="isAllFilteredSelected"
+                    :indeterminate="isIndeterminate"
+                    @change="toggleAllFiltered"
+                    class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
+                </th>
                 <th colspan="2"
                   class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Colaborador
@@ -244,14 +266,14 @@
             <tbody>
               <!-- Loading skeleton -->
               <tr v-if="isLoading || isCalculating" v-for="n in 8" :key="'sk-' + n">
-                <td colspan="15" class="px-3 py-3">
+                <td colspan="16" class="px-3 py-3">
                   <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
                 </td>
               </tr>
 
               <!-- Sin datos -->
               <tr v-else-if="!filasPaginadas.length">
-                <td colspan="15" class="px-4 py-14 text-center">
+                <td colspan="16" class="px-4 py-14 text-center">
                   <div class="flex flex-col items-center gap-3">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center"
                       :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
@@ -269,7 +291,7 @@
 
                 <!-- Cabecera empresa -->
                 <tr v-if="item.tipo === 'empresa'">
-                  <td colspan="15" class="px-4 py-2 text-[10px] font-medium border-b" :class="isDark
+                  <td colspan="16" class="px-4 py-2 text-[10px] font-medium border-b" :class="isDark
                     ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
                     : 'bg-slate-100 border-slate-200 text-slate-700'">
                     <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
@@ -283,6 +305,15 @@
                     : '',
                   isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-white/[0.03]/40'
                 ]">
+
+                  <!-- Checkbox fila -->
+                  <td class="px-2 py-2 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <input type="checkbox"
+                      :checked="isSelected(item.data)"
+                      @change="toggleSelected(item.data)"
+                      class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
+                  </td>
 
                   <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
                     :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
@@ -336,8 +367,10 @@
 
                   <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="flex items-center justify-center gap-1">
-                      <button @click="handleAprobar(item.data.id, true)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                      <button @click="abrirModalAprobar(item.data, true)"
+                        :disabled="!item.data.id"
+                        :title="!item.data.id ? 'Guarda los registros primero' : ''"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                         :class="item.data.aprobado === true
                           ? 'bg-[#16a34a] border-[#16a34a] text-white'
                           : (isDark
@@ -345,8 +378,10 @@
                             : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
                         <i class="fas fa-check text-[9px]"></i>
                       </button>
-                      <button @click="handleAprobar(item.data.id, false)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                      <button @click="abrirModalAprobar(item.data, false)"
+                        :disabled="!item.data.id"
+                        :title="!item.data.id ? 'Guarda los registros primero' : ''"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                         :class="item.data.aprobado === false
                           ? 'bg-[#dc2626] border-[#dc2626] text-white'
                           : (isDark
@@ -360,7 +395,7 @@
 
                 <!-- Subtotal colaborador (Vercel sutil) -->
                 <tr v-else-if="item.tipo === 'subtotal'">
-                  <td colspan="7" class="px-3 py-2 border-b border-r text-[10px] font-medium" :class="isDark
+                  <td colspan="8" class="px-3 py-2 border-b border-r text-[10px] font-medium" :class="isDark
                     ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
                     : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     Subtotal — {{ item.data.nombre }}
@@ -517,11 +552,224 @@
     </template>
     <!-- ══ FIN TAB CARGUE HORAS ══════════════════════════════════════════════ -->
 
+    <!-- ══ TAB NOVEDADES APROBADAS ══════════════════════════════════════════ -->
+    <template v-else-if="activeTab === 'aprobadas'">
+
+      <!-- Toolbar notificar -->
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length }}</span>
+          registro(s) aprobado(s) en el rango
+        </span>
+        <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
+            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
+          <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[10px]"></i>
+          {{ isNotifying ? 'Enviando…' : 'Notificar por correo' }}
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <div v-if="isLoadingNovedades" class="flex-1 flex items-center justify-center">
+          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
+        </div>
+
+        <div v-else-if="!novedadesAprobadas.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+            <i class="fas fa-circle-check text-xl text-[#16a34a]"></i>
+          </div>
+          <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            No hay novedades aprobadas en el rango seleccionado
+          </p>
+        </div>
+
+        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table class="w-full border-separate border-spacing-0 text-[11px]">
+            <thead class="sticky top-0 z-30">
+              <tr class="bg-[#1e2538]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th v-for="col in ['RN','RNDF','RDDF','HEDO','HENO','HEFD','HEFN']" :key="col"
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  {{ col }}
+                </th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id"
+                class="group transition-all"
+                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+                <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
+                <td class="px-3 py-2 border-b border-r font-bold uppercase"
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
+                <td class="px-3 py-2 border-b border-r text-center"
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
+                <td class="px-3 py-2 border-b border-r"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
+                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
+                  :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                    Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  {{ formatDecimal(r[col]) }}
+                </td>
+                <td class="px-3 py-2 border-b text-[10px] italic"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                  {{ r.observacion || '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+    <!-- ══ FIN TAB NOVEDADES APROBADAS ══════════════════════════════════════ -->
+
+    <!-- ══ TAB NOVEDADES HX POR DEPARTAMENTO ════════════════════════════════ -->
+    <template v-else-if="activeTab === 'hx'">
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <div v-if="isLoadingNovedadesHX" class="flex-1 flex items-center justify-center">
+          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
+        </div>
+
+        <div v-else-if="!novedadesHX.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+            <i class="fas fa-chart-bar text-xl text-[#3B82F6]"></i>
+          </div>
+          <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            No hay registros en el rango seleccionado
+          </p>
+        </div>
+
+        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table class="w-full border-separate border-spacing-0 text-[11px]">
+            <thead class="sticky top-0 z-30">
+              <tr class="bg-[#1e2538]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Personas</th>
+                <th v-for="col in ['RN','RNDF','RDDF','HEDO','HENO','HEFD','HEFN']" :key="col"
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-14 border-[#f5f5f7] text-[#f5f5f7]">
+                  {{ col }} (h)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(dept, idx) in novedadesHX" :key="dept.departamento"
+                class="group transition-all"
+                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+                <td class="px-3 py-2 border-b border-r font-semibold"
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">
+                  <i class="fas fa-building mr-2 opacity-40 text-[#3B82F6] text-[9px]"></i>{{ dept.departamento }}
+                </td>
+                <td class="px-3 py-2 border-b border-r text-center font-mono"
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
+                  {{ dept.personas }}
+                </td>
+                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
+                  :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                    dept.totales[col] > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  {{ dept.totales[col] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+    <!-- ══ FIN TAB NOVEDADES HX ══════════════════════════════════════════════ -->
+
+    <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="modalAprobar.visible"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55)">
+        <div class="w-full max-w-md rounded-xl border shadow-2xl"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center"
+                :class="modalAprobar.aprobado ? 'bg-[#16a34a]/15' : 'bg-[#dc2626]/15'">
+                <i :class="modalAprobar.aprobado ? 'fas fa-check text-[#16a34a]' : 'fas fa-times text-[#dc2626]'"
+                  class="text-[11px]"></i>
+              </div>
+              <div>
+                <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                  {{ modalAprobar.aprobado ? 'Aprobar' : 'Rechazar' }} horas extra
+                </p>
+                <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                  {{ modalAprobar.registro?.nombre }}
+                </p>
+              </div>
+            </div>
+            <button @click="cerrarModal"
+              class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+              <i class="fas fa-times text-[10px]"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="px-5 py-4 flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] font-medium" :class="isDark ? 'text-[#E2E8F0]' : 'text-slate-700'">
+                Observación <span class="font-normal opacity-60">(opcional)</span>
+              </label>
+              <textarea v-model="modalAprobar.observacion" rows="3" placeholder="Escribe una observación..."
+                class="w-full px-3 py-2 text-[11px] rounded-lg border outline-none resize-none transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6]'
+                  : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-[#3B82F6]'">
+              </textarea>
+            </div>
+
+            <!-- Info del registro -->
+            <div class="rounded-lg px-3 py-2.5 text-[10px] grid grid-cols-2 gap-x-4 gap-y-1"
+              :class="isDark ? 'bg-[#0B0F19] text-slate-400' : 'bg-slate-50 text-slate-500'">
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Fecha:</span> {{ formatFecha(modalAprobar.registro?.fecha) }}</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Dpto:</span> {{ modalAprobar.registro?.departamento || '—' }}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-5 py-3 border-t flex items-center justify-end gap-2"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <button @click="cerrarModal"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="confirmarAprobar" :disabled="modalAprobar.loading"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border text-white transition-all disabled:opacity-50"
+              :class="modalAprobar.aprobado
+                ? 'bg-[#16a34a] border-[#16a34a] hover:bg-[#15803d]'
+                : 'bg-[#dc2626] border-[#dc2626] hover:bg-[#b91c1c]'">
+              <i v-if="modalAprobar.loading" class="fas fa-spinner fa-spin mr-1 text-[9px]"></i>
+              {{ modalAprobar.aprobado ? 'Aprobar' : 'Rechazar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    <!-- ══ FIN MODAL OBSERVACIÓN ═════════════════════════════════════════════ -->
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
@@ -567,6 +815,21 @@ const {
   formatDecimal,
   COLS_HX,
   hasPerm,
+  novedadesAprobadas,
+  isLoadingNovedades,
+  cargarNovedadesAprobadas,
+  novedadesHX,
+  isLoadingNovedadesHX,
+  cargarNovedadesHX,
+  isNotifying,
+  notificarAprobados,
+  selectedRecords,
+  isSelected,
+  toggleSelected,
+  isAllFilteredSelected,
+  isIndeterminate,
+  toggleAllFiltered,
+  clearSelection,
 } = useReporteMallas();
 
 // ── Composable Cargue ────────────────────────────────────────────────────────
@@ -602,6 +865,48 @@ async function handleDescargarPlantilla() {
   await descargarPlantilla();
 }
 
+// ── Modal observación ─────────────────────────────────────────────────────────
+const modalAprobar = reactive({
+  visible: false,
+  registro: null,
+  aprobado: true,
+  observacion: '',
+  loading: false,
+});
+
+function abrirModalAprobar(registro, aprobado) {
+  modalAprobar.registro = registro;
+  modalAprobar.aprobado = aprobado;
+  modalAprobar.observacion = registro.observacion || '';
+  modalAprobar.loading = false;
+  modalAprobar.visible = true;
+}
+
+function cerrarModal() {
+  modalAprobar.visible = false;
+}
+
+async function confirmarAprobar() {
+  if (!modalAprobar.registro?.id) return;
+  modalAprobar.loading = true;
+  try {
+    await aprobarRegistro(modalAprobar.registro.id, modalAprobar.aprobado, modalAprobar.observacion);
+    modalAprobar.visible = false;
+  } catch { /* silencioso */ } finally {
+    modalAprobar.loading = false;
+  }
+}
+
+// ── Handlers nuevas pestañas ──────────────────────────────────────────────────
+async function handleTabNovedades(tab) {
+  activeTab.value = tab;
+  if (tab === 'aprobadas') {
+    await cargarNovedadesAprobadas(props.company);
+  } else if (tab === 'hx') {
+    await cargarNovedadesHX(props.company);
+  }
+}
+
 // ── Handlers cálculos ────────────────────────────────────────────────────────
 async function handleCargar() {
   await cargarHistorial(props.company);
@@ -625,9 +930,9 @@ async function handleExportar() {
   } catch { /* silencioso */ }
 }
 
-async function handleAprobar(id, aprobado) {
+async function handleNotificar() {
   try {
-    await aprobarRegistro(id, aprobado);
+    await notificarAprobados();
   } catch { /* silencioso */ }
 }
 

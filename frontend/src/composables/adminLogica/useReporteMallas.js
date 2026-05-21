@@ -281,19 +281,19 @@ export function useReporteMallas() {
   async function guardarCalculados(company) {
     try {
       isSaving.value = true;
-      await _asegurarPerfil();
       const s = getSession();
 
-      const payload = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        company: company || "",
-        calculado_por: s.name || "Desconocido",
-        guardar: true,
-        ...getAreaSegmento(),
-      };
+      // Si hay selección usa esa; si no, guarda todos los filtrados
+      const toSave =
+        selectedRecords.value.length > 0
+          ? selectedRecords.value
+          : registrosFiltrados.value;
 
-      await axios.post(`${API_BASE_URL}/horas-extra/guardar`, payload);
+      await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
+        registros: toSave,
+        calculado_por: s.name || "Desconocido",
+      });
+      clearSelection();
       await cargarHistorial(company);
       hayResultadosCalculados.value = false;
     } catch (err) {
@@ -330,19 +330,190 @@ export function useReporteMallas() {
     }
   }
 
-  async function aprobarRegistro(id, aprobado) {
+  async function aprobarRegistro(id, aprobado, observacion) {
     try {
       aprobacionesLocales.value[id] = aprobado;
       await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, {
         aprobado,
+        observacion: observacion || null,
       });
-      // Actualizar en la lista local
+
+      // Actualizar en lista principal
       const idx = registros.value.findIndex((r) => r.id === id);
-      if (idx !== -1) registros.value[idx].aprobado = aprobado;
+      if (idx !== -1) {
+        registros.value[idx] = {
+          ...registros.value[idx],
+          aprobado,
+          observacion: observacion || null,
+        };
+      }
+
+      // Sincronizar novedadesAprobadas en tiempo real
+      if (aprobado === true) {
+        const registro = registros.value[idx] ?? { id };
+        const yaExiste = novedadesAprobadas.value.findIndex((n) => n.id === id);
+        if (yaExiste === -1) {
+          novedadesAprobadas.value = [
+            { ...registro, aprobado: true, observacion: observacion || null },
+            ...novedadesAprobadas.value,
+          ];
+        } else {
+          novedadesAprobadas.value[yaExiste] = {
+            ...novedadesAprobadas.value[yaExiste],
+            observacion: observacion || null,
+          };
+        }
+      } else {
+        // Si se rechaza, quitarlo de novedades aprobadas
+        novedadesAprobadas.value = novedadesAprobadas.value.filter(
+          (n) => n.id !== id,
+        );
+      }
     } catch (err) {
       console.error("Error aprobando registro:", err);
       delete aprobacionesLocales.value[id];
       throw err;
+    }
+  }
+
+  // ── Notificar por correo ───────────────────────────────────────────────────
+  const isNotifying = ref(false);
+
+  async function notificarAprobados() {
+    try {
+      isNotifying.value = true;
+      await axios.post(`${API_BASE_URL}/horas-extra/notificar-aprobados`, {
+        registros: novedadesAprobadas.value,
+      });
+    } catch (err) {
+      console.error("Error enviando notificación:", err);
+      throw err;
+    } finally {
+      isNotifying.value = false;
+    }
+  }
+
+  // ── Selección por checkbox ─────────────────────────────────────────────────
+  const selectedKeys = ref(new Set());
+
+  function _rowKey(r) {
+    return `${r.cedula}_${r.fecha}`;
+  }
+
+  function isSelected(r) {
+    return selectedKeys.value.has(_rowKey(r));
+  }
+
+  function toggleSelected(r) {
+    const k = _rowKey(r);
+    const next = new Set(selectedKeys.value);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    selectedKeys.value = next;
+  }
+
+  const isAllFilteredSelected = computed(() => {
+    const list = registrosFiltrados.value;
+    return list.length > 0 && list.every((r) => selectedKeys.value.has(_rowKey(r)));
+  });
+
+  const isIndeterminate = computed(() => {
+    const list = registrosFiltrados.value;
+    const count = list.filter((r) => selectedKeys.value.has(_rowKey(r))).length;
+    return count > 0 && count < list.length;
+  });
+
+  function toggleAllFiltered() {
+    if (isAllFilteredSelected.value || isIndeterminate.value) {
+      selectedKeys.value = new Set();
+    } else {
+      selectedKeys.value = new Set(registrosFiltrados.value.map(_rowKey));
+    }
+  }
+
+  const selectedRecords = computed(() =>
+    registrosFiltrados.value.filter((r) => selectedKeys.value.has(_rowKey(r))),
+  );
+
+  function clearSelection() {
+    selectedKeys.value = new Set();
+  }
+
+  // ── Novedades aprobadas
+  const novedadesAprobadas = ref([]);
+  const isLoadingNovedades = ref(false);
+
+  async function cargarNovedadesAprobadas(company) {
+    try {
+      isLoadingNovedades.value = true;
+      await _asegurarPerfil();
+      const params = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        ...(company && company !== "Todas" ? { company } : {}),
+        ...getAreaSegmento(),
+      };
+      const { data } = await axios.get(
+        `${API_BASE_URL}/horas-extra/novedades-aprobadas`,
+        { params: { ...params, _t: Date.now() } },
+      );
+      novedadesAprobadas.value = data;
+    } catch (err) {
+      console.error("Error cargando novedades aprobadas:", err);
+    } finally {
+      isLoadingNovedades.value = false;
+    }
+  }
+
+  // Novedades HX por departamento (usa los registros del historial ya cargados)
+  const novedadesHX = ref([]);
+  const isLoadingNovedadesHX = ref(false);
+
+  async function cargarNovedadesHX(company) {
+    try {
+      isLoadingNovedadesHX.value = true;
+      await _asegurarPerfil();
+      const s = getSession();
+      const params = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        ...(company && company !== "Todas" ? { company } : {}),
+        ...getAreaSegmento(),
+      };
+      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
+        if (s.department) params.departamento = s.department;
+      }
+      const { data } = await axios.get(
+        `${API_BASE_URL}/horas-extra/historial`,
+        { params },
+      );
+      // Agrupar por departamento
+      const deptMap = new Map();
+      for (const r of data) {
+        const dept = r.departamento || "Sin departamento";
+        if (!deptMap.has(dept)) {
+          deptMap.set(dept, {
+            departamento: dept,
+            personas: new Set(),
+            totales: { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 },
+            registros: [],
+          });
+        }
+        const d = deptMap.get(dept);
+        d.personas.add(r.cedula);
+        for (const col of ["rn", "rndf", "rddf", "hedo", "heno", "hefd", "hefn"]) {
+          d.totales[col] = Math.floor(d.totales[col] + (Number(r[col]) || 0));
+        }
+        d.registros.push(r);
+      }
+      novedadesHX.value = [...deptMap.values()].map((d) => ({
+        ...d,
+        personas: d.personas.size,
+      }));
+    } catch (err) {
+      console.error("Error cargando novedades HX:", err);
+    } finally {
+      isLoadingNovedadesHX.value = false;
     }
   }
 
@@ -352,7 +523,7 @@ export function useReporteMallas() {
 
       const response = await axios.post(
         `${API_BASE_URL}/horas-extra/exportar-calculado`,
-        { registros: registros.value },
+        { registros: registrosFiltrados.value },
         { responseType: "blob" },
       );
 
@@ -388,7 +559,7 @@ export function useReporteMallas() {
 
   function formatDecimal(val) {
     const n = Number(val) || 0;
-    return n === 0 ? "0" : n.toFixed(2).replace(".", ",");
+    return String(Math.floor(n));
   }
 
   function getAprobadoLabel(aprobado) {
@@ -428,6 +599,26 @@ export function useReporteMallas() {
     currentPage,
     totalPages,
     totalRegistros: computed(() => registrosFiltrados.value.length),
+
+    // Selección
+    selectedKeys,
+    selectedRecords,
+    isSelected,
+    toggleSelected,
+    isAllFilteredSelected,
+    isIndeterminate,
+    toggleAllFiltered,
+    clearSelection,
+
+    // Novedades
+    novedadesAprobadas,
+    isLoadingNovedades,
+    cargarNovedadesAprobadas,
+    novedadesHX,
+    isLoadingNovedadesHX,
+    cargarNovedadesHX,
+    isNotifying,
+    notificarAprobados,
 
     // Acciones
     cargarHistorial,

@@ -70,6 +70,9 @@ export class HoraExtra {
   @Column({ type: 'bit', nullable: true })
   aprobado: boolean | null;
 
+  @Column({ type: 'nvarchar', length: 1000, nullable: true })
+  observacion: string | null;
+
   // Cargo del colaborador
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   cargo: string | null;

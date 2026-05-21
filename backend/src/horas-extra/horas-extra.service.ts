@@ -6,6 +6,7 @@ import { HoraExtraCargue } from './entities/hora-extra-cargue.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
+import { MailService } from '../logsEmail/mail.service';
 import * as ExcelJS from 'exceljs';
 
 function getFechaColombiaHoy(): string {
@@ -77,6 +78,7 @@ export class HorasExtraService {
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
     private readonly odoo: OdooService,
+    private readonly mail: MailService,
   ) {}
 
   private async resolverIdsPorEstructura(
@@ -810,9 +812,102 @@ export class HorasExtraService {
   async aprobarRegistro(
     id: number,
     aprobado: boolean | null,
+    observacion?: string,
   ): Promise<HoraExtra | null> {
-    await this.horaExtraRepo.update(id, { aprobado });
+    await this.horaExtraRepo.update(id, { aprobado, observacion: observacion ?? null });
     return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async notificarAprobados(registros: any[]): Promise<{ enviado: boolean }> {
+    if (!registros.length) return { enviado: false };
+    const excelBuffer = await this._generarExcelDesdeRegistros(registros);
+    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer });
+    return { enviado: true };
+  }
+
+  async guardarSeleccionados(
+    registros: any[],
+    calculado_por: string,
+  ): Promise<{ guardados: number }> {
+    if (!registros.length) return { guardados: 0 };
+
+    // Borrar solo los pares cedula+fecha que vienen en la lista
+    for (const r of registros) {
+      if (r.cedula && r.fecha) {
+        await this.horaExtraRepo.delete({ cedula: r.cedula, fecha: r.fecha });
+      }
+    }
+
+    const entities = registros.map((r) =>
+      this.horaExtraRepo.create({
+        cedula: r.cedula,
+        nombre: r.nombre,
+        employee_id_odoo: r.employee_id_odoo ?? null,
+        fecha: r.fecha,
+        company: r.company ?? null,
+        departamento: r.departamento ?? null,
+        inicio_turno: r.inicio_turno ?? null,
+        fin_turno: r.fin_turno ?? null,
+        fecha_entrada: r.fecha_entrada ?? null,
+        fecha_salida: r.fecha_salida ?? null,
+        rn: r.rn ?? 0,
+        rndf: r.rndf ?? 0,
+        rddf: r.rddf ?? 0,
+        hedo: r.hedo ?? 0,
+        heno: r.heno ?? 0,
+        hefd: r.hefd ?? 0,
+        hefn: r.hefn ?? 0,
+        es_dominical: r.es_dominical ?? false,
+        cargo: r.cargo ?? null,
+        calculado_por,
+        aprobado: r.aprobado ?? null,
+        observacion: r.observacion ?? null,
+        total_minutos_extra: r.total_minutos_extra ?? 0,
+      }),
+    );
+
+    const CHUNK = 50;
+    for (let i = 0; i < entities.length; i += CHUNK) {
+      await this.horaExtraRepo.save(entities.slice(i, i + CHUNK));
+    }
+
+    return { guardados: entities.length };
+  }
+
+  async getNovedadesAprobadas(filters: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    departamento?: string;
+    area_id?: number;
+    segmento_id?: number;
+  }): Promise<HoraExtra[]> {
+    const qb = this.horaExtraRepo
+      .createQueryBuilder('h')
+      .where('h.aprobado = 1')   // bit=1 en SQL Server (no usar :param boolean aquí)
+      .orderBy('h.nombre', 'ASC')
+      .addOrderBy('h.fecha', 'ASC');
+
+    if (filters.startDate)
+      qb.andWhere('h.fecha >= :start', { start: filters.startDate });
+    if (filters.endDate)
+      qb.andWhere('h.fecha <= :end', { end: filters.endDate });
+    if (filters.company && filters.company !== 'Todas')
+      qb.andWhere('h.company = :company', { company: filters.company });
+    if (filters.departamento)
+      qb.andWhere('h.departamento = :dep', { dep: filters.departamento });
+
+    if (filters.area_id || filters.segmento_id) {
+      const ids = await this.resolverIdsPorEstructura(
+        filters.area_id,
+        filters.segmento_id,
+      );
+      if (ids && ids.length) {
+        qb.andWhere('h.employee_id_odoo IN (:...ids)', { ids: ids.slice(0, 500) });
+      }
+    }
+
+    return qb.getMany();
   }
 
   async exportarCalculado(registros: any[]): Promise<Buffer> {

@@ -9,6 +9,7 @@ import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
 import { MallaDetalle } from '../mallas/entities/malla-detalle.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooModule } from '../odoo/odoo.module';
+import { MailModule } from '../logsEmail/mail.module';
 import { HorasExtraService } from './horas-extra.service';
 import { HorasExtraController } from './horas-extra.controller';
 
@@ -24,6 +25,7 @@ import { HorasExtraController } from './horas-extra.controller';
     ]),
     MulterModule.register({ storage: memoryStorage() }),
     OdooModule,
+    MailModule,
   ],
   controllers: [HorasExtraController],
   providers: [HorasExtraService],

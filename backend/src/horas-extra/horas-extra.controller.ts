@@ -95,9 +95,43 @@ export class HorasExtraController {
   @Patch('aprobar/:id')
   aprobarRegistro(
     @Param('id') id: string,
-    @Body() dto: { aprobado: boolean | null },
+    @Body() dto: { aprobado: boolean | null; observacion?: string },
   ) {
-    return this.service.aprobarRegistro(Number(id), dto.aprobado);
+    return this.service.aprobarRegistro(Number(id), dto.aprobado, dto.observacion);
+  }
+
+  @Get('novedades-aprobadas')
+  novedadesAprobadas(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
+  ) {
+    return this.service.getNovedadesAprobadas({
+      startDate,
+      endDate,
+      company,
+      departamento,
+      area_id: area_id ? Number(area_id) : undefined,
+      segmento_id: segmento_id ? Number(segmento_id) : undefined,
+    });
+  }
+
+  @Post('notificar-aprobados')
+  notificarAprobados(@Body() body: { registros: any[] }) {
+    return this.service.notificarAprobados(body.registros ?? []);
+  }
+
+  @Post('guardar-seleccionados')
+  guardarSeleccionados(
+    @Body() body: { registros: any[]; calculado_por?: string },
+  ) {
+    return this.service.guardarSeleccionados(
+      body.registros ?? [],
+      body.calculado_por ?? 'Desconocido',
+    );
   }
 
   @Post('exportar-calculado')
