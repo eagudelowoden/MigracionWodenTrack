@@ -67,14 +67,14 @@
     <template v-if="activeTab === 'calculos'">
 
       <!-- ── Toolbar con filtros (Vercel) ───────────────────────────────── -->
-      <div class="rounded-md border" :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+      <div class="rounded-md border" :class="isDark ? 'bg-[#273045] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Sección filtros -->
         <div class="flex flex-wrap items-end gap-3 px-3 py-2.5">
 
           <!-- Rango de fechas -->
           <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">
               Desde
             </label>
             <input type="date" v-model="startDate"
@@ -85,7 +85,7 @@
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Hasta
             </label>
             <input type="date" v-model="endDate"
@@ -100,12 +100,12 @@
 
           <!-- Buscar nombre -->
           <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Nombre
             </label>
             <div class="relative">
               <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+                :class="isDark ? 'text-[#ffffff]' : 'text-slate-400'"></i>
               <input v-model="filterNombre" type="text" placeholder="Buscar…"
                 class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 transition-all"
                 :class="isDark
@@ -116,7 +116,7 @@
 
           <!-- Cargo -->
           <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Cargo
             </label>
             <div class="relative">
@@ -129,13 +129,13 @@
                 <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
               </select>
               <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+                :class="isDark ? 'text-[#ffffff]' : 'text-slate-400'"></i>
             </div>
           </div>
 
           <!-- Departamento -->
           <div v-if="hasPerm('admin.filtro_departamento') || isSuperAdmin" class="flex flex-col gap-1">
-            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Departamento
             </label>
             <div class="relative">

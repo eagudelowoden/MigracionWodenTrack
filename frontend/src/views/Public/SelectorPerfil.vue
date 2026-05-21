@@ -1,7 +1,7 @@
 <template>
   <div
     class="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden transition-colors duration-300 select-none"
-    :class="isDark ? 'bg-[#0B0F19] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
+    :class="isDark ? 'bg-[#1a1f35] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
 
     <!-- FONDO UNIFICADO WODENTRACK -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">

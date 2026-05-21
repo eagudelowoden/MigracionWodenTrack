@@ -3,12 +3,12 @@
 
     <!-- ── Sidebar (Geist full-bleed) ──────────────────────────────────────── -->
     <aside class="relative flex flex-col transition-all duration-300 ease-out z-50 border-r"
-      :style="{ backgroundColor: isDark ? '#161B26' : '#ffffff' }"
+      :style="{ backgroundColor: isDark ? '#273045' : '#ffffff' }"
       :class="[isSidebarOpen ? 'w-56' : 'w-16', isDark ? 'border-[#222938]' : 'border-slate-200']">
 
       <!-- Logo (compacto Vercel) -->
       <div class="relative h-11 flex items-center px-4 shrink-0 overflow-hidden border-b"
-        :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+        :class="isDark ? 'border-[#273045]' : 'border-slate-200'">
         <div class="flex items-center gap-2 group cursor-default">
           <div class="w-1 h-4 bg-[#3B82F6] rounded-sm"></div>
           <div v-if="isSidebarOpen" class="flex items-baseline animate-fade-in whitespace-nowrap">

@@ -20,7 +20,7 @@
       </div>
 
       <!-- Búsqueda nombre (flex-1) -->
-      <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border flex-1 min-w-0 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
+      <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border w-44 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
         :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50'">
         <i class="fas fa-magnifying-glass text-[#3B82F6] text-[9px] shrink-0"></i>
         <input v-model="filters.nombre" type="text" placeholder="Buscar por nombre..."
@@ -73,65 +73,48 @@
         <i class="fas fa-rotate-left text-[9px]" :class="{ 'fa-spin': loading }"></i>
       </button>
 
+      <!-- Dropdown Estado (Vercel-style) -->
+      <div class="relative shrink-0">
+        <button @click="showEstadoDropdown = !showEstadoDropdown"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-semibold transition-all"
+          :class="isDark ? 'border-[#222938] bg-[#161B26] text-slate-300 hover:border-[#3B82F6]/40' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400'">
+          <span class="w-1.5 h-1.5 rounded-full shrink-0"
+            :style="{ background: currentTabOption.color }"></span>
+          {{ currentTabOption.label }}
+          <span class="text-[8px] opacity-50 font-normal tabular-nums">({{ getOptCount(tabEstado) }})</span>
+          <i class="fas fa-chevron-down text-[7px] opacity-40 ml-0.5" :class="{ 'rotate-180': showEstadoDropdown }"></i>
+        </button>
+
+        <div v-if="showEstadoDropdown"
+          class="absolute top-full right-0 mt-1 z-50 w-44 rounded-md border overflow-hidden"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200 shadow-sm'">
+          <button v-for="opt in ESTADO_OPTIONS" :key="opt.value"
+            @click="tabEstado = opt.value; showEstadoDropdown = false"
+            class="w-full flex items-center justify-between px-3 py-2 text-[10px] font-medium transition-colors"
+            :class="tabEstado === opt.value
+              ? (isDark ? 'bg-white/[0.07] text-white' : 'bg-slate-100 text-slate-900')
+              : (isDark ? 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900')">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ background: opt.color }"></span>
+              {{ opt.label }}
+            </div>
+            <span class="text-[8px] opacity-40 tabular-nums">{{ getOptCount(opt.value) }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Botón carpetas -->
       <button @click="modalEstados.open = true"
         class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
         :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#3B82F6]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/30 text-[#3B82F6]'">
-        <i class="fas fa-folder-plus text-[9px]"></i> Carpetas
+        <i class="fas fa-folder-open text-[9px]"></i> Carpetas
       </button>
     </div>
 
-    <!-- Barra de tabs compacta -->
-    <div class="flex items-center gap-1 shrink-0">
-      <button @click="tabEstado = ''"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === ''
-          ? 'bg-slate-700 text-white border-[#222938]'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-layer-group text-[8px]"></i> Todas
-        <span class="opacity-60">({{ novedades.length }})</span>
-      </button>
-      <button @click="tabEstado = 'nueva'"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === 'nueva'
-          ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-sparkles text-[8px]"></i> Nuevas
-        <span class="opacity-60">({{ cuentaNuevas }})</span>
-      </button>
-      <button @click="tabEstado = 'revision'"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === 'revision'
-          ? 'bg-amber-500 text-black border-amber-500'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-clock text-[8px]"></i> Revisión
-        <span class="opacity-60">({{ cuentaRevision }})</span>
-      </button>
-      <button @click="tabEstado = 'aprobada'"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === 'aprobada'
-          ? 'bg-emerald-500 text-white border-emerald-500'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-check text-[8px]"></i> Aprobadas
-        <span class="opacity-60">({{ cuentaAprobadas }})</span>
-      </button>
-      <button @click="tabEstado = 'rechazada'"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === 'rechazada'
-          ? 'bg-red-500 text-white border-red-500'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-xmark text-[8px]"></i> No aprobadas
-        <span class="opacity-60">({{ cuentaRechazadas }})</span>
-      </button>
-      <button @click="tabEstado = 'carpetas'"
-        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[8px] font-semibold uppercase tracking-wide transition-all"
-        :class="tabEstado === 'carpetas'
-          ? 'bg-violet-500 text-white border-violet-500'
-          : (isDark ? 'bg-[#161B26] border-[#222938] text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')">
-        <i class="fas fa-folder text-[8px]"></i> Carpetas
-        <span v-if="novedadesEnCarpetaCh > 0" class="opacity-60">({{ novedadesEnCarpetaCh }})</span>
-      </button>
-    </div>
+    <!-- Backdrop dropdown estado -->
+    <teleport to="body">
+      <div v-if="showEstadoDropdown" class="fixed inset-0 z-40" @click="showEstadoDropdown = false"></div>
+    </teleport>
 
     <!-- Tabla -->
     <div class="flex-1 flex flex-col w-full overflow-hidden rounded-md border transition-all duration-500"
@@ -843,7 +826,17 @@ const TIPO_CH = 'rrhh';
 const filters = ref({ nombre: '', departamento: '', cargo: '', fechaInicio: '', fechaFin: '' });
 const showDeptList = ref(false);
 const showCargoList = ref(false);
+const showEstadoDropdown = ref(false);
 const tabEstado = ref(''); // '' | 'nueva' | 'revision' | 'aprobada' | 'rechazada' | 'ch:NombreEstado'
+
+const ESTADO_OPTIONS = [
+  { value: '', label: 'Todas', color: '#94a3b8' },
+  { value: 'nueva', label: 'Nuevas', color: '#3B82F6' },
+  { value: 'revision', label: 'Revisión', color: '#F59E0B' },
+  { value: 'aprobada', label: 'Aprobadas', color: '#10B981' },
+  { value: 'rechazada', label: 'No aprobadas', color: '#EF4444' },
+  { value: 'carpetas', label: 'Carpetas', color: '#8B5CF6' },
+];
 
 // ─── Modales ──────────────────────────────────────────────────────
 const modalOpen = ref(false);
@@ -907,6 +900,22 @@ const cuentaAprobadas = computed(() =>
 const cuentaRechazadas = computed(() =>
   novedades.value.filter(n => n.aprobado === 0).length
 );
+
+const currentTabOption = computed(() =>
+  ESTADO_OPTIONS.find(o => o.value === tabEstado.value) ?? ESTADO_OPTIONS[0]
+);
+
+const getOptCount = (value) => {
+  switch (value) {
+    case '': return novedades.value.length;
+    case 'nueva': return cuentaNuevas.value;
+    case 'revision': return cuentaRevision.value;
+    case 'aprobada': return cuentaAprobadas.value;
+    case 'rechazada': return cuentaRechazadas.value;
+    case 'carpetas': return novedadesEnCarpetaCh.value;
+    default: return 0;
+  }
+};
 
 // ─── Sugerencias autocomplete ─────────────────────────────────────
 const deptSuggestions = computed(() => {

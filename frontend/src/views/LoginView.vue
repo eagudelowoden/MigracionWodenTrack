@@ -1,7 +1,7 @@
 <template>
   <div
     class="h-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none relative"
-    :class="isDark ? 'bg-[#0B0F19]' : 'bg-[#F4F6FA]'">
+    :class="isDark ? 'bg-[#1a1f35]' : 'bg-[#F4F6FA]'">
 
     <!-- FONDO ESTILO BANCARIO / PREMIUM -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -47,7 +47,7 @@
             <input v-model="form.usuario" type="text" placeholder="Ingresa tu usuario"
               class="w-full h-11 rounded-xl px-4 text-xs font-medium transition-all duration-150 outline-none border"
               :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#2563EB]'
+                ? 'bg-[#1a1f35] border-[#222938] text-white focus:border-[#2563EB]'
                 : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin"
               autocomplete="off">
           </div>
@@ -60,7 +60,7 @@
                 placeholder="Ingresa tu contraseña"
                 class="w-full h-11 rounded-xl pl-4 pr-12 text-xs font-medium transition-all duration-150 outline-none border"
                 :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#2563EB]'
+                  ? 'bg-[#1a1f35] border-[#222938] text-white focus:border-[#2563EB]'
                   : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin">
               <button @click="showPassword = !showPassword" type="button"
                 class="absolute right-4 top-1/2 -translate-y-1/2 transition-opacity duration-150 opacity-40 hover:opacity-100"

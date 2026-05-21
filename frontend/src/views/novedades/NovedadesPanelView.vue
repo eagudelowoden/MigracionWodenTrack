@@ -2,8 +2,7 @@
     <div class="h-full flex flex-col">
 
         <!-- ── Panel de selección (Vercel-style) ──────────────────────────── -->
-        <div v-show="!subModule"
-            class="h-full flex flex-col items-center justify-center animate-fade-in rounded-lg"
+        <div v-show="!subModule" class="h-full flex flex-col items-center justify-center animate-fade-in rounded-lg"
             :class="isDark ? 'bg-transparent' : 'bg-transparent'">
 
             <!-- Título -->
@@ -12,12 +11,10 @@
                     :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                     Panel de novedades
                 </p>
-                <h2 class="text-2xl font-semibold tracking-tight"
-                    :class="isDark ? 'text-white' : 'text-slate-900'">
+                <h2 class="text-2xl font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
                     Selecciona un módulo
                 </h2>
-                <p class="text-[12px] font-normal mt-1.5"
-                    :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                <p class="text-[12px] font-normal mt-1.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                     Accede al espacio según tu rol y permisos
                 </p>
             </div>
@@ -41,9 +38,8 @@
                             :class="isDark ? 'text-white' : 'text-slate-900'">
                             Coordinadores
                         </h3>
-                        <p class="text-[11px] mt-0.5"
-                            :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                            Acceso planta
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Gestión de Novedades
                         </p>
                     </div>
                     <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
@@ -70,9 +66,8 @@
                             :class="isDark ? 'text-white' : 'text-slate-900'">
                             Capital Humano
                         </h3>
-                        <p class="text-[11px] mt-0.5"
-                            :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                            Nómina
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Gestión de Novedades
                         </p>
                     </div>
                     <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
@@ -99,8 +94,7 @@
                             :class="isDark ? 'text-white' : 'text-slate-900'">
                             Mi Equipo
                         </h3>
-                        <p class="text-[11px] mt-0.5"
-                            :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                             Aprobaciones de novedades
                         </p>
                     </div>
@@ -128,8 +122,7 @@
                             :class="isDark ? 'text-white' : 'text-slate-900'">
                             Mis novedades
                         </h3>
-                        <p class="text-[11px] mt-0.5"
-                            :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                             Acceso personal
                         </p>
                     </div>
@@ -156,7 +149,8 @@
         <keep-alive>
             <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />
             <NovedadesRRHH v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
-            <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
+            <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company"
+                :employee="employee" />
             <MisAprobaciones v-else-if="subModule === 'jefe'" :isDark="isDark" @volver="subModule = null" />
         </keep-alive>
 
