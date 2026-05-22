@@ -95,13 +95,14 @@
           <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
         </button>
 
-        <!-- Guardar (primary brand fill) -->
-        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !hayResultadosCalculados"
+        <!-- Guardar (solo registros seleccionados) -->
+        <button @click="handleGuardar"
+          :disabled="isSaving || isCalculating || !selectedRecords.length"
+          :title="!selectedRecords.length ? 'Selecciona al menos un registro para guardar' : ''"
           class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563EB] hover:border-[#2563EB]">
           <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
           <span v-if="isSaving">Guardando…</span>
-          <span v-else-if="selectedRecords.length">Guardar ({{ selectedRecords.length }})</span>
-          <span v-else>Guardar todo</span>
+          <span v-else>Guardar ({{ selectedRecords.length }})</span>
         </button>
       </div>
     </div>
