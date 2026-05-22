@@ -3,51 +3,274 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+// ── Helpers puros ──────────────────────────────────────────────────────────────
 function getSession() {
   return JSON.parse(localStorage.getItem("user_session") || "{}");
 }
-
 function hasPerm(permiso) {
   const s = getSession();
   const permisos = s.permisos || s.permissions || {};
   return permisos[permiso] === true;
 }
-
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
-
 function getFirstDayOfMonth() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+const COLS_HX = ["rn", "rndf", "rddf", "hedo", "heno", "hefd", "hefn"];
+const itemsPerPage = 20;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Estado a nivel de módulo — persiste mientras la app esté cargada
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Cálculos (resultados frescos)
+const registros = ref([]);
+const isLoading = ref(false);
+const isCalculating = ref(false);
+const isSaving = ref(false);
+const isExporting = ref(false);
+const hayResultadosCalculados = ref(false);
+const perfilUsuario = ref(null);
+
+// Filtros y fechas
+const startDate = ref(getFirstDayOfMonth());
+const endDate = ref(getToday());
+const filterNombre = ref("");
+const filterCargo = ref("");
+const filterDepartamento = ref("");
+const soloConExtras = ref(false);
+const aprobacionesLocales = ref({});
+
+// Paginación cálculos
+const currentPage = ref(1);
+
+// Selección por checkbox
+const selectedKeys = ref(new Set());
+
+// Novedades aprobadas
+const novedadesAprobadas = ref([]);
+const isLoadingNovedades = ref(false);
+const isNotifying = ref(false);
+
+// Novedades HX (legacy, se mantiene para compat)
+const novedadesHX = ref([]);
+const isLoadingNovedadesHX = ref(false);
+
+// Guardados (historial desde DB)
+const registrosGuardados = ref([]);
+const isLoadingGuardados = ref(false);
+const currentPageGuardados = ref(1);
+
+// ── Computed (módulo) ──────────────────────────────────────────────────────────
+
+const opcionesNombres = computed(() => {
+  const set = new Set(registros.value.map((r) => r.nombre).filter(Boolean));
+  return [...set].sort();
+});
+const opcionesCargos = computed(() => {
+  const set = new Set(registros.value.map((r) => r.cargo).filter(Boolean));
+  return [...set].sort();
+});
+const opcionesDepartamentos = computed(() => {
+  const set = new Set(registros.value.map((r) => r.departamento).filter(Boolean));
+  return [...set].sort();
+});
+
+const registrosFiltrados = computed(() => {
+  let list = registros.value;
+  if (filterNombre.value) {
+    const q = filterNombre.value.toLowerCase();
+    list = list.filter(
+      (r) => r.nombre?.toLowerCase().includes(q) || r.cedula?.includes(filterNombre.value),
+    );
+  }
+  if (filterCargo.value) {
+    const q = filterCargo.value.toLowerCase();
+    list = list.filter((r) => r.cargo?.toLowerCase().includes(q));
+  }
+  if (filterDepartamento.value) {
+    list = list.filter((r) => r.departamento === filterDepartamento.value);
+  }
+  if (soloConExtras.value) {
+    list = list.filter(
+      (r) => (r.hedo || 0) + (r.heno || 0) + (r.hefd || 0) + (r.hefn || 0) > 0,
+    );
+  }
+  return list;
+});
+
+const gruposPorEmpresa = computed(() => {
+  const empresaMapa = new Map();
+  for (const r of registrosFiltrados.value) {
+    const empresa = r.company || "Sin empresa";
+    if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
+    const colabMapa = empresaMapa.get(empresa);
+    const key = r.cedula;
+    if (!colabMapa.has(key)) {
+      colabMapa.set(key, {
+        cedula: r.cedula,
+        nombre: r.nombre,
+        cargo: r.cargo,
+        departamento: r.departamento,
+        filas: [],
+        subtotales: Object.fromEntries(COLS_HX.map((c) => [c, 0])),
+      });
+    }
+    const grupo = colabMapa.get(key);
+    grupo.filas.push(r);
+    for (const col of COLS_HX) {
+      grupo.subtotales[col] =
+        Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) / 100;
+    }
+  }
+  return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
+    empresa,
+    grupos: [...colabMapa.values()],
+  }));
+});
+
+const gruposConSubtotales = computed(() =>
+  gruposPorEmpresa.value.flatMap((e) => e.grupos),
+);
+
+const filasAplanadas = computed(() => {
+  const out = [];
+  for (const { empresa, grupos } of gruposPorEmpresa.value) {
+    out.push({ tipo: "empresa", data: { empresa } });
+    for (const g of grupos) {
+      for (const f of g.filas) out.push({ tipo: "fila", data: f });
+      out.push({ tipo: "subtotal", data: g });
+    }
+  }
+  return out;
+});
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filasAplanadas.value.length / itemsPerPage)),
+);
+const filasPaginadas = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filasAplanadas.value.slice(start, start + itemsPerPage);
+});
+
+// Selección
+const isAllFilteredSelected = computed(() => {
+  const list = registrosFiltrados.value;
+  return list.length > 0 && list.every((r) => selectedKeys.value.has(_rowKey(r)));
+});
+const isIndeterminate = computed(() => {
+  const list = registrosFiltrados.value;
+  const count = list.filter((r) => selectedKeys.value.has(_rowKey(r))).length;
+  return count > 0 && count < list.length;
+});
+const selectedRecords = computed(() =>
+  registrosFiltrados.value.filter((r) => selectedKeys.value.has(_rowKey(r))),
+);
+
+// Guardados computed
+const gruposPorEmpresaGuardados = computed(() => {
+  const empresaMapa = new Map();
+  for (const r of registrosGuardados.value) {
+    const empresa = r.company || "Sin empresa";
+    if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
+    const colabMapa = empresaMapa.get(empresa);
+    const key = r.cedula;
+    if (!colabMapa.has(key)) {
+      colabMapa.set(key, {
+        cedula: r.cedula, nombre: r.nombre, cargo: r.cargo,
+        departamento: r.departamento, filas: [],
+        subtotales: Object.fromEntries(COLS_HX.map((c) => [c, 0])),
+      });
+    }
+    const grupo = colabMapa.get(key);
+    grupo.filas.push(r);
+    for (const col of COLS_HX) {
+      grupo.subtotales[col] =
+        Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) / 100;
+    }
+  }
+  return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
+    empresa, grupos: [...colabMapa.values()],
+  }));
+});
+const filasAplanadasGuardados = computed(() => {
+  const out = [];
+  for (const { empresa, grupos } of gruposPorEmpresaGuardados.value) {
+    out.push({ tipo: "empresa", data: { empresa } });
+    for (const g of grupos) {
+      for (const f of g.filas) out.push({ tipo: "fila", data: f });
+      out.push({ tipo: "subtotal", data: g });
+    }
+  }
+  return out;
+});
+const totalPagesGuardados = computed(() =>
+  Math.max(1, Math.ceil(filasAplanadasGuardados.value.length / itemsPerPage)),
+);
+const filasPaginadasGuardados = computed(() => {
+  const start = (currentPageGuardados.value - 1) * itemsPerPage;
+  return filasAplanadasGuardados.value.slice(start, start + itemsPerPage);
+});
+
+// ── Watch (módulo) ─────────────────────────────────────────────────────────────
+watch([filterNombre, filterCargo, filterDepartamento, soloConExtras], () => {
+  currentPage.value = 1;
+});
+
+// ── Helpers internos ───────────────────────────────────────────────────────────
+function _rowKey(r) {
+  return `${r.cedula}_${r.fecha}`;
+}
+
+function isSelected(r) {
+  return selectedKeys.value.has(_rowKey(r));
+}
+function toggleSelected(r) {
+  const k = _rowKey(r);
+  const next = new Set(selectedKeys.value);
+  if (next.has(k)) next.delete(k);
+  else next.add(k);
+  selectedKeys.value = next;
+}
+function toggleAllFiltered() {
+  if (isAllFilteredSelected.value || isIndeterminate.value) {
+    selectedKeys.value = new Set();
+  } else {
+    selectedKeys.value = new Set(registrosFiltrados.value.map(_rowKey));
+  }
+}
+function clearSelection() {
+  selectedKeys.value = new Set();
+}
+
+// ── Formatters ─────────────────────────────────────────────────────────────────
+function formatHora(datetime) {
+  if (!datetime) return "";
+  const parts = datetime.split(" ");
+  return parts[1] ? parts[1].slice(0, 5) : "";
+}
+function formatFecha(fechaStr) {
+  if (!fechaStr) return "";
+  return fechaStr.split("-").reverse().join("/");
+}
+function formatDecimal(val) {
+  const n = Number(val) || 0;
+  return String(Math.floor(n));
+}
+function getAprobadoLabel(aprobado) {
+  if (aprobado === true) return "APROBADO";
+  if (aprobado === false) return "RECHAZADO";
+  return "PENDIENTE";
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Función exportada — contiene solo las llamadas async a la API
+// ══════════════════════════════════════════════════════════════════════════════
 export function useReporteMallas() {
-  const registros = ref([]);
-  const isLoading = ref(false);
-  const isCalculating = ref(false);
-  const isSaving = ref(false);
-  const isExporting = ref(false);
-  const hayResultadosCalculados = ref(false);
-
-  const startDate = ref(getFirstDayOfMonth());
-  const endDate = ref(getToday());
-
-  // Filtros
-  const filterNombre = ref("");
-  const filterCargo = ref("");
-  const filterDepartamento = ref("");
-  const soloConExtras = ref(false);
-
-  // Aprobaciones locales (id → boolean|null) — se aplican antes de guardar
-  const aprobacionesLocales = ref({});
-
-  // Paginación
-  const currentPage = ref(1);
-  const itemsPerPage = 20;
-
-  // ── Perfil completo (igual que mallas) ────────────────────────────────────
-  const perfilUsuario = ref(null);
 
   async function _cargarPerfil() {
     try {
@@ -61,156 +284,19 @@ export function useReporteMallas() {
     }
   }
 
-  // ── Helpers de sesión ──────────────────────────────────────────────────────
-
-  // Misma lógica que mallasGeneral: prioridad segmento > area, nunca los dos juntos
   function getAreaSegmento() {
     const s = getSession();
-    if (
-      s.isSuperAdmin ||
-      s.role === "desarrollador_junior" ||
-      hasPerm("admin.ver_todo")
-    ) {
+    if (s.isSuperAdmin || s.role === "desarrollador_junior" || hasPerm("admin.ver_todo")) {
       return {};
     }
-
     const esResponsableSegmento = hasPerm("novedades.ver_segmento");
     const perfil = perfilUsuario.value;
-
-    if (esResponsableSegmento && perfil?.segmento?.id) {
-      return { segmento_id: perfil.segmento.id };
-    }
-    if (perfil?.area?.id) {
-      return { area_id: perfil.area.id };
-    }
-
-    // Fallback a sesión si el perfil aún no cargó
+    if (esResponsableSegmento && perfil?.segmento?.id) return { segmento_id: perfil.segmento.id };
+    if (perfil?.area?.id) return { area_id: perfil.area.id };
     if (s.segmento_id) return { segmento_id: s.segmento_id };
     if (s.area_id) return { area_id: s.area_id };
     return {};
   }
-
-  // ── Opciones para filtros (derivadas de los registros cargados) ─────────────
-
-  const opcionesNombres = computed(() => {
-    const set = new Set(registros.value.map((r) => r.nombre).filter(Boolean));
-    return [...set].sort();
-  });
-
-  const opcionesCargos = computed(() => {
-    const set = new Set(registros.value.map((r) => r.cargo).filter(Boolean));
-    return [...set].sort();
-  });
-
-  const opcionesDepartamentos = computed(() => {
-    const set = new Set(
-      registros.value.map((r) => r.departamento).filter(Boolean),
-    );
-    return [...set].sort();
-  });
-
-  // ── Filtrado local ─────────────────────────────────────────────────────────
-
-  const registrosFiltrados = computed(() => {
-    let list = registros.value;
-
-    if (filterNombre.value) {
-      const q = filterNombre.value.toLowerCase();
-      list = list.filter(
-        (r) =>
-          r.nombre?.toLowerCase().includes(q) ||
-          r.cedula?.includes(filterNombre.value),
-      );
-    }
-    if (filterCargo.value) {
-      const q = filterCargo.value.toLowerCase();
-      list = list.filter((r) => r.cargo?.toLowerCase().includes(q));
-    }
-    if (filterDepartamento.value) {
-      list = list.filter((r) => r.departamento === filterDepartamento.value);
-    }
-    if (soloConExtras.value) {
-      list = list.filter(
-        (r) =>
-          (r.hedo || 0) + (r.heno || 0) + (r.hefd || 0) + (r.hefn || 0) > 0,
-      );
-    }
-
-    return list;
-  });
-
-  // ── Agrupación por empresa → colaborador con subtotales ───────────────────
-
-  const COLS_HX = ["rn", "rndf", "rddf", "hedo", "heno", "hefd", "hefn"];
-
-  const gruposPorEmpresa = computed(() => {
-    const empresaMapa = new Map();
-
-    for (const r of registrosFiltrados.value) {
-      const empresa = r.company || "Sin empresa";
-      if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
-
-      const colabMapa = empresaMapa.get(empresa);
-      const key = r.cedula;
-      if (!colabMapa.has(key)) {
-        colabMapa.set(key, {
-          cedula: r.cedula,
-          nombre: r.nombre,
-          cargo: r.cargo,
-          departamento: r.departamento,
-          filas: [],
-          subtotales: Object.fromEntries(COLS_HX.map((c) => [c, 0])),
-        });
-      }
-      const grupo = colabMapa.get(key);
-      grupo.filas.push(r);
-      for (const col of COLS_HX) {
-        grupo.subtotales[col] =
-          Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) /
-          100;
-      }
-    }
-
-    return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
-      empresa,
-      grupos: [...colabMapa.values()],
-    }));
-  });
-
-  // Mantener compatibilidad — lista plana de grupos por colaborador
-  const gruposConSubtotales = computed(() =>
-    gruposPorEmpresa.value.flatMap((e) => e.grupos),
-  );
-
-  // Filas aplanadas: cabecera empresa → filas colaborador → subtotal
-  const filasAplanadas = computed(() => {
-    const out = [];
-    for (const { empresa, grupos } of gruposPorEmpresa.value) {
-      out.push({ tipo: "empresa", data: { empresa } });
-      for (const g of grupos) {
-        for (const f of g.filas) {
-          out.push({ tipo: "fila", data: f });
-        }
-        out.push({ tipo: "subtotal", data: g });
-      }
-    }
-    return out;
-  });
-
-  const totalPages = computed(() =>
-    Math.max(1, Math.ceil(filasAplanadas.value.length / itemsPerPage)),
-  );
-
-  const filasPaginadas = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage;
-    return filasAplanadas.value.slice(start, start + itemsPerPage);
-  });
-
-  watch([filterNombre, filterCargo, filterDepartamento, soloConExtras], () => {
-    currentPage.value = 1;
-  });
-
-  // ── API calls ──────────────────────────────────────────────────────────────
 
   async function _asegurarPerfil() {
     const s = getSession();
@@ -224,7 +310,6 @@ export function useReporteMallas() {
       isLoading.value = true;
       aprobacionesLocales.value = {};
       await _asegurarPerfil();
-
       const s = getSession();
       const params = {
         startDate: startDate.value,
@@ -232,16 +317,10 @@ export function useReporteMallas() {
         ...(company && company !== "Todas" ? { company } : {}),
         ...getAreaSegmento(),
       };
-
-      // Si el usuario tiene filtro de departamento fijo (sin permiso de ver todo)
       if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
         if (s.department) params.departamento = s.department;
       }
-
-      const { data } = await axios.get(
-        `${API_BASE_URL}/horas-extra/historial`,
-        { params },
-      );
+      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
       registros.value = data;
       currentPage.value = 1;
     } catch (err) {
@@ -257,7 +336,6 @@ export function useReporteMallas() {
       hayResultadosCalculados.value = false;
       await _asegurarPerfil();
       const s = getSession();
-
       const payload = {
         startDate: startDate.value,
         endDate: endDate.value,
@@ -265,7 +343,6 @@ export function useReporteMallas() {
         calculado_por: s.name || "Desconocido",
         ...getAreaSegmento(),
       };
-
       const { data } = await axios.post(`${API_BASE_URL}/horas-extra/calcular`, payload);
       registros.value = data;
       currentPage.value = 1;
@@ -282,20 +359,15 @@ export function useReporteMallas() {
     try {
       isSaving.value = true;
       const s = getSession();
-
-      // Si hay selección usa esa; si no, guarda todos los filtrados
       const toSave =
         selectedRecords.value.length > 0
           ? selectedRecords.value
           : registrosFiltrados.value;
-
       await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
         registros: toSave,
         calculado_por: s.name || "Desconocido",
       });
       clearSelection();
-      registros.value = [];        // limpia cálculos — el usuario va a "Guardados" a verlos
-      hayResultadosCalculados.value = false;
     } catch (err) {
       console.error("Error guardando horas extra:", err);
       throw err;
@@ -304,7 +376,6 @@ export function useReporteMallas() {
     }
   }
 
-  // Mantener compatibilidad con código existente
   async function calcularYCargar(company) {
     return guardarCalculados(company);
   }
@@ -317,11 +388,9 @@ export function useReporteMallas() {
         company: company || "",
         tipo,
       });
-      // Reflejar localmente
       registros.value = registros.value.map((r) => {
         if (tipo === "todas") return { ...r, aprobado: true };
-        if (tipo === "dominicales")
-          return { ...r, aprobado: r.es_dominical ? true : false };
+        if (tipo === "dominicales") return { ...r, aprobado: r.es_dominical ? true : false };
         return { ...r, aprobado: false };
       });
     } catch (err) {
@@ -337,24 +406,22 @@ export function useReporteMallas() {
         aprobado,
         observacion: observacion || null,
       });
-
-      // Actualizar en lista principal
-      const idx = registros.value.findIndex((r) => r.id === id);
-      if (idx !== -1) {
-        registros.value[idx] = {
-          ...registros.value[idx],
+      // Actualizar en registrosGuardados
+      const idxG = registrosGuardados.value.findIndex((r) => r.id === id);
+      if (idxG !== -1) {
+        registrosGuardados.value[idxG] = {
+          ...registrosGuardados.value[idxG],
           aprobado,
           observacion: observacion || null,
         };
       }
-
-      // Sincronizar novedadesAprobadas en tiempo real
+      // Sincronizar novedadesAprobadas
       if (aprobado === true) {
-        const registro = registros.value[idx] ?? { id };
+        const reg = registrosGuardados.value[idxG] ?? { id };
         const yaExiste = novedadesAprobadas.value.findIndex((n) => n.id === id);
         if (yaExiste === -1) {
           novedadesAprobadas.value = [
-            { ...registro, aprobado: true, observacion: observacion || null },
+            { ...reg, aprobado: true, observacion: observacion || null },
             ...novedadesAprobadas.value,
           ];
         } else {
@@ -364,10 +431,7 @@ export function useReporteMallas() {
           };
         }
       } else {
-        // Si se rechaza, quitarlo de novedades aprobadas
-        novedadesAprobadas.value = novedadesAprobadas.value.filter(
-          (n) => n.id !== id,
-        );
+        novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
       }
     } catch (err) {
       console.error("Error aprobando registro:", err);
@@ -375,9 +439,6 @@ export function useReporteMallas() {
       throw err;
     }
   }
-
-  // ── Notificar por correo ───────────────────────────────────────────────────
-  const isNotifying = ref(false);
 
   async function notificarAprobados() {
     try {
@@ -392,56 +453,6 @@ export function useReporteMallas() {
       isNotifying.value = false;
     }
   }
-
-  // ── Selección por checkbox ─────────────────────────────────────────────────
-  const selectedKeys = ref(new Set());
-
-  function _rowKey(r) {
-    return `${r.cedula}_${r.fecha}`;
-  }
-
-  function isSelected(r) {
-    return selectedKeys.value.has(_rowKey(r));
-  }
-
-  function toggleSelected(r) {
-    const k = _rowKey(r);
-    const next = new Set(selectedKeys.value);
-    if (next.has(k)) next.delete(k);
-    else next.add(k);
-    selectedKeys.value = next;
-  }
-
-  const isAllFilteredSelected = computed(() => {
-    const list = registrosFiltrados.value;
-    return list.length > 0 && list.every((r) => selectedKeys.value.has(_rowKey(r)));
-  });
-
-  const isIndeterminate = computed(() => {
-    const list = registrosFiltrados.value;
-    const count = list.filter((r) => selectedKeys.value.has(_rowKey(r))).length;
-    return count > 0 && count < list.length;
-  });
-
-  function toggleAllFiltered() {
-    if (isAllFilteredSelected.value || isIndeterminate.value) {
-      selectedKeys.value = new Set();
-    } else {
-      selectedKeys.value = new Set(registrosFiltrados.value.map(_rowKey));
-    }
-  }
-
-  const selectedRecords = computed(() =>
-    registrosFiltrados.value.filter((r) => selectedKeys.value.has(_rowKey(r))),
-  );
-
-  function clearSelection() {
-    selectedKeys.value = new Set();
-  }
-
-  // ── Novedades aprobadas
-  const novedadesAprobadas = ref([]);
-  const isLoadingNovedades = ref(false);
 
   async function cargarNovedadesAprobadas(company) {
     try {
@@ -465,97 +476,6 @@ export function useReporteMallas() {
     }
   }
 
-  // ── Registros guardados (historial con IDs) ───────────────────────────────
-  const registrosGuardados = ref([]);
-  const isLoadingGuardados = ref(false);
-  const currentPageGuardados = ref(1);
-
-  const gruposPorEmpresaGuardados = computed(() => {
-    const empresaMapa = new Map();
-    for (const r of registrosGuardados.value) {
-      const empresa = r.company || 'Sin empresa';
-      if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
-      const colabMapa = empresaMapa.get(empresa);
-      const key = r.cedula;
-      if (!colabMapa.has(key)) {
-        colabMapa.set(key, {
-          cedula: r.cedula, nombre: r.nombre, cargo: r.cargo,
-          departamento: r.departamento, filas: [],
-          subtotales: Object.fromEntries(COLS_HX.map(c => [c, 0])),
-        });
-      }
-      const grupo = colabMapa.get(key);
-      grupo.filas.push(r);
-      for (const col of COLS_HX) {
-        grupo.subtotales[col] = Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) / 100;
-      }
-    }
-    return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
-      empresa, grupos: [...colabMapa.values()],
-    }));
-  });
-
-  const filasAplanadasGuardados = computed(() => {
-    const out = [];
-    for (const { empresa, grupos } of gruposPorEmpresaGuardados.value) {
-      out.push({ tipo: 'empresa', data: { empresa } });
-      for (const g of grupos) {
-        for (const f of g.filas) out.push({ tipo: 'fila', data: f });
-        out.push({ tipo: 'subtotal', data: g });
-      }
-    }
-    return out;
-  });
-
-  const totalPagesGuardados = computed(() =>
-    Math.max(1, Math.ceil(filasAplanadasGuardados.value.length / itemsPerPage))
-  );
-  const filasPaginadasGuardados = computed(() => {
-    const start = (currentPageGuardados.value - 1) * itemsPerPage;
-    return filasAplanadasGuardados.value.slice(start, start + itemsPerPage);
-  });
-
-  async function cargarGuardados(company) {
-    try {
-      isLoadingGuardados.value = true;
-      await _asegurarPerfil();
-      const s = getSession();
-      const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        ...(company && company !== 'Todas' ? { company } : {}),
-        ...getAreaSegmento(),
-      };
-      if (!hasPerm('admin.filtro_departamento') && !s.isSuperAdmin) {
-        if (s.department) params.departamento = s.department;
-      }
-      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
-      registrosGuardados.value = data;
-      currentPageGuardados.value = 1;
-    } catch (err) {
-      console.error('Error cargando guardados:', err);
-    } finally {
-      isLoadingGuardados.value = false;
-    }
-  }
-
-  async function eliminarRegistro(id) {
-    await axios.delete(`${API_BASE_URL}/horas-extra/${id}`);
-    registrosGuardados.value = registrosGuardados.value.filter(r => r.id !== id);
-    novedadesAprobadas.value = novedadesAprobadas.value.filter(n => n.id !== id);
-  }
-
-  async function deshacerAprobacion(id) {
-    await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, { aprobado: null, observacion: null });
-    const idx = registrosGuardados.value.findIndex(r => r.id === id);
-    if (idx !== -1) registrosGuardados.value[idx] = { ...registrosGuardados.value[idx], aprobado: null, observacion: null };
-    novedadesAprobadas.value = novedadesAprobadas.value.filter(n => n.id !== id);
-  }
-
-  // Novedades HX por departamento (usa los registros del historial ya cargados)
-  const novedadesHX = ref([]);
-  const isLoadingNovedadesHX = ref(false);
-
   async function cargarNovedadesHX(company) {
     try {
       isLoadingNovedadesHX.value = true;
@@ -570,11 +490,7 @@ export function useReporteMallas() {
       if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
         if (s.department) params.departamento = s.department;
       }
-      const { data } = await axios.get(
-        `${API_BASE_URL}/horas-extra/historial`,
-        { params },
-      );
-      // Agrupar por departamento
+      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
       const deptMap = new Map();
       for (const r of data) {
         const dept = r.departamento || "Sin departamento";
@@ -583,20 +499,15 @@ export function useReporteMallas() {
             departamento: dept,
             personas: new Set(),
             totales: { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 },
-            registros: [],
           });
         }
         const d = deptMap.get(dept);
         d.personas.add(r.cedula);
-        for (const col of ["rn", "rndf", "rddf", "hedo", "heno", "hefd", "hefn"]) {
+        for (const col of COLS_HX) {
           d.totales[col] = Math.floor(d.totales[col] + (Number(r[col]) || 0));
         }
-        d.registros.push(r);
       }
-      novedadesHX.value = [...deptMap.values()].map((d) => ({
-        ...d,
-        personas: d.personas.size,
-      }));
+      novedadesHX.value = [...deptMap.values()].map((d) => ({ ...d, personas: d.personas.size }));
     } catch (err) {
       console.error("Error cargando novedades HX:", err);
     } finally {
@@ -604,16 +515,60 @@ export function useReporteMallas() {
     }
   }
 
+  async function cargarGuardados(company) {
+    try {
+      isLoadingGuardados.value = true;
+      await _asegurarPerfil();
+      const s = getSession();
+      const params = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        ...(company && company !== "Todas" ? { company } : {}),
+        ...getAreaSegmento(),
+      };
+      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
+        if (s.department) params.departamento = s.department;
+      }
+      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
+      registrosGuardados.value = data;
+      currentPageGuardados.value = 1;
+    } catch (err) {
+      console.error("Error cargando guardados:", err);
+    } finally {
+      isLoadingGuardados.value = false;
+    }
+  }
+
+  async function eliminarRegistro(id) {
+    await axios.delete(`${API_BASE_URL}/horas-extra/${id}`);
+    registrosGuardados.value = registrosGuardados.value.filter((r) => r.id !== id);
+    novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
+  }
+
+  async function deshacerAprobacion(id) {
+    await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, {
+      aprobado: null,
+      observacion: null,
+    });
+    const idx = registrosGuardados.value.findIndex((r) => r.id === id);
+    if (idx !== -1) {
+      registrosGuardados.value[idx] = {
+        ...registrosGuardados.value[idx],
+        aprobado: null,
+        observacion: null,
+      };
+    }
+    novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
+  }
+
   async function exportarExcel(company) {
     try {
       isExporting.value = true;
-
       const response = await axios.post(
         `${API_BASE_URL}/horas-extra/exportar-calculado`,
         { registros: registrosFiltrados.value },
         { responseType: "blob" },
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -631,32 +586,8 @@ export function useReporteMallas() {
     }
   }
 
-  // ── Helpers UI ─────────────────────────────────────────────────────────────
-
-  function formatHora(datetime) {
-    if (!datetime) return "";
-    const parts = datetime.split(" ");
-    return parts[1] ? parts[1].slice(0, 5) : "";
-  }
-
-  function formatFecha(fechaStr) {
-    if (!fechaStr) return "";
-    return fechaStr.split("-").reverse().join("/");
-  }
-
-  function formatDecimal(val) {
-    const n = Number(val) || 0;
-    return String(Math.floor(n));
-  }
-
-  function getAprobadoLabel(aprobado) {
-    if (aprobado === true) return "APROBADO";
-    if (aprobado === false) return "RECHAZADO";
-    return "PENDIENTE";
-  }
-
   return {
-    // Estado
+    // Estado cálculos
     registros,
     isLoading,
     isCalculating,
@@ -672,12 +603,12 @@ export function useReporteMallas() {
     filterDepartamento,
     soloConExtras,
 
-    // Opciones para dropdowns
+    // Opciones dropdowns
     opcionesNombres,
     opcionesCargos,
     opcionesDepartamentos,
 
-    // Datos procesados
+    // Datos procesados cálculos
     registrosFiltrados,
     gruposPorEmpresa,
     gruposConSubtotales,
@@ -734,7 +665,6 @@ export function useReporteMallas() {
     getAprobadoLabel,
 
     COLS_HX,
-
     hasPerm,
   };
 }

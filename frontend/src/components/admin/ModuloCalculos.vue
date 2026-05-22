@@ -87,6 +87,16 @@
           <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
         </button>
 
+        <!-- Mensaje éxito guardado -->
+        <transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 -translate-y-1"
+          leave-active-class="transition-all duration-200" leave-to-class="opacity-0">
+          <span v-if="saveSuccessMsg"
+            class="text-[11px] font-medium px-2.5 py-1 rounded-[5px] border flex items-center gap-1.5"
+            :class="isDark ? 'bg-[#16a34a]/10 border-[#16a34a]/30 text-[#4ade80]' : 'bg-green-50 border-green-200 text-green-700'">
+            {{ saveSuccessMsg }}
+          </span>
+        </transition>
+
         <!-- Guardar (solo registros seleccionados) -->
         <button @click="handleGuardar" :disabled="isSaving || isCalculating || !selectedRecords.length"
           :title="!selectedRecords.length ? 'Selecciona al menos un registro para guardar' : ''"
@@ -1491,11 +1501,17 @@ async function handleCalcular() {
   } catch { /* el composable ya loguea */ }
 }
 
+const saveSuccessMsg = ref('');
+let _saveSuccessTimer = null;
+
 async function handleGuardar() {
   try {
+    const n = selectedRecords.value.length;
     await guardarCalculados(props.company);
-    // Tras guardar, ir directo a Guardados para ver los registros
-    await handleTabGuardados();
+    // Mostrar mensaje de éxito sin salir de Cálculos
+    saveSuccessMsg.value = `✅ ${n} registro(s) guardado(s) correctamente`;
+    clearTimeout(_saveSuccessTimer);
+    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 4000);
   } catch { /* el composable ya loguea */ }
 }
 
