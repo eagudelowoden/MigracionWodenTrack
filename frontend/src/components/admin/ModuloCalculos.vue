@@ -14,6 +14,19 @@
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-calculator text-[10px]"></i>Cálculos
         </button>
+        <button @click="handleTabGuardados"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'guardados'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-floppy-disk text-[10px]"></i>Guardados
+        </button>
+        <button @click="handleTabNovedades('aprobadas')"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-circle-check text-[10px]"></i>Novedades Aprobadas
+        </button>
+        <!-- Cargue Horas — al final con dropdown -->
         <div v-if="isSuperAdmin || hasPerm('horas.cargue')" class="relative cargue-menu-wrapper">
           <button @click.stop="toggleCargueMenu"
             class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
@@ -26,7 +39,7 @@
           </button>
           <!-- Dropdown -->
           <div v-if="showCargueMenu"
-            class="absolute top-full left-0 mt-1 w-52 rounded-md border shadow-xl z-50 overflow-hidden"
+            class="absolute top-full right-0 mt-1 w-52 rounded-md border shadow-xl z-50 overflow-hidden"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
             <button @click="selectCargueView('upload')"
               class="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-medium transition-all text-left"
@@ -49,19 +62,6 @@
             </button>
           </div>
         </div>
-        <button @click="handleTabGuardados"
-          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
-          :class="activeTab === 'guardados'
-            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-          <i class="fas fa-floppy-disk text-[10px]"></i>Guardados
-        </button>
-        <button @click="handleTabNovedades('aprobadas')"
-          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
-            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-          <i class="fas fa-circle-check text-[10px]"></i>Novedades Aprobadas
-        </button>
       </div>
 
       <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
@@ -97,8 +97,7 @@
         </button>
 
         <!-- Guardar (solo registros seleccionados) -->
-        <button @click="handleGuardar"
-          :disabled="isSaving || isCalculating || !selectedRecords.length"
+        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !selectedRecords.length"
           :title="!selectedRecords.length ? 'Selecciona al menos un registro para guardar' : ''"
           class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563EB] hover:border-[#2563EB]">
           <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
@@ -234,11 +233,8 @@
               <tr class="bg-[#1e2538]">
                 <!-- Checkbox select-all -->
                 <th rowspan="2" class="px-2 py-2 text-center border-b border-r w-8 border-[#f5f5f7]">
-                  <input type="checkbox"
-                    :checked="isAllFilteredSelected"
-                    :indeterminate="isIndeterminate"
-                    @change="toggleAllFiltered"
-                    class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
+                  <input type="checkbox" :checked="isAllFilteredSelected" :indeterminate="isIndeterminate"
+                    @change="toggleAllFiltered" class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
                 </th>
                 <th colspan="2"
                   class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
@@ -340,9 +336,7 @@
                   <!-- Checkbox fila -->
                   <td class="px-2 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <input type="checkbox"
-                      :checked="isSelected(item.data)"
-                      @change="toggleSelected(item.data)"
+                    <input type="checkbox" :checked="isSelected(item.data)" @change="toggleSelected(item.data)"
                       class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
                   </td>
 
@@ -398,8 +392,7 @@
 
                   <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="flex items-center justify-center gap-1">
-                      <button @click="abrirModalAprobar(item.data, true)"
-                        :disabled="!item.data.id"
+                      <button @click="abrirModalAprobar(item.data, true)" :disabled="!item.data.id"
                         :title="!item.data.id ? 'Guarda los registros primero' : ''"
                         class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                         :class="item.data.aprobado === true
@@ -409,8 +402,7 @@
                             : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
                         <i class="fas fa-check text-[9px]"></i>
                       </button>
-                      <button @click="abrirModalAprobar(item.data, false)"
-                        :disabled="!item.data.id"
+                      <button @click="abrirModalAprobar(item.data, false)" :disabled="!item.data.id"
                         :title="!item.data.id ? 'Guarda los registros primero' : ''"
                         class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                         :class="item.data.aprobado === false
@@ -488,15 +480,13 @@
         <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
           :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
           <button @click="selectCargueView('upload')"
-            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5"
-            :class="activeCargueView === 'upload'
+            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5" :class="activeCargueView === 'upload'
               ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
               : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-cloud-arrow-up text-[9px]"></i>Cargue de horas
           </button>
           <button @click="selectCargueView('historial')"
-            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5"
-            :class="activeCargueView === 'historial'
+            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5" :class="activeCargueView === 'historial'
               ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
               : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-table-list text-[9px]"></i>Horas cargadas
@@ -520,7 +510,8 @@
             <div class="flex-1 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-[5px] border min-w-[280px]"
               :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#888888]' : 'bg-slate-50 border-slate-200 text-slate-500'">
               <i class="fas fa-circle-info text-[10px] text-[#3B82F6]"></i>
-              <span>Descarga la plantilla, complétala y súbela aquí. El sistema asignará los registros automáticamente.</span>
+              <span>Descarga la plantilla, complétala y súbela aquí. El sistema asignará los registros
+                automáticamente.</span>
             </div>
           </div>
 
@@ -630,7 +621,8 @@
             </button>
 
             <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueTotalRegistros }}</span>
+              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueTotalRegistros
+                }}</span>
               registro(s) encontrado(s)
             </span>
           </div>
@@ -644,16 +636,28 @@
 
                 <thead class="sticky top-0 z-30">
                   <tr class="bg-[#1e2538]">
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                    <th
+                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                      Cédula</th>
+                    <th
+                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                      Nombre</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                      Fecha</th>
+                    <th
+                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                      Departamento</th>
                     <th v-for="col in COLS_HX" :key="col"
                       class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                       {{ col.toUpperCase() }}
                     </th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">Estado</th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Aprobar</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                      Estado</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
+                      Aprobar</th>
                   </tr>
                 </thead>
 
@@ -661,7 +665,8 @@
                   <!-- Loading -->
                   <tr v-if="cargueIsLoading" v-for="n in 8" :key="'csk-' + n">
                     <td colspan="13" class="px-3 py-3">
-                      <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                      <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+                      </div>
                     </td>
                   </tr>
 
@@ -673,7 +678,8 @@
                           :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
                           <i class="fas fa-table-list text-xl text-[#3B82F6]"></i>
                         </div>
-                        <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        <p class="text-[11px] font-bold uppercase"
+                          :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                           Selecciona un rango y presiona Buscar
                         </p>
                       </div>
@@ -701,8 +707,10 @@
                       </td>
 
                       <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
-                        <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
+                        <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+                          item.data.nombre }}</div>
+                        <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
+                          item.data.cargo || '—' }}</div>
                       </td>
 
                       <td class="px-3 py-2 border-b border-r text-center"
@@ -715,34 +723,33 @@
                         {{ item.data.departamento || '—' }}
                       </td>
 
-                      <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
-                        :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                          Number(item.data[col]) > 0
-                            ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
-                            : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                      <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center" :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                      Number(item.data[col]) > 0
+                        ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
+                        : (isDark ? 'text-slate-600' : 'text-slate-300')]">
                         {{ formatDecimal(item.data[col]) }}
                       </td>
 
                       <!-- Estado chip -->
                       <td class="px-2 py-2 border-b border-r text-center"
                         :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold"
-                          :class="item.data.aprobado === true
-                            ? 'bg-[#16a34a]/15 text-[#4ade80]'
-                            : item.data.aprobado === false
-                              ? 'bg-[#dc2626]/15 text-[#f87171]'
-                              : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold" :class="item.data.aprobado === true
+                          ? 'bg-[#16a34a]/15 text-[#4ade80]'
+                          : item.data.aprobado === false
+                            ? 'bg-[#dc2626]/15 text-[#f87171]'
+                            : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
                           <i class="mr-1 text-[8px]"
                             :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
-                          {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' : 'Pendiente' }}
+                          {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' :
+                          'Pendiente' }}
                         </span>
                       </td>
 
                       <!-- Botones aprobar/rechazar -->
-                      <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                      <td class="px-2 py-2 border-b text-center"
+                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                         <div class="flex items-center justify-center gap-1">
-                          <button @click="abrirModalAprobar(item.data, true)"
-                            :disabled="!item.data.id"
+                          <button @click="abrirModalAprobar(item.data, true)" :disabled="!item.data.id"
                             class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                             :class="item.data.aprobado === true
                               ? 'bg-[#16a34a] border-[#16a34a] text-white'
@@ -751,8 +758,7 @@
                                 : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
                             <i class="fas fa-check text-[9px]"></i>
                           </button>
-                          <button @click="abrirModalAprobar(item.data, false)"
-                            :disabled="!item.data.id"
+                          <button @click="abrirModalAprobar(item.data, false)" :disabled="!item.data.id"
                             class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
                             :class="item.data.aprobado === false
                               ? 'bg-[#dc2626] border-[#dc2626] text-white'
@@ -777,7 +783,8 @@
                         {{ formatDecimal(item.data.subtotales[col]) }}
                       </td>
                       <td colspan="2" class="border-b"
-                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
+                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
+                      </td>
                     </tr>
 
                   </template>
@@ -789,7 +796,8 @@
             <div v-if="cargueFilasAplanadas.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
               :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
               <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ cargueTotalRegistros }}</span>
+                <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ cargueTotalRegistros
+                  }}</span>
                 {{ cargueTotalRegistros === 1 ? 'registro' : 'registros' }}
               </span>
               <div class="flex items-center gap-1.5">
@@ -827,7 +835,8 @@
       <!-- Toolbar -->
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length }}</span>
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length
+            }}</span>
           registro(s) guardado(s) en el rango
         </span>
         <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
@@ -846,7 +855,8 @@
           <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
         </div>
 
-        <div v-else-if="!filasPaginadasGuardados.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+        <div v-else-if="!filasPaginadasGuardados.length"
+          class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center"
             :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
             <i class="fas fa-floppy-disk text-xl text-[#3B82F6]"></i>
@@ -860,16 +870,27 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Cédula</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Nombre</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Fecha</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Departamento</th>
                 <th v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col.toUpperCase() }}
                 </th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">Estado</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">Acciones</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                  Estado</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">
+                  Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -887,10 +908,13 @@
                 <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100"
                   :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
                   <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ item.data.cedula }}</td>
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                    item.data.cedula }}</td>
                   <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
-                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
+                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+                      item.data.nombre }}</div>
+                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
+                      item.data.cargo || '—' }}</div>
                   </td>
                   <td class="px-3 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
@@ -900,25 +924,24 @@
                     :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
                     {{ item.data.departamento || '—' }}
                   </td>
-                  <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
-                    :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                      Number(item.data[col]) > 0
-                        ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
-                        : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center" :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                  Number(item.data[col]) > 0
+                    ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
+                    : (isDark ? 'text-slate-600' : 'text-slate-300')]">
                     {{ formatDecimal(item.data[col]) }}
                   </td>
                   <!-- Estado -->
                   <td class="px-2 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold"
-                      :class="item.data.aprobado === true
-                        ? 'bg-[#16a34a]/15 text-[#4ade80]'
-                        : item.data.aprobado === false
-                          ? 'bg-[#dc2626]/15 text-[#f87171]'
-                          : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold" :class="item.data.aprobado === true
+                      ? 'bg-[#16a34a]/15 text-[#4ade80]'
+                      : item.data.aprobado === false
+                        ? 'bg-[#dc2626]/15 text-[#f87171]'
+                        : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
                       <i class="mr-1 text-[8px]"
                         :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
-                      {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' : 'Pendiente' }}
+                      {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' :
+                      'Pendiente' }}
                     </span>
                   </td>
                   <!-- Acciones: aprobar / rechazar / eliminar -->
@@ -941,8 +964,7 @@
                         <i class="fas fa-times text-[9px]"></i>
                       </button>
                       <button @click="abrirModalEliminar(item.data)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                        :class="isDark
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
                           ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
                           : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
                         title="Eliminar registro">
@@ -976,7 +998,8 @@
         <div v-if="filasAplanadasGuardados.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
           :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
           <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-            <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ registrosGuardados.length }}</span>
+            <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ registrosGuardados.length
+              }}</span>
             registros
           </span>
           <div class="flex items-center gap-1.5">
@@ -1006,7 +1029,8 @@
       <!-- Toolbar notificar -->
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length }}</span>
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length
+            }}</span>
           registro(s) aprobado(s) en el rango
         </span>
         <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
@@ -1040,33 +1064,47 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
-                <th v-for="col in ['RN','RNDF','RDDF','HEDO','HENO','HEFD','HEFN']" :key="col"
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Cédula</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Nombre</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Fecha</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Departamento</th>
+                <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col }}
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Acciones</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Observación</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id"
-                class="group transition-all"
+              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id" class="group transition-all"
                 :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
                 <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}
+                </td>
                 <td class="px-3 py-2 border-b border-r font-bold uppercase"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
+                </td>
                 <td class="px-3 py-2 border-b border-r text-center"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                  formatFecha(r.fecha) }}</td>
                 <td class="px-3 py-2 border-b border-r"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
+                    r.departamento || '—' }}</td>
                 <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
                   :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                    Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
                   {{ formatDecimal(r[col]) }}
                 </td>
                 <td class="px-3 py-2 border-b border-r text-[10px] italic"
@@ -1077,16 +1115,14 @@
                 <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <div class="flex items-center justify-center gap-1">
                     <button @click="handleDeshacerAprobacion(r.id)"
-                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                      :class="isDark
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
                         ? 'bg-transparent border-[#222938] text-[#888888] hover:text-amber-400 hover:border-amber-500/40'
                         : 'bg-transparent border-slate-200 text-slate-400 hover:text-amber-600 hover:border-amber-400'"
                       title="Deshacer aprobación">
                       <i class="fas fa-rotate-left text-[9px]"></i>
                     </button>
                     <button @click="abrirModalEliminar(r)"
-                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                      :class="isDark
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
                         ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
                         : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
                       title="Eliminar registro">
@@ -1105,8 +1141,7 @@
 
     <!-- ══ MODAL ELIMINAR ═══════════════════════════════════════════════════ -->
     <Teleport to="body">
-      <div v-if="modalEliminar.visible"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      <div v-if="modalEliminar.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="background:rgba(0,0,0,0.55)">
         <div class="w-full max-w-sm rounded-xl border shadow-2xl"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -1116,14 +1151,19 @@
               <i class="fas fa-trash text-[#dc2626] text-[11px]"></i>
             </div>
             <div>
-              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Eliminar registro</p>
-              <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Esta acción no se puede deshacer</p>
+              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Eliminar registro
+              </p>
+              <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Esta acción no se puede
+                deshacer
+              </p>
             </div>
           </div>
           <div class="px-5 py-4">
             <p class="text-[12px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
               ¿Eliminar el registro de
-              <span class="font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ modalEliminar.registro?.nombre }}</span>
+              <span class="font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+                modalEliminar.registro?.nombre
+                }}</span>
               del <span class="font-semibold">{{ formatFecha(modalEliminar.registro?.fecha) }}</span>?
             </p>
           </div>
@@ -1147,8 +1187,7 @@
 
     <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
     <Teleport to="body">
-      <div v-if="modalAprobar.visible"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      <div v-if="modalAprobar.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="background:rgba(0,0,0,0.55)">
         <div class="w-full max-w-md rounded-xl border shadow-2xl"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -1185,26 +1224,26 @@
                 Observación <span class="font-normal opacity-60">(opcional)</span>
               </label>
               <textarea v-model="modalAprobar.observacion" rows="3" placeholder="Escribe una observación..."
-                class="w-full px-3 py-2 text-[11px] rounded-lg border outline-none resize-none transition-all"
-                :class="isDark
+                class="w-full px-3 py-2 text-[11px] rounded-lg border outline-none resize-none transition-all" :class="isDark
                   ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6]'
                   : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-[#3B82F6]'">
-              </textarea>
+          </textarea>
             </div>
 
             <!-- Info del registro -->
             <div class="rounded-lg px-3 py-2.5 text-[10px] grid grid-cols-2 gap-x-4 gap-y-1"
               :class="isDark ? 'bg-[#0B0F19] text-slate-400' : 'bg-slate-50 text-slate-500'">
-              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Fecha:</span> {{ formatFecha(modalAprobar.registro?.fecha) }}</span>
-              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Dpto:</span> {{ modalAprobar.registro?.departamento || '—' }}</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Fecha:</span> {{
+                formatFecha(modalAprobar.registro?.fecha) }}</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Dpto:</span> {{
+                modalAprobar.registro?.departamento || '—' }}</span>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="px-5 py-3 border-t flex items-center justify-end gap-2"
             :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-            <button @click="cerrarModal"
-              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border transition-all"
+            <button @click="cerrarModal" class="h-7 px-3 rounded-[5px] text-[11px] font-medium border transition-all"
               :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
               Cancelar
             </button>
