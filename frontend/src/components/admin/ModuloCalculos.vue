@@ -14,12 +14,41 @@
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-calculator text-[10px]"></i>Cálculos
         </button>
-        <button v-if="isSuperAdmin || hasPerm('horas.cargue')" @click="activeTab = 'cargue'"
-          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'cargue'
-            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-          <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
-        </button>
+        <div v-if="isSuperAdmin || hasPerm('horas.cargue')" class="relative cargue-menu-wrapper">
+          <button @click.stop="toggleCargueMenu"
+            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeTab === 'cargue'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
+            <i class="fas fa-chevron-down text-[8px] ml-0.5 transition-transform duration-150"
+              :class="showCargueMenu ? 'rotate-180' : ''"></i>
+          </button>
+          <!-- Dropdown -->
+          <div v-if="showCargueMenu"
+            class="absolute top-full left-0 mt-1 w-52 rounded-md border shadow-xl z-50 overflow-hidden"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <button @click="selectCargueView('upload')"
+              class="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-medium transition-all text-left"
+              :class="[isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-50',
+                activeCargueView === 'upload' && activeTab === 'cargue'
+                  ? (isDark ? 'text-white' : 'text-slate-900')
+                  : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
+              <i class="fas fa-cloud-arrow-up text-[10px] text-[#3B82F6] w-3.5"></i>
+              Cargue de horas
+            </button>
+            <div class="h-px" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'"></div>
+            <button @click="selectCargueView('historial')"
+              class="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-medium transition-all text-left"
+              :class="[isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-50',
+                activeCargueView === 'historial' && activeTab === 'cargue'
+                  ? (isDark ? 'text-white' : 'text-slate-900')
+                  : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
+              <i class="fas fa-table-list text-[10px] text-[#3B82F6] w-3.5"></i>
+              Horas cargadas
+            </button>
+          </div>
+        </div>
         <button @click="handleTabNovedades('aprobadas')"
           class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
@@ -449,104 +478,342 @@
     </template>
     <!-- ══ FIN TAB CÁLCULOS ══════════════════════════════════════════════════ -->
 
-    <!-- ══ TAB CARGUE HORAS (Vercel) ════════════════════════════════════════ -->
+    <!-- ══ TAB CARGUE HORAS ════════════════════════════════════════════════ -->
     <template v-else-if="activeTab === 'cargue'">
       <div class="flex flex-col gap-3 flex-1 overflow-hidden">
 
-        <!-- Toolbar -->
-        <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-
-          <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 border"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-            <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-download'" class="text-[10px]"></i>
-            Descargar plantilla
+        <!-- Sub-nav: Upload vs Historial -->
+        <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+          <button @click="selectCargueView('upload')"
+            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeCargueView === 'upload'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-cloud-arrow-up text-[9px]"></i>Cargue de horas
           </button>
-
-          <div class="flex-1 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-[5px] border min-w-[280px]" :class="isDark
-            ? 'bg-[#0B0F19] border-[#222938] text-[#888888]'
-            : 'bg-slate-50 border-slate-200 text-slate-500'">
-            <i class="fas fa-circle-info text-[10px] text-[#3B82F6]"></i>
-            <span>Descarga la plantilla, complétala y súbela aquí. El sistema asignará los registros
-              automáticamente.</span>
-          </div>
+          <button @click="selectCargueView('historial')"
+            class="px-3 h-6 rounded-[5px] text-[10px] font-medium transition-all flex items-center gap-1.5"
+            :class="activeCargueView === 'historial'
+              ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+              : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+            <i class="fas fa-table-list text-[9px]"></i>Horas cargadas
+          </button>
         </div>
 
-        <!-- Card principal -->
-        <div class="flex-1 rounded-md border flex flex-col overflow-hidden"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+        <!-- ── Vista: Cargue de horas ──────────────────────────────────────── -->
+        <template v-if="activeCargueView === 'upload'">
 
-          <!-- Drop zone -->
-          <div
-            class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-md border border-dashed cursor-pointer transition-all"
-            :class="[
-              isDragOver
-                ? 'border-[#3B82F6] bg-[#3B82F6]/[0.06]'
-                : (isDark
-                  ? 'border-[#222938] hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/[0.03]'
-                  : 'border-slate-300 hover:border-[#3B82F6]/50 hover:bg-slate-50/60'),
-              archivoSeleccionado ? 'border-[#16a34a] bg-[#16a34a]/[0.04]' : ''
-            ]" @dragover.prevent="isDragOver = true" @dragleave="isDragOver = false" @drop.prevent="handleDrop"
-            @click="$refs.fileInput.click()">
+          <!-- Toolbar -->
+          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
+              class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 border"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+              <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-download'" class="text-[10px]"></i>
+              Descargar plantilla
+            </button>
+            <div class="flex-1 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-[5px] border min-w-[280px]"
+              :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#888888]' : 'bg-slate-50 border-slate-200 text-slate-500'">
+              <i class="fas fa-circle-info text-[10px] text-[#3B82F6]"></i>
+              <span>Descarga la plantilla, complétala y súbela aquí. El sistema asignará los registros automáticamente.</span>
+            </div>
+          </div>
 
-            <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
+          <!-- Card principal -->
+          <div class="flex-1 rounded-md border flex flex-col overflow-hidden"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-            <!-- Icono limpio Vercel -->
-            <div class="w-12 h-12 rounded-md flex items-center justify-center transition-all" :class="archivoSeleccionado
-              ? (isDark ? 'bg-[#16a34a]/10 text-[#4ade80]' : 'bg-green-50 text-[#16a34a]')
-              : (isDark ? 'bg-[#3B82F6]/10 text-[#60A5FA]' : 'bg-blue-50 text-[#3B82F6]')">
-              <i class="text-[18px] transition-all" :class="[
-                archivoSeleccionado ? 'fas fa-file-circle-check' : 'fas fa-file-arrow-up',
-                isDragOver ? 'scale-110' : ''
-              ]"></i>
+            <!-- Drop zone -->
+            <div
+              class="flex-1 flex flex-col items-center justify-center gap-4 p-8 m-4 rounded-md border border-dashed cursor-pointer transition-all"
+              :class="[
+                isDragOver
+                  ? 'border-[#3B82F6] bg-[#3B82F6]/[0.06]'
+                  : (isDark
+                    ? 'border-[#222938] hover:border-[#3B82F6]/50 hover:bg-[#3B82F6]/[0.03]'
+                    : 'border-slate-300 hover:border-[#3B82F6]/50 hover:bg-slate-50/60'),
+                archivoSeleccionado ? 'border-[#16a34a] bg-[#16a34a]/[0.04]' : ''
+              ]" @dragover.prevent="isDragOver = true" @dragleave="isDragOver = false" @drop.prevent="handleDrop"
+              @click="$refs.fileInput.click()">
+
+              <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="handleFileSelect" />
+
+              <div class="w-12 h-12 rounded-md flex items-center justify-center transition-all" :class="archivoSeleccionado
+                ? (isDark ? 'bg-[#16a34a]/10 text-[#4ade80]' : 'bg-green-50 text-[#16a34a]')
+                : (isDark ? 'bg-[#3B82F6]/10 text-[#60A5FA]' : 'bg-blue-50 text-[#3B82F6]')">
+                <i class="text-[18px] transition-all" :class="[
+                  archivoSeleccionado ? 'fas fa-file-circle-check' : 'fas fa-file-arrow-up',
+                  isDragOver ? 'scale-110' : ''
+                ]"></i>
+              </div>
+
+              <div class="text-center">
+                <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                  {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel o haz clic para seleccionar' }}
+                </p>
+                <p class="text-[11px] mt-1" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                  {{ archivoSeleccionado ? 'Archivo listo para cargar' : 'Formatos: .xlsx, .xls' }}
+                </p>
+              </div>
+
+              <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
+                class="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors" :class="isDark
+                  ? 'border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#f87171]/40'
+                  : 'border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300'">
+                <i class="fas fa-times mr-1 text-[9px]"></i>Quitar
+              </button>
             </div>
 
-            <!-- Texto -->
-            <div class="text-center">
-              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
-                {{ archivoSeleccionado ? archivoSeleccionado.name : 'Arrastra tu Excel o haz clic para seleccionar' }}
-              </p>
-              <p class="text-[11px] mt-1" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                {{ archivoSeleccionado ? 'Archivo listo para cargar' : 'Formatos: .xlsx, .xls' }}
-              </p>
+            <!-- Mensajes de estado -->
+            <div v-if="cargueSuccessMsg"
+              class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2"
+              :class="isDark ? 'bg-[#16a34a]/[0.08] border-[#16a34a]/30 text-[#4ade80]' : 'bg-green-50 border-green-200 text-green-700'">
+              <i class="fas fa-circle-check text-[12px]"></i>{{ cargueSuccessMsg }}
+            </div>
+            <div v-if="cargueErrorMsg"
+              class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2"
+              :class="isDark ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]' : 'bg-red-50 border-red-200 text-red-700'">
+              <i class="fas fa-triangle-exclamation text-[12px]"></i>{{ cargueErrorMsg }}
             </div>
 
-            <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
-              class="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors" :class="isDark
-                ? 'border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#f87171]/40'
-                : 'border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300'">
-              <i class="fas fa-times mr-1 text-[9px]"></i>Quitar
+            <!-- Footer -->
+            <div class="px-4 py-2.5 border-t flex items-center justify-end"
+              :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+              <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
+                class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] hover:bg-[#2563EB] text-white">
+                <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
+                {{ isUploading ? 'Guardando…' : 'Guardar cargue' }}
+              </button>
+            </div>
+          </div>
+        </template>
+        <!-- ── Fin Vista: Cargue de horas ──────────────────────────────────── -->
+
+        <!-- ── Vista: Historial de horas cargadas ──────────────────────────── -->
+        <template v-else-if="activeCargueView === 'historial'">
+
+          <!-- Toolbar filtros -->
+          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Desde</label>
+              <input type="date" v-model="cargueStartDate"
+                class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Hasta</label>
+              <input type="date" v-model="cargueEndDate"
+                class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+            </div>
+
+            <!-- Buscar -->
+            <button @click="handleCargarCargueHistorial" :disabled="cargueIsLoading"
+              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 border"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+              <i :class="cargueIsLoading ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'" class="text-[10px]"></i>
+              Buscar
             </button>
+
+            <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueTotalRegistros }}</span>
+              registro(s) encontrado(s)
+            </span>
           </div>
 
-          <!-- Mensajes de estado -->
-          <div v-if="cargueSuccessMsg"
-            class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2" :class="isDark
-              ? 'bg-[#16a34a]/[0.08] border-[#16a34a]/30 text-[#4ade80]'
-              : 'bg-green-50 border-green-200 text-green-700'">
-            <i class="fas fa-circle-check text-[12px]"></i>{{ cargueSuccessMsg }}
-          </div>
-          <div v-if="cargueErrorMsg"
-            class="mx-4 mb-3 px-3 py-2 rounded-[5px] text-[11px] font-medium border flex items-center gap-2" :class="isDark
-              ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
-              : 'bg-red-50 border-red-200 text-red-700'">
-            <i class="fas fa-triangle-exclamation text-[12px]"></i>{{ cargueErrorMsg }}
-          </div>
+          <!-- Tabla historial -->
+          <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-          <!-- Footer con botón guardar -->
-          <div class="px-4 py-2.5 border-t flex items-center justify-end"
-            :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
-            <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
-              class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] hover:bg-[#2563EB] text-white">
-              <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
-              {{ isUploading ? 'Guardando…' : 'Guardar cargue' }}
-            </button>
-          </div>
+            <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+              <table class="w-full border-separate border-spacing-0 text-[11px]">
 
-        </div>
+                <thead class="sticky top-0 z-30">
+                  <tr class="bg-[#1e2538]">
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                    <th v-for="col in COLS_HX" :key="col"
+                      class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                      {{ col.toUpperCase() }}
+                    </th>
+                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">Estado</th>
+                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Aprobar</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!-- Loading -->
+                  <tr v-if="cargueIsLoading" v-for="n in 8" :key="'csk-' + n">
+                    <td colspan="13" class="px-3 py-3">
+                      <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Sin datos -->
+                  <tr v-else-if="!cargueFilasPaginadas.length">
+                    <td colspan="13" class="px-4 py-14 text-center">
+                      <div class="flex flex-col items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+                          :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+                          <i class="fas fa-table-list text-xl text-[#3B82F6]"></i>
+                        </div>
+                        <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                          Selecciona un rango y presiona Buscar
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Filas agrupadas -->
+                  <template v-else v-for="(item, idx) in cargueFilasPaginadas" :key="idx">
+
+                    <!-- Cabecera empresa -->
+                    <tr v-if="item.tipo === 'empresa'">
+                      <td colspan="13" class="px-4 py-2 text-[10px] font-medium border-b"
+                        :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
+                        <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                      </td>
+                    </tr>
+
+                    <!-- Fila normal -->
+                    <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100"
+                      :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+
+                      <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                        {{ item.data.cedula }}
+                      </td>
+
+                      <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                        <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
+                        <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
+                      </td>
+
+                      <td class="px-3 py-2 border-b border-r text-center"
+                        :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
+                        {{ formatFecha(item.data.fecha) }}
+                      </td>
+
+                      <td class="px-3 py-2 border-b border-r"
+                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                        {{ item.data.departamento || '—' }}
+                      </td>
+
+                      <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
+                        :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                          Number(item.data[col]) > 0
+                            ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
+                            : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                        {{ formatDecimal(item.data[col]) }}
+                      </td>
+
+                      <!-- Estado chip -->
+                      <td class="px-2 py-2 border-b border-r text-center"
+                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                          :class="item.data.aprobado === true
+                            ? 'bg-[#16a34a]/15 text-[#4ade80]'
+                            : item.data.aprobado === false
+                              ? 'bg-[#dc2626]/15 text-[#f87171]'
+                              : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
+                          <i class="mr-1 text-[8px]"
+                            :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
+                          {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' : 'Pendiente' }}
+                        </span>
+                      </td>
+
+                      <!-- Botones aprobar/rechazar -->
+                      <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                        <div class="flex items-center justify-center gap-1">
+                          <button @click="abrirModalAprobar(item.data, true)"
+                            :disabled="!item.data.id"
+                            class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
+                            :class="item.data.aprobado === true
+                              ? 'bg-[#16a34a] border-[#16a34a] text-white'
+                              : (isDark
+                                ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40'
+                                : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
+                            <i class="fas fa-check text-[9px]"></i>
+                          </button>
+                          <button @click="abrirModalAprobar(item.data, false)"
+                            :disabled="!item.data.id"
+                            class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
+                            :class="item.data.aprobado === false
+                              ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                              : (isDark
+                                ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
+                                : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')">
+                            <i class="fas fa-times text-[9px]"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Subtotal colaborador -->
+                    <tr v-else-if="item.tipo === 'subtotal'">
+                      <td colspan="4" class="px-3 py-2 border-b border-r text-[10px] font-medium"
+                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
+                        Subtotal — {{ item.data.nombre }}
+                      </td>
+                      <td v-for="col in COLS_HX" :key="col"
+                        class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
+                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
+                        {{ formatDecimal(item.data.subtotales[col]) }}
+                      </td>
+                      <td colspan="2" class="border-b"
+                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
+                    </tr>
+
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Paginación -->
+            <div v-if="cargueFilasAplanadas.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
+              :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+              <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ cargueTotalRegistros }}</span>
+                {{ cargueTotalRegistros === 1 ? 'registro' : 'registros' }}
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button @click="cargueCurrentPage--" :disabled="cargueCurrentPage === 1"
+                  class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+                  :class="isDark
+                    ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+                  <i class="fas fa-chevron-left text-[9px]"></i>
+                </button>
+                <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
+                  :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
+                  {{ cargueCurrentPage }} / {{ cargueTotalPages }}
+                </div>
+                <button @click="cargueCurrentPage++" :disabled="cargueCurrentPage >= cargueTotalPages"
+                  class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+                  :class="isDark
+                    ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
+                  <i class="fas fa-chevron-right text-[9px]"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <!-- ── Fin Vista: Historial ─────────────────────────────────────────── -->
 
       </div>
     </template>
@@ -769,7 +1036,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
@@ -840,10 +1107,24 @@ const {
   successMsg: cargueSuccessMsg,
   subirExcel,
   descargarPlantilla,
+  isLoading: cargueIsLoading,
+  registros: cargueRegistros,
+  filasPaginadas: cargueFilasPaginadas,
+  filasAplanadas: cargueFilasAplanadas,
+  currentPage: cargueCurrentPage,
+  totalPages: cargueTotalPages,
+  totalRegistros: cargueTotalRegistros,
+  cargarHistorial: cargarCargueHistorial,
 } = useCargueHoras();
 
 const archivoSeleccionado = ref(null);
 const isDragOver = ref(false);
+
+// ── Cargue Horas dropdown & sub-vistas ────────────────────────────────────────
+const showCargueMenu = ref(false);
+const activeCargueView = ref('upload'); // 'upload' | 'historial'
+const cargueStartDate = ref('');
+const cargueEndDate = ref('');
 
 function handleFileSelect(event) {
   const f = event.target.files?.[0];
@@ -863,6 +1144,33 @@ async function handleSubirExcel() {
 }
 async function handleDescargarPlantilla() {
   await descargarPlantilla();
+}
+
+function toggleCargueMenu() {
+  showCargueMenu.value = !showCargueMenu.value;
+}
+
+function selectCargueView(view) {
+  activeTab.value = 'cargue';
+  activeCargueView.value = view;
+  showCargueMenu.value = false;
+  if (view === 'historial') {
+    handleCargarCargueHistorial();
+  }
+}
+
+async function handleCargarCargueHistorial() {
+  await cargarCargueHistorial({
+    startDate: cargueStartDate.value || undefined,
+    endDate: cargueEndDate.value || undefined,
+    company: props.company,
+  });
+}
+
+function handleCargueMenuOutsideClick(e) {
+  if (!e.target.closest('.cargue-menu-wrapper')) {
+    showCargueMenu.value = false;
+  }
 }
 
 // ── Modal observación ─────────────────────────────────────────────────────────
@@ -892,6 +1200,10 @@ async function confirmarAprobar() {
   try {
     await aprobarRegistro(modalAprobar.registro.id, modalAprobar.aprobado, modalAprobar.observacion);
     modalAprobar.visible = false;
+    // Si estamos en el historial de cargue, recargar esa vista
+    if (activeTab.value === 'cargue' && activeCargueView.value === 'historial') {
+      await handleCargarCargueHistorial();
+    }
   } catch { /* silencioso */ } finally {
     modalAprobar.loading = false;
   }
@@ -942,6 +1254,11 @@ watch(() => props.company, (v) => {
 
 onMounted(() => {
   cargarHistorial(props.company);
+  document.addEventListener('click', handleCargueMenuOutsideClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleCargueMenuOutsideClick);
 });
 </script>
 <style></style>

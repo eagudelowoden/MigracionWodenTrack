@@ -58,7 +58,7 @@
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-clock-rotate-left text-xs transition-transform group-hover:scale-110"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas Extra</span>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Gestion de Horas</span>
           <div v-if="route.path === '/admin/horas-extra'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r">
           </div>
         </button>
@@ -72,7 +72,7 @@
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
           </div>
-          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Gestión Horas</span>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas </span>
           <div v-if="route.path === '/admin/cargue-horas-ch'"
             class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
