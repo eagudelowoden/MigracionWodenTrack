@@ -580,24 +580,25 @@ export class HorasExtraService {
 
       // ── Determinar turno primero (necesario para la lógica nocturna) ─────────
       const asignaciones = mallasMap.get(empId) ?? [];
+      // sinMalla: el registro se muestra igual, pero no se calculan horas extra
+      const sinMalla = asignaciones.length === 0;
 
-      // Sin malla asignada → no se calculan horas extras
-      if (asignaciones.length === 0) continue;
-
-      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
       const diaSemana = this.getDiaSemana(fecha);
-      const turnoDetalles = detalles
-        .filter((d: any) => Number(d.dia_semana) === diaSemana)
-        .sort(
-          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
-        );
-
-      const turno = turnoDetalles[0] ?? null;
       const esDominical = diaSemana === 6;
 
-      // Sin turno para ese día (día de descanso según malla) → no se calculan extras
-      // Excepción: domingo/festivo donde la persona sí asistió (se calculan como HEFD/HEFN)
-      if (!turno && !esDominical) continue;
+      // Resolver turno solo si tiene malla asignada
+      let turno: any = null;
+      if (!sinMalla) {
+        const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+        const turnoDetalles = detalles
+          .filter((d: any) => Number(d.dia_semana) === diaSemana)
+          .sort(
+            (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+          );
+        turno = turnoDetalles[0] ?? null;
+      }
+      // NOTA: ya no se hace `continue` por falta de malla ni por día sin turno.
+      // El registro siempre se incluye; las horas extra se calculan solo cuando corresponde.
 
       // ── Entrada / salida desde hr.attendance (o biométrico sintético) ────────
       let localIn = this.toLocal(primero.check_in);
@@ -610,7 +611,7 @@ export class HorasExtraService {
       // medianoche (ej. registra 04:59→22:09 en vez de 22:09→05:00).
       // La fuente de verdad para nocturnos es el biométrico: entrada ≈ hora_inicio
       // en `fecha` y salida ≈ hora_fin en `fecha+1`.
-      if (esNocturnoTurno(turno) && allLogsByEmp.has(empId)) {
+      if (turno && esNocturnoTurno(turno) && allLogsByEmp.has(empId)) {
         const inicioMins = Number(turno.hora_inicio) * 60;
         const finMins    = Number(turno.hora_fin)    * 60;
         const siguiente  = addUnDia(fecha);
@@ -640,12 +641,13 @@ export class HorasExtraService {
       const cargo =
         cargoOdooMap.get(empId) || cargoLocalMap.get(cedula) || null;
 
-      const categorias = this.calcularCategorias(
-        localIn,
-        localOut,
-        turno,
-        esDominical,
-      );
+      // Calcular horas extra solo si: tiene malla Y (tiene turno ese día O es dominical)
+      // Sin malla → mostrar el registro con horas extra en 0
+      // Con malla pero sin turno ese día (trabajó en día de descanso, no domingo) → también 0
+      const debeCalcularExtras = !sinMalla && (turno !== null || esDominical);
+      const categorias = debeCalcularExtras
+        ? this.calcularCategorias(localIn, localOut, turno, esDominical)
+        : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
 
       // Compatibilidad con campos legacy (minutos)
       const hedo_mins = Math.round(categorias.hedo * 60);

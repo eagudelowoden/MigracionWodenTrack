@@ -86,40 +86,174 @@ export class MallasCrudService {
       '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
     };
 
-    const parseHora = (val: string): number => {
+    const parseHora = (val: string | undefined): number => {
       if (!val) return NaN;
-      if (val.includes(':')) {
-        const [h, m] = val.split(':').map(Number);
-        return h + (m || 0) / 60;
+      const clean = val.trim();
+      if (!clean) return NaN;
+      // "7:00 AM", "07:00:00", "07:00"
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        const h = Number(parts[0]);
+        const m = Number(parts[1]) || 0;
+        const suffix = (parts[1] || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
+        if (isNaN(h)) return NaN;
+        // Corregir formato 12h → 24h
+        if (suffix === 'PM' && h < 12) return h + 12 + m / 60;
+        if (suffix === 'AM' && h === 12) return m / 60;
+        return h + m / 60;
       }
-      return parseFloat(val.replace(',', '.'));
+      return parseFloat(clean.replace(',', '.'));
     };
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
-    const ws = workbook.getWorksheet(1);
+    // Usar worksheets[0] (por posición) en vez de getWorksheet(1) (por sheetId)
+    // para evitar fallos cuando el sheetId no es 1
+    const ws = workbook.worksheets[0];
     if (!ws) throw new BadRequestException('No se encontró hoja de trabajo');
+
+    // Extraer "H:MM" de un objeto Date (ExcelJS usa UTC para tiempo puro)
+    const dateToHHMM = (d: Date): string =>
+      `${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+
+    // Leer texto de celda con fallback a .value cuando la celda es de tipo TIME
+    const getCellString = (cell: ExcelJS.Cell): string => {
+      const text = cell.text?.trim();
+      if (text) return text;
+      const val = cell.value;
+      if (typeof val === 'string') return val.trim();
+      if (typeof val === 'number') return String(val);
+      if (val instanceof Date) return dateToHHMM(val);
+      return '';
+    };
+
+    // Leer celda de hora con fallback robusto para celdas TIME de Excel
+    const getCellHora = (cell: ExcelJS.Cell): string => {
+      const text = cell.text?.trim();
+      if (text) return text;
+      const val = cell.value;
+      // Celda tipo Date (tiempo sin fecha → 1899-12-30 + fracción, en UTC)
+      if (val instanceof Date) return dateToHHMM(val);
+      // Número: fracción de día (0–1) → multiplicar por 24; decimal de hora (≥2) → usar directo
+      if (typeof val === 'number') {
+        const hours = val < 1 ? val * 24 : val;
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        return `${h}:${String(m).padStart(2, '0')}`;
+      }
+      if (typeof val === 'string') return val.trim();
+      return '';
+    };
+
+    // ─── Detectar formato: VERTICAL (plantilla) vs HORIZONTAL (días como columnas) ───
+    const headerRow = ws.getRow(1);
+    const col2Header = getCellString(headerRow.getCell(2)).toLowerCase().normalize('NFC').trim();
+    const isHorizontal = col2Header in DIA_MAP; // "lunes","martes"… → formato horizontal
 
     // Agrupar filas por nombre de malla
     const mallasMap = new Map<string, { compania: string; detalles: any[] }>();
+    const advertencias: string[] = [];
+    let totalFilas = 0;
 
-    ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return;
-      const nombre = row.getCell(1).text?.trim();
-      const compania = row.getCell(2).text?.trim();
-      const diaRaw = row.getCell(3).text?.trim().toLowerCase();
-      const diaSemana = diaRaw !== undefined && diaRaw !== '' ? DIA_MAP[diaRaw] : undefined;
-      const horaInicio = parseHora(row.getCell(4).text?.trim());
-      const horaFin = parseHora(row.getCell(5).text?.trim());
-      const periodo = row.getCell(6).text?.trim() || 'morning';
+    if (isHorizontal) {
+      // ════════════════════════════════════════════════════════
+      // FORMATO HORIZONTAL: una fila por turno, días como columnas
+      // Ejemplo: TURNO | LUNES | MARTES | ... | SÁBADO
+      //          Turno1 | "8:00 AM a 2:00PM" | ...
+      // ════════════════════════════════════════════════════════
+      console.log('[MallasCrud] Formato detectado: HORIZONTAL');
 
-      if (!nombre || diaSemana === undefined || isNaN(horaInicio) || isNaN(horaFin)) return;
-
-      if (!mallasMap.has(nombre)) {
-        mallasMap.set(nombre, { compania: compania || '', detalles: [] });
+      // 1. Mapear columnas a números de día (ignorar columnas no-día como ALMUERZO)
+      const dayColumns = new Map<number, number>(); // colIdx → diaSemana (0-6)
+      for (let c = 2; c <= (ws.columnCount || 10); c++) {
+        const headerText = getCellString(headerRow.getCell(c)).toLowerCase().normalize('NFC').trim();
+        if (headerText in DIA_MAP) {
+          dayColumns.set(c, DIA_MAP[headerText]);
+        }
       }
-      mallasMap.get(nombre)!.detalles.push({ dia_semana: diaSemana, hora_inicio: horaInicio, hora_fin: horaFin, periodo });
-    });
+
+      // 2. Parsear "8:00 AM a 2:00PM" → { horaInicio, horaFin }
+      const parseRango = (rango: string): { horaInicio: number; horaFin: number } | null => {
+        if (!rango || rango === '-') return null;
+        // Separador: " a ", " A ", " - " (sin confundir con "-" solo)
+        const partes = rango.split(/\s+[aA]\s+/);
+        if (partes.length < 2) return null;
+        const horaInicio = parseHora(partes[0].trim());
+        const horaFin = parseHora(partes[1].trim());
+        if (isNaN(horaInicio) || isNaN(horaFin)) return null;
+        return { horaInicio, horaFin };
+      };
+
+      // 3. Iterar filas de datos
+      ws.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const nombre = getCellString(row.getCell(1)).trim();
+        if (!nombre) return;
+        totalFilas++;
+
+        for (const [colIdx, diaSemana] of dayColumns.entries()) {
+          const rangoRaw = getCellString(row.getCell(colIdx)).trim();
+          const parsed = parseRango(rangoRaw);
+          if (!parsed) continue;
+
+          const { horaInicio, horaFin } = parsed;
+          const periodo = horaInicio < 12 ? 'morning' : horaInicio < 18 ? 'afternoon' : 'night';
+
+          if (!mallasMap.has(nombre)) {
+            mallasMap.set(nombre, { compania: '', detalles: [] });
+          }
+          mallasMap.get(nombre)!.detalles.push({ dia_semana: diaSemana, hora_inicio: horaInicio, hora_fin: horaFin, periodo });
+        }
+
+        if (!mallasMap.has(nombre)) {
+          advertencias.push(`Fila ${rowNumber} (${nombre}): ningún horario válido encontrado`);
+        }
+      });
+
+    } else {
+      // ════════════════════════════════════════════════════════
+      // FORMATO VERTICAL (plantilla estándar):
+      // nombre | compania | dia | hora_inicio | hora_fin | periodo
+      // ════════════════════════════════════════════════════════
+      console.log('[MallasCrud] Formato detectado: VERTICAL');
+
+      ws.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const nombre = getCellString(row.getCell(1));
+        if (!nombre) return;
+        totalFilas++;
+
+        const compania = getCellString(row.getCell(2));
+        const diaRaw = getCellString(row.getCell(3)).toLowerCase().normalize('NFC');
+        const diaSemana = diaRaw !== '' ? DIA_MAP[diaRaw] : undefined;
+        const horaInicioRaw = getCellHora(row.getCell(4));
+        const horaFinRaw = getCellHora(row.getCell(5));
+        const horaInicio = parseHora(horaInicioRaw);
+        const horaFin = parseHora(horaFinRaw);
+        const periodo = getCellString(row.getCell(6)) || 'morning';
+
+        if (diaSemana === undefined) {
+          advertencias.push(`Fila ${rowNumber} (${nombre}): día no reconocido → "${diaRaw || '(vacío)'}"`);
+          return;
+        }
+        if (isNaN(horaInicio)) {
+          advertencias.push(`Fila ${rowNumber} (${nombre}): hora inicio inválida → "${horaInicioRaw || '(vacío)'}"`);
+          return;
+        }
+        if (isNaN(horaFin)) {
+          advertencias.push(`Fila ${rowNumber} (${nombre}): hora fin inválida → "${horaFinRaw || '(vacío)'}"`);
+          return;
+        }
+
+        if (!mallasMap.has(nombre)) {
+          mallasMap.set(nombre, { compania, detalles: [] });
+        }
+        mallasMap.get(nombre)!.detalles.push({ dia_semana: diaSemana, hora_inicio: horaInicio, hora_fin: horaFin, periodo });
+      });
+    }
+
+    console.log(`[MallasCrud] ${isHorizontal ? 'Horizontal' : 'Vertical'}: ${totalFilas} filas, ${mallasMap.size} mallas, ${advertencias.length} advertencias`);
+    if (advertencias.length) console.log('[MallasCrud] Advertencias:', advertencias.slice(0, 5));
 
     const creadas: string[] = [];
     const omitidas: string[] = [];
@@ -144,6 +278,7 @@ export class MallasCrudService {
       creadas: creadas.length,
       omitidas: omitidas.length,
       errores,
+      advertencias: advertencias.slice(0, 20),
       detalle: { creadas, omitidas },
     };
   }

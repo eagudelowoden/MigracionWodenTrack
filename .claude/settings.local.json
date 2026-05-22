@@ -42,7 +42,10 @@
       "Bash(perl -i -0pe 's/\\(class=\"[^\"]*?\\)\"\\\\s*\\\\n\\\\s+class=\"\\([^\"]+\\)\"/$1 $2\"/g' ModuloCalculos.vue)",
       "Bash(grep -c 'class=.*border-r\"$' ModuloCalculos.vue)",
       "Bash(xargs grep -l \"horas-extra\")",
-      "Bash(npx vue-tsc *)"
+      "Bash(npx vue-tsc *)",
+      "Bash(xargs grep -l \"upload-excel\\\\|mallas-admin\")",
+      "Bash(xargs grep -l \"/mallas-admin\\\\|upload-excel\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

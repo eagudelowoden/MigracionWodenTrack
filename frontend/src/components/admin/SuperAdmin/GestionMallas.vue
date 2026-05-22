@@ -211,10 +211,14 @@
           </button>
         </div>
 
-        <div v-if="resultadoUpload" class="px-4 pb-4">
-          <div class="rounded-lg px-3 py-2 text-[10px] font-medium border" :class="resultadoUpload.errores?.length
-            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'">
+        <div v-if="resultadoUpload" class="px-4 pb-4 space-y-2">
+          <!-- Resumen principal -->
+          <div class="rounded-lg px-3 py-2 text-[10px] font-medium border"
+            :class="resultadoUpload.errores?.length
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : resultadoUpload.creadas > 0
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-400'">
             <p class="font-bold">
               {{ resultadoUpload.creadas }} mallas creadas ·
               {{ resultadoUpload.omitidas }} ya existían ·
@@ -222,6 +226,14 @@
             </p>
             <ul v-if="resultadoUpload.errores?.length" class="mt-1 space-y-0.5 list-disc list-inside opacity-80">
               <li v-for="e in resultadoUpload.errores" :key="e">{{ e }}</li>
+            </ul>
+          </div>
+          <!-- Filas saltadas por formato inválido -->
+          <div v-if="resultadoUpload.advertencias?.length"
+            class="rounded-lg px-3 py-2 text-[10px] font-medium border bg-orange-500/10 border-orange-500/30 text-orange-400">
+            <p class="font-bold mb-1">{{ resultadoUpload.advertencias.length }} filas ignoradas por formato inválido:</p>
+            <ul class="space-y-0.5 list-disc list-inside opacity-90">
+              <li v-for="w in resultadoUpload.advertencias" :key="w">{{ w }}</li>
             </ul>
           </div>
         </div>
