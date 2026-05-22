@@ -63,20 +63,6 @@
           </div>
         </button>
 
-        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['horas.ver_cargue_ch']"
-          @click="router.push('/admin/cargue-horas-ch')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
-          :class="route.path === '/admin/cargue-horas-ch'
-            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
-          <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-file-arrow-up text-xs transition-transform group-hover:scale-110"></i>
-          </div>
-          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Horas </span>
-          <div v-if="route.path === '/admin/cargue-horas-ch'"
-            class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
-        </button>
-
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.novedades']"
           @click="router.push('/admin/novedades')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"

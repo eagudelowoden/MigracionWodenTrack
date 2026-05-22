@@ -55,12 +55,6 @@
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-circle-check text-[10px]"></i>Novedades Aprobadas
         </button>
-        <button @click="handleTabNovedades('hx')"
-          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'hx'
-            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
-            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-          <i class="fas fa-chart-bar text-[10px]"></i>Novedades HX
-        </button>
       </div>
 
       <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
@@ -900,61 +894,6 @@
     </template>
     <!-- ══ FIN TAB NOVEDADES APROBADAS ══════════════════════════════════════ -->
 
-    <!-- ══ TAB NOVEDADES HX POR DEPARTAMENTO ════════════════════════════════ -->
-    <template v-else-if="activeTab === 'hx'">
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-
-        <div v-if="isLoadingNovedadesHX" class="flex-1 flex items-center justify-center">
-          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-        </div>
-
-        <div v-else-if="!novedadesHX.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
-            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
-            <i class="fas fa-chart-bar text-xl text-[#3B82F6]"></i>
-          </div>
-          <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-            No hay registros en el rango seleccionado
-          </p>
-        </div>
-
-        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
-          <table class="w-full border-separate border-spacing-0 text-[11px]">
-            <thead class="sticky top-0 z-30">
-              <tr class="bg-[#1e2538]">
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Personas</th>
-                <th v-for="col in ['RN','RNDF','RDDF','HEDO','HENO','HEFD','HEFN']" :key="col"
-                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-14 border-[#f5f5f7] text-[#f5f5f7]">
-                  {{ col }} (h)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(dept, idx) in novedadesHX" :key="dept.departamento"
-                class="group transition-all"
-                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
-                <td class="px-3 py-2 border-b border-r font-semibold"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">
-                  <i class="fas fa-building mr-2 opacity-40 text-[#3B82F6] text-[9px]"></i>{{ dept.departamento }}
-                </td>
-                <td class="px-3 py-2 border-b border-r text-center font-mono"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
-                  {{ dept.personas }}
-                </td>
-                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
-                  :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                    dept.totales[col] > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                  {{ dept.totales[col] }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </template>
-    <!-- ══ FIN TAB NOVEDADES HX ══════════════════════════════════════════════ -->
 
     <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
     <Teleport to="body">
@@ -1086,9 +1025,6 @@ const {
   novedadesAprobadas,
   isLoadingNovedades,
   cargarNovedadesAprobadas,
-  novedadesHX,
-  isLoadingNovedadesHX,
-  cargarNovedadesHX,
   isNotifying,
   notificarAprobados,
   selectedRecords,
@@ -1215,8 +1151,6 @@ async function handleTabNovedades(tab) {
   activeTab.value = tab;
   if (tab === 'aprobadas') {
     await cargarNovedadesAprobadas(props.company);
-  } else if (tab === 'hx') {
-    await cargarNovedadesHX(props.company);
   }
 }
 
