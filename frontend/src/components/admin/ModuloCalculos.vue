@@ -49,6 +49,13 @@
             </button>
           </div>
         </div>
+        <button @click="handleTabGuardados"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
+          :class="activeTab === 'guardados'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-floppy-disk text-[10px]"></i>Guardados
+        </button>
         <button @click="handleTabNovedades('aprobadas')"
           class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
@@ -814,6 +821,185 @@
     </template>
     <!-- ══ FIN TAB CARGUE HORAS ══════════════════════════════════════════════ -->
 
+    <!-- ══ TAB GUARDADOS ════════════════════════════════════════════════════ -->
+    <template v-else-if="activeTab === 'guardados'">
+
+      <!-- Toolbar -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length }}</span>
+          registro(s) guardado(s) en el rango
+        </span>
+        <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
+          class="ml-auto h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <div v-if="isLoadingGuardados" class="flex-1 flex items-center justify-center">
+          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
+        </div>
+
+        <div v-else-if="!filasPaginadasGuardados.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+            <i class="fas fa-floppy-disk text-xl text-[#3B82F6]"></i>
+          </div>
+          <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            No hay registros guardados en el rango seleccionado
+          </p>
+        </div>
+
+        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table class="w-full border-separate border-spacing-0 text-[11px]">
+            <thead class="sticky top-0 z-30">
+              <tr class="bg-[#1e2538]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th v-for="col in COLS_HX" :key="col"
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  {{ col.toUpperCase() }}
+                </th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">Estado</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="(item, idx) in filasPaginadasGuardados" :key="idx">
+
+                <!-- Empresa -->
+                <tr v-if="item.tipo === 'empresa'">
+                  <td colspan="13" class="px-4 py-2 text-[10px] font-medium border-b"
+                    :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
+                    <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                  </td>
+                </tr>
+
+                <!-- Fila normal -->
+                <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100"
+                  :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+                  <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ item.data.cedula }}</td>
+                  <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
+                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
+                  </td>
+                  <td class="px-3 py-2 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
+                    {{ formatFecha(item.data.fecha) }}
+                  </td>
+                  <td class="px-3 py-2 border-b border-r"
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                    {{ item.data.departamento || '—' }}
+                  </td>
+                  <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
+                    :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                      Number(item.data[col]) > 0
+                        ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
+                        : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                    {{ formatDecimal(item.data[col]) }}
+                  </td>
+                  <!-- Estado -->
+                  <td class="px-2 py-2 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                      :class="item.data.aprobado === true
+                        ? 'bg-[#16a34a]/15 text-[#4ade80]'
+                        : item.data.aprobado === false
+                          ? 'bg-[#dc2626]/15 text-[#f87171]'
+                          : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
+                      <i class="mr-1 text-[8px]"
+                        :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
+                      {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' : 'Pendiente' }}
+                    </span>
+                  </td>
+                  <!-- Acciones: aprobar / rechazar / eliminar -->
+                  <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="flex items-center justify-center gap-1">
+                      <button @click="abrirModalAprobar(item.data, true)"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                        :class="item.data.aprobado === true
+                          ? 'bg-[#16a34a] border-[#16a34a] text-white'
+                          : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')"
+                        title="Aprobar">
+                        <i class="fas fa-check text-[9px]"></i>
+                      </button>
+                      <button @click="abrirModalAprobar(item.data, false)"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                        :class="item.data.aprobado === false
+                          ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                          : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')"
+                        title="Rechazar">
+                        <i class="fas fa-times text-[9px]"></i>
+                      </button>
+                      <button @click="abrirModalEliminar(item.data)"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                        :class="isDark
+                          ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
+                          : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
+                        title="Eliminar registro">
+                        <i class="fas fa-trash text-[9px]"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Subtotal -->
+                <tr v-else-if="item.tipo === 'subtotal'">
+                  <td colspan="4" class="px-3 py-2 border-b border-r text-[10px] font-medium"
+                    :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
+                    Subtotal — {{ item.data.nombre }}
+                  </td>
+                  <td v-for="col in COLS_HX" :key="col"
+                    class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
+                    :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
+                    {{ formatDecimal(item.data.subtotales[col]) }}
+                  </td>
+                  <td colspan="2" class="border-b"
+                    :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
+                </tr>
+
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginación -->
+        <div v-if="filasAplanadasGuardados.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
+          :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+          <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ registrosGuardados.length }}</span>
+            registros
+          </span>
+          <div class="flex items-center gap-1.5">
+            <button @click="currentPageGuardados--" :disabled="currentPageGuardados === 1"
+              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+              :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-700'">
+              <i class="fas fa-chevron-left text-[9px]"></i>
+            </button>
+            <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
+              :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
+              {{ currentPageGuardados }} / {{ totalPagesGuardados }}
+            </div>
+            <button @click="currentPageGuardados++" :disabled="currentPageGuardados >= totalPagesGuardados"
+              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+              :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-700'">
+              <i class="fas fa-chevron-right text-[9px]"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+    <!-- ══ FIN TAB GUARDADOS ══════════════════════════════════════════════════ -->
+
     <!-- ══ TAB NOVEDADES APROBADAS ══════════════════════════════════════════ -->
     <template v-else-if="activeTab === 'aprobadas'">
 
@@ -862,7 +1048,8 @@
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col }}
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -882,9 +1069,30 @@
                     Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
                   {{ formatDecimal(r[col]) }}
                 </td>
-                <td class="px-3 py-2 border-b text-[10px] italic"
+                <td class="px-3 py-2 border-b border-r text-[10px] italic"
                   :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
                   {{ r.observacion || '—' }}
+                </td>
+                <!-- Acciones: deshacer aprobación / eliminar -->
+                <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <div class="flex items-center justify-center gap-1">
+                    <button @click="handleDeshacerAprobacion(r.id)"
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                      :class="isDark
+                        ? 'bg-transparent border-[#222938] text-[#888888] hover:text-amber-400 hover:border-amber-500/40'
+                        : 'bg-transparent border-slate-200 text-slate-400 hover:text-amber-600 hover:border-amber-400'"
+                      title="Deshacer aprobación">
+                      <i class="fas fa-rotate-left text-[9px]"></i>
+                    </button>
+                    <button @click="abrirModalEliminar(r)"
+                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                      :class="isDark
+                        ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
+                        : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
+                      title="Eliminar registro">
+                      <i class="fas fa-trash text-[9px]"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -894,6 +1102,48 @@
     </template>
     <!-- ══ FIN TAB NOVEDADES APROBADAS ══════════════════════════════════════ -->
 
+
+    <!-- ══ MODAL ELIMINAR ═══════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="modalEliminar.visible"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55)">
+        <div class="w-full max-w-sm rounded-xl border shadow-2xl"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+          <div class="flex items-center gap-3 px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-[#dc2626]/15">
+              <i class="fas fa-trash text-[#dc2626] text-[11px]"></i>
+            </div>
+            <div>
+              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Eliminar registro</p>
+              <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Esta acción no se puede deshacer</p>
+            </div>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-[12px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+              ¿Eliminar el registro de
+              <span class="font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ modalEliminar.registro?.nombre }}</span>
+              del <span class="font-semibold">{{ formatFecha(modalEliminar.registro?.fecha) }}</span>?
+            </p>
+          </div>
+          <div class="px-5 py-3 border-t flex items-center justify-end gap-2"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <button @click="modalEliminar.visible = false"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="confirmarEliminar" :disabled="modalEliminar.loading"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border text-white bg-[#dc2626] border-[#dc2626] hover:bg-[#b91c1c] transition-all disabled:opacity-50">
+              <i v-if="modalEliminar.loading" class="fas fa-spinner fa-spin mr-1 text-[9px]"></i>
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    <!-- ══ FIN MODAL ELIMINAR ═════════════════════════════════════════════════ -->
 
     <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
     <Teleport to="body">
@@ -1025,6 +1275,15 @@ const {
   novedadesAprobadas,
   isLoadingNovedades,
   cargarNovedadesAprobadas,
+  registrosGuardados,
+  isLoadingGuardados,
+  currentPageGuardados,
+  totalPagesGuardados,
+  filasAplanadasGuardados,
+  filasPaginadasGuardados,
+  cargarGuardados,
+  eliminarRegistro,
+  deshacerAprobacion,
   isNotifying,
   notificarAprobados,
   selectedRecords,
@@ -1137,8 +1396,10 @@ async function confirmarAprobar() {
   try {
     await aprobarRegistro(modalAprobar.registro.id, modalAprobar.aprobado, modalAprobar.observacion);
     modalAprobar.visible = false;
-    // Si estamos en el historial de cargue, recargar esa vista
-    if (activeTab.value === 'cargue' && activeCargueView.value === 'historial') {
+    // Recargar la vista activa según el tab
+    if (activeTab.value === 'guardados') {
+      await cargarGuardados(props.company);
+    } else if (activeTab.value === 'cargue' && activeCargueView.value === 'historial') {
       await handleCargarCargueHistorial();
     }
   } catch { /* silencioso */ } finally {
@@ -1152,6 +1413,41 @@ async function handleTabNovedades(tab) {
   if (tab === 'aprobadas') {
     await cargarNovedadesAprobadas(props.company);
   }
+}
+
+async function handleTabGuardados() {
+  activeTab.value = 'guardados';
+  await cargarGuardados(props.company);
+}
+
+// ── Modal eliminar ────────────────────────────────────────────────────────────
+const modalEliminar = reactive({
+  visible: false,
+  registro: null,
+  loading: false,
+});
+
+function abrirModalEliminar(registro) {
+  modalEliminar.registro = registro;
+  modalEliminar.loading = false;
+  modalEliminar.visible = true;
+}
+
+async function confirmarEliminar() {
+  if (!modalEliminar.registro?.id) return;
+  modalEliminar.loading = true;
+  try {
+    await eliminarRegistro(modalEliminar.registro.id);
+    modalEliminar.visible = false;
+  } catch { /* silencioso */ } finally {
+    modalEliminar.loading = false;
+  }
+}
+
+async function handleDeshacerAprobacion(id) {
+  try {
+    await deshacerAprobacion(id);
+  } catch { /* silencioso */ }
 }
 
 // ── Handlers cálculos ────────────────────────────────────────────────────────
@@ -1168,6 +1464,8 @@ async function handleCalcular() {
 async function handleGuardar() {
   try {
     await guardarCalculados(props.company);
+    // Tras guardar, ir directo a Guardados para ver los registros
+    await handleTabGuardados();
   } catch { /* el composable ya loguea */ }
 }
 
@@ -1183,12 +1481,8 @@ async function handleNotificar() {
   } catch { /* silencioso */ }
 }
 
-watch(() => props.company, (v) => {
-  cargarHistorial(v);
-});
-
 onMounted(() => {
-  cargarHistorial(props.company);
+  // Cálculos empieza vacío — el usuario presiona Calcular
   document.addEventListener('click', handleCargueMenuOutsideClick);
 });
 

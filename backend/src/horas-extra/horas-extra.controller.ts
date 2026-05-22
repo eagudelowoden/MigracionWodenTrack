@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Query,
   Param,
@@ -257,5 +258,10 @@ export class HorasExtraController {
     @Body() dto: { aprobado: boolean | null },
   ) {
     return this.service.aprobarCargue(Number(id), dto.aprobado);
+  }
+
+  @Delete(':id')
+  eliminarRegistro(@Param('id') id: string) {
+    return this.service.eliminarRegistro(Number(id));
   }
 }

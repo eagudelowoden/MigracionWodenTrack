@@ -45,7 +45,9 @@
       "Bash(npx vue-tsc *)",
       "Bash(xargs grep -l \"upload-excel\\\\|mallas-admin\")",
       "Bash(xargs grep -l \"/mallas-admin\\\\|upload-excel\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\src\\\\horas-extra\\\\horas-extra.service.ts\")",
+      "Bash(Select-Object -Last 15)"
     ]
   }
 }

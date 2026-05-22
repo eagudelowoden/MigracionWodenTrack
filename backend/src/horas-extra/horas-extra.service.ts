@@ -1383,4 +1383,8 @@ export class HorasExtraService {
   async aprobarCargue(id: number, aprobado: boolean | null): Promise<void> {
     await this.cargueRepo.update(id, { aprobado });
   }
+
+  async eliminarRegistro(id: number): Promise<void> {
+    await this.horaExtraRepo.delete(id);
+  }
 }

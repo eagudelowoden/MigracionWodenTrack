@@ -294,7 +294,7 @@ export function useReporteMallas() {
         calculado_por: s.name || "Desconocido",
       });
       clearSelection();
-      await cargarHistorial(company);
+      registros.value = [];        // limpia cálculos — el usuario va a "Guardados" a verlos
       hayResultadosCalculados.value = false;
     } catch (err) {
       console.error("Error guardando horas extra:", err);
@@ -465,6 +465,93 @@ export function useReporteMallas() {
     }
   }
 
+  // ── Registros guardados (historial con IDs) ───────────────────────────────
+  const registrosGuardados = ref([]);
+  const isLoadingGuardados = ref(false);
+  const currentPageGuardados = ref(1);
+
+  const gruposPorEmpresaGuardados = computed(() => {
+    const empresaMapa = new Map();
+    for (const r of registrosGuardados.value) {
+      const empresa = r.company || 'Sin empresa';
+      if (!empresaMapa.has(empresa)) empresaMapa.set(empresa, new Map());
+      const colabMapa = empresaMapa.get(empresa);
+      const key = r.cedula;
+      if (!colabMapa.has(key)) {
+        colabMapa.set(key, {
+          cedula: r.cedula, nombre: r.nombre, cargo: r.cargo,
+          departamento: r.departamento, filas: [],
+          subtotales: Object.fromEntries(COLS_HX.map(c => [c, 0])),
+        });
+      }
+      const grupo = colabMapa.get(key);
+      grupo.filas.push(r);
+      for (const col of COLS_HX) {
+        grupo.subtotales[col] = Math.round((grupo.subtotales[col] + (Number(r[col]) || 0)) * 100) / 100;
+      }
+    }
+    return [...empresaMapa.entries()].map(([empresa, colabMapa]) => ({
+      empresa, grupos: [...colabMapa.values()],
+    }));
+  });
+
+  const filasAplanadasGuardados = computed(() => {
+    const out = [];
+    for (const { empresa, grupos } of gruposPorEmpresaGuardados.value) {
+      out.push({ tipo: 'empresa', data: { empresa } });
+      for (const g of grupos) {
+        for (const f of g.filas) out.push({ tipo: 'fila', data: f });
+        out.push({ tipo: 'subtotal', data: g });
+      }
+    }
+    return out;
+  });
+
+  const totalPagesGuardados = computed(() =>
+    Math.max(1, Math.ceil(filasAplanadasGuardados.value.length / itemsPerPage))
+  );
+  const filasPaginadasGuardados = computed(() => {
+    const start = (currentPageGuardados.value - 1) * itemsPerPage;
+    return filasAplanadasGuardados.value.slice(start, start + itemsPerPage);
+  });
+
+  async function cargarGuardados(company) {
+    try {
+      isLoadingGuardados.value = true;
+      await _asegurarPerfil();
+      const s = getSession();
+      const params = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        ...(company && company !== 'Todas' ? { company } : {}),
+        ...getAreaSegmento(),
+      };
+      if (!hasPerm('admin.filtro_departamento') && !s.isSuperAdmin) {
+        if (s.department) params.departamento = s.department;
+      }
+      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
+      registrosGuardados.value = data;
+      currentPageGuardados.value = 1;
+    } catch (err) {
+      console.error('Error cargando guardados:', err);
+    } finally {
+      isLoadingGuardados.value = false;
+    }
+  }
+
+  async function eliminarRegistro(id) {
+    await axios.delete(`${API_BASE_URL}/horas-extra/${id}`);
+    registrosGuardados.value = registrosGuardados.value.filter(r => r.id !== id);
+    novedadesAprobadas.value = novedadesAprobadas.value.filter(n => n.id !== id);
+  }
+
+  async function deshacerAprobacion(id) {
+    await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, { aprobado: null, observacion: null });
+    const idx = registrosGuardados.value.findIndex(r => r.id === id);
+    if (idx !== -1) registrosGuardados.value[idx] = { ...registrosGuardados.value[idx], aprobado: null, observacion: null };
+    novedadesAprobadas.value = novedadesAprobadas.value.filter(n => n.id !== id);
+  }
+
   // Novedades HX por departamento (usa los registros del historial ya cargados)
   const novedadesHX = ref([]);
   const isLoadingNovedadesHX = ref(false);
@@ -619,6 +706,17 @@ export function useReporteMallas() {
     cargarNovedadesHX,
     isNotifying,
     notificarAprobados,
+
+    // Guardados
+    registrosGuardados,
+    isLoadingGuardados,
+    currentPageGuardados,
+    totalPagesGuardados,
+    filasAplanadasGuardados,
+    filasPaginadasGuardados,
+    cargarGuardados,
+    eliminarRegistro,
+    deshacerAprobacion,
 
     // Acciones
     cargarHistorial,
