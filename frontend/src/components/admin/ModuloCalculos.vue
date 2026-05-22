@@ -67,15 +67,6 @@
       <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
       <div v-if="activeTab === 'calculos'" class="flex items-center gap-1.5">
 
-        <!-- Refrescar (icon button con borde azul sutil) -->
-        <button @click="handleCargar" :disabled="isLoading"
-          class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40 hover:bg-[#0B0F19]'
-            : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
-          title="Refrescar historial">
-          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading }"></i>
-        </button>
         <!-- Exportar -->
         <button @click="handleExportar" :disabled="isExporting || !registros.length"
           class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
