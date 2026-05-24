@@ -1,41 +1,39 @@
 <template>
   <div
-    class="h-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none relative"
-    :class="isDark ? 'bg-[#1a1f35]' : 'bg-[#F4F6FA]'">
+    class="h-screen w-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none relative"
+    :class="isDark ? 'bg-[#0B1120]' : 'bg-[#ECEFF5]'">
 
-    <!-- FONDO ESTILO BANCARIO / PREMIUM -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <!-- Patrón de cuadrícula/puntos muy sutil (Opcional, pero da mucha textura premium) -->
-      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div v-if="!isDark" class="absolute inset-0 transition-opacity duration-300" style="background: 
+          radial-gradient(circle at 90% 10%, #BAE6FD 0%, transparent 60%),
+          radial-gradient(circle at 10% 90%, #FFE4E6 0%, transparent 50%);">
+      </div>
+
+      <div v-if="isDark" class="absolute inset-0 transition-opacity duration-300" style="background: 
+          radial-gradient(circle at 90% 10%, #0C4A6E 0%, transparent 50%),
+          radial-gradient(circle at 10% 90%, #1E1B4B 0%, transparent 45%);">
+      </div>
+
+      <div class="absolute inset-0 opacity-[0.02] dark:opacity-[0.04]"
         style="background-image: radial-gradient(#111827 1px, transparent 1px); background-size: 24px 24px;">
-      </div>
-
-      <!-- Resplandor 1: Azul institucional (Arriba a la izquierda) -->
-      <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-blue-500/10' : 'bg-blue-400/20'">
-      </div>
-
-      <!-- Resplandor 2: El color de tu marca WodenTrack (Abajo a la derecha) -->
-      <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-[#e88710]/10' : 'bg-[#e88710]/15'">
       </div>
     </div>
 
-    <!-- TARJETA DE LOGIN (Se le agregó 'backdrop-blur' para efecto cristal moderno) -->
     <div class="w-full max-w-sm rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 border z-10"
       :class="isDark
-        ? 'bg-[#161B26]/90 border-[#222938] backdrop-blur-md'
-        : 'bg-white/90 border-transparent shadow-[0_20px_50px_rgba(0,0,0,0.03)] backdrop-blur-md'">
+        ? 'bg-[#1E293B]/80 border-slate-700/50 backdrop-blur-xl shadow-[0_25px_60px_rgba(0,0,0,0.45)]'
+        : 'bg-white/95 border-slate-200/80 shadow-[0_20px_40px_rgba(15,23,42,0.06)] backdrop-blur-md'">
       <div>
         <div class="flex justify-end mb-4">
-          <i class="fa-solid fa-shield-halved text-xs opacity-40" :class="isDark ? 'text-white' : 'text-slate-600'"></i>
+          <i class="fa-solid fa-shield-halved text-xs opacity-40"
+            :class="isDark ? 'text-slate-400' : 'text-slate-600'"></i>
         </div>
 
         <div class="mb-8 text-left">
           <h1 class="text-2xl font-bold tracking-tight mb-1" :class="isDark ? 'text-white' : 'text-[#111827]'">
             Bienvenido a <span class="text-[#e88710] font-extrabold ml-0.5">WodenTrack</span>
           </h1>
-          <p class="text-xs font-normal" :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">
+          <p class="text-xs font-normal" :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
             Identifícate para continuar
           </p>
         </div>
@@ -43,25 +41,26 @@
         <div class="space-y-4">
           <div class="space-y-1.5">
             <label class="block text-xs font-medium"
-              :class="isDark ? 'text-[#8895B3]' : 'text-[#334155]'">Usuario</label>
+              :class="isDark ? 'text-slate-300' : 'text-slate-700'">Usuario</label>
             <input v-model="form.usuario" type="text" placeholder="Ingresa tu usuario"
               class="w-full h-11 rounded-xl px-4 text-xs font-medium transition-all duration-150 outline-none border"
               :class="isDark
-                ? 'bg-[#1a1f35] border-[#222938] text-white focus:border-[#2563EB]'
-                : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin"
-              autocomplete="off">
+                ? 'bg-[#0B1120]/60 border-slate-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                : 'bg-white border-slate-300 text-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600'"
+              @keyup.enter="handleLogin" autocomplete="off">
           </div>
 
           <div class="space-y-1.5">
             <label class="block text-xs font-medium"
-              :class="isDark ? 'text-[#8895B3]' : 'text-[#334155]'">Contraseña</label>
+              :class="isDark ? 'text-slate-300' : 'text-slate-700'">Contraseña</label>
             <div class="relative">
               <input v-model="form.password" :type="showPassword ? 'text' : 'password'"
                 placeholder="Ingresa tu contraseña"
                 class="w-full h-11 rounded-xl pl-4 pr-12 text-xs font-medium transition-all duration-150 outline-none border"
                 :class="isDark
-                  ? 'bg-[#1a1f35] border-[#222938] text-white focus:border-[#2563EB]'
-                  : 'bg-white border-slate-300 text-[#111827] focus:border-[#2563EB]'" @keyup.enter="handleLogin">
+                  ? 'bg-[#0B1120]/60 border-slate-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                  : 'bg-white border-slate-300 text-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600'"
+                @keyup.enter="handleLogin">
               <button @click="showPassword = !showPassword" type="button"
                 class="absolute right-4 top-1/2 -translate-y-1/2 transition-opacity duration-150 opacity-40 hover:opacity-100"
                 :class="isDark ? 'text-white' : 'text-slate-600'">
@@ -81,24 +80,24 @@
 
       <div class="mt-8 space-y-5">
         <button @click="handleLogin" :disabled="loading"
-          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed shadow-sm">
+          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed shadow-md shadow-blue-600/10 dark:shadow-none">
           <template v-if="!loading">
             <span>Continuar</span>
           </template>
           <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
         </button>
 
-        <div class="border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></div>
+        <div class="border-t" :class="isDark ? 'border-slate-700/60' : 'border-slate-200'"></div>
 
         <div class="flex items-center justify-between text-[11px] font-medium px-0.5">
           <button @click="toggleTheme" class="transition-colors flex items-center gap-1.5"
-            :class="isDark ? 'text-[#8895B3] hover:text-white' : 'text-[#64748B] hover:text-[#2563EB]'">
+            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-blue-600'">
             <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
             <span>{{ isDark ? 'Modo Claro' : 'Modo Oscuro' }}</span>
           </button>
 
           <router-link to="/download" class="transition-colors flex items-center gap-1.5"
-            :class="isDark ? 'text-[#8895B3] hover:text-white' : 'text-[#64748B] hover:text-[#2563EB]'">
+            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-blue-600'">
             <i class="fab fa-android"></i>
             <span>Descargar APK</span>
           </router-link>
