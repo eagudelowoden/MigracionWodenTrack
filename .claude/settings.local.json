@@ -48,7 +48,11 @@
       "Bash(node -e ' *)",
       "Bash(Get-Content \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\src\\\\horas-extra\\\\horas-extra.service.ts\")",
       "Bash(Select-Object -Last 15)",
-      "Bash(Get-ChildItem -Directory)"
+      "Bash(Get-ChildItem -Directory)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*novedades*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\\\\frontend\\\\src\" -Directory -ErrorAction SilentlyContinue)",
+      "Bash(xargs grep -l \"calculos\\\\|horas.*extra\\\\|cargue.*horas\")"
     ]
   }
 }

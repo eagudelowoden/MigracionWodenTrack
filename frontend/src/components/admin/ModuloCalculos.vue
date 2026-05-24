@@ -3,24 +3,24 @@
 
     <!-- ── Header row: Tabs (izq) + Acciones (der) ───────────────────────── -->
     <div class="flex items-center justify-between gap-3 flex-wrap"
-      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.cargue')">
+      v-if="isSuperAdmin || hasPerm('admin.calculos') || hasPerm('horas.guardados') || hasPerm('horas.novedades_aprobadas') || hasPerm('horas.cargue')">
 
       <!-- Tabs (Vercel segmented) -->
       <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
         :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
-        <button @click="activeTab = 'calculos'"
+        <button v-if="isSuperAdmin || hasPerm('admin.calculos')" @click="activeTab = 'calculos'"
           class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'calculos'
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-calculator text-[10px]"></i>Cálculos
         </button>
-        <button @click="handleTabGuardados"
+        <button v-if="isSuperAdmin || hasPerm('horas.guardados')" @click="handleTabGuardados"
           class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'guardados'
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-floppy-disk text-[10px]"></i>Guardados
         </button>
-        <button @click="handleTabNovedades('aprobadas')"
+        <button v-if="isSuperAdmin || hasPerm('horas.novedades_aprobadas')" @click="handleTabNovedades('aprobadas')"
           class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'aprobadas'
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
@@ -109,7 +109,7 @@
     </div>
 
     <!-- ══ TAB CÁLCULOS ════════════════════════════════════════════════════ -->
-    <template v-if="activeTab === 'calculos'">
+    <template v-if="activeTab === 'calculos' && (isSuperAdmin || hasPerm('admin.calculos'))">
 
       <!-- ── Toolbar con filtros (Vercel) ───────────────────────────────── -->
       <div class="rounded-md border" :class="isDark ? 'bg-[#273045] border-[#222938]' : 'bg-white border-slate-200'">
@@ -474,7 +474,7 @@
     <!-- ══ FIN TAB CÁLCULOS ══════════════════════════════════════════════════ -->
 
     <!-- ══ TAB CARGUE HORAS ════════════════════════════════════════════════ -->
-    <template v-else-if="activeTab === 'cargue'">
+    <template v-else-if="activeTab === 'cargue' && (isSuperAdmin || hasPerm('horas.cargue'))">
       <div class="flex flex-col gap-3 flex-1 overflow-hidden">
 
         <!-- Sub-nav: Upload vs Historial -->
@@ -831,7 +831,7 @@
     <!-- ══ FIN TAB CARGUE HORAS ══════════════════════════════════════════════ -->
 
     <!-- ══ TAB GUARDADOS ════════════════════════════════════════════════════ -->
-    <template v-else-if="activeTab === 'guardados'">
+    <template v-else-if="activeTab === 'guardados' && (isSuperAdmin || hasPerm('horas.guardados'))">
 
       <!-- Toolbar -->
       <div class="flex items-center gap-2 flex-wrap">
@@ -1025,7 +1025,7 @@
     <!-- ══ FIN TAB GUARDADOS ══════════════════════════════════════════════════ -->
 
     <!-- ══ TAB NOVEDADES APROBADAS ══════════════════════════════════════════ -->
-    <template v-else-if="activeTab === 'aprobadas'">
+    <template v-else-if="activeTab === 'aprobadas' && (isSuperAdmin || hasPerm('horas.novedades_aprobadas'))">
 
       <!-- Toolbar notificar -->
       <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -1528,7 +1528,12 @@ async function handleNotificar() {
 }
 
 onMounted(() => {
-  // Cálculos empieza vacío — el usuario presiona Calcular
+  // Seleccionar el primer tab al que el usuario tiene acceso
+  if (!isSuperAdmin && !hasPerm('admin.calculos')) {
+    if (hasPerm('horas.guardados')) activeTab.value = 'guardados';
+    else if (hasPerm('horas.novedades_aprobadas')) activeTab.value = 'aprobadas';
+    else if (hasPerm('horas.cargue')) activeTab.value = 'cargue';
+  }
   document.addEventListener('click', handleCargueMenuOutsideClick);
 });
 
