@@ -9,20 +9,25 @@
         <!-- Dialog -->
         <div class="uw-dialog relative z-10 w-full max-w-[620px] max-h-[88vh] flex flex-col"
           :class="isDark
-            ? 'bg-[#111] border border-[#333] shadow-2xl rounded-sm'
+            ? 'bg-[#161B26] border border-[#222938] shadow-2xl rounded-sm'
             : 'bg-white border border-[#d1d5db] shadow-xl rounded-sm'">
 
           <!-- HEADER -->
           <div class="px-6 py-4 border-b flex items-center justify-between"
-            :class="isDark ? 'border-[#333]' : 'border-[#e5e7eb]'">
-            <h2 class="text-[15px] font-semibold"
-              :class="isDark ? 'text-white' : 'text-[#111]'">
-              Cargar mallas
-            </h2>
+            :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-[#e5e7eb]'">
+            <div class="flex items-center gap-2.5">
+              <div class="w-6 h-6 rounded bg-[#3B82F6]/10 flex items-center justify-center">
+                <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-[10px]"></i>
+              </div>
+              <h2 class="text-[14px] font-semibold"
+                :class="isDark ? 'text-white' : 'text-[#111]'">
+                Cargar mallas
+              </h2>
+            </div>
             <button @click="tryClose"
               class="text-[11px] transition-all px-3 py-1.5 border rounded"
               :class="isDark
-                ? 'border-[#444] text-[#aaa] hover:bg-white/10 hover:text-white'
+                ? 'border-[#222938] text-[#888] hover:bg-white/10 hover:text-white'
                 : 'border-[#d1d5db] text-[#374151] hover:bg-[#f9fafb]'">
               Cerrar
             </button>
@@ -39,20 +44,20 @@
                 @drop.prevent="onDrop" @click="triggerPicker"
                 class="border border-dashed cursor-pointer transition-colors py-12 flex flex-col items-center gap-3 rounded"
                 :class="isDragging
-                  ? (isDark ? 'border-[#4a9eff] bg-[#4a9eff]/5' : 'border-[#4a9eff] bg-[#f0f7ff]')
-                  : (isDark ? 'border-[#444] hover:border-[#666]' : 'border-[#d1d5db] hover:border-[#9ca3af]')">
+                  ? (isDark ? 'border-[#3B82F6] bg-[#3B82F6]/5' : 'border-[#3B82F6] bg-[#EFF6FF]')
+                  : (isDark ? 'border-[#222938] hover:border-[#3B82F6]/40' : 'border-[#d1d5db] hover:border-[#9ca3af]')">
 
                 <i class="fas fa-cloud-arrow-up text-2xl"
-                  :class="isDragging ? 'text-[#4a9eff]' : (isDark ? 'text-[#555]' : 'text-[#9ca3af]')"></i>
+                  :class="isDragging ? 'text-[#3B82F6]' : (isDark ? 'text-[#3B82F6]/40' : 'text-[#9ca3af]')"></i>
 
                 <div class="text-center">
                   <p class="text-[13px] font-medium"
-                    :class="isDark ? 'text-[#ccc]' : 'text-[#374151]'">
+                    :class="isDark ? 'text-[#D8DAE3]' : 'text-[#374151]'">
                     Arrastre un archivo o
-                    <span class="text-[#4a9eff] cursor-pointer">selecciónelo</span>
+                    <span class="text-[#3B82F6] cursor-pointer">selecciónelo</span>
                   </p>
                   <p class="text-[11px] mt-1"
-                    :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">
+                    :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">
                     Formatos aceptados: .xlsx, .xls
                   </p>
                 </div>
@@ -61,7 +66,7 @@
 
               <!-- Nota -->
               <p class="text-[11px] leading-relaxed"
-                :class="isDark ? 'text-[#666]' : 'text-[#6b7280]'">
+                :class="isDark ? 'text-[#4a5568]' : 'text-[#6b7280]'">
                 El archivo debe incluir las columnas <strong>Empleado</strong>,
                 <strong>Horario de trabajo</strong> y opcionalmente <strong>Fecha de inicio</strong>.
                 Use el botón <em>Plantilla</em> para descargar el formato correcto.
@@ -80,19 +85,20 @@
 
                 <!-- Fila del archivo -->
                 <div class="border rounded"
-                  :class="isDark ? 'border-[#333]' : 'border-[#e5e7eb]'">
+                  :class="isDark ? 'border-[#222938]' : 'border-[#e5e7eb]'">
 
-                  <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="flex items-center gap-3 px-4 py-3"
+                    :class="isDark ? 'bg-[#0B0F19]' : ''">
                     <i class="fas fa-file-excel text-[14px] shrink-0"
                       :class="uploadState === 'error' ? 'text-red-500' : 'text-[#16a34a]'"></i>
 
                     <div class="flex-1 min-w-0">
                       <p class="text-[12px] font-medium truncate"
-                        :class="isDark ? 'text-[#ddd]' : 'text-[#111]'">
+                        :class="isDark ? 'text-[#E2E8F0]' : 'text-[#111]'">
                         {{ fileName }}
                       </p>
                       <p class="text-[10px] mt-0.5 font-mono"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">
                         {{ fileSize }}
                       </p>
                     </div>
@@ -116,7 +122,7 @@
 
                   <!-- Barra de progreso -->
                   <div class="h-[2px] w-full"
-                    :class="isDark ? 'bg-[#222]' : 'bg-[#f3f4f6]'">
+                    :class="isDark ? 'bg-[#222938]' : 'bg-[#f3f4f6]'">
                     <div class="h-full transition-all duration-300"
                       :class="uploadState === 'done'
                         ? 'bg-[#16a34a]'
@@ -130,36 +136,36 @@
 
               <!-- Separador -->
               <div class="border-t mx-6"
-                :class="isDark ? 'border-[#222]' : 'border-[#f3f4f6]'"></div>
+                :class="isDark ? 'border-[#222938]' : 'border-[#f3f4f6]'"></div>
 
               <!-- RESULTADOS -->
               <template v-if="uploadState === 'done' || uploadState === 'error'">
 
                 <!-- Resumen de estado -->
                 <div class="px-6 py-3 flex items-center gap-6 border-b"
-                  :class="isDark ? 'border-[#222] bg-[#0d0d0d]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
+                  :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
                   <div class="flex items-center gap-2">
                     <i class="fas fa-check-circle text-[12px]"
-                      :class="procesados.length ? 'text-[#16a34a]' : (isDark ? 'text-[#444]' : 'text-[#d1d5db]')"></i>
+                      :class="procesados.length ? 'text-[#16a34a]' : (isDark ? 'text-[#2A344A]' : 'text-[#d1d5db]')"></i>
                     <span class="text-[12px] font-semibold tabular-nums"
-                      :class="procesados.length ? (isDark ? 'text-[#4ade80]' : 'text-[#16a34a]') : (isDark ? 'text-[#555]' : 'text-[#9ca3af]')">
+                      :class="procesados.length ? (isDark ? 'text-[#4ade80]' : 'text-[#16a34a]') : (isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]')">
                       {{ procesados.length }}
                     </span>
                     <span class="text-[11px]"
-                      :class="isDark ? 'text-[#666]' : 'text-[#6b7280]'">
+                      :class="isDark ? 'text-[#4a5568]' : 'text-[#6b7280]'">
                       {{ procesados.length === 1 ? 'asignada' : 'asignadas' }}
                     </span>
                   </div>
 
                   <div class="flex items-center gap-2">
                     <i class="fas fa-times-circle text-[12px]"
-                      :class="errors.length ? 'text-red-500' : (isDark ? 'text-[#444]' : 'text-[#d1d5db]')"></i>
+                      :class="errors.length ? 'text-red-500' : (isDark ? 'text-[#2A344A]' : 'text-[#d1d5db]')"></i>
                     <span class="text-[12px] font-semibold tabular-nums"
-                      :class="errors.length ? 'text-red-500' : (isDark ? 'text-[#555]' : 'text-[#9ca3af]')">
+                      :class="errors.length ? 'text-red-500' : (isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]')">
                       {{ errors.length }}
                     </span>
                     <span class="text-[11px]"
-                      :class="isDark ? 'text-[#666]' : 'text-[#6b7280]'">
+                      :class="isDark ? 'text-[#4a5568]' : 'text-[#6b7280]'">
                       {{ errors.length === 1 ? 'error' : 'errores' }}
                     </span>
                   </div>
@@ -167,7 +173,7 @@
                   <button @click="resetForAnother"
                     class="ml-auto text-[11px] transition-all px-2.5 py-1 border rounded"
                     :class="isDark
-                      ? 'border-[#444] text-[#888] hover:bg-white/5 hover:text-white'
+                      ? 'border-[#222938] text-[#7a8aa0] hover:bg-white/5 hover:text-white'
                       : 'border-[#d1d5db] text-[#374151] hover:bg-white'">
                     <i class="fas fa-plus text-[9px] mr-1"></i>
                     Otro archivo
@@ -176,19 +182,19 @@
 
                 <!-- Tabs -->
                 <div class="flex border-b px-6 gap-1"
-                  :class="isDark ? 'border-[#222]' : 'border-[#e5e7eb]'">
+                  :class="isDark ? 'border-[#222938]' : 'border-[#e5e7eb]'">
                   <button @click="activeTab = 'success'"
                     class="py-2.5 px-1 mr-4 text-[11px] font-medium border-b-2 -mb-px transition-colors"
                     :class="activeTab === 'success'
-                      ? (isDark ? 'border-white text-white' : 'border-[#111] text-[#111]')
-                      : (isDark ? 'border-transparent text-[#666] hover:text-[#aaa]' : 'border-transparent text-[#6b7280] hover:text-[#374151]')">
+                      ? (isDark ? 'border-[#3B82F6] text-[#3B82F6]' : 'border-[#111] text-[#111]')
+                      : (isDark ? 'border-transparent text-[#4a5568] hover:text-[#D8DAE3]' : 'border-transparent text-[#6b7280] hover:text-[#374151]')">
                     Exitosos ({{ procesados.length }})
                   </button>
                   <button @click="activeTab = 'errors'"
                     class="py-2.5 px-1 text-[11px] font-medium border-b-2 -mb-px transition-colors"
                     :class="activeTab === 'errors'
-                      ? (isDark ? 'border-white text-white' : 'border-[#111] text-[#111]')
-                      : (isDark ? 'border-transparent text-[#666] hover:text-[#aaa]' : 'border-transparent text-[#6b7280] hover:text-[#374151]')">
+                      ? (isDark ? 'border-[#3B82F6] text-[#3B82F6]' : 'border-[#111] text-[#111]')
+                      : (isDark ? 'border-transparent text-[#4a5568] hover:text-[#D8DAE3]' : 'border-transparent text-[#6b7280] hover:text-[#374151]')">
                     Errores ({{ errors.length }})
                   </button>
                 </div>
@@ -203,34 +209,34 @@
                   <div v-else>
                     <!-- Encabezado -->
                     <div class="grid grid-cols-[48px_130px_1fr_150px_96px] px-6 py-2 border-b"
-                      :class="isDark ? 'border-[#222] bg-[#0d0d0d]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
+                      :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
                       <span class="text-[10px] font-semibold uppercase tracking-wide"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">Fila</span>
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">Fila</span>
                       <span class="text-[10px] font-semibold uppercase tracking-wide"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">Cédula</span>
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">Cédula</span>
                       <span class="text-[10px] font-semibold uppercase tracking-wide"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">Nombre</span>
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">Nombre</span>
                       <span class="text-[10px] font-semibold uppercase tracking-wide"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">Malla</span>
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">Malla</span>
                       <span class="text-[10px] font-semibold uppercase tracking-wide text-right"
-                        :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">Fecha</span>
+                        :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">Fecha</span>
                     </div>
                     <div class="max-h-[260px] overflow-y-auto custom-scrollbar">
                       <div v-for="(p, i) in procesados" :key="i"
                         class="grid grid-cols-[48px_130px_1fr_150px_96px] items-center px-6 py-2.5 border-b"
-                        :class="isDark ? 'border-[#1a1a1a] hover:bg-white/[0.02]' : 'border-[#f3f4f6] hover:bg-[#f9fafb]'">
+                        :class="isDark ? 'border-[#1e2538] hover:bg-white/[0.03]' : 'border-[#f3f4f6] hover:bg-[#f9fafb]'">
                         <span class="text-[10px] font-mono flex items-center gap-1.5"
                           :class="isDark ? 'text-[#4ade80]' : 'text-[#16a34a]'">
                           <i class="fas fa-check text-[8px]"></i>{{ p.fila }}
                         </span>
                         <span class="text-[10px] font-mono truncate pr-2"
-                          :class="isDark ? 'text-[#777]' : 'text-[#6b7280]'">{{ p.cedula }}</span>
+                          :class="isDark ? 'text-[#7a8aa0]' : 'text-[#6b7280]'">{{ p.cedula }}</span>
                         <span class="text-[11px] font-medium truncate pr-2 uppercase"
-                          :class="isDark ? 'text-[#ddd]' : 'text-[#111]'">{{ p.nombre }}</span>
+                          :class="isDark ? 'text-[#E2E8F0]' : 'text-[#111]'">{{ p.nombre }}</span>
                         <span class="text-[10px] truncate pr-2 italic"
                           style="color:#b45309">{{ p.malla }}</span>
                         <span class="text-[10px] font-mono text-right"
-                          :class="isDark ? 'text-[#555]' : 'text-[#9ca3af]'">{{ p.fecha }}</span>
+                          :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">{{ p.fecha }}</span>
                       </div>
                     </div>
                   </div>
@@ -246,18 +252,18 @@
                   <div v-else class="max-h-[280px] overflow-y-auto custom-scrollbar">
                     <div v-for="(err, i) in errors" :key="i"
                       class="flex items-start gap-3 px-6 py-3 border-b"
-                      :class="isDark ? 'border-[#1a1a1a] hover:bg-white/[0.02]' : 'border-[#f3f4f6] hover:bg-[#fff5f5]'">
+                      :class="isDark ? 'border-[#1e2538] hover:bg-white/[0.02]' : 'border-[#f3f4f6] hover:bg-[#fff5f5]'">
                       <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
                         <i class="fas fa-times-circle text-[10px] text-red-500"></i>
                         <span class="text-[10px] font-mono"
-                          :class="isDark ? 'text-[#888]' : 'text-[#6b7280]'">F{{ err.fila }}</span>
+                          :class="isDark ? 'text-[#7a8aa0]' : 'text-[#6b7280]'">F{{ err.fila }}</span>
                       </div>
                       <div class="flex-1 min-w-0">
                         <span v-if="err.cedula"
                           class="text-[10px] font-mono mr-2"
-                          :class="isDark ? 'text-[#666]' : 'text-[#9ca3af]'">{{ err.cedula }}</span>
+                          :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">{{ err.cedula }}</span>
                         <span class="text-[11px]"
-                          :class="isDark ? 'text-[#ccc]' : 'text-[#374151]'">{{ err.error }}</span>
+                          :class="isDark ? 'text-[#D8DAE3]' : 'text-[#374151]'">{{ err.error }}</span>
                       </div>
                     </div>
                   </div>
@@ -280,14 +286,14 @@
 
           <!-- FOOTER -->
           <div class="px-6 py-3 border-t flex items-center justify-between"
-            :class="isDark ? 'border-[#333] bg-[#0d0d0d]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
+            :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-[#e5e7eb] bg-[#f9fafb]'">
 
             <button
               v-if="(uploadState === 'done' || uploadState === 'error') && (procesados.length || errors.length)"
               @click="descargarReporte"
               class="text-[11px] transition-all px-3 py-1.5 border rounded flex items-center gap-1.5"
               :class="isDark
-                ? 'border-[#444] text-[#aaa] hover:bg-white/10 hover:text-white'
+                ? 'border-[#222938] text-[#7a8aa0] hover:bg-white/5 hover:text-white'
                 : 'border-[#d1d5db] text-[#374151] hover:bg-white'">
               <i class="fas fa-download text-[9px]"></i>
               Descargar reporte
@@ -298,8 +304,8 @@
               <button v-if="uploadState !== 'uploading'" @click="tryClose"
                 class="text-[11px] font-semibold transition-all px-4 py-1.5 rounded"
                 :class="uploadState === 'done'
-                  ? (isDark ? 'bg-white text-black hover:bg-[#eee]' : 'bg-[#111] text-white hover:bg-[#222]')
-                  : (isDark ? 'border border-[#444] text-[#aaa] hover:bg-white/10' : 'border border-[#d1d5db] text-[#374151] hover:bg-white')">
+                  ? 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
+                  : (isDark ? 'border border-[#222938] text-[#7a8aa0] hover:bg-white/5 hover:text-white' : 'border border-[#d1d5db] text-[#374151] hover:bg-white')">
                 {{ uploadState === 'done' ? 'Cerrar' : 'Cancelar' }}
               </button>
             </div>
