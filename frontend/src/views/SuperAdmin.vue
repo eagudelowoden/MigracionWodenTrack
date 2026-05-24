@@ -36,6 +36,7 @@ const NAV_GROUPS = [
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
+      modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
     },
   },
@@ -49,7 +50,7 @@ const MODULE_LABELS = {
   notifications: 'Avisos', estructura: 'Organización', mallas: 'Mallas',
   analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
-  solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
+  modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -69,6 +70,7 @@ import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue'
 import GestionMensajes from '../components/admin/SuperAdmin/GestionMensajes.vue';
 import GestionRecordatorios from '../components/admin/SuperAdmin/GestionRecordatorios.vue';
 import GestionSolicitudes from '../components/admin/SuperAdmin/GestionSolicitudes.vue';
+import GestionModulos from '../components/admin/SuperAdmin/GestionModulos.vue';
 import ModuloReportesFalla from '../components/admin/ModuloReportesFalla.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
@@ -97,6 +99,7 @@ const TAB_PERMS = {
   recordatorios: 'super.recordatorios',
   config: 'super.configuracion',
   api: 'super.api',
+  modulos: 'super.superadmin',
   solicitudes: 'super.solicitudes',
   reportes: 'super.reportes',
 };
@@ -443,7 +446,7 @@ onMounted(async () => {
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'config', 'api']"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'config', 'api', 'modulos']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -464,6 +467,8 @@ onMounted(async () => {
               @error="showNotification($event, 'error')" />
             <GestionApiExterna v-if="tab === 'api'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
+            <GestionModulos v-if="tab === 'modulos'" :isDark="isDark" :apiUrl="API_URL"
+              @success="showNotification($event)" @error="showNotification($event, 'error')" />
           </div>
         </template>
 

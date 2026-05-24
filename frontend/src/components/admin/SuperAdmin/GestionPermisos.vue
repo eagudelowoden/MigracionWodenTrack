@@ -73,6 +73,12 @@
                             </div>
                         </section>
 
+                        <!-- Sin módulos cargados aún -->
+                        <div v-if="SECTIONS.length === 0" class="gp-empty-modules">
+                            <i class="fas fa-circle-notch fa-spin" style="color:#3b82f6"></i>
+                            <span>Cargando módulos…</span>
+                        </div>
+
                         <!-- Secciones de permisos -->
                         <section v-for="section in SECTIONS" :key="section.key" class="gp-section">
                             <button @click="toggleSection(section.key)" class="gp-section-head">
@@ -101,7 +107,7 @@
                                                 </span>
                                                 <span v-if="MODULO_LABELS[slug]?.scope" class="gp-scope-tag">
                                                     <i class="fas fa-globe text-[8px]"></i>
-                                                    Todos los módulos
+                                                    scope
                                                 </span>
                                             </div>
                                             <p class="gp-perm-desc">
@@ -174,77 +180,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
-
-// ── Estructura de secciones ──────────────────────────────────────────────────
-const SECTIONS = [
-    {
-        key: 'super',
-        title: 'Super Admin',
-        icon: 'fas fa-shield-halved',
-        slugs: [
-            'super.superadmin', 'super.dashboard', 'super.gestionarapk', 'super.companias',
-            'super.personal', 'super.avisos', 'super.organizacion', 'super.mallas',
-            'super.analitica', 'super.sesiones', 'super.mensajes', 'super.recordatorios',
-            'super.configuracion', 'super.api', 'super.solicitudes',
-        ],
-    },
-    {
-        key: 'admin',
-        title: 'Panel Admin',
-        icon: 'fas fa-user-shield',
-        slugs: ['admin.admin', 'admin.asistencias', 'admin.mallas', 'admin.calculos', 'admin.novedades', 'horas.ver_cargue_ch'],
-    },
-    {
-        key: 'scope',
-        title: 'Alcance de visibilidad',
-        icon: 'fas fa-eye',
-        slugs: ['novedades.director', 'novedades.ver_segmento', 'coord.ver_segmento', 'novedades.ver_area', 'admin.filtro_departamento'],
-    },
-    {
-        key: 'novedades',
-        title: 'Novedades',
-        icon: 'fas fa-file-lines',
-        slugs: ['marcacion.novedad', 'admin.novedades.user', 'admin.novedades.admin', 'admin.novedades.rrhh', 'admin.novedades.jefe'],
-    },
-];
-
-const MODULO_LABELS = {
-    'super.superadmin': { nombre: 'Super Admin', desc: 'Acceso a la vista del panel — los módulos visibles dependen de los permisos super.* asignados individualmente' },
-    'super.dashboard': { nombre: 'Dashboard', desc: 'Vista general y métricas del sistema' },
-    'super.gestionarapk': { nombre: 'Gestionar APK', desc: 'Publicación y versionado de aplicaciones' },
-    'super.companias': { nombre: 'Compañías', desc: 'Administración de empresas registradas' },
-    'super.personal': { nombre: 'Personal', desc: 'Gestión de colaboradores y sincronización' },
-    'super.avisos': { nombre: 'Avisos', desc: 'Envío de notificaciones masivas' },
-    'super.organizacion': { nombre: 'Organización', desc: 'Estructura de áreas y segmentos' },
-    'super.mallas': { nombre: 'Mallas', desc: 'Gestión global de horarios y turnos' },
-    'super.analitica': { nombre: 'Analítica HR', desc: 'Reportes y métricas de recursos humanos' },
-    'super.sesiones': { nombre: 'Sesiones', desc: 'Supervisión de sesiones activas' },
-    'super.mensajes': { nombre: 'Mensajes', desc: 'Centro de mensajería interna' },
-    'super.recordatorios': { nombre: 'Recordatorios', desc: 'Gestión de recordatorios automáticos' },
-    'super.configuracion': { nombre: 'Configuración', desc: 'Parámetros generales del sistema' },
-    'super.api': { nombre: 'API Externa', desc: 'Configuración de integraciones y webhooks' },
-    'super.solicitudes': { nombre: 'Solicitudes', desc: 'Gestión de solicitudes de apertura de cargue de mallas' },
-
-    'admin.admin': { nombre: 'Admin General', desc: 'Acceso al panel de administración' },
-    'admin.asistencias': { nombre: 'Asistencias', desc: 'Consulta y gestión de registros de asistencia' },
-    'admin.mallas': { nombre: 'Mallas', desc: 'Programación y edición de turnos' },
-    'admin.calculos': { nombre: 'Horas Extra', desc: 'Cálculo y registro de horas extra' },
-    'admin.novedades': { nombre: 'Novedades', desc: 'Acceso al módulo de novedades' },
-    'horas.ver_cargue_ch': { nombre: 'Cargue Horas CH', desc: 'Visualización del cargue de horas CH' },
-
-    'novedades.director': { nombre: 'Director de Departamento', desc: 'Ve todos los empleados del departamento en asistencias, mallas y novedades', scope: true },
-    'novedades.ver_segmento': { nombre: 'Jefe de Segmento', desc: 'Ve todo el segmento como responsable en asistencias, mallas y novedades', scope: true },
-    'coord.ver_segmento': { nombre: 'Coordinador de Segmento', desc: 'Ve todo el segmento en asistencias, mallas y novedades sin ser responsable', scope: true },
-    'novedades.ver_area': { nombre: 'Jefe de Área', desc: 'Ve los empleados de su área asignada en asistencias, mallas y novedades', scope: true },
-    'admin.filtro_departamento': { nombre: 'Filtro por Departamento', desc: 'Puede filtrar la vista por departamento en asistencias, mallas y cálculos', scope: true },
-
-    'marcacion.novedad': { nombre: 'Registrar Novedad', desc: 'Muestra el botón de novedad en la pantalla de marcación' },
-    'admin.novedades.user': { nombre: 'Rol Empleado', desc: 'Puede registrar y gestionar sus propias novedades' },
-    'admin.novedades.admin': { nombre: 'Rol Administrador', desc: 'Gestión completa de novedades del equipo' },
-    'admin.novedades.rrhh': { nombre: 'Rol RRHH', desc: 'Auditoría, revisión y aprobación de novedades' },
-    'admin.novedades.jefe': { nombre: 'Rol Jefe / Mi Equipo', desc: 'Ve y gestiona las novedades de su equipo (área o segmento según su alcance asignado)' },
-};
+import { ref, watch, computed, onMounted } from 'vue';
 
 const props = defineProps({
     modelValue: Object,
@@ -257,25 +193,66 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'toggle-perm', 'update-structure']);
 
-const deptosSeleccionados = ref([]);
-const isSavingDeptos = ref(false);
-const openSections = ref({ super: true, admin: false, scope: false, novedades: false });
+// ── Módulos cargados desde DB ────────────────────────────────────────────────
+const SECTIONS = ref([]);
+const MODULO_LABELS = ref({});
 
-const toggleSection = (key) => { openSections.value[key] = !openSections.value[key]; };
-const allOpen = computed(() => SECTIONS.every(s => openSections.value[s.key]));
-const toggleAll = () => {
-    const target = !allOpen.value;
-    SECTIONS.forEach(s => { openSections.value[s.key] = target; });
+const cargarModulos = async () => {
+    try {
+        const baseUrl = props.apiUrl?.replace('/usuarios', '');
+        const res = await fetch(`${baseUrl}/modulos-disponibles/agrupados`);
+        const agrupados = await res.json();
+
+        const labels = {};
+        const sections = Object.entries(agrupados).map(([key, grupo]) => {
+            for (const m of grupo.modulos) {
+                labels[m.slug] = { nombre: m.nombre, desc: m.descripcion ?? '', scope: m.es_scope };
+            }
+            return {
+                key,
+                title: grupo.label,
+                icon: grupo.icon,
+                slugs: grupo.modulos.map(m => m.slug),
+            };
+        });
+
+        SECTIONS.value = sections;
+        MODULO_LABELS.value = labels;
+
+        // Inicializar openSections con la primera sección abierta
+        const init = {};
+        sections.forEach((s, i) => { init[s.key] = i === 0; });
+        openSections.value = init;
+    } catch {
+        // Si falla, dejamos las secciones vacías — el usuario verá un aviso
+    }
 };
 
-const totalPermisos = computed(() => SECTIONS.reduce((acc, s) => acc + s.slugs.length, 0));
+onMounted(cargarModulos);
+
+// ── Estado de UI ─────────────────────────────────────────────────────────────
+const deptosSeleccionados = ref([]);
+const isSavingDeptos = ref(false);
+const openSections = ref({});
+
+const toggleSection = (key) => { openSections.value[key] = !openSections.value[key]; };
+const allOpen = computed(() => SECTIONS.value.every(s => openSections.value[s.key]));
+const toggleAll = () => {
+    const target = !allOpen.value;
+    SECTIONS.value.forEach(s => { openSections.value[s.key] = target; });
+};
+
+const totalPermisos = computed(() => SECTIONS.value.reduce((acc, s) => acc + s.slugs.length, 0));
 const totalAsignados = computed(() =>
-    SECTIONS.reduce((acc, s) => acc + s.slugs.filter(slug => hasPerm(slug)).length, 0)
+    SECTIONS.value.reduce((acc, s) => acc + s.slugs.filter(slug => hasPerm(slug)).length, 0)
 );
 
 watch(() => props.modelValue, async (user) => {
     if (!user) return;
-    openSections.value = { super: true, admin: false, scope: false, novedades: false };
+    // Reabrir solo la primera sección al cambiar de usuario
+    const init = {};
+    SECTIONS.value.forEach((s, i) => { init[s.key] = i === 0; });
+    openSections.value = init;
     try {
         const res = await fetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
         const data = await res.json();
@@ -337,6 +314,15 @@ const guardarDeptos = async () => {
     --on-soft: #f0fdf4;
     --on-text: #15803d;
     --danger: #dc2626;
+}
+
+.gp-empty-modules {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    font-size: 12px;
+    color: #8b9ab4;
 }
 
 .gp-modal-dark {

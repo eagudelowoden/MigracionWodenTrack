@@ -81,7 +81,7 @@
 
       <div class="mt-8 space-y-5">
         <button @click="handleLogin" :disabled="loading"
-          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed shadow-sm">
+          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed shadow-sm">
           <template v-if="!loading">
             <span>Continuar</span>
           </template>
