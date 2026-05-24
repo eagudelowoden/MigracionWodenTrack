@@ -227,7 +227,7 @@
                     {{ item.c_salida || 'OK' }}
                   </span>
                   <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
-                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest text-white">
+                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
                 </div>
