@@ -413,6 +413,7 @@ export class NovedadesService {
   async findPorSegmentoResponsable(idOdoo: number) {
     const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
       await this.dataSource.query(`
+        -- Rama 1: empleados con segmento_id directo en el segmento del responsable
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
         INNER  JOIN maestro_segmentos s ON u.segmento_id = s.id
@@ -420,6 +421,17 @@ export class NovedadesService {
         WHERE  r.id_odoo = ${idOdoo}
           AND  u.identificacion IS NOT NULL
         UNION
+        -- Rama 2: empleados en áreas cuyos jefes pertenecen al segmento del responsable
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_areas a ON u.area_id = a.id
+        INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
+        INNER  JOIN maestro_segmentos s ON jefe.segmento_id = s.id
+        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+        WHERE  r.id_odoo = ${idOdoo}
+          AND  u.identificacion IS NOT NULL
+        UNION
+        -- El propio responsable del segmento
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
         WHERE  id_odoo = ${idOdoo}
@@ -434,6 +446,7 @@ export class NovedadesService {
   async findPorMiSegmento(idOdoo: number) {
     const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
       await this.dataSource.query(`
+        -- Rama 1: empleados con segmento_id igual al segmento del usuario actual
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
         WHERE  u.segmento_id = (
@@ -441,6 +454,17 @@ export class NovedadesService {
                )
           AND  u.identificacion IS NOT NULL
         UNION
+        -- Rama 2: empleados en áreas cuyos jefes pertenecen al mismo segmento que el usuario actual
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_areas a ON u.area_id = a.id
+        INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
+        WHERE  jefe.segmento_id = (
+                 SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo} LIMIT 1
+               )
+          AND  u.identificacion IS NOT NULL
+        UNION
+        -- El propio usuario
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
         WHERE  id_odoo = ${idOdoo}
