@@ -9,6 +9,12 @@ export class CreateNovedadDto {
   ultimoDiaTrabajado?: string | null;
   storageMode?: string;
 
+  // ─── Campos liquidación Renuncia ─────────────────────
+  renunciaDescuento?: string | null;
+  renunciaComisiones?: string | null;
+  renunciaHorasExtra?: string | null;
+  renunciaTransporte?: string | null;
+
   // ─── Responsable / Jefe directo ──────────────────────
   responsableIdOdoo?: number | null;
   responsableNombre?: string | null;

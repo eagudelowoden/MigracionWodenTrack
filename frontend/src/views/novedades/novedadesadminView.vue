@@ -152,6 +152,48 @@
                 </div>
               </transition>
 
+              <!-- Campos liquidación Renuncia -->
+              <transition name="fade-msg">
+                <div v-if="form.tipificacion === 'Renuncia'" class="grid grid-cols-2 gap-3">
+                  <!-- Descuento -->
+                  <div class="flex flex-col gap-1">
+                    <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
+                      <i class="fas fa-tag mr-1"></i>Descuento
+                    </label>
+                    <input type="text" v-model="form.renunciaDescuento" placeholder="Valor descuento..."
+                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
+                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                  </div>
+                  <!-- Comisiones -->
+                  <div class="flex flex-col gap-1">
+                    <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
+                      <i class="fas fa-coins mr-1"></i>Comisiones
+                    </label>
+                    <input type="text" v-model="form.renunciaComisiones" placeholder="Valor comisiones..."
+                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
+                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                  </div>
+                  <!-- Horas Extra -->
+                  <div class="flex flex-col gap-1">
+                    <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
+                      <i class="fas fa-clock mr-1"></i>Horas Extra
+                    </label>
+                    <input type="text" v-model="form.renunciaHorasExtra" placeholder="Valor horas extra..."
+                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
+                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                  </div>
+                  <!-- Transporte -->
+                  <div class="flex flex-col gap-1">
+                    <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
+                      <i class="fas fa-bus mr-1"></i>Transporte
+                    </label>
+                    <input type="text" v-model="form.renunciaTransporte" placeholder="Valor transporte..."
+                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
+                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                  </div>
+                </div>
+              </transition>
+
               <!-- Archivos adjuntos (múltiples) -->
               <div class="flex flex-col gap-1.5">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
@@ -260,6 +302,7 @@ const storageMode = ref('local');
 const form = ref({
   nombre: '', cedula: '', descripcion: '', tipificacion: '',
   fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '',
+  renunciaDescuento: '', renunciaComisiones: '', renunciaHorasExtra: '', renunciaTransporte: '',
 });
 
 const TIPIFICACIONES = [
@@ -322,6 +365,10 @@ const handleSubmit = async () => {
       fechaInicio: form.value.tipificacion === 'Renuncia' ? form.value.ultimoDiaTrabajado : form.value.fechaInicio,
       fechaFin: form.value.tipificacion === 'Renuncia' ? form.value.ultimoDiaTrabajado : form.value.fechaFin,
       ultimoDiaTrabajado: form.value.tipificacion === 'Renuncia' ? (form.value.ultimoDiaTrabajado || null) : null,
+      renunciaDescuento: form.value.tipificacion === 'Renuncia' ? (form.value.renunciaDescuento || null) : null,
+      renunciaComisiones: form.value.tipificacion === 'Renuncia' ? (form.value.renunciaComisiones || null) : null,
+      renunciaHorasExtra: form.value.tipificacion === 'Renuncia' ? (form.value.renunciaHorasExtra || null) : null,
+      renunciaTransporte: form.value.tipificacion === 'Renuncia' ? (form.value.renunciaTransporte || null) : null,
       archivos: archivosSeleccionados.value,
       storageMode: storageMode.value,
       responsableIdOdoo: jefe.value?.id_odoo ?? null,
@@ -341,7 +388,11 @@ const handleSubmit = async () => {
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
-  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '' };
+  form.value = {
+    nombre: '', cedula: '', descripcion: '', tipificacion: '',
+    fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '',
+    renunciaDescuento: '', renunciaComisiones: '', renunciaHorasExtra: '', renunciaTransporte: '',
+  };
   archivosSeleccionados.value = [];
   archivoError.value = '';
   submitStatus.value = '';

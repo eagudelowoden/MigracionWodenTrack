@@ -68,6 +68,10 @@ export function useNovedades() {
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
       if (payload.ultimoDiaTrabajado) fd.append("ultimoDiaTrabajado", payload.ultimoDiaTrabajado);
+      if (payload.renunciaDescuento) fd.append("renunciaDescuento", payload.renunciaDescuento);
+      if (payload.renunciaComisiones) fd.append("renunciaComisiones", payload.renunciaComisiones);
+      if (payload.renunciaHorasExtra) fd.append("renunciaHorasExtra", payload.renunciaHorasExtra);
+      if (payload.renunciaTransporte) fd.append("renunciaTransporte", payload.renunciaTransporte);
       fd.append("storageMode", payload.storageMode || "local");
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");

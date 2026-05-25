@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Query,
@@ -206,6 +207,12 @@ export class NovedadesController {
       eliminadoPor ? +eliminadoPor : undefined,
       eliminadoPorNombre,
     );
+  }
+
+  // PATCH /novedades/:id/renuncia — actualiza campos de liquidación (jefe)
+  @Patch(':id/renuncia')
+  actualizarRenuncia(@Param('id') id: string, @Body() body: any) {
+    return this.novedadesService.actualizarRenuncia(+id, body);
   }
 
   @Post(':id/aprobar-jefe')

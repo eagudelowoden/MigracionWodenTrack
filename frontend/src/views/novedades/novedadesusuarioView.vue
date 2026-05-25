@@ -793,7 +793,11 @@ const handleSubmit = async () => {
 };
 
 const resetForm = () => {
-  form.value = { ...form.value, cedula: '', tipificacion: '', descripcion: '', fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '' };
+  form.value = {
+    ...form.value,
+    cedula: '', tipificacion: '', descripcion: '',
+    fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '',
+  };
   archivosSeleccionados.value = [];
   archivoError.value = '';
   submitStatus.value = '';

@@ -151,6 +151,10 @@ export class NovedadesService {
       fechaInicio: dto.fechaInicio,
       fechaFin: dto.fechaFin,
       ultimoDiaTrabajado: dto.ultimoDiaTrabajado || null,
+      renunciaDescuento: dto.renunciaDescuento || null,
+      renunciaComisiones: dto.renunciaComisiones || null,
+      renunciaHorasExtra: dto.renunciaHorasExtra || null,
+      renunciaTransporte: dto.renunciaTransporte || null,
       responsableIdOdoo: dto.responsableIdOdoo ? Number(dto.responsableIdOdoo) : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,
@@ -772,6 +776,23 @@ export class NovedadesService {
       rol,
       attachment,
     };
+  }
+
+  // ─── PATCH campos liquidación Renuncia ───────────────────────────
+  async actualizarRenuncia(id: number, data: {
+    renunciaDescuento?: string | null;
+    renunciaComisiones?: string | null;
+    renunciaHorasExtra?: string | null;
+    renunciaTransporte?: string | null;
+  }) {
+    const novedad = await this.novedadRepo.findOneBy({ id });
+    if (!novedad) throw new NotFoundException('Novedad no encontrada.');
+    if (data.renunciaDescuento !== undefined) novedad.renunciaDescuento = data.renunciaDescuento ?? null;
+    if (data.renunciaComisiones !== undefined) novedad.renunciaComisiones = data.renunciaComisiones ?? null;
+    if (data.renunciaHorasExtra !== undefined) novedad.renunciaHorasExtra = data.renunciaHorasExtra ?? null;
+    if (data.renunciaTransporte !== undefined) novedad.renunciaTransporte = data.renunciaTransporte ?? null;
+    await this.novedadRepo.save(novedad);
+    return { success: true };
   }
 
   private actualizarEstadoGeneral(novedad: Novedad) {

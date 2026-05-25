@@ -103,6 +103,7 @@
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#334155]">
                                 <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Tipo</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Inicio</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Fin</th>
                                 <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Descripción</th>
@@ -113,8 +114,10 @@
                         </thead>
                         <tbody>
                             <tr v-for="(item, idx) in pendientes" :key="item.id"
+                                @click="abrirDetalle(item)"
+                                class="cursor-pointer"
                                 :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]/50']">
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/60']">
 
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <div class="flex items-center gap-2">
@@ -127,6 +130,17 @@
                                         </div>
                                     </div>
                                 </td>
+                                <!-- Tipificación -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                                    <span v-if="item.tipificacion"
+                                        class="px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border whitespace-nowrap"
+                                        :class="item.tipificacion === 'Renuncia'
+                                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                            : (isDark ? 'bg-[#161B26] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200')">
+                                        {{ item.tipificacion }}
+                                    </span>
+                                    <span v-else class="text-[11px] opacity-30">—</span>
+                                </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
                                 </td>
@@ -136,21 +150,17 @@
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <div class="flex items-center gap-2 max-w-[200px]">
                                         <p class="text-[12px] font-medium line-clamp-1 flex-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
-                                        <span v-if="item.descripcion" @click="verMotivo(item.descripcion, 'Descripción')"
-                                            class="cursor-pointer text-[#3B82F6] hover:text-[#3B82F6]/70 shrink-0">
-                                            <i class="fas fa-eye text-[12px]"></i>
-                                        </span>
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                                    <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
+                                    <span v-if="item.motivoJefe" @click.stop="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
                                         class="cursor-pointer text-[11px] font-bold text-[#3B82F6] hover:underline">
                                         <i class="fas fa-comment-alt mr-1"></i>Ver
                                     </span>
                                     <span v-else class="text-[11px] opacity-30">—</span>
                                 </td>
                                 <!-- Mi Carpeta (coordinador) -->
-                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                                     <CarpetaBadge :nombre="item.estadoChCoord" :estados="estadosCh" @click="abrirCarpeta(item)" />
                                 </td>
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -213,6 +223,7 @@
                         <thead class="sticky top-0 z-10">
                             <tr class="bg-[#334155]">
                                 <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Colaborador</th>
+                                <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Tipo</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Inicio</th>
                                 <th class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Fin</th>
                                 <th class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">Descripción</th>
@@ -224,8 +235,10 @@
                         </thead>
                         <tbody>
                             <tr v-for="(item, idx) in historialFiltrado" :key="'h-'+item.id"
+                                @click="abrirDetalle(item)"
+                                class="cursor-pointer"
                                 :class="[idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]/50']">
+                                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/60']">
 
                                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <div class="flex items-center gap-2">
@@ -238,6 +251,17 @@
                                         </div>
                                     </div>
                                 </td>
+                                <!-- Tipificación -->
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                                    <span v-if="item.tipificacion"
+                                        class="px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border whitespace-nowrap"
+                                        :class="item.tipificacion === 'Renuncia'
+                                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                            : (isDark ? 'bg-[#161B26] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200')">
+                                        {{ item.tipificacion }}
+                                    </span>
+                                    <span v-else class="text-[11px] opacity-30">—</span>
+                                </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaInicio) }}</span>
                                 </td>
@@ -245,13 +269,7 @@
                                     <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ formatFecha(item.fechaFin) }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 border-b max-w-[200px]" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                                    <div class="flex items-center gap-2">
-                                        <p class="text-[11px] font-medium line-clamp-1 flex-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
-                                        <span v-if="item.descripcion" @click="verMotivo(item.descripcion, 'Descripción')"
-                                            class="cursor-pointer text-[#3B82F6] hover:text-[#3B82F6]/70 shrink-0">
-                                            <i class="fas fa-eye text-[12px]"></i>
-                                        </span>
-                                    </div>
+                                    <p class="text-[11px] font-medium line-clamp-1" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ item.descripcion }}</p>
                                 </td>
                                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                                     <FolderEstado :nov="item" />
@@ -260,11 +278,11 @@
                                     <EstadoBadge :valor="item.aprobadoJefe" mini />
                                 </td>
                                 <!-- Mi Carpeta (coordinador) -->
-                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                                     <CarpetaBadge :nombre="item.estadoChCoord" :estados="estadosCh" @click="abrirCarpeta(item)" />
                                 </td>
-                                <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                                    <button @click="verSoporte(item)"
+                                <td class="px-4 py-2.5 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                                    <button @click.stop="verSoporte(item)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all hover:brightness-110 active:scale-[0.98]"
                                         :class="isDark ? 'bg-[#161B26] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
                                         <i class="fas fa-eye text-[#3B82F6]"></i> Ver
@@ -724,6 +742,206 @@
             </transition>
         </teleport>
 
+        <!-- ══════════════════════════════════════════════════════════
+             MODAL DETALLE — estilo Vercel
+        ══════════════════════════════════════════════════════════ -->
+        <teleport to="body">
+            <transition name="fade-panel">
+                <div v-if="detallePanel.open"
+                    class="fixed inset-0 z-[85] flex items-center justify-center p-2"
+                    style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)"
+                    @click.self="detallePanel.open = false">
+
+                    <div class="w-full max-w-[720px] rounded-[10px] border flex flex-col overflow-hidden"
+                        style="animation: vcModalIn 0.2s ease-out forwards;"
+                        :class="isDark
+                            ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
+                            : 'bg-white border-[#e5e5e5] shadow-[0_24px_48px_rgba(0,0,0,0.1)]'">
+
+                        <!-- ── Header ── -->
+                        <div class="flex items-start justify-between px-6 pt-6 pb-5 border-b"
+                            :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                            <div class="flex-1 min-w-0 pr-4">
+                                <p class="text-[15px] font-semibold tracking-[-0.01em] truncate"
+                                    :class="isDark ? 'text-white' : 'text-[#111]'">
+                                    {{ detallePanel.novedad?.nombre }}
+                                </p>
+                                <p class="text-[13px] mt-0.5 truncate"
+                                    :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">
+                                    CC {{ detallePanel.novedad?.cedula }}
+                                    <span v-if="detallePanel.novedad?.departamento"> · {{ detallePanel.novedad.departamento }}</span>
+                                </p>
+                            </div>
+                            <button @click="detallePanel.open = false"
+                                class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors shrink-0"
+                                :class="isDark
+                                    ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
+                                    : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'">
+                                <i class="fas fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- ── Body ── -->
+                        <div class="px-6 py-5 flex flex-col gap-5 max-h-[82vh] overflow-y-auto vc-scroll">
+
+                            <!-- Fila: tipificación + estado + fechas -->
+                            <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+                                <div>
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Tipificación</p>
+                                    <p class="text-[13px] font-medium"
+                                        :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                                        {{ detallePanel.novedad?.tipificacion || '—' }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Estado</p>
+                                    <EstadoBadge :valor="detallePanel.novedad?.aprobadoJefe" />
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Fecha inicio</p>
+                                    <p class="text-[13px] font-medium"
+                                        :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                                        {{ formatFecha(detallePanel.novedad?.fechaInicio) }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Fecha fin</p>
+                                    <p class="text-[13px] font-medium"
+                                        :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                                        {{ formatFecha(detallePanel.novedad?.fechaFin) }}
+                                    </p>
+                                </div>
+                                <div v-if="detallePanel.novedad?.tipificacion === 'Renuncia' && detallePanel.novedad?.ultimoDiaTrabajado"
+                                    class="col-span-2">
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Último día trabajado</p>
+                                    <p class="text-[13px] font-medium"
+                                        :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                                        {{ formatFecha(detallePanel.novedad.ultimoDiaTrabajado) }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                                <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
+                                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Descripción</p>
+                                <p class="text-[13px] leading-[1.65]"
+                                    :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                                    {{ detallePanel.novedad?.descripcion }}
+                                </p>
+                            </div>
+
+                            <!-- Motivo jefe (si existe) -->
+                            <div v-if="detallePanel.novedad?.motivoJefe"
+                                class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                                <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
+                                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Motivo jefe</p>
+                                <p class="text-[13px] leading-[1.65]"
+                                    :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                                    {{ detallePanel.novedad.motivoJefe }}
+                                </p>
+                            </div>
+
+                            <!-- ── Datos Liquidación (solo Renuncia) ── -->
+                            <template v-if="detallePanel.novedad?.tipificacion === 'Renuncia'">
+                                <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                                    <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-4"
+                                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Datos de liquidación</p>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[11px] font-medium"
+                                                :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Descuento</label>
+                                            <textarea v-model="renunciaForm.renunciaDescuento" rows="4"
+                                                placeholder="Ingrese valor..."
+                                                class="vc-field w-full px-3 py-2 rounded-[6px] border text-[13px] outline-none transition-all resize-none leading-relaxed"
+                                                :class="isDark
+                                                    ? 'bg-[#1a2035] border-[#222938] text-[#e2e8f0] placeholder:text-[#334155] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20'
+                                                    : 'bg-white border-[#e5e5e5] text-[#111] placeholder:text-[#c0c0c0] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/15'" />
+                                        </div>
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[11px] font-medium"
+                                                :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Comisiones</label>
+                                            <textarea v-model="renunciaForm.renunciaComisiones" rows="4"
+                                                placeholder="Ingrese valor..."
+                                                class="vc-field w-full px-3 py-2 rounded-[6px] border text-[13px] outline-none transition-all resize-none leading-relaxed"
+                                                :class="isDark
+                                                    ? 'bg-[#1a2035] border-[#222938] text-[#e2e8f0] placeholder:text-[#334155] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20'
+                                                    : 'bg-white border-[#e5e5e5] text-[#111] placeholder:text-[#c0c0c0] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/15'" />
+                                        </div>
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[11px] font-medium"
+                                                :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Horas extra</label>
+                                            <textarea v-model="renunciaForm.renunciaHorasExtra" rows="4"
+                                                placeholder="Ingrese valor..."
+                                                class="vc-field w-full px-3 py-2 rounded-[6px] border text-[13px] outline-none transition-all resize-none leading-relaxed"
+                                                :class="isDark
+                                                    ? 'bg-[#1a2035] border-[#222938] text-[#e2e8f0] placeholder:text-[#334155] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20'
+                                                    : 'bg-white border-[#e5e5e5] text-[#111] placeholder:text-[#c0c0c0] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/15'" />
+                                        </div>
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[11px] font-medium"
+                                                :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Transporte</label>
+                                            <textarea v-model="renunciaForm.renunciaTransporte" rows="4"
+                                                placeholder="Ingrese valor..."
+                                                class="vc-field w-full px-3 py-2 rounded-[6px] border text-[13px] outline-none transition-all resize-none leading-relaxed"
+                                                :class="isDark
+                                                    ? 'bg-[#1a2035] border-[#222938] text-[#e2e8f0] placeholder:text-[#334155] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20'
+                                                    : 'bg-white border-[#e5e5e5] text-[#111] placeholder:text-[#c0c0c0] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/15'" />
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3 mt-4">
+                                        <button @click="guardarRenuncia" :disabled="renunciaGuardando"
+                                            class="h-8 px-4 rounded-[6px] text-[13px] font-medium transition-all disabled:opacity-40 flex items-center gap-2"
+                                            :class="isDark
+                                                ? 'bg-white text-black hover:bg-[#e8e8e8]'
+                                                : 'bg-[#171717] text-white hover:bg-[#333]'">
+                                            <i v-if="renunciaGuardando" class="fas fa-circle-notch fa-spin text-[10px]"></i>
+                                            {{ renunciaGuardando ? 'Guardando...' : 'Guardar' }}
+                                        </button>
+                                        <transition name="fade-msg">
+                                            <p v-if="renunciaMensaje" class="text-[12px]"
+                                                :class="renunciaMensaje === 'ok'
+                                                    ? (isDark ? 'text-[#64748b]' : 'text-[#555]')
+                                                    : 'text-red-500'">
+                                                {{ renunciaMensaje === 'ok' ? 'Guardado' : 'Error al guardar' }}
+                                            </p>
+                                        </transition>
+                                    </div>
+                                </div>
+                            </template>
+
+                        </div>
+
+                        <!-- ── Footer: aprobar / rechazar (solo pendiente) ── -->
+                        <div v-if="detallePanel.novedad?.aprobadoJefe === null || detallePanel.novedad?.aprobadoJefe === undefined"
+                            class="px-6 py-4 border-t flex items-center justify-end gap-2 shrink-0"
+                            :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                            <button @click="abrirAccion(detallePanel.novedad, 0); detallePanel.open = false"
+                                class="h-8 px-4 rounded-[6px] text-[13px] font-medium border transition-colors"
+                                :class="isDark
+                                    ? 'border-[#222938] text-[#e2e8f0] hover:bg-[#222938]'
+                                    : 'border-[#e5e5e5] text-[#171717] hover:bg-[#f5f5f5]'">
+                                Rechazar
+                            </button>
+                            <button @click="abrirAccion(detallePanel.novedad, 1); detallePanel.open = false"
+                                class="h-8 px-4 rounded-[6px] text-[13px] font-medium transition-colors"
+                                :class="isDark
+                                    ? 'bg-white text-black hover:bg-[#e8e8e8]'
+                                    : 'bg-[#171717] text-white hover:bg-[#333]'">
+                                Aprobar
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </transition>
+        </teleport>
+
         <!-- Menú contextual (tab pendientes) -->
         <teleport to="body">
             <div v-if="menuAbierto !== null" class="fixed inset-0 z-40" @click="menuAbierto = null"></div>
@@ -1049,6 +1267,44 @@ const asignarCarpeta = async (nombreEstado) => {
     }
 };
 
+// ─── Panel detalle ────────────────────────────────────────────────
+const detallePanel = ref({ open: false, novedad: null });
+const renunciaForm = ref({ renunciaDescuento: '', renunciaComisiones: '', renunciaHorasExtra: '', renunciaTransporte: '' });
+const renunciaGuardando = ref(false);
+const renunciaMensaje = ref('');
+
+const abrirDetalle = (item) => {
+    detallePanel.value = { open: true, novedad: item };
+    renunciaForm.value = {
+        renunciaDescuento: item.renunciaDescuento ?? '',
+        renunciaComisiones: item.renunciaComisiones ?? '',
+        renunciaHorasExtra: item.renunciaHorasExtra ?? '',
+        renunciaTransporte: item.renunciaTransporte ?? '',
+    };
+    renunciaMensaje.value = '';
+};
+
+const guardarRenuncia = async () => {
+    if (!detallePanel.value.novedad) return;
+    renunciaGuardando.value = true;
+    renunciaMensaje.value = '';
+    try {
+        await axios.patch(`${API_URL}/novedades/${detallePanel.value.novedad.id}/renuncia`, renunciaForm.value);
+        // Actualizar lista local
+        const idx = novedades.value.findIndex(n => n.id === detallePanel.value.novedad.id);
+        if (idx !== -1) {
+            novedades.value[idx] = { ...novedades.value[idx], ...renunciaForm.value };
+            detallePanel.value.novedad = { ...detallePanel.value.novedad, ...renunciaForm.value };
+        }
+        renunciaMensaje.value = 'ok';
+        setTimeout(() => { renunciaMensaje.value = ''; }, 3000);
+    } catch (e) {
+        renunciaMensaje.value = 'error';
+    } finally {
+        renunciaGuardando.value = false;
+    }
+};
+
 // ─── Modal aprobar/rechazar ───────────────────────────────────────
 const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
 const toast = ref({ visible: false, tipo: '', nombre: '', correoOk: false, correoMsg: '', reenviarId: null, reenvioLoading: false });
@@ -1099,4 +1355,13 @@ const reenviarToast = async () => {
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 .fade-msg-enter-active, .fade-msg-leave-active { transition: all 0.2s ease; }
 .fade-msg-enter-from, .fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
+/* Modal detalle Vercel */
+@keyframes vcModalIn { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.fade-panel-enter-active, .fade-panel-leave-active { transition: opacity 0.2s ease; }
+.fade-panel-enter-from, .fade-panel-leave-to { opacity: 0; }
+/* Scrollbar sutil */
+.vc-scroll::-webkit-scrollbar { width: 3px; }
+.vc-scroll::-webkit-scrollbar-track { background: transparent; }
+.vc-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 99px; }
+.vc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.4); }
 </style>
