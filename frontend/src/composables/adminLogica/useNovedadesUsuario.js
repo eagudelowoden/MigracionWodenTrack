@@ -36,6 +36,7 @@ export function useNovedades() {
       fd.append("tipificacion", payload.tipificacion ?? "");
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
+      if (payload.ultimoDiaTrabajado) fd.append("ultimoDiaTrabajado", payload.ultimoDiaTrabajado);
       fd.append("storageMode", payload.storageMode || "local");
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");

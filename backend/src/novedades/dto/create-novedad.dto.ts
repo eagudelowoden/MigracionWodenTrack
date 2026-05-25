@@ -6,6 +6,7 @@ export class CreateNovedadDto {
   tipificacion: string;
   fechaInicio: string;
   fechaFin: string;
+  ultimoDiaTrabajado?: string | null;
   storageMode?: string;
 
   // ─── Responsable / Jefe directo ──────────────────────

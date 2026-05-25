@@ -150,6 +150,7 @@ export class NovedadesService {
       tipificacion: dto.tipificacion,
       fechaInicio: dto.fechaInicio,
       fechaFin: dto.fechaFin,
+      ultimoDiaTrabajado: dto.ultimoDiaTrabajado || null,
       responsableIdOdoo: dto.responsableIdOdoo ? Number(dto.responsableIdOdoo) : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,

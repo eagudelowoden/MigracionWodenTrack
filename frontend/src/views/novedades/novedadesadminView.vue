@@ -102,14 +102,14 @@
                       :class="isDark ? 'text-white' : 'text-slate-800'" />
                   </div>
                 </div>
-                <div class="flex flex-col gap-1">
+                <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
                   <input type="date" v-model="form.fechaInicio" required
                     class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
                     :class="isDark ? 'bg-[#161B26] border-[#222938] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
                 </div>
-                <div class="flex flex-col gap-1">
+                <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
                   <input type="date" v-model="form.fechaFin" required
@@ -139,6 +139,18 @@
                   <option v-for="tip in TIPIFICACIONES" :key="tip" :value="tip">{{ tip }}</option>
                 </select>
               </div>
+
+              <!-- Último Día Trabajado (solo Renuncia) -->
+              <transition name="fade-msg">
+                <div v-if="form.tipificacion === 'Renuncia'" class="flex flex-col gap-1">
+                  <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
+                    <i class="fas fa-calendar-xmark mr-1"></i>Último Día Trabajado
+                  </label>
+                  <input type="date" v-model="form.ultimoDiaTrabajado" required
+                    class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30"
+                    :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white [color-scheme:dark]' : 'bg-white border-amber-400/50 text-slate-800'" />
+                </div>
+              </transition>
 
               <!-- Archivos adjuntos (múltiples) -->
               <div class="flex flex-col gap-1.5">
@@ -247,11 +259,11 @@ const storageMode = ref('local');
 
 const form = ref({
   nombre: '', cedula: '', descripcion: '', tipificacion: '',
-  fechaInicio: '', fechaFin: '',
+  fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '',
 });
 
 const TIPIFICACIONES = [
-  'No remunerado', 'Días compensatorios', 'Horas extra',
+  'Renuncia', 'No remunerado', 'Días compensatorios', 'Horas extra',
   'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
   'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
 ];
@@ -307,8 +319,9 @@ const handleSubmit = async () => {
       cedula: form.value.cedula,
       descripcion: form.value.descripcion,
       tipificacion: form.value.tipificacion,
-      fechaInicio: form.value.fechaInicio,
-      fechaFin: form.value.fechaFin,
+      fechaInicio: form.value.tipificacion === 'Renuncia' ? form.value.ultimoDiaTrabajado : form.value.fechaInicio,
+      fechaFin: form.value.tipificacion === 'Renuncia' ? form.value.ultimoDiaTrabajado : form.value.fechaFin,
+      ultimoDiaTrabajado: form.value.tipificacion === 'Renuncia' ? (form.value.ultimoDiaTrabajado || null) : null,
       archivos: archivosSeleccionados.value,
       storageMode: storageMode.value,
       responsableIdOdoo: jefe.value?.id_odoo ?? null,
@@ -328,7 +341,7 @@ const handleSubmit = async () => {
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
 const resetForm = () => {
-  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '' };
+  form.value = { nombre: '', cedula: '', descripcion: '', tipificacion: '', fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '' };
   archivosSeleccionados.value = [];
   archivoError.value = '';
   submitStatus.value = '';

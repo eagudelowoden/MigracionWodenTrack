@@ -33,6 +33,9 @@ export class Novedad {
   @Column({ name: 'fecha_fin', type: 'date' })
   fechaFin: string;
 
+  @Column({ name: 'ultimo_dia_trabajado', type: 'date', nullable: true, default: null })
+  ultimoDiaTrabajado: string | null;
+
   @Column({ name: 'soporte_nombre_original', length: 255, nullable: true, default: null })
   soporteNombreOriginal: string;
 
