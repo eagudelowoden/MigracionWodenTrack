@@ -66,6 +66,15 @@ function toHex(minutes: number): number {
   return Math.round((minutes / 60) * 100) / 100;
 }
 
+// Redondeo laboral: si los minutos de la fracción son ≥ 55, sube a la hora completa.
+// Ej: 5.93h (5h56min) → 6.00h  |  5.50h (5h30min) → 5.50h  |  6.93h (6h56min) → 7.00h
+function redondearHoras(horas: number): number {
+  if (horas <= 0) return 0;
+  const enteras = Math.floor(horas);
+  const mins    = Math.round((horas - enteras) * 60);
+  return mins >= 55 ? enteras + 1 : Math.round(horas * 100) / 100;
+}
+
 // ─── Festivos colombianos ─────────────────────────────────────────────────────
 
 /** Algoritmo Meeus/Jones/Butcher para obtener la fecha de Pascua */
@@ -390,14 +399,14 @@ export class HorasExtraService {
       );
     }
 
-    // Redondear todos los acumulados
-    result.rn   = Math.round(result.rn   * 100) / 100;
-    result.rndf = Math.round(result.rndf * 100) / 100;
-    result.rddf = Math.round(result.rddf * 100) / 100;
-    result.hefd = Math.round(result.hefd * 100) / 100;
-    result.hefn = Math.round(result.hefn * 100) / 100;
-    result.hedo = Math.round(result.hedo * 100) / 100;
-    result.heno = Math.round(result.heno * 100) / 100;
+    // Redondeo laboral: minutos ≥ 55 en la fracción → sube a la hora completa
+    result.rn   = redondearHoras(result.rn);
+    result.rndf = redondearHoras(result.rndf);
+    result.rddf = redondearHoras(result.rddf);
+    result.hefd = redondearHoras(result.hefd);
+    result.hefn = redondearHoras(result.hefn);
+    result.hedo = redondearHoras(result.hedo);
+    result.heno = redondearHoras(result.heno);
     return result;
   }
 
@@ -834,6 +843,40 @@ export class HorasExtraService {
           // Solo sobreescribir salida si el biométrico tiene la punch de salida;
           // de lo contrario conservar el check_out de hr.attendance (ya asignado arriba).
           if (salidaBio) localOut = salidaBio.localTime;
+        }
+      }
+
+      // ── Fallback biométrico general ───────────────────────────────────────────
+      // Si después de la corrección nocturna todavía no hay salida, intentar
+      // reconstruirla desde attendance.log sin importar el tipo de turno.
+      //
+      //  1. Turno DIURNO (o sin turno): buscar la última punch del mismo día
+      //     que sea al menos 10 minutos posterior a la entrada.
+      //  2. Turno NOCTURNO sin malla / sin turno definido pero entrada ≥ 21:00:
+      //     buscar la primera punch del día siguiente con hora ≤ 08:00.
+      if (!localOut && localIn && allLogsByEmp.has(empId)) {
+        const inFecha  = localIn.split(' ')[0];
+        const inMins   = this.parseMinutos(localIn);
+        const punches  = allLogsByEmp.get(empId)!;
+
+        // 1. Misma fecha: última punch posterior a la entrada (≥ 10 min después)
+        const salidaMismoDia = [...punches]
+          .filter(p =>
+            p.localTime.split(' ')[0] === inFecha &&
+            this.parseMinutos(p.localTime) >= inMins + 10,
+          )
+          .at(-1); // la más tardía del día
+
+        if (salidaMismoDia) {
+          localOut = salidaMismoDia.localTime;
+        } else if (inMins >= 1260) {
+          // 2. Entrada nocturna (≥ 21:00) sin salida ese día → buscar en día siguiente
+          const siguiente    = addUnDia(inFecha);
+          const salidaSigDia = punches.find(p =>
+            p.localTime.split(' ')[0] === siguiente &&
+            this.parseMinutos(p.localTime) <= 480, // ≤ 08:00
+          );
+          if (salidaSigDia) localOut = salidaSigDia.localTime;
         }
       }
 
