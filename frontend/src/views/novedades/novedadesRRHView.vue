@@ -11,7 +11,8 @@
           <i class="fas fa-user-check text-[10px]"></i>
         </div>
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-tight leading-none" :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-sm font-semibold uppercase tracking-tight leading-none"
+            :class="isDark ? 'text-white' : 'text-slate-800'">
             Gestión <span class="text-[#3B82F6]">Capital Humano</span>
           </h2>
           <p class="text-[8px] font-semibold opacity-40 uppercase tracking-[0.15em] mt-0.5"
@@ -20,27 +21,31 @@
       </div>
 
       <!-- Búsqueda nombre (flex-1) -->
-      <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border w-44 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
+      <div
+        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border w-44 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
         :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50'">
         <i class="fas fa-magnifying-glass text-[#3B82F6] text-[9px] shrink-0"></i>
         <input v-model="filters.nombre" type="text" placeholder="Buscar por nombre..."
           class="bg-transparent text-[11px] font-medium outline-none w-full placeholder:text-slate-400"
           :class="isDark ? 'text-white' : 'text-slate-700'" />
-        <button v-if="filters.nombre" @click="filters.nombre = ''" class="opacity-40 hover:opacity-80 transition-opacity shrink-0">
+        <button v-if="filters.nombre" @click="filters.nombre = ''"
+          class="opacity-40 hover:opacity-80 transition-opacity shrink-0">
           <i class="fas fa-xmark text-[9px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
         </button>
       </div>
 
       <!-- Departamento -->
       <div class="relative shrink-0">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
+        <div
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
           :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50'">
           <i class="fas fa-building text-[#3B82F6] text-[9px]"></i>
           <input v-model="filters.departamento" type="text" placeholder="Depto..."
             class="bg-transparent text-[11px] font-medium outline-none w-24 placeholder:text-slate-400"
             :class="isDark ? 'text-white' : 'text-slate-700'" @focus="showDeptList = true"
             @blur="setTimeout(() => showDeptList = false, 150)" />
-          <button v-if="filters.departamento" @click="filters.departamento = ''" class="opacity-40 hover:opacity-80 shrink-0">
+          <button v-if="filters.departamento" @click="filters.departamento = ''"
+            class="opacity-40 hover:opacity-80 shrink-0">
             <i class="fas fa-xmark text-[9px]" :class="isDark ? 'text-slate-300' : 'text-slate-600'"></i>
           </button>
         </div>
@@ -68,7 +73,8 @@
       </div>
 
       <!-- Reset -->
-      <button @click="resetFilters" class="w-7 h-7 flex items-center justify-center rounded-lg border transition-colors hover:text-[#3B82F6] shrink-0"
+      <button @click="resetFilters"
+        class="w-7 h-7 flex items-center justify-center rounded-lg border transition-colors hover:text-[#3B82F6] shrink-0"
         :class="isDark ? 'border-[#222938] bg-[#161B26] text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'">
         <i class="fas fa-rotate-left text-[9px]" :class="{ 'fa-spin': loading }"></i>
       </button>
@@ -78,8 +84,7 @@
         <button @click="showEstadoDropdown = !showEstadoDropdown"
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-semibold transition-all"
           :class="isDark ? 'border-[#222938] bg-[#161B26] text-slate-300 hover:border-[#3B82F6]/40' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400'">
-          <span class="w-1.5 h-1.5 rounded-full shrink-0"
-            :style="{ background: currentTabOption.color }"></span>
+          <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ background: currentTabOption.color }"></span>
           {{ currentTabOption.label }}
           <span class="text-[8px] opacity-50 font-normal tabular-nums">({{ getOptCount(tabEstado) }})</span>
           <i class="fas fa-chevron-down text-[7px] opacity-40 ml-0.5" :class="{ 'rotate-180': showEstadoDropdown }"></i>
@@ -165,7 +170,8 @@
                   :style="{ color: carpeta.color, background: carpeta.color + '20' }">
                   {{ carpeta.items.length }}
                 </span>
-                <span v-if="!carpeta.items.length" class="text-[8px] opacity-30" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Vacía</span>
+                <span v-if="!carpeta.items.length" class="text-[8px] opacity-30"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Vacía</span>
               </div>
               <i class="fas text-[9px] transition-transform duration-200" :class="[carpetasAbiertasCh.has(carpeta.id) ? 'fa-chevron-up' : 'fa-chevron-down',
               isDark ? 'text-slate-500' : 'text-slate-400']"></i>
@@ -189,8 +195,7 @@
                         :class="isDark ? 'text-slate-500' : 'text-slate-400'">Inicio</th>
                       <th class="px-3 py-1.5 text-center text-[7px] font-semibold uppercase tracking-wide"
                         :class="isDark ? 'text-slate-500' : 'text-slate-400'">Fin</th>
-                      <th class="px-3 py-1.5 text-left text-[7px] font-semibold uppercase tracking-wide"
-                        :class="isDark ? 'text-slate-500' : 'text-slate-400'">Descripción</th>
+
                       <th class="px-3 py-1.5 text-center text-[7px] font-semibold uppercase tracking-wide"
                         :class="isDark ? 'text-slate-500' : 'text-slate-400'">Estado</th>
                       <th class="px-3 py-1.5 text-right text-[7px] font-semibold uppercase tracking-wide"
@@ -311,10 +316,6 @@
                 <th
                   class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Tipificación</th>
-                <!-- Estado tipo carpeta -->
-                <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
-                  Estado</th>
                 <!-- Estado CH personalizado -->
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
@@ -331,10 +332,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, idx) in novedadesFiltradas" :key="item.id"
-                @click="abrirDetalle(item)"
-                class="group transition-all duration-150 cursor-pointer"
-                :class="[
+              <tr v-for="(item, idx) in novedadesFiltradas" :key="item.id" @click="abrirDetalle(item)"
+                class="group transition-all duration-150 cursor-pointer" :class="[
                   idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
                   isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/60'
                 ]">
@@ -380,7 +379,7 @@
                       :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                       {{ item.descripcion }}
                     </p>
-                    <span v-if="item.descripcion" @click="verMotivo(item.descripcion, 'Descripción')"
+                    <span v-if="item.descripcion" @click.stop="verMotivo(item.descripcion, 'Descripción')"
                       class="cursor-pointer text-[#3B82F6] hover:text-[#3B82F6]/70 shrink-0">
                       <i class="fas fa-eye text-[12px]"></i>
                     </span>
@@ -395,18 +394,9 @@
                   </p>
                 </td>
 
-                <!-- Estado tipo carpeta -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <span
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border"
-                    :class="getEstadoVisual(item).bg">
-                    <i :class="getEstadoVisual(item).icon" :style="{ color: getEstadoVisual(item).color }"></i>
-                    <span :style="{ color: getEstadoVisual(item).color }">{{ getEstadoVisual(item).label }}</span>
-                  </span>
-                </td>
-
                 <!-- Carpeta CH (estado personalizado) -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
+                  @click.stop>
                   <div class="relative flex items-center justify-center gap-1">
                     <!-- Badge del estado CH actual -->
                     <span v-if="item.estadoCh"
@@ -439,7 +429,7 @@
 
                 <!-- Motivo jefe -->
                 <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <span v-if="item.motivoJefe" @click="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
+                  <span v-if="item.motivoJefe" @click.stop="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
                     class="cursor-pointer text-[12px] font-bold text-[#3B82F6] hover:underline">
                     <i class="fas fa-comment-alt mr-1"></i>Ver
                   </span>
@@ -503,7 +493,8 @@
               </div>
             </div>
             <!-- Estado carpeta -->
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase border"
+            <span
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase border"
               :class="getEstadoVisual(item).bg">
               <i :class="getEstadoVisual(item).icon" :style="{ color: getEstadoVisual(item).color }"></i>
               <span :style="{ color: getEstadoVisual(item).color }">{{ getEstadoVisual(item).label }}</span>
@@ -707,7 +698,7 @@
     <!-- Modal soporte -->
     <teleport to="body">
       <transition name="modal">
-        <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div v-if="modalOpen" class="fixed inset-0 z-[95] flex items-center justify-center p-4"
           style="background: rgba(0,0,0,0.7)" @click.self="modalOpen = false">
           <div class="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-md overflow-hidden"
             :class="isDark ? 'bg-[#161B26]' : 'bg-white'">
@@ -774,14 +765,11 @@
     ══════════════════════════════════════════════════════════════════ -->
     <teleport to="body">
       <transition name="fade-panel">
-        <div v-if="detalleModal.open"
-          class="fixed inset-0 z-[85] flex items-center justify-center p-2"
-          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)"
-          @click.self="detalleModal.open = false">
+        <div v-if="detalleModal.open" class="fixed inset-0 z-[85] flex items-center justify-center p-2"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)" @click.self="detalleModal.open = false">
 
           <div class="w-full max-w-[95vw] h-[92vh] rounded-[10px] border flex flex-col overflow-hidden"
-            style="animation: vcModalIn 0.2s ease-out forwards;"
-            :class="isDark
+            style="animation: vcModalIn 0.2s ease-out forwards;" :class="isDark
               ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
               : 'bg-white border-[#e5e5e5] shadow-[0_24px_48px_rgba(0,0,0,0.1)]'">
 
@@ -789,7 +777,8 @@
             <div class="flex items-start justify-between px-6 pt-5 pb-4 border-b shrink-0"
               :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
               <div class="flex items-center gap-3 flex-1 min-w-0 pr-4">
-                <div class="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-[14px] font-semibold text-[#3B82F6] shrink-0">
+                <div
+                  class="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-[14px] font-semibold text-[#3B82F6] shrink-0">
                   {{ detalleModal.novedad?.nombre?.charAt(0) ?? '?' }}
                 </div>
                 <div class="min-w-0">
@@ -797,8 +786,7 @@
                     :class="isDark ? 'text-white' : 'text-[#111]'">
                     {{ detalleModal.novedad?.nombre }}
                   </p>
-                  <p class="text-[12px] mt-0.5 truncate"
-                    :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">
+                  <p class="text-[12px] mt-0.5 truncate" :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">
                     CC {{ detalleModal.novedad?.cedula }}
                     <span v-if="detalleModal.novedad?.departamento"> · {{ detalleModal.novedad.departamento }}</span>
                     <span v-if="detalleModal.novedad?.cargo"> · {{ detalleModal.novedad.cargo }}</span>
@@ -806,8 +794,7 @@
                 </div>
               </div>
               <button @click="detalleModal.open = false"
-                class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors shrink-0"
-                :class="isDark
+                class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors shrink-0" :class="isDark
                   ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
                   : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'">
                 <i class="fas fa-xmark text-xs"></i>
@@ -840,21 +827,10 @@
                       : detalleModal.novedad?.aprobadoJefe === 0
                         ? 'bg-red-500/10 text-red-400 border-red-500/20'
                         : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
-                    <i :class="detalleModal.novedad?.aprobadoJefe === 1 ? 'fas fa-check' : detalleModal.novedad?.aprobadoJefe === 0 ? 'fas fa-xmark' : 'fas fa-clock'"></i>
-                    {{ detalleModal.novedad?.aprobadoJefe === 1 ? 'Aprobado' : detalleModal.novedad?.aprobadoJefe === 0 ? 'Rechazado' : 'Pendiente' }}
-                  </span>
-                </div>
-                <div>
-                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
-                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Est. RRHH</p>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
-                    :class="detalleModal.novedad?.aprobadoRrhh === 1
-                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                      : detalleModal.novedad?.aprobadoRrhh === 0
-                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
-                    <i :class="detalleModal.novedad?.aprobadoRrhh === 1 ? 'fas fa-check' : detalleModal.novedad?.aprobadoRrhh === 0 ? 'fas fa-xmark' : 'fas fa-clock'"></i>
-                    {{ detalleModal.novedad?.aprobadoRrhh === 1 ? 'Aprobada' : detalleModal.novedad?.aprobadoRrhh === 0 ? 'Rechazada' : 'Pendiente' }}
+                    <i
+                      :class="detalleModal.novedad?.aprobadoJefe === 1 ? 'fas fa-check' : detalleModal.novedad?.aprobadoJefe === 0 ? 'fas fa-xmark' : 'fas fa-clock'"></i>
+                    {{ detalleModal.novedad?.aprobadoJefe === 1 ? 'Aprobado' : detalleModal.novedad?.aprobadoJefe === 0
+                      ? 'Rechazado' : 'Pendiente' }}
                   </span>
                 </div>
                 <div>
@@ -875,10 +851,12 @@
                   <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
                     :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Días</p>
                   <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
-                    {{ calcDias(detalleModal.novedad?.fechaInicio ?? detalleModal.novedad?.fecha_inicio, detalleModal.novedad?.fechaFin ?? detalleModal.novedad?.fecha_fin) }}
+                    {{ calcDias(detalleModal.novedad?.fechaInicio ?? detalleModal.novedad?.fecha_inicio,
+                      detalleModal.novedad?.fechaFin ?? detalleModal.novedad?.fecha_fin) }}
                   </p>
                 </div>
-                <div v-if="detalleModal.novedad?.tipificacion === 'Renuncia' && detalleModal.novedad?.ultimoDiaTrabajado"
+                <div
+                  v-if="detalleModal.novedad?.tipificacion === 'Renuncia' && detalleModal.novedad?.ultimoDiaTrabajado"
                   class="col-span-3">
                   <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
                     :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Último día trabajado</p>
@@ -892,19 +870,17 @@
               <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
                 <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
                   :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Descripción</p>
-                <p class="text-[13px] leading-[1.65]"
-                  :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                <p class="text-[13px] leading-[1.65]" :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
                   {{ detalleModal.novedad?.descripcion || '—' }}
                 </p>
               </div>
 
               <!-- Motivo jefe (si existe) -->
-              <div v-if="detalleModal.novedad?.motivoJefe"
-                class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+              <div v-if="detalleModal.novedad?.motivoJefe" class="border-t pt-5"
+                :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
                 <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
                   :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Motivo jefe</p>
-                <p class="text-[13px] leading-[1.65]"
-                  :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                <p class="text-[13px] leading-[1.65]" :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
                   {{ detalleModal.novedad.motivoJefe }}
                 </p>
               </div>
@@ -915,16 +891,15 @@
                   <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-4"
                     :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Datos de liquidación</p>
                   <div class="grid grid-cols-2 gap-4">
-                    <div v-for="(campo, key) in { 'Descuento': 'renunciaDescuento', 'Comisiones': 'renunciaComisiones', 'Horas extra': 'renunciaHorasExtra', 'Transporte': 'renunciaTransporte' }"
-                      :key="key"
-                      class="rounded-[6px] border p-3"
+                    <div
+                      v-for="(campo, key) in { 'Descuento': 'renunciaDescuento', 'Comisiones': 'renunciaComisiones', 'Horas extra': 'renunciaHorasExtra', 'Transporte': 'renunciaTransporte' }"
+                      :key="key" class="rounded-[6px] border p-3"
                       :class="isDark ? 'bg-[#1a2035] border-[#222938]' : 'bg-[#f9f9f9] border-[#e5e5e5]'">
                       <p class="text-[10px] font-semibold tracking-[0.06em] uppercase mb-1"
                         :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">{{ key }}</p>
-                      <p class="text-[13px] leading-relaxed whitespace-pre-wrap"
-                        :class="detalleModal.novedad?.[campo]
-                          ? (isDark ? 'text-[#e2e8f0]' : 'text-[#171717]')
-                          : (isDark ? 'text-[#334155]' : 'text-[#c0c0c0]')">
+                      <p class="text-[13px] leading-relaxed whitespace-pre-wrap" :class="detalleModal.novedad?.[campo]
+                        ? (isDark ? 'text-[#e2e8f0]' : 'text-[#171717]')
+                        : (isDark ? 'text-[#334155]' : 'text-[#c0c0c0]')">
                         {{ detalleModal.novedad?.[campo] || 'Sin datos' }}
                       </p>
                     </div>
@@ -945,25 +920,25 @@
 
                 <div v-if="detalleModal.cargandoArchivos" class="flex items-center gap-2 py-2">
                   <i class="fas fa-circle-notch fa-spin text-[#3B82F6] text-xs"></i>
-                  <span class="text-[12px]" :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Cargando archivos...</span>
+                  <span class="text-[12px]" :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Cargando
+                    archivos...</span>
                 </div>
 
-                <div v-else-if="!detalleModal.archivos.length"
-                  class="flex items-center gap-2 py-3 opacity-40">
+                <div v-else-if="!detalleModal.archivos.length" class="flex items-center gap-2 py-3 opacity-40">
                   <i class="fas fa-paperclip text-sm" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
-                  <span class="text-[12px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin archivos adjuntos</span>
+                  <span class="text-[12px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin archivos
+                    adjuntos</span>
                 </div>
 
                 <div v-else class="flex flex-col gap-2">
                   <div v-for="archivo in detalleModal.archivos" :key="archivo.id"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-[6px] border transition-colors"
                     :class="isDark ? 'border-[#222938] bg-[#1a2035] hover:bg-[#222938]' : 'border-[#e5e5e5] bg-[#f9f9f9] hover:bg-[#f0f0f0]'">
-                    <i class="text-base w-5 text-center shrink-0"
-                      :class="(archivo.mimetype ?? '').startsWith('image/')
-                        ? 'fas fa-image text-[#3B82F6]'
-                        : (archivo.mimetype ?? '') === 'application/pdf'
-                          ? 'fas fa-file-pdf text-red-400'
-                          : 'fas fa-file text-slate-400'"></i>
+                    <i class="text-base w-5 text-center shrink-0" :class="(archivo.mimetype ?? '').startsWith('image/')
+                      ? 'fas fa-image text-[#3B82F6]'
+                      : (archivo.mimetype ?? '') === 'application/pdf'
+                        ? 'fas fa-file-pdf text-red-400'
+                        : 'fas fa-file text-slate-400'"></i>
                     <span class="flex-1 text-[12px] font-medium truncate"
                       :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
                       {{ archivo.nombreOriginal ?? archivo.nombre_original ?? 'Archivo' }}
@@ -1365,21 +1340,84 @@ const verSoporte = async (id) => {
 </script>
 
 <style scoped>
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
 /* Modal detalle */
-@keyframes vcModalIn { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.fade-panel-enter-active, .fade-panel-leave-active { transition: opacity 0.2s ease; }
-.fade-panel-enter-from, .fade-panel-leave-to { opacity: 0; }
-.fade-msg-enter-active, .fade-msg-leave-active { transition: all 0.2s ease; }
-.fade-msg-enter-from, .fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
+@keyframes vcModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fade-panel-enter-active,
+.fade-panel-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-panel-enter-from,
+.fade-panel-leave-to {
+  opacity: 0;
+}
+
+.fade-msg-enter-active,
+.fade-msg-leave-active {
+  transition: all 0.2s ease;
+}
+
+.fade-msg-enter-from,
+.fade-msg-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 /* Scrollbar sutil */
-.vc-scroll::-webkit-scrollbar { width: 3px; }
-.vc-scroll::-webkit-scrollbar-track { background: transparent; }
-.vc-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 99px; }
-.vc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.4); }
+.vc-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.vc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 99px;
+}
+
+.vc-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
 .toast-slide-enter-active,
 .toast-slide-leave-active {
   transition: all 0.3s ease;
