@@ -77,34 +77,6 @@
                     </div>
                 </button>
 
-                <!-- Jefe / Mi Equipo Card -->
-                <button v-if="isSuperAdmin || hasPerm('admin.novedades.jefe')" @click="subModule = 'jefe'"
-                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
-                    :class="isDark
-                        ? 'bg-[#161B26] border-[#222938] hover:border-[#3B82F6]/60 hover:bg-[#1F2533]'
-                        : 'bg-white border-slate-200 hover:border-[#3B82F6] hover:shadow-sm'">
-                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
-                        :class="isDark
-                            ? 'bg-[#3B82F6]/10 text-[#60A5FA] group-hover:bg-[#3B82F6]/15'
-                            : 'bg-blue-50 text-[#3B82F6] group-hover:bg-blue-100'">
-                        <i class="fas fa-users text-[14px]"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-[13px] font-semibold tracking-tight"
-                            :class="isDark ? 'text-white' : 'text-slate-900'">
-                            Mi Equipo
-                        </h3>
-                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                            Aprobaciones de novedades
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                        :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
-                        Entrar
-                        <i class="fas fa-arrow-right text-[8px]"></i>
-                    </div>
-                </button>
-
                 <!-- User Card -->
                 <button v-if="isSuperAdmin || hasPerm('admin.novedades.user')" @click="subModule = 'user'"
                     class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
@@ -151,7 +123,6 @@
             <NovedadesRRHH v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
             <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company"
                 :employee="employee" />
-            <MisAprobaciones v-else-if="subModule === 'jefe'" :isDark="isDark" @volver="subModule = null" />
         </keep-alive>
 
     </div>
@@ -162,7 +133,6 @@ import { ref, inject } from 'vue';
 import NovedadesAdmin from './novedadesadminView.vue';
 import NovedadesRRHH from './novedadesRRHView.vue';
 import NovedadesUsuario from './novedadesusuarioView.vue';
-import MisAprobaciones from './MisAprobacionesView.vue';
 
 const props = defineProps({
     isDark: Boolean,

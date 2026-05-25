@@ -159,6 +159,18 @@
               </div>
             </div>
 
+            <!-- Tipificación -->
+            <div class="flex flex-col gap-1">
+              <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipificación</label>
+              <select v-model="form.tipificacion" required
+                class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
+                :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
+                <option value="" disabled>Seleccione el tipo de novedad...</option>
+                <option v-for="tip in TIPIFICACIONES" :key="tip" :value="tip">{{ tip }}</option>
+              </select>
+            </div>
+
             <!-- Descripción -->
             <div class="flex flex-col gap-1">
               <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
@@ -594,9 +606,15 @@ const sessionIdOdoo = ref(null);
 const sessionNombre = ref('');
 
 const form = ref({
-  nombre: '', cedula: '', descripcion: '',
+  nombre: '', cedula: '', tipificacion: '', descripcion: '',
   fechaInicio: '', fechaFin: '',
 });
+
+const TIPIFICACIONES = [
+  'Vacaciones', 'No remunerado', 'Días compensatorios', 'Horas extra',
+  'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
+  'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
+];
 
 const archivosSeleccionados = ref([]);
 const archivoError = ref('');
@@ -727,6 +745,7 @@ const handleSubmit = async () => {
     const res = await crearNovedad({
       nombre: form.value.nombre,
       cedula: form.value.cedula,
+      tipificacion: form.value.tipificacion,
       descripcion: form.value.descripcion,
       fechaInicio: form.value.fechaInicio,
       fechaFin: form.value.fechaFin,
@@ -748,7 +767,7 @@ const handleSubmit = async () => {
 };
 
 const resetForm = () => {
-  form.value = { ...form.value, cedula: '', descripcion: '', fechaInicio: '', fechaFin: '' };
+  form.value = { ...form.value, cedula: '', tipificacion: '', descripcion: '', fechaInicio: '', fechaFin: '' };
   archivosSeleccionados.value = [];
   archivoError.value = '';
   submitStatus.value = '';

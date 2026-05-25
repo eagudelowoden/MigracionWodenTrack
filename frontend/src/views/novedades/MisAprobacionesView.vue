@@ -865,7 +865,19 @@ onMounted(async () => {
         try {
             const res = await axios.get(`${API_URL}/departamentos-permitidos/${miIdOdoo}`);
             const deptos = Array.isArray(res.data) ? res.data : [];
-            await fetchPorDepartamentos(deptos);
+            if (deptos.length > 0) {
+                // Departamentos explícitamente configurados por el admin
+                await fetchPorDepartamentos(deptos);
+            } else {
+                // Sin departamentos configurados → usar el departamento propio del director
+                // (evita que el director vea vacío solo porque nadie configuró su filtro)
+                const miDpto = session?.department;
+                if (miDpto) {
+                    await fetchPorDepartamentos([miDpto]);
+                } else {
+                    await fetchPorSegmento(miIdOdoo);
+                }
+            }
         } catch {
             await fetchPorSegmento(miIdOdoo);
         }

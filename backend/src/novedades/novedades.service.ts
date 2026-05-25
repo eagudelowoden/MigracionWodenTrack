@@ -431,7 +431,22 @@ export class NovedadesService {
         WHERE  r.id_odoo = ${idOdoo}
           AND  u.identificacion IS NOT NULL
         UNION
-        -- El propio responsable del segmento
+        -- Rama 3: fallback — si el usuario tiene segmento_id propio asignado
+        --         (cubre permisos manuales donde no está como responsable en maestro_segmentos)
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        WHERE  u.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo})
+          AND  u.identificacion IS NOT NULL
+        UNION
+        -- Rama 4: fallback área — empleados en áreas cuyos jefes tienen el mismo segmento_id del usuario
+        SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
+        FROM   usuarios_registrados u
+        INNER  JOIN maestro_areas a ON u.area_id = a.id
+        INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
+        WHERE  jefe.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo})
+          AND  u.identificacion IS NOT NULL
+        UNION
+        -- El propio usuario
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
         WHERE  id_odoo = ${idOdoo}

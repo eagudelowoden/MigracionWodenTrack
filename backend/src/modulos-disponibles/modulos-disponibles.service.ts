@@ -65,7 +65,6 @@ const SEED_DATA: Omit<ModuloDisponible, 'id' | 'fecha_creacion'>[] = [
   { slug: 'admin.novedades.user', nombre: 'Rol Empleado', descripcion: 'Puede registrar y gestionar sus propias novedades', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 1, activo: true, es_scope: false, es_base: true, creado_por: 'sistema' },
   { slug: 'admin.novedades.admin', nombre: 'Rol Administrador', descripcion: 'Gestión completa de novedades del equipo', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 2, activo: true, es_scope: false, es_base: true, creado_por: 'sistema' },
   { slug: 'admin.novedades.rrhh', nombre: 'Rol RRHH', descripcion: 'Auditoría, revisión y aprobación de novedades', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 3, activo: true, es_scope: false, es_base: true, creado_por: 'sistema' },
-  { slug: 'admin.novedades.jefe', nombre: 'Rol Jefe / Mi Equipo', descripcion: 'Ve y gestiona las novedades de su equipo (área o segmento según su alcance asignado)', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 4, activo: true, es_scope: false, es_base: true, creado_por: 'sistema' },
 ];
 
 @Injectable()
