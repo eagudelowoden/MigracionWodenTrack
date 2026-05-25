@@ -331,10 +331,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, idx) in novedadesFiltradas" :key="item.id" class="group transition-all duration-150"
+              <tr v-for="(item, idx) in novedadesFiltradas" :key="item.id"
+                @click="abrirDetalle(item)"
+                class="group transition-all duration-150 cursor-pointer"
                 :class="[
                   idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                  isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]/50'
+                  isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50/60'
                 ]">
 
                 <!-- Colaborador -->
@@ -404,7 +406,7 @@
                 </td>
 
                 <!-- Carpeta CH (estado personalizado) -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                   <div class="relative flex items-center justify-center gap-1">
                     <!-- Badge del estado CH actual -->
                     <span v-if="item.estadoCh"
@@ -445,7 +447,7 @@
                 </td>
 
                 <!-- Acciones -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                   <div class="flex items-center justify-end gap-2">
                     <!-- Badge estado RRHH -->
                     <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-wide border font-semibold"
@@ -767,6 +769,225 @@
     </teleport>
 
 
+    <!-- ══════════════════════════════════════════════════════════════
+         MODAL DETALLE — Capital Humano (solo lectura)
+    ══════════════════════════════════════════════════════════════════ -->
+    <teleport to="body">
+      <transition name="fade-panel">
+        <div v-if="detalleModal.open"
+          class="fixed inset-0 z-[85] flex items-center justify-center p-2"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)"
+          @click.self="detalleModal.open = false">
+
+          <div class="w-full max-w-[95vw] h-[92vh] rounded-[10px] border flex flex-col overflow-hidden"
+            style="animation: vcModalIn 0.2s ease-out forwards;"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
+              : 'bg-white border-[#e5e5e5] shadow-[0_24px_48px_rgba(0,0,0,0.1)]'">
+
+            <!-- Header -->
+            <div class="flex items-start justify-between px-6 pt-5 pb-4 border-b shrink-0"
+              :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+              <div class="flex items-center gap-3 flex-1 min-w-0 pr-4">
+                <div class="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-[14px] font-semibold text-[#3B82F6] shrink-0">
+                  {{ detalleModal.novedad?.nombre?.charAt(0) ?? '?' }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[15px] font-semibold tracking-[-0.01em] truncate"
+                    :class="isDark ? 'text-white' : 'text-[#111]'">
+                    {{ detalleModal.novedad?.nombre }}
+                  </p>
+                  <p class="text-[12px] mt-0.5 truncate"
+                    :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">
+                    CC {{ detalleModal.novedad?.cedula }}
+                    <span v-if="detalleModal.novedad?.departamento"> · {{ detalleModal.novedad.departamento }}</span>
+                    <span v-if="detalleModal.novedad?.cargo"> · {{ detalleModal.novedad.cargo }}</span>
+                  </p>
+                </div>
+              </div>
+              <button @click="detalleModal.open = false"
+                class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors shrink-0"
+                :class="isDark
+                  ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
+                  : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'">
+                <i class="fas fa-xmark text-xs"></i>
+              </button>
+            </div>
+
+            <!-- Body scrollable -->
+            <div class="px-6 py-5 flex-1 flex flex-col gap-5 overflow-y-auto vc-scroll min-h-0">
+
+              <!-- Fila info principal -->
+              <div class="grid grid-cols-3 gap-x-8 gap-y-4">
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Tipificación</p>
+                  <span v-if="detalleModal.novedad?.tipificacion"
+                    class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                    :class="detalleModal.novedad.tipificacion === 'Renuncia'
+                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      : (isDark ? 'bg-[#1a2035] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200')">
+                    {{ detalleModal.novedad.tipificacion }}
+                  </span>
+                  <span v-else :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'" class="text-[13px]">—</span>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Est. Jefe</p>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                    :class="detalleModal.novedad?.aprobadoJefe === 1
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : detalleModal.novedad?.aprobadoJefe === 0
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                    <i :class="detalleModal.novedad?.aprobadoJefe === 1 ? 'fas fa-check' : detalleModal.novedad?.aprobadoJefe === 0 ? 'fas fa-xmark' : 'fas fa-clock'"></i>
+                    {{ detalleModal.novedad?.aprobadoJefe === 1 ? 'Aprobado' : detalleModal.novedad?.aprobadoJefe === 0 ? 'Rechazado' : 'Pendiente' }}
+                  </span>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Est. RRHH</p>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                    :class="detalleModal.novedad?.aprobadoRrhh === 1
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : detalleModal.novedad?.aprobadoRrhh === 0
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                    <i :class="detalleModal.novedad?.aprobadoRrhh === 1 ? 'fas fa-check' : detalleModal.novedad?.aprobadoRrhh === 0 ? 'fas fa-xmark' : 'fas fa-clock'"></i>
+                    {{ detalleModal.novedad?.aprobadoRrhh === 1 ? 'Aprobada' : detalleModal.novedad?.aprobadoRrhh === 0 ? 'Rechazada' : 'Pendiente' }}
+                  </span>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Fecha inicio</p>
+                  <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                    {{ formatFecha(detalleModal.novedad?.fechaInicio ?? detalleModal.novedad?.fecha_inicio) }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Fecha fin</p>
+                  <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                    {{ formatFecha(detalleModal.novedad?.fechaFin ?? detalleModal.novedad?.fecha_fin) }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Días</p>
+                  <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                    {{ calcDias(detalleModal.novedad?.fechaInicio ?? detalleModal.novedad?.fecha_inicio, detalleModal.novedad?.fechaFin ?? detalleModal.novedad?.fecha_fin) }}
+                  </p>
+                </div>
+                <div v-if="detalleModal.novedad?.tipificacion === 'Renuncia' && detalleModal.novedad?.ultimoDiaTrabajado"
+                  class="col-span-3">
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Último día trabajado</p>
+                  <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                    {{ formatFecha(detalleModal.novedad.ultimoDiaTrabajado) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Descripción -->
+              <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
+                  :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Descripción</p>
+                <p class="text-[13px] leading-[1.65]"
+                  :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                  {{ detalleModal.novedad?.descripcion || '—' }}
+                </p>
+              </div>
+
+              <!-- Motivo jefe (si existe) -->
+              <div v-if="detalleModal.novedad?.motivoJefe"
+                class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-2"
+                  :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Motivo jefe</p>
+                <p class="text-[13px] leading-[1.65]"
+                  :class="isDark ? 'text-[#94a3b8]' : 'text-[#444]'">
+                  {{ detalleModal.novedad.motivoJefe }}
+                </p>
+              </div>
+
+              <!-- Datos de liquidación (solo lectura, solo Renuncia) -->
+              <template v-if="detalleModal.novedad?.tipificacion === 'Renuncia'">
+                <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-4"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Datos de liquidación</p>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div v-for="(campo, key) in { 'Descuento': 'renunciaDescuento', 'Comisiones': 'renunciaComisiones', 'Horas extra': 'renunciaHorasExtra', 'Transporte': 'renunciaTransporte' }"
+                      :key="key"
+                      class="rounded-[6px] border p-3"
+                      :class="isDark ? 'bg-[#1a2035] border-[#222938]' : 'bg-[#f9f9f9] border-[#e5e5e5]'">
+                      <p class="text-[10px] font-semibold tracking-[0.06em] uppercase mb-1"
+                        :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">{{ key }}</p>
+                      <p class="text-[13px] leading-relaxed whitespace-pre-wrap"
+                        :class="detalleModal.novedad?.[campo]
+                          ? (isDark ? 'text-[#e2e8f0]' : 'text-[#171717]')
+                          : (isDark ? 'text-[#334155]' : 'text-[#c0c0c0]')">
+                        {{ detalleModal.novedad?.[campo] || 'Sin datos' }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Archivos adjuntos -->
+              <div class="border-t pt-5" :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-3"
+                  :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">
+                  Archivos adjuntos
+                  <span v-if="detalleModal.archivos.length"
+                    class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] bg-[#3B82F6]/10 text-[#3B82F6]">
+                    {{ detalleModal.archivos.length }}
+                  </span>
+                </p>
+
+                <div v-if="detalleModal.cargandoArchivos" class="flex items-center gap-2 py-2">
+                  <i class="fas fa-circle-notch fa-spin text-[#3B82F6] text-xs"></i>
+                  <span class="text-[12px]" :class="isDark ? 'text-[#64748b]' : 'text-[#737373]'">Cargando archivos...</span>
+                </div>
+
+                <div v-else-if="!detalleModal.archivos.length"
+                  class="flex items-center gap-2 py-3 opacity-40">
+                  <i class="fas fa-paperclip text-sm" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
+                  <span class="text-[12px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin archivos adjuntos</span>
+                </div>
+
+                <div v-else class="flex flex-col gap-2">
+                  <div v-for="archivo in detalleModal.archivos" :key="archivo.id"
+                    class="flex items-center gap-3 px-3 py-2.5 rounded-[6px] border transition-colors"
+                    :class="isDark ? 'border-[#222938] bg-[#1a2035] hover:bg-[#222938]' : 'border-[#e5e5e5] bg-[#f9f9f9] hover:bg-[#f0f0f0]'">
+                    <i class="text-base w-5 text-center shrink-0"
+                      :class="(archivo.mimetype ?? '').startsWith('image/')
+                        ? 'fas fa-image text-[#3B82F6]'
+                        : (archivo.mimetype ?? '') === 'application/pdf'
+                          ? 'fas fa-file-pdf text-red-400'
+                          : 'fas fa-file text-slate-400'"></i>
+                    <span class="flex-1 text-[12px] font-medium truncate"
+                      :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                      {{ archivo.nombreOriginal ?? archivo.nombre_original ?? 'Archivo' }}
+                    </span>
+                    <span class="text-[10px] shrink-0" :class="isDark ? 'text-[#475569]' : 'text-[#9a9a9a]'">
+                      {{ ((archivo.tamano ?? 0) / 1024).toFixed(0) > 0 ? ((archivo.tamano ?? 0) / 1024).toFixed(0) + ' KB' : '' }}
+                    </span>
+                    <button @click="abrirArchivoDetalle(archivo)"
+                      class="shrink-0 h-7 px-3 rounded-[6px] border text-[11px] font-medium transition-colors flex items-center gap-1.5"
+                      :class="isDark
+                        ? 'border-[#222938] text-[#64748b] hover:text-white hover:border-[#3d4558] bg-[#161B26]'
+                        : 'border-[#e5e5e5] text-[#555] hover:text-[#111] bg-white'">
+                      <i class="fas fa-eye text-[#3B82F6] text-[10px]"></i> Ver
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
+
     <!-- Modal ver motivo -->
     <teleport to="body">
       <div v-if="motivoModal.open"
@@ -798,7 +1019,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { useNovedades, getEstadoVisual } from '../../composables/adminLogica/useNovedades';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const props = defineProps({ isDark: Boolean, company: String });
 

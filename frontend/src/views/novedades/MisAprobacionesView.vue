@@ -752,7 +752,7 @@
                     style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)"
                     @click.self="detallePanel.open = false">
 
-                    <div class="w-full max-w-[720px] rounded-[10px] border flex flex-col overflow-hidden"
+                    <div class="w-full max-w-[95vw] h-[92vh] rounded-[10px] border flex flex-col overflow-hidden"
                         style="animation: vcModalIn 0.2s ease-out forwards;"
                         :class="isDark
                             ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
@@ -782,7 +782,7 @@
                         </div>
 
                         <!-- ── Body ── -->
-                        <div class="px-6 py-5 flex flex-col gap-5 max-h-[82vh] overflow-y-auto vc-scroll">
+                        <div class="px-6 py-5 flex-1 flex flex-col gap-5 overflow-y-auto vc-scroll min-h-0">
 
                             <!-- Fila: tipificación + estado + fechas -->
                             <div class="grid grid-cols-2 gap-x-8 gap-y-4">
