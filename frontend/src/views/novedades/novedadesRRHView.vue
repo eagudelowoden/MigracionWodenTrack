@@ -1321,6 +1321,30 @@ const novedadesEnCarpetaCh = computed(() =>
   novedades.value.filter(n => n.estadoCh).length
 );
 
+// ─── Modal detalle (Capital Humano, solo lectura) ─────────────────
+const detalleModal = ref({ open: false, novedad: null, archivos: [], cargandoArchivos: false });
+
+const abrirDetalle = async (item) => {
+  detalleModal.value = { open: true, novedad: item, archivos: [], cargandoArchivos: true };
+  try {
+    const res = await axios.get(`${API_URL}/novedades/${item.id}/archivos`);
+    detalleModal.value.archivos = Array.isArray(res.data) ? res.data : [];
+  } catch {
+    detalleModal.value.archivos = [];
+  } finally {
+    detalleModal.value.cargandoArchivos = false;
+  }
+};
+
+const abrirArchivoDetalle = (archivo) => {
+  const url = `${API_URL}/novedades/${detalleModal.value.novedad.id}/archivos/${archivo.id}/file`;
+  modalOpen.value = true;
+  modalLoading.value = false;
+  modalNombre.value = archivo.nombreOriginal ?? archivo.nombre_original ?? 'Archivo';
+  modalMime.value = archivo.mimetype ?? '';
+  modalFileUrl.value = url;
+};
+
 // ─── Modal soporte ────────────────────────────────────────────────
 const verSoporte = async (id) => {
   modalOpen.value = true;
@@ -1341,43 +1365,21 @@ const verSoporte = async (id) => {
 </script>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.fade-msg-enter-active,
-.fade-msg-leave-active {
-  transition: all 0.2s ease;
-}
-
-.fade-msg-enter-from,
-.fade-msg-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+/* Modal detalle */
+@keyframes vcModalIn { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.fade-panel-enter-active, .fade-panel-leave-active { transition: opacity 0.2s ease; }
+.fade-panel-enter-from, .fade-panel-leave-to { opacity: 0; }
+.fade-msg-enter-active, .fade-msg-leave-active { transition: all 0.2s ease; }
+.fade-msg-enter-from, .fade-msg-leave-to { opacity: 0; transform: translateY(-4px); }
+/* Scrollbar sutil */
+.vc-scroll::-webkit-scrollbar { width: 3px; }
+.vc-scroll::-webkit-scrollbar-track { background: transparent; }
+.vc-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 99px; }
+.vc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.4); }
 .toast-slide-enter-active,
 .toast-slide-leave-active {
   transition: all 0.3s ease;
