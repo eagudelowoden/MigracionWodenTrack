@@ -157,7 +157,7 @@
                   <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
                   <span class="flex-1 text-[10px] font-medium text-slate-400">
                     {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` :
-                    'Arrastra o haz clic para seleccionar...' }}
+                      'Arrastra o haz clic para seleccionar...' }}
                   </span>
                   <input ref="fileInput" type="file" multiple @change="onFilesChange" class="hidden"
                     accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
@@ -251,7 +251,7 @@ const form = ref({
 });
 
 const TIPIFICACIONES = [
-  'Vacaciones', 'No remunerado', 'Días compensatorios', 'Horas extra',
+  'No remunerado', 'Días compensatorios', 'Horas extra',
   'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
   'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
 ];

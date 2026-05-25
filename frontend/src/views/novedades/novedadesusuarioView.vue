@@ -11,7 +11,8 @@
           <i class="fas fa-file-signature text-[10px]"></i>
         </div>
         <div>
-          <h2 class="text-sm font-semibold uppercase tracking-tight leading-none" :class="isDark ? 'text-white' : 'text-slate-800'">
+          <h2 class="text-sm font-semibold uppercase tracking-tight leading-none"
+            :class="isDark ? 'text-white' : 'text-slate-800'">
             {{ activeTab === 'registro' ? 'Registro' : 'Mi Historial' }}
             <span class="text-[#3B82F6]">{{ activeTab === 'registro' ? 'Novedad' : 'Novedades' }}</span>
           </h2>
@@ -24,13 +25,15 @@
 
       <!-- Filtros inline (solo historial) -->
       <template v-if="activeTab === 'historial'">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border flex-1 min-w-0 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
+        <div
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border flex-1 min-w-0 transition-all focus-within:ring-1 focus-within:ring-[#3B82F6]/30"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
           <i class="fas fa-magnifying-glass text-[#3B82F6] text-[9px] shrink-0"></i>
           <input v-model="filtros.buscar" type="text" placeholder="Buscar descripción o tipificación..."
             class="bg-transparent flex-1 outline-none font-medium text-[11px] placeholder:text-slate-400 min-w-0"
             :class="isDark ? 'text-white' : 'text-slate-800'" />
-          <button v-if="filtros.buscar" @click="filtros.buscar = ''" class="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+          <button v-if="filtros.buscar" @click="filtros.buscar = ''"
+            class="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
             <i class="fas fa-xmark text-[9px]"></i>
           </button>
         </div>
@@ -54,8 +57,7 @@
 
       <div class="flex items-center gap-1.5 ml-auto shrink-0">
         <!-- Indicador almacenamiento -->
-        <div v-if="activeTab === 'registro'"
-          class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold"
+        <div v-if="activeTab === 'registro'" class="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold"
           :class="storageMode === 's3'
             ? 'bg-[#3B82F6]/10 text-[#3B82F6]'
             : 'bg-emerald-500/10 text-emerald-500'">
@@ -100,7 +102,8 @@
                 :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
               <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs"
                 :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
-                <i class="fas fa-user-circle opacity-40 text-xs" :class="isDark ? 'text-slate-400' : 'text-slate-500'"></i>
+                <i class="fas fa-user-circle opacity-40 text-xs"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'"></i>
                 <input type="text" v-model="form.nombre" readonly
                   class="bg-transparent w-full font-semibold outline-none cursor-not-allowed text-xs"
                   :class="isDark ? 'text-slate-200' : 'text-slate-700'" />
@@ -110,16 +113,21 @@
             <!-- Jefe de área -->
             <div v-if="jefe" class="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
               :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
-              <div class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
+              <div
+                class="w-6 h-6 rounded-md bg-[#3B82F6]/15 flex items-center justify-center text-[9px] font-semibold text-[#3B82F6] shrink-0">
                 {{ jefe.name?.charAt(0) ?? '?' }}
               </div>
               <div class="flex flex-col flex-1 min-w-0">
                 <span class="text-[8px] font-bold uppercase tracking-wide opacity-40"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe directo</span>
-                <span class="text-[11px] font-bold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ jefe.name }}</span>
-                <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ jefe.job || '' }}</span>
+                <span class="text-[11px] font-bold uppercase truncate"
+                  :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    jefe.name }}</span>
+                <span class="text-[9px] opacity-40 truncate" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{
+                  jefe.job || '' }}</span>
               </div>
-              <span class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-[#3B82F6]/10 text-[#3B82F6]">
+              <span
+                class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase bg-[#3B82F6]/10 text-[#3B82F6]">
                 <i class="fas fa-user-tie text-[8px]"></i>Responsable
               </span>
             </div>
@@ -131,7 +139,8 @@
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
-                <div class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
+                <div
+                  class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
                   :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
                   <i class="fas fa-id-card text-[#3B82F6]/60 text-xs"></i>
                   <input type="number" v-model="form.cedula" placeholder="N° identificación..." required
@@ -178,7 +187,7 @@
               <textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
                 class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
                 :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
-              </textarea>
+          </textarea>
             </div>
 
             <!-- Archivos adjuntos (múltiples) -->
@@ -186,7 +195,9 @@
               <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 Archivos de Soporte
-                <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos, 20 MB c/u</span>
+                <span class="ml-1 opacity-35 normal-case font-medium text-[8px]">Solo PDF e imágenes — máx 10 archivos,
+                  20
+                  MB c/u</span>
               </label>
 
               <!-- Zona de drop -->
@@ -194,11 +205,12 @@
                 class="flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed transition-all cursor-pointer"
                 :class="[
                   dragOver ? 'border-[#3B82F6] bg-[#3B82F6]/5' : (isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-200 bg-slate-50'),
-                ]"
-                @click="$refs.fileInput.click()">
+                ]" @click="$refs.fileInput.click()">
                 <i class="fas fa-cloud-arrow-up text-[#3B82F6] text-sm shrink-0"></i>
                 <span class="flex-1 text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-400'">
-                  {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` : 'Arrastra o haz clic para seleccionar...' }}
+                  {{ archivosSeleccionados.length ? `${archivosSeleccionados.length} archivo(s) seleccionado(s)` +
+                    'Arrastra'
+                    + ' o haz clic para seleccionar...' : '' }}
                 </span>
                 <input ref="fileInput" type="file" multiple @change="onFilesChange" class="hidden"
                   accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
@@ -213,7 +225,8 @@
                   class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
                   :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-100 bg-white'">
                   <i :class="['text-sm shrink-0', getFileIcon(file)]"></i>
-                  <span class="flex-1 text-[10px] font-medium truncate" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                  <span class="flex-1 text-[10px] font-medium truncate"
+                    :class="isDark ? 'text-slate-200' : 'text-slate-700'">
                     {{ file.name }}
                   </span>
                   <span class="text-[9px] opacity-40 shrink-0" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -236,8 +249,8 @@
 
           <!-- Mensaje estado -->
           <transition name="fade-msg">
-            <div v-if="submitStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border"
-              :class="submitStatus === 'ok'
+            <div v-if="submitStatus"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-semibold border" :class="submitStatus === 'ok'
                 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                 : 'bg-red-500/10 text-red-400 border-red-500/20'">
               <i :class="submitStatus === 'ok' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
@@ -427,7 +440,8 @@
 
                   <!-- Estado general tipo carpeta -->
                   <td class="px-4 py-2.5 text-center">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border"
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border"
                       :class="getEstadoVisual(nov).bg">
                       <i :class="getEstadoVisual(nov).icon" :style="{ color: getEstadoVisual(nov).color }"></i>
                       <span :style="{ color: getEstadoVisual(nov).color }">{{ getEstadoVisual(nov).label }}</span>
@@ -461,8 +475,7 @@
                     <div class="flex items-center justify-center gap-1.5">
                       <!-- Badge con cantidad de archivos -->
                       <div class="relative" v-click-outside="() => dropdownAbierto = null">
-                        <button type="button"
-                          @click.stop="dropdownAbierto = dropdownAbierto === nov.id ? null : nov.id"
+                        <button type="button" @click.stop="dropdownAbierto = dropdownAbierto === nov.id ? null : nov.id"
                           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all hover:brightness-110"
                           :class="(nov.archivos?.length ? 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20' : (isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200'))">
                           <i class="fas fa-paperclip"></i>
@@ -472,8 +485,8 @@
                         <div v-if="nov.archivos?.length && dropdownAbierto === nov.id"
                           class="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-md border overflow-hidden"
                           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-                          <a v-for="arch in nov.archivos" :key="arch.id"
-                            :href="getArchivoUrl(nov.id, arch.id)" target="_blank"
+                          <a v-for="arch in nov.archivos" :key="arch.id" :href="getArchivoUrl(nov.id, arch.id)"
+                            target="_blank"
                             class="flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-colors hover:bg-[#3B82F6]/10 border-b last:border-0"
                             :class="isDark ? 'text-slate-200 border-[#222938]' : 'text-slate-700 border-slate-100'">
                             <i :class="['shrink-0', getMimeIcon(arch.mime)]"></i>
@@ -611,7 +624,7 @@ const form = ref({
 });
 
 const TIPIFICACIONES = [
-  'Vacaciones', 'No remunerado', 'Días compensatorios', 'Horas extra',
+  'No remunerado', 'Días compensatorios', 'Horas extra',
   'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
   'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
 ];
