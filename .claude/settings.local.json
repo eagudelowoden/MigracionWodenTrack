@@ -55,7 +55,14 @@
       "Bash(xargs grep -l \"calculos\\\\|horas.*extra\\\\|cargue.*horas\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Documents\\\\WodenTrack\\\\MigracionWodenTrack\" -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(xargs grep -l \"minsNocturno\\\\|minsDiurno\\\\|calcularCategorias\")",
+      "Bash(xargs grep -l \"es_dominical\\\\|esFestivo\")",
+      "Bash(findstr \"horas-extra\")",
+      "Bash(dir \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\\\\views\" /s /b)",
+      "Bash(findstr /i \"hora extra calcu\")",
+      "Bash(dir \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" /s /b /a-d)",
+      "Bash(findstr /i \"hora\")"
     ]
   }
 }

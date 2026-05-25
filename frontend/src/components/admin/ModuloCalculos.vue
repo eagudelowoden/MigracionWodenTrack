@@ -361,7 +361,9 @@
                     : (isDark ? 'text-slate-300' : 'text-slate-700')]">
                     <span>{{ formatFecha(item.data.fecha) }}</span>
                     <span v-if="item.data.es_dominical"
-                      class="ml-1 text-[7px] font-semibold bg-violet-500/20 text-violet-500 px-1 rounded">DOM</span>
+                      class="ml-1 text-[7px] font-semibold bg-violet-500/20 text-violet-500 px-1 rounded">
+                      {{ esDomingo(item.data.fecha) ? 'DOM' : 'FEST' }}
+                    </span>
                   </td>
 
                   <td class="px-3 py-2 border-b border-r text-center font-mono"
@@ -1525,6 +1527,18 @@ async function handleNotificar() {
   try {
     await notificarAprobados();
   } catch { /* silencioso */ }
+}
+
+/**
+ * Devuelve true si la fecha YYYY-MM-DD cae en domingo.
+ * Se usa para distinguir "DOM" de "FEST" en el badge:
+ *   - es_dominical=true + esDomingo → domingo (trabajó en descanso dominical)
+ *   - es_dominical=true + !esDomingo → festivo que NO es domingo (ej. lunes festivo)
+ */
+function esDomingo(fecha) {
+  if (!fecha) return false;
+  const [y, m, d] = fecha.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay() === 0; // 0 = domingo en JS
 }
 
 onMounted(() => {
