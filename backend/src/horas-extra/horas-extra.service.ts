@@ -428,29 +428,29 @@ export class HorasExtraService {
         const dentroStart = Math.max(wStart, turnoStart!);
         const dentroEnd   = Math.min(wEnd,   turnoEnd!);
         if (dentroEnd > dentroStart) {
-          result.rddf += minsDiurno(dentroStart, dentroEnd);
-          result.rndf += minsNocturno(dentroStart, dentroEnd);
+          result.rddf += toHex(minsDiurno(dentroStart, dentroEnd));
+          result.rndf += toHex(minsNocturno(dentroStart, dentroEnd));
         }
         // Extra antes del turno → HEFD + HEFN
         if (wStart < turnoStart! - TOLERANCIA) {
           const extraEnd = Math.min(wEnd, turnoStart!);
           if (extraEnd > wStart) {
-            result.hefd += minsDiurno(wStart, extraEnd);
-            result.hefn += minsNocturno(wStart, extraEnd);
+            result.hefd += toHex(minsDiurno(wStart, extraEnd));
+            result.hefn += toHex(minsNocturno(wStart, extraEnd));
           }
         }
         // Extra después del turno → HEFD + HEFN
         if (wEnd > turnoEnd! + TOLERANCIA) {
           const extraStart = Math.max(wStart, turnoEnd!);
           if (wEnd > extraStart) {
-            result.hefd += minsDiurno(extraStart, wEnd);
-            result.hefn += minsNocturno(extraStart, wEnd);
+            result.hefd += toHex(minsDiurno(extraStart, wEnd));
+            result.hefn += toHex(minsNocturno(extraStart, wEnd));
           }
         }
       } else {
         // Sin turno en día festivo: toda la ventana es extra festiva
-        result.hefd += minsDiurno(wStart, wEnd);
-        result.hefn += minsNocturno(wStart, wEnd);
+        result.hefd += toHex(minsDiurno(wStart, wEnd));
+        result.hefn += toHex(minsNocturno(wStart, wEnd));
       }
     } else {
       // Día ordinario: requiere turno para calcular
@@ -459,22 +459,22 @@ export class HorasExtraService {
       const dentroStart = Math.max(wStart, turnoStart!);
       const dentroEnd   = Math.min(wEnd,   turnoEnd!);
       if (dentroEnd > dentroStart) {
-        result.rn += minsNocturno(dentroStart, dentroEnd);
+        result.rn += toHex(minsNocturno(dentroStart, dentroEnd));
       }
       // Extra antes del turno → HEDO + HENO
       if (wStart < turnoStart! - TOLERANCIA) {
         const extraEnd = Math.min(wEnd, turnoStart!);
         if (extraEnd > wStart) {
-          result.hedo += minsDiurno(wStart, extraEnd);
-          result.heno += minsNocturno(wStart, extraEnd);
+          result.hedo += toHex(minsDiurno(wStart, extraEnd));
+          result.heno += toHex(minsNocturno(wStart, extraEnd));
         }
       }
       // Extra después del turno → HEDO + HENO
       if (wEnd > turnoEnd! + TOLERANCIA) {
         const extraStart = Math.max(wStart, turnoEnd!);
         if (wEnd > extraStart) {
-          result.hedo += minsDiurno(extraStart, wEnd);
-          result.heno += minsNocturno(extraStart, wEnd);
+          result.hedo += toHex(minsDiurno(extraStart, wEnd));
+          result.heno += toHex(minsNocturno(extraStart, wEnd));
         }
       }
     }
