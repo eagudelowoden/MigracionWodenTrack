@@ -217,7 +217,8 @@ export class NovedadesController {
 
   @Post(':id/aprobar-jefe')
   aprobarJefe(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
-    return this.novedadesService.aprobarJefe(+id, dto.aprobado, dto.motivo, (dto as any).aprobadoPorNombre);
+    const notificar = (dto as any).notificar !== false; // true por defecto
+    return this.novedadesService.aprobarJefe(+id, dto.aprobado, dto.motivo, (dto as any).aprobadoPorNombre, notificar);
   }
 
   @Post(':id/aprobar-rrhh')

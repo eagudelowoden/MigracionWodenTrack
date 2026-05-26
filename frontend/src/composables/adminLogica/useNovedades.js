@@ -167,13 +167,14 @@ export function useNovedades() {
     }
   };
 
-  const aprobarJefe = async (id, aprobado, motivo) => {
+  const aprobarJefe = async (id, aprobado, motivo, notificar = true) => {
     try {
       const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
         aprobado,
         motivo,
         aprobadoPorNombre: session.name || 'Coordinador',
+        notificar,
       });
       await fetchNovedades();
       return res.data;

@@ -1233,29 +1233,6 @@
           </textarea>
             </div>
 
-            <!-- Opción notificar (solo visible al aprobar, no al rechazar) -->
-            <div v-if="modalAprobar.aprobado"
-              class="flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors"
-              :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-slate-200 bg-slate-50'">
-              <div class="flex items-center gap-2">
-                <i class="fas fa-envelope text-[10px]"
-                  :class="modalAprobar.notificar ? 'text-[#16a34a]' : (isDark ? 'text-slate-500' : 'text-slate-400')"></i>
-                <span class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                  Notificar por correo
-                </span>
-                <span class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                  (al aprobar)
-                </span>
-              </div>
-              <!-- Toggle switch -->
-              <button type="button" @click="modalAprobar.notificar = !modalAprobar.notificar"
-                class="relative w-8 h-[18px] rounded-full transition-colors duration-200 flex-shrink-0 focus:outline-none"
-                :class="modalAprobar.notificar ? 'bg-[#16a34a]' : (isDark ? 'bg-[#333]' : 'bg-slate-300')">
-                <span class="absolute top-[3px] w-3 h-3 rounded-full bg-white shadow transition-all duration-200"
-                  :class="modalAprobar.notificar ? 'left-[18px]' : 'left-[3px]'"></span>
-              </button>
-            </div>
-
             <!-- Info del registro -->
             <div class="rounded-lg px-3 py-2.5 text-[10px] grid grid-cols-2 gap-x-4 gap-y-1"
               :class="isDark ? 'bg-[#0B0F19] text-slate-400' : 'bg-slate-50 text-slate-500'">
@@ -1440,7 +1417,6 @@ const modalAprobar = reactive({
   registro: null,
   aprobado: true,
   observacion: '',
-  notificar: true,
   loading: false,
 });
 
@@ -1448,7 +1424,6 @@ function abrirModalAprobar(registro, aprobado) {
   modalAprobar.registro = registro;
   modalAprobar.aprobado = aprobado;
   modalAprobar.observacion = registro.observacion || '';
-  modalAprobar.notificar = true;
   modalAprobar.loading = false;
   modalAprobar.visible = true;
 }
@@ -1462,14 +1437,6 @@ async function confirmarAprobar() {
   modalAprobar.loading = true;
   try {
     await aprobarRegistro(modalAprobar.registro.id, modalAprobar.aprobado, modalAprobar.observacion);
-    // Enviar correo solo si la opción está activa y es una aprobación (no rechazo)
-    if (modalAprobar.notificar && modalAprobar.aprobado) {
-      await notificarAprobados([{
-        ...modalAprobar.registro,
-        aprobado: true,
-        observacion: modalAprobar.observacion || null,
-      }]);
-    }
     modalAprobar.visible = false;
     // Recargar la vista activa según el tab
     if (activeTab.value === 'guardados') {

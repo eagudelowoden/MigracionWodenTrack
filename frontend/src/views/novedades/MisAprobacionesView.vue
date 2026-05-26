@@ -691,6 +691,7 @@
                             :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
                         </textarea>
                     </div>
+
                     <div class="flex gap-2 pt-1">
                         <button @click="accionModal.open = false"
                             class="flex-1 py-2 rounded-lg text-[10px] font-semibold uppercase italic border"
@@ -915,22 +916,41 @@
 
                         <!-- ── Footer: aprobar / rechazar (solo pendiente) ── -->
                         <div v-if="detallePanel.novedad?.aprobadoJefe === null || detallePanel.novedad?.aprobadoJefe === undefined"
-                            class="px-6 py-4 border-t flex items-center justify-end gap-2 shrink-0"
+                            class="px-6 py-4 border-t flex items-center gap-3 shrink-0"
                             :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
-                            <button @click="abrirAccion(detallePanel.novedad, 0); detallePanel.open = false"
-                                class="h-8 px-4 rounded-[6px] text-[13px] font-medium border transition-colors"
-                                :class="isDark
-                                    ? 'border-[#222938] text-[#e2e8f0] hover:bg-[#222938]'
-                                    : 'border-[#e5e5e5] text-[#171717] hover:bg-[#f5f5f5]'">
-                                Rechazar
+
+                            <!-- Toggle notificar -->
+                            <button type="button" @click="notificarDetalle = !notificarDetalle"
+                                class="flex items-center gap-2 px-3 h-8 rounded-[6px] border transition-all flex-shrink-0"
+                                :class="notificarDetalle
+                                    ? (isDark ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' : 'border-emerald-500/40 bg-emerald-50 text-emerald-600')
+                                    : (isDark ? 'border-[#222938] text-[#475569]' : 'border-[#e5e5e5] text-[#a1a1aa]')">
+                                <i class="fas fa-envelope text-[10px]"></i>
+                                <span class="text-[11px] font-medium">Notificar</span>
+                                <!-- mini toggle pill -->
+                                <span class="relative w-6 h-3 rounded-full transition-colors duration-200 ml-0.5"
+                                    :class="notificarDetalle ? 'bg-emerald-500' : (isDark ? 'bg-[#333]' : 'bg-slate-300')">
+                                    <span class="absolute top-[2px] w-2 h-2 rounded-full bg-white shadow transition-all duration-200"
+                                        :class="notificarDetalle ? 'left-[13px]' : 'left-[2px]'"></span>
+                                </span>
                             </button>
-                            <button @click="abrirAccion(detallePanel.novedad, 1); detallePanel.open = false"
-                                class="h-8 px-4 rounded-[6px] text-[13px] font-medium transition-colors"
-                                :class="isDark
-                                    ? 'bg-white text-black hover:bg-[#e8e8e8]'
-                                    : 'bg-[#171717] text-white hover:bg-[#333]'">
-                                Aprobar
-                            </button>
+
+                            <div class="flex items-center gap-2 ml-auto">
+                                <button @click="abrirAccion(detallePanel.novedad, 0, notificarDetalle); detallePanel.open = false"
+                                    class="h-8 px-4 rounded-[6px] text-[13px] font-medium border transition-colors"
+                                    :class="isDark
+                                        ? 'border-[#222938] text-[#e2e8f0] hover:bg-[#222938]'
+                                        : 'border-[#e5e5e5] text-[#171717] hover:bg-[#f5f5f5]'">
+                                    Rechazar
+                                </button>
+                                <button @click="abrirAccion(detallePanel.novedad, 1, notificarDetalle); detallePanel.open = false"
+                                    class="h-8 px-4 rounded-[6px] text-[13px] font-medium transition-colors"
+                                    :class="isDark
+                                        ? 'bg-white text-black hover:bg-[#e8e8e8]'
+                                        : 'bg-[#171717] text-white hover:bg-[#333]'">
+                                    Aprobar
+                                </button>
+                            </div>
                         </div>
 
                     </div>
@@ -960,16 +980,10 @@
 
                     <div class="border-t mx-2" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"></div>
 
-                    <button @click="abrirAccion(itemMenuActual, 1); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-wide transition-all hover:bg-emerald-500/10"
-                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
-                        <i class="fas fa-check w-3"></i> Aprobar
-                    </button>
-
-                    <button @click="abrirAccion(itemMenuActual, 0); menuAbierto = null"
-                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-wide transition-all hover:bg-red-500/10"
-                        :class="isDark ? 'text-red-400' : 'text-red-500'">
-                        <i class="fas fa-xmark w-3"></i> Rechazar
+                    <button @click="abrirDetalle(itemMenuActual); menuAbierto = null"
+                        class="w-full flex items-center gap-2 px-3 py-2.5 text-[10px] font-semibold uppercase italic tracking-wide transition-all hover:bg-[#3B82F6]/10"
+                        :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                        <i class="fas fa-arrow-right text-[#3B82F6] w-3"></i> Ver detalle
                     </button>
 
                 </div>
@@ -1271,6 +1285,7 @@ const renunciaMensaje = ref('');
 
 const abrirDetalle = (item) => {
     detallePanel.value = { open: true, novedad: item };
+    notificarDetalle.value = true; // resetear toggle al abrir cada registro
     renunciaForm.value = {
         renunciaDescuento: item.renunciaDescuento ?? '',
         renunciaComisiones: item.renunciaComisiones ?? '',
@@ -1301,19 +1316,24 @@ const guardarRenuncia = async () => {
     }
 };
 
+// ─── Notificar detalle ────────────────────────────────────────────
+// Toggle visible en el footer del panel de detalle; se resetea al abrir cada registro.
+const notificarDetalle = ref(true);
+
 // ─── Modal aprobar/rechazar ───────────────────────────────────────
-const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', loading: false });
+const accionModal = ref({ open: false, tipo: 1, id: null, nombre: '', motivo: '', notificar: true, loading: false });
 const toast = ref({ visible: false, tipo: '', nombre: '', correoOk: false, correoMsg: '', reenviarId: null, reenvioLoading: false });
 
-const abrirAccion = (item, tipo) => {
-    accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '', loading: false };
+// notificar: viene del toggle del detalle (footer) o del menú contextual (modal)
+const abrirAccion = (item, tipo, notificar = true) => {
+    accionModal.value = { open: true, tipo, id: item.id, nombre: item.nombre, motivo: '', notificar, loading: false };
 };
 
 const confirmarAccion = async () => {
     if (!accionModal.value.motivo.trim()) return;
     accionModal.value.loading = true;
     try {
-        const result = await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo);
+        const result = await aprobarJefe(accionModal.value.id, accionModal.value.tipo, accionModal.value.motivo, accionModal.value.notificar);
         const tipoLabel = accionModal.value.tipo === 1 ? 'aprobada' : 'rechazada';
         toast.value = {
             visible: true,

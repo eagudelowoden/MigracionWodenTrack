@@ -678,7 +678,7 @@ export class NovedadesService {
     await this.novedadRepo.softDelete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
-  async aprobarJefe(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string) {
+  async aprobarJefe(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string, notificar: boolean = true) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
@@ -688,13 +688,15 @@ export class NovedadesService {
     this.actualizarEstadoGeneral(novedad);
     const saved = await this.novedadRepo.save(novedad);
 
-    // Enviar correo y devolver resultado
-    let correo = { ok: false, mensaje: 'Correo no enviado' };
-    try {
-      const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe');
-      correo = await this.correoService.enviarAprobacionNovedad(payload);
-    } catch (e) {
-      correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
+    // Enviar correo solo si el usuario lo solicitó
+    let correo = { ok: false, mensaje: 'Notificación no enviada (desactivada)' };
+    if (notificar) {
+      try {
+        const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe');
+        correo = await this.correoService.enviarAprobacionNovedad(payload);
+      } catch (e) {
+        correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
+      }
     }
 
     return { ...saved, correo };
