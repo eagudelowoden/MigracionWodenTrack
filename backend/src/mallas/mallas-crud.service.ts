@@ -127,20 +127,26 @@ export class MallasCrudService {
       return '';
     };
 
-    // Leer celda de hora con fallback robusto para celdas TIME de Excel
+    // Leer celda de hora con fallback robusto para celdas TIME de Excel.
+    // IMPORTANTE: cell.value instanceof Date tiene PRIORIDAD sobre cell.text porque
+    // ExcelJS puede poner en .text el resultado de Date.toString() con el offset
+    // histórico de Colombia en 1899 (-04:56:16), que hace que getHours() devuelva
+    // valores incorrectos (ej. 17 en lugar de 22). Usando getUTCHours() se obtiene
+    // siempre el valor correcto independientemente de la hora (06, 14, 15, 22…).
     const getCellHora = (cell: ExcelJS.Cell): string => {
-      const text = cell.text?.trim();
-      if (text) return text;
       const val = cell.value;
-      // Celda tipo Date (tiempo sin fecha → 1899-12-30 + fracción, en UTC)
+      // 1. Celda tipo Date (tiempo sin fecha → 1899-12-30 + fracción): usar UTC
       if (val instanceof Date) return dateToHHMM(val);
-      // Número: fracción de día (0–1) → multiplicar por 24; decimal de hora (≥2) → usar directo
+      // 2. Número: fracción de día (0–1) o decimal de hora (≥2)
       if (typeof val === 'number') {
         const hours = val < 1 ? val * 24 : val;
         const h = Math.floor(hours);
         const m = Math.round((hours - h) * 60);
         return `${h}:${String(m).padStart(2, '0')}`;
       }
+      // 3. Texto plano ("14:00", "10:00:00 p. m.", etc.)
+      const text = cell.text?.trim();
+      if (text) return text;
       if (typeof val === 'string') return val.trim();
       return '';
     };
