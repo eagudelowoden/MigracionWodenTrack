@@ -359,17 +359,22 @@ export class HorasExtraService {
           result.hefn = toHex(minsNocturno(inMins, outMins));
         }
       } else {
-        if (!turno || shiftStart === null || shiftEnd === null) return result;
-        result.rn = toHex(minsNocturno(shiftStart, shiftEnd));
-        if (inMins < shiftStart - TOLERANCIA) {
-          const extraEnd = Math.min(outMins, shiftStart);
-          result.hedo += toHex(minsDiurno(inMins, extraEnd));
-          result.heno += toHex(minsNocturno(inMins, extraEnd));
-        }
-        if (outMins > shiftEnd + TOLERANCIA) {
-          const extraStart = Math.max(inMins, shiftEnd);
-          result.hedo += toHex(minsDiurno(extraStart, outMins));
-          result.heno += toHex(minsNocturno(extraStart, outMins));
+        if (!turno || shiftStart === null || shiftEnd === null) {
+          // Sin turno en día ordinario: todo el tiempo trabajado es HEDO/HENO
+          result.hedo = toHex(minsDiurno(inMins, outMins));
+          result.heno = toHex(minsNocturno(inMins, outMins));
+        } else {
+          result.rn = toHex(minsNocturno(shiftStart, shiftEnd));
+          if (inMins < shiftStart - TOLERANCIA) {
+            const extraEnd = Math.min(outMins, shiftStart);
+            result.hedo += toHex(minsDiurno(inMins, extraEnd));
+            result.heno += toHex(minsNocturno(inMins, extraEnd));
+          }
+          if (outMins > shiftEnd + TOLERANCIA) {
+            const extraStart = Math.max(inMins, shiftEnd);
+            result.hedo += toHex(minsDiurno(extraStart, outMins));
+            result.heno += toHex(minsNocturno(extraStart, outMins));
+          }
         }
       }
     } else {
@@ -462,8 +467,12 @@ export class HorasExtraService {
         result.hefn += toHex(minsNocturno(wStart, wEnd));
       }
     } else {
-      // Día ordinario: requiere turno para calcular
-      if (!hayTurno) return;
+      // Día ordinario sin turno: todo el tiempo trabajado es HEDO/HENO
+      if (!hayTurno) {
+        result.hedo += toHex(minsDiurno(wStart, wEnd));
+        result.heno += toHex(minsNocturno(wStart, wEnd));
+        return;
+      }
       // Recargo nocturno dentro del turno → RN
       const dentroStart = Math.max(wStart, turnoStart!);
       const dentroEnd   = Math.min(wEnd,   turnoEnd!);
@@ -889,10 +898,11 @@ export class HorasExtraService {
       const cargo =
         cargoOdooMap.get(empId) || cargoLocalMap.get(cedula) || null;
 
-      // Calcular horas extra solo si: tiene malla Y (tiene turno ese día O es dominical)
-      // Sin malla → mostrar el registro con horas extra en 0
-      // Con malla pero sin turno ese día (trabajó en día de descanso, no domingo) → también 0
-      const debeCalcularExtras = !sinMalla && (turno !== null || esFestivo);
+      // Siempre calcular si hay entrada y salida:
+      //  - Con turno → RN dentro del turno + HEDO/HENO/HEFD/HEFN extras
+      //  - Sin turno en festivo/domingo → HEFD/HEFN (todo el tiempo trabajado es extra festivo)
+      //  - Sin turno en día ordinario (incl. sábado sin malla) → HEDO/HENO (todo es extra ordinario)
+      const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
         ? this.calcularCategorias(localIn, localOut, turno, esFestivo, esFestivoSiguiente)
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
