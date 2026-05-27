@@ -62,7 +62,9 @@
       "Bash(dir \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\\\\views\" /s /b)",
       "Bash(findstr /i \"hora extra calcu\")",
       "Bash(dir \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" /s /b /a-d)",
-      "Bash(findstr /i \"hora\")"
+      "Bash(findstr /i \"hora\")",
+      "PowerShell($env:DB_NAME)",
+      "Bash(Find \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -type f -name \"*.js\" -o -name \"*.py\" -o -name \"*.ts\")"
     ]
   }
 }
