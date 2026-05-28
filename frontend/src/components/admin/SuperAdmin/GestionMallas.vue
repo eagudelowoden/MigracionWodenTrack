@@ -678,10 +678,10 @@ const API_URL = import.meta.env.VITE_API_URL;
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const DIAS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-const HORAS = Array.from({ length: 48 }, (_, i) => {
-  const valor = i * 0.5;
+const HORAS = Array.from({ length: 96 }, (_, i) => {
+  const valor = i * 0.25;
   const h = Math.floor(valor).toString().padStart(2, '0');
-  const m = valor % 1 === 0.5 ? '30' : '00';
+  const m = Math.round((valor % 1) * 60).toString().padStart(2, '0');
   return { value: valor, label: `${h}:${m}` };
 });
 
