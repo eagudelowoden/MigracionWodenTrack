@@ -36,7 +36,7 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
 }
 
 // Minutos nocturnos en el rango [start, end] (21:00-06:00 = 1260-1440 y 0-360)
-// Soporta end > 1440 para turnos que cruzan medianoche
+// Usado para RNDF, HENO, HEFN. Soporta end > 1440 para turnos que cruzan medianoche
 function minsNocturno(start: number, end: number): number {
   if (end <= start) return 0;
   if (end <= 1440) {
@@ -45,6 +45,18 @@ function minsNocturno(start: number, end: number): number {
   // Cruce de medianoche: antes de las 24:00 y después de las 00:00
   const antesMedianoche = overlap(start, 1440, 1260, 1440) + overlap(start, 1440, 0, 360);
   const despuesMedianoche = overlap(0, end - 1440, 1260, 1440) + overlap(0, end - 1440, 0, 360);
+  return antesMedianoche + despuesMedianoche;
+}
+
+// Minutos de Recargo Nocturno (RN) en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
+// RN inicia a las 19:00. Soporta end > 1440 para turnos que cruzan medianoche.
+function minsRN(start: number, end: number): number {
+  if (end <= start) return 0;
+  if (end <= 1440) {
+    return overlap(start, end, 1140, 1440) + overlap(start, end, 0, 360);
+  }
+  const antesMedianoche = overlap(start, 1440, 1140, 1440) + overlap(start, 1440, 0, 360);
+  const despuesMedianoche = overlap(0, end - 1440, 1140, 1440) + overlap(0, end - 1440, 0, 360);
   return antesMedianoche + despuesMedianoche;
 }
 
@@ -473,11 +485,11 @@ export class HorasExtraService {
         result.heno += toHex(minsNocturno(wStart, wEnd));
         return;
       }
-      // Recargo nocturno dentro del turno → RN
+      // Recargo nocturno dentro del turno → RN (19:00–06:00)
       const dentroStart = Math.max(wStart, turnoStart!);
       const dentroEnd   = Math.min(wEnd,   turnoEnd!);
       if (dentroEnd > dentroStart) {
-        result.rn += toHex(minsNocturno(dentroStart, dentroEnd));
+        result.rn += toHex(minsRN(dentroStart, dentroEnd));
       }
       // Extra antes del turno → HEDO + HENO
       if (wStart < turnoStart! - TOLERANCIA) {
@@ -1427,7 +1439,7 @@ export class HorasExtraService {
       'Se debe hacer un formato de reporte diferenciando la empresa por la cual están vinculados los colaboradores.',
       '',
       'CONVENCIONES:',
-      'RN = Recargo Nocturno: Dentro de la jornada laboral de 21:00 Hr a 6:00 Hr',
+      'RN = Recargo Nocturno: Dentro de la jornada laboral de 19:00 Hr a 6:00 Hr',
       'RNDF = Recargo Nocturno Dominical o Festivo: Dentro de la jornada Laboral, Domingo, de 21:00 Hr y 6:00 Hr',
       'RDDF = Recargo Diurno Dominical o Festivo: Dentro de la Jornada laboral, Domingo o Días Festivos de 6:00 Hr y 21:00 Hr',
       'HEDO = Hora Extra Diurna Ordinaria: Hora adicional a su jornada laboral, de 6:00 Hr y 21:00 Hr',
