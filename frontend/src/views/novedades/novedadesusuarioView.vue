@@ -378,14 +378,9 @@
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fin</th>
                   <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Jefe</th>
-                  <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
-                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">RRHH</th>
+
                   <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Estado</th>
-                  <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
-                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Carpeta CH</th>
-                  <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
-                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">Carpeta Jefe</th>
                   <th class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-[9px]"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Soporte</th>
                 </tr>
@@ -441,35 +436,6 @@
                     </span>
                   </td>
 
-                  <!-- Estado RRHH -->
-                  <td class="px-4 py-2.5 text-center">
-                    <span :class="estadoBadge(nov.aprobadoRrhh)"
-                      class="px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border">
-                      <i :class="estadoIcon(nov.aprobadoRrhh)" class="mr-0.5"></i>
-                      {{ estadoLabel(nov.aprobadoRrhh) }}
-                    </span>
-                  </td>
-
-                  <!-- Estado general tipo carpeta -->
-                  <td class="px-4 py-2.5 text-center">
-                    <span
-                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border"
-                      :class="getEstadoVisual(nov).bg">
-                      <i :class="getEstadoVisual(nov).icon" :style="{ color: getEstadoVisual(nov).color }"></i>
-                      <span :style="{ color: getEstadoVisual(nov).color }">{{ getEstadoVisual(nov).label }}</span>
-                    </span>
-                  </td>
-
-                  <!-- Carpeta Capital Humano (solo lectura) -->
-                  <td class="px-4 py-2.5 text-center">
-                    <span v-if="nov.estadoCh"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wide border"
-                      :class="isDark ? 'bg-[#161B26] border-[#3d4558] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'">
-                      <i class="fas fa-folder text-[#3B82F6]"></i>
-                      {{ nov.estadoCh }}
-                    </span>
-                    <span v-else class="text-[10px] opacity-30">—</span>
-                  </td>
 
                   <!-- Carpeta Jefe / Coordinador (solo lectura) -->
                   <td class="px-4 py-2.5 text-center">
