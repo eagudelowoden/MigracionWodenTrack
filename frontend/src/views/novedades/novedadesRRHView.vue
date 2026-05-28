@@ -228,26 +228,7 @@
                         <span class="text-[9px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{
                           formatFecha(nov.fechaFin ?? nov.fecha_fin) }}</span>
                       </td>
-                      <td class="px-3 py-2 border-t max-w-[180px]"
-                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <div class="flex items-center gap-1.5">
-                          <p class="text-[9px] font-medium line-clamp-1 flex-1"
-                            :class="isDark ? 'text-slate-300' : 'text-slate-600'">{{ nov.descripcion }}</p>
-                          <span v-if="nov.descripcion" @click="verMotivo(nov.descripcion, 'Descripción')"
-                            class="cursor-pointer text-[#3B82F6] hover:text-[#3B82F6]/70 shrink-0">
-                            <i class="fas fa-eye text-[9px]"></i>
-                          </span>
-                        </div>
-                      </td>
-                      <td class="px-3 py-2 text-center border-t"
-                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <span
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-semibold uppercase tracking-wide border"
-                          :class="getEstadoVisual(nov).bg">
-                          <i :class="getEstadoVisual(nov).icon" :style="{ color: getEstadoVisual(nov).color }"></i>
-                          <span :style="{ color: getEstadoVisual(nov).color }">{{ getEstadoVisual(nov).label }}</span>
-                        </span>
-                      </td>
+
                       <td class="px-3 py-2 text-right border-t"
                         :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                         <div class="flex items-center justify-end gap-1">
@@ -310,9 +291,9 @@
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Días</th>
-                <th
+                <!-- <th
                   class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
-                  Descripción</th>
+                  Descripción</th> -->
                 <th
                   class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Tipificación</th>
@@ -323,9 +304,7 @@
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Est. Jefe</th>
-                <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
-                  Mot. Jefe</th>
+
                 <th
                   class="px-4 py-2.5 text-right text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Acciones</th>
@@ -373,7 +352,7 @@
                 </td>
 
                 <!-- Descripción -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <!-- <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <div class="flex items-center gap-2 max-w-[200px]">
                     <p class="text-[11px] font-medium line-clamp-1 flex-1"
                       :class="isDark ? 'text-slate-300' : 'text-slate-600'">
@@ -384,7 +363,7 @@
                       <i class="fas fa-eye text-[12px]"></i>
                     </span>
                   </div>
-                </td>
+                </td> -->
 
                 <!-- Tipificación -->
                 <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -411,20 +390,6 @@
                       <i class="fas fa-folder-plus text-[8px]"></i> Asignar
                     </button>
                   </div>
-                </td>
-
-                <!-- Estado jefe badge -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-wide border font-semibold"
-                    :class="item.aprobadoJefe === 1
-                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                      : item.aprobadoJefe === 0
-                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                        : (isDark ? 'bg-[#2d3548] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-400 border-slate-200')">
-                    <i :class="item.aprobadoJefe === 1 ? 'fas fa-check' : item.aprobadoJefe === 0 ? 'fas fa-xmark' : 'fas fa-clock'"
-                      class="mr-1"></i>
-                    {{ item.aprobadoJefe === 1 ? 'Aprobado' : item.aprobadoJefe === 0 ? 'Rechazado' : 'Pendiente' }}
-                  </span>
                 </td>
 
                 <!-- Motivo jefe -->
@@ -944,7 +909,8 @@
                       {{ archivo.nombreOriginal ?? archivo.nombre_original ?? 'Archivo' }}
                     </span>
                     <span class="text-[10px] shrink-0" :class="isDark ? 'text-[#475569]' : 'text-[#9a9a9a]'">
-                      {{ ((archivo.tamano ?? 0) / 1024).toFixed(0) > 0 ? ((archivo.tamano ?? 0) / 1024).toFixed(0) + ' KB' : '' }}
+                      {{ ((archivo.tamano ?? 0) / 1024).toFixed(0) > 0 ? ((archivo.tamano ?? 0) / 1024).toFixed(0) +
+                        'KB' : '' }}
                     </span>
                     <button @click="abrirArchivoDetalle(archivo)"
                       class="shrink-0 h-7 px-3 rounded-[6px] border text-[11px] font-medium transition-colors flex items-center gap-1.5"
