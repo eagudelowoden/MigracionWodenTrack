@@ -29,8 +29,7 @@
         <!-- Cargue Horas — al final con dropdown -->
         <div v-if="isSuperAdmin || hasPerm('horas.cargue')" class="relative cargue-menu-wrapper">
           <button @click.stop="toggleCargueMenu"
-            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5"
-            :class="activeTab === 'cargue'
+            class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'cargue'
               ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
               : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-file-arrow-up text-[10px]"></i>Cargue Horas
@@ -44,9 +43,9 @@
             <button @click="selectCargueView('upload')"
               class="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-medium transition-all text-left"
               :class="[isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-50',
-                activeCargueView === 'upload' && activeTab === 'cargue'
-                  ? (isDark ? 'text-white' : 'text-slate-900')
-                  : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
+              activeCargueView === 'upload' && activeTab === 'cargue'
+                ? (isDark ? 'text-white' : 'text-slate-900')
+                : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
               <i class="fas fa-cloud-arrow-up text-[10px] text-[#3B82F6] w-3.5"></i>
               Cargue de horas
             </button>
@@ -54,9 +53,9 @@
             <button @click="selectCargueView('historial')"
               class="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-medium transition-all text-left"
               :class="[isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-50',
-                activeCargueView === 'historial' && activeTab === 'cargue'
-                  ? (isDark ? 'text-white' : 'text-slate-900')
-                  : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
+              activeCargueView === 'historial' && activeTab === 'cargue'
+                ? (isDark ? 'text-white' : 'text-slate-900')
+                : (isDark ? 'text-[#E2E8F0]' : 'text-slate-700')]">
               <i class="fas fa-table-list text-[10px] text-[#3B82F6] w-3.5"></i>
               Horas cargadas
             </button>
@@ -66,6 +65,17 @@
 
       <!-- Acciones (solo visible en tab Cálculos) — borde azul visible en ambos modos -->
       <div v-if="activeTab === 'calculos'" class="flex items-center gap-1.5">
+
+        <!-- Toggle decimales / horas cerradas -->
+        <button @click="mostrarDecimales = !mostrarDecimales"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
+          :class="mostrarDecimales
+            ? (isDark ? 'bg-[#3B82F6]/15 border-[#3B82F6]/60 text-[#60A5FA]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/40 text-[#2563eb]')
+            : (isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')"
+          :title="mostrarDecimales ? 'Mostrando medias horas (0.5). Clic para ver horas cerradas' : 'Mostrando horas cerradas (7). Clic para ver medias horas'">
+          <i class="fas fa-toggle-on text-[11px]" :class="mostrarDecimales ? '' : 'opacity-40 rotate-180'"></i>
+          <span>{{ mostrarDecimales ? '7.5' : '7' }}</span>
+        </button>
 
         <!-- Exportar -->
         <button @click="handleExportar" :disabled="isExporting || !registros.length"
@@ -390,7 +400,7 @@
                       ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
                       : (isDark ? 'text-slate-600' : 'text-slate-300')
                   ]">
-                    {{ formatDecimal(item.data[col]) }}
+                    {{ fmtCalculo(item.data[col]) }}
                   </td>
 
                   <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -430,7 +440,7 @@
                     class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold" :class="isDark
                       ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
                       : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                    {{ formatDecimal(item.data.subtotales[col]) }}
+                    {{ fmtCalculo(item.data.subtotales[col]) }}
                   </td>
                   <td class="border-b"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
@@ -625,7 +635,7 @@
 
             <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
               <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueTotalRegistros
-                }}</span>
+              }}</span>
               registro(s) encontrado(s)
             </span>
           </div>
@@ -730,7 +740,7 @@
                       Number(item.data[col]) > 0
                         ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
                         : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                        {{ formatDecimal(item.data[col]) }}
+                        {{ fmtCalculo(item.data[col]) }}
                       </td>
 
                       <!-- Estado chip -->
@@ -744,7 +754,7 @@
                           <i class="mr-1 text-[8px]"
                             :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
                           {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' :
-                          'Pendiente' }}
+                            'Pendiente' }}
                         </span>
                       </td>
 
@@ -783,7 +793,7 @@
                       <td v-for="col in COLS_HX" :key="col"
                         class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
                         :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                        {{ formatDecimal(item.data.subtotales[col]) }}
+                        {{ fmtCalculo(item.data.subtotales[col]) }}
                       </td>
                       <td colspan="2" class="border-b"
                         :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
@@ -800,7 +810,7 @@
               :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
               <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
                 <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ cargueTotalRegistros
-                  }}</span>
+                }}</span>
                 {{ cargueTotalRegistros === 1 ? 'registro' : 'registros' }}
               </span>
               <div class="flex items-center gap-1.5">
@@ -839,7 +849,7 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length
-            }}</span>
+          }}</span>
           registro(s) guardado(s) en el rango
         </span>
         <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
@@ -892,6 +902,9 @@
                 <th
                   class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
                   Estado</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
+                  Actividad</th>
                 <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">
                   Acciones</th>
               </tr>
@@ -908,31 +921,50 @@
                 </tr>
 
                 <!-- Fila normal -->
-                <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100"
-                  :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+                <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100" :class="[
+                  editandoId === item.data.id
+                    ? (isDark ? 'bg-[#3B82F6]/[0.06]' : 'bg-blue-50/60')
+                    : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''
+                ]">
+                  <!-- Cédula -->
                   <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
-                    item.data.cedula }}</td>
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                    {{ item.data.cedula }}
+                  </td>
+                  <!-- Nombre -->
                   <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
                       item.data.nombre }}</div>
                     <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
                       item.data.cargo || '—' }}</div>
                   </td>
+                  <!-- Fecha -->
                   <td class="px-3 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
                     {{ formatFecha(item.data.fecha) }}
                   </td>
+                  <!-- Dpto -->
                   <td class="px-3 py-2 border-b border-r"
                     :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
                     {{ item.data.departamento || '—' }}
                   </td>
-                  <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center" :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                  Number(item.data[col]) > 0
-                    ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
-                    : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                    {{ formatDecimal(item.data[col]) }}
+
+                  <!-- Celdas de horas: input en modo edición, valor normal en modo lectura -->
+                  <td v-for="col in COLS_HX" :key="col" class="px-1 py-1 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <input v-if="editandoId === item.data.id" type="number" v-model.number="editandoValores[col]"
+                      min="0" max="24" step="0.5"
+                      class="w-14 text-center text-[11px] font-semibold rounded px-1 py-0.5 border outline-none transition-all"
+                      :class="isDark
+                        ? 'bg-[#0B0F19] border-[#3B82F6]/50 text-[#60A5FA] focus:border-[#3B82F6]'
+                        : 'bg-white border-blue-300 text-blue-600 focus:border-blue-500'" />
+                    <span v-else :class="[
+                      Number(item.data[col]) > 0
+                        ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
+                        : (isDark ? 'text-slate-600' : 'text-slate-300')
+                    ]">{{ formatDecimal(item.data[col]) }}</span>
                   </td>
+
                   <!-- Estado -->
                   <td class="px-2 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -944,18 +976,55 @@
                       <i class="mr-1 text-[8px]"
                         :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
                       {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' :
-                      'Pendiente' }}
+                        'Pendiente' }}
                     </span>
                   </td>
-                  <!-- Acciones: aprobar / rechazar / eliminar -->
+
+                  <!-- Actividad (justificación) -->
+                  <td class="px-2 py-2 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <template v-if="tieneExtras(item.data)">
+                      <button v-if="item.data.actividad" @click="abrirModalActividad(item.data)"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-all"
+                        title="Ver / editar actividad">
+                        <i class="fas fa-check text-[8px]"></i>Justificado
+                      </button>
+                      <button v-else @click="abrirModalActividad(item.data)"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all animate-pulse"
+                        title="Agregar actividad requerida">
+                        <i class="fas fa-triangle-exclamation text-[8px]"></i>Sin justificación
+                      </button>
+                    </template>
+                    <span v-else class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-slate-300'">—</span>
+                  </td>
+
+                  <!-- Acciones -->
                   <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="flex items-center justify-center gap-1">
-                      <button @click="abrirModalAprobar(item.data, true)"
+                    <!-- Modo edición: guardar / cancelar -->
+                    <div v-if="editandoId === item.data.id" class="flex items-center justify-center gap-1">
+                      <button @click="guardarHorasInline(item.data)" :disabled="guardandoHoras"
+                        class="h-6 px-2 rounded-[4px] text-[9px] font-semibold flex items-center gap-1 transition-all border bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb] disabled:opacity-50">
+                        <i :class="guardandoHoras ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'"
+                          class="text-[8px]"></i>
+                        Guardar
+                      </button>
+                      <button @click="cancelarEdicion"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
+                        :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+                        <i class="fas fa-xmark text-[9px]"></i>
+                      </button>
+                    </div>
+                    <!-- Modo normal: aprobar / rechazar / editar / eliminar -->
+                    <div v-else class="flex items-center justify-center gap-1">
+                      <button
+                        @click="tieneExtras(item.data) && !item.data.actividad ? abrirModalActividad(item.data) : abrirModalAprobar(item.data, true)"
                         class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
                         :class="item.data.aprobado === true
                           ? 'bg-[#16a34a] border-[#16a34a] text-white'
-                          : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')"
-                        title="Aprobar">
+                          : tieneExtras(item.data) && !item.data.actividad
+                            ? (isDark ? 'border-amber-500/40 text-amber-400/50 cursor-not-allowed' : 'border-amber-300 text-amber-300 cursor-not-allowed')
+                            : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')"
+                        :title="tieneExtras(item.data) && !item.data.actividad ? 'Agrega actividad antes de aprobar' : 'Aprobar'">
                         <i class="fas fa-check text-[9px]"></i>
                       </button>
                       <button @click="abrirModalAprobar(item.data, false)"
@@ -965,6 +1034,13 @@
                           : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')"
                         title="Rechazar">
                         <i class="fas fa-times text-[9px]"></i>
+                      </button>
+                      <button @click="iniciarEdicion(item.data)"
+                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
+                          ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#60A5FA] hover:border-[#3B82F6]/40'
+                          : 'bg-transparent border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-300'"
+                        title="Editar horas">
+                        <i class="fas fa-pen text-[9px]"></i>
                       </button>
                       <button @click="abrirModalEliminar(item.data)"
                         class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
@@ -988,7 +1064,7 @@
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     {{ formatDecimal(item.data.subtotales[col]) }}
                   </td>
-                  <td colspan="2" class="border-b"
+                  <td colspan="3" class="border-b"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
                 </tr>
 
@@ -1002,7 +1078,7 @@
           :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
           <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ registrosGuardados.length
-              }}</span>
+            }}</span>
             registros
           </span>
           <div class="flex items-center gap-1.5">
@@ -1033,7 +1109,7 @@
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length
-            }}</span>
+          }}</span>
           registro(s) aprobado(s) en el rango
         </span>
         <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
@@ -1101,7 +1177,7 @@
                 </td>
                 <td class="px-3 py-2 border-b border-r text-center"
                   :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
-                  formatFecha(r.fecha) }}</td>
+                    formatFecha(r.fecha) }}</td>
                 <td class="px-3 py-2 border-b border-r"
                   :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
                     r.departamento || '—' }}</td>
@@ -1166,7 +1242,7 @@
               ¿Eliminar el registro de
               <span class="font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{
                 modalEliminar.registro?.nombre
-                }}</span>
+              }}</span>
               del <span class="font-semibold">{{ formatFecha(modalEliminar.registro?.fecha) }}</span>?
             </p>
           </div>
@@ -1187,6 +1263,93 @@
       </div>
     </Teleport>
     <!-- ══ FIN MODAL ELIMINAR ═════════════════════════════════════════════════ -->
+
+    <!-- ══ MODAL ACTIVIDAD ══════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="modalActividad.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55)">
+        <div class="w-full max-w-md rounded-xl border shadow-2xl"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-amber-500/15">
+                <i class="fas fa-pen text-amber-400 text-[11px]"></i>
+              </div>
+              <div>
+                <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                  Justificación de horas extra
+                </p>
+                <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                  {{ modalActividad.registro?.nombre }}
+                </p>
+              </div>
+            </div>
+            <button @click="modalActividad.visible = false"
+              class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+              <i class="fas fa-times text-[10px]"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="px-5 py-4 flex flex-col gap-3">
+            <!-- Info -->
+            <div class="rounded-lg px-3 py-2 text-[10px] flex items-center gap-2"
+              :class="isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'">
+              <i class="fas fa-triangle-exclamation"></i>
+              <span>Esta actividad es <strong>obligatoria</strong> para poder aprobar el registro con horas
+                extra.</span>
+            </div>
+            <!-- Textarea -->
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] font-medium" :class="isDark ? 'text-[#E2E8F0]' : 'text-slate-700'">
+                ¿Qué actividad justifica las horas extra?
+              </label>
+              <textarea v-model="modalActividad.texto" rows="4"
+                placeholder="Describe la actividad o motivo que justifica las horas extra trabajadas…"
+                class="w-full px-3 py-2 text-[11px] rounded-lg border outline-none resize-none transition-all" :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-amber-500/50'
+                  : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-amber-400'">
+          </textarea>
+              <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                {{ modalActividad.texto.length }}/500 caracteres
+              </p>
+            </div>
+            <!-- Detalle del registro -->
+            <div class="rounded-lg px-3 py-2.5 text-[10px] grid grid-cols-2 gap-x-4 gap-y-1"
+              :class="isDark ? 'bg-[#0B0F19] text-slate-400' : 'bg-slate-50 text-slate-500'">
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">Fecha:</span> {{
+                formatFecha(modalActividad.registro?.fecha) }}</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">HEDO:</span> {{
+                formatDecimal(modalActividad.registro?.hedo) }}h</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">HENO:</span> {{
+                formatDecimal(modalActividad.registro?.heno) }}h</span>
+              <span><span class="font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">HEFD:</span> {{
+                formatDecimal(modalActividad.registro?.hefd) }}h</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-5 py-3 border-t flex items-center justify-end gap-2"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <button @click="modalActividad.visible = false"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="guardarActividad" :disabled="!modalActividad.texto.trim() || modalActividad.loading"
+              class="h-7 px-3 rounded-[5px] text-[11px] font-medium border text-white transition-all disabled:opacity-50 bg-amber-500 border-amber-500 hover:bg-amber-600">
+              <i v-if="modalActividad.loading" class="fas fa-spinner fa-spin mr-1 text-[9px]"></i>
+              Guardar actividad
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    <!-- ══ FIN MODAL ACTIVIDAD ═══════════════════════════════════════════════ -->
 
     <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
     <Teleport to="body">
@@ -1268,7 +1431,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
@@ -1282,6 +1445,17 @@ const isSuperAdmin = session.isSuperAdmin || false;
 
 // Tab activo
 const activeTab = ref('calculos');
+
+// Toggle: mostrar decimales (7.5) o horas cerradas (7) en la tabla de cálculos.
+// OFF → parte entera: 7.5 → 7, 10.5 → 10  (Math.floor, sin redondear)
+// ON  → decimal limpio: 7.5 → "7.5", 10.0 → "10"  (sin ceros innecesarios)
+const mostrarDecimales = ref(false);
+function fmtCalculo(val) {
+  const n = Number(val || 0);
+  if (!mostrarDecimales.value) return Math.floor(n);
+  // Mostrar decimal solo si tiene fracción (7.5 → "7.5", 7.0 → "7")
+  return n % 1 === 0 ? String(n) : n.toFixed(1);
+}
 
 // ── Composable Cálculos ──────────────────────────────────────────────────────
 const {
@@ -1308,6 +1482,8 @@ const {
   calcular,
   guardarCalculados,
   aprobarRegistro,
+  actualizarActividad,
+  actualizarHoras,
   exportarExcel,
   formatHora,
   formatFecha,
@@ -1382,6 +1558,81 @@ async function handleSubirExcel() {
 }
 async function handleDescargarPlantilla() {
   await descargarPlantilla();
+}
+
+// ── Actividad (justificación de horas extra) ────────────────────────────────
+
+/** Suma total de horas extra del registro (HEDO + HENO + HEFD + HEFN) */
+function totalExtras(registro) {
+  return (
+    Number(registro?.hedo || 0) +
+    Number(registro?.heno || 0) +
+    Number(registro?.hefd || 0) +
+    Number(registro?.hefn || 0)
+  );
+}
+
+/** Requiere justificación cuando los extras suman >= 0.5h (30 min) */
+function tieneExtras(registro) {
+  return totalExtras(registro) >= 0.5;
+}
+
+// ── Edición inline de horas ──────────────────────────────────────────────────
+const editandoId = ref(null);   // id del registro en edición
+const editandoValores = reactive({ rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 });
+const guardandoHoras = ref(false);
+
+function iniciarEdicion(registro) {
+  editandoId.value = registro.id;
+  Object.assign(editandoValores, {
+    rn: Number(registro.rn || 0),
+    rndf: Number(registro.rndf || 0),
+    rddf: Number(registro.rddf || 0),
+    hedo: Number(registro.hedo || 0),
+    heno: Number(registro.heno || 0),
+    hefd: Number(registro.hefd || 0),
+    hefn: Number(registro.hefn || 0),
+  });
+}
+
+function cancelarEdicion() {
+  editandoId.value = null;
+}
+
+async function guardarHorasInline(registro) {
+  if (!registro?.id) return;
+  guardandoHoras.value = true;
+  try {
+    await actualizarHoras(registro.id, { ...editandoValores });
+    editandoId.value = null;
+  } catch { /* silencioso */ } finally {
+    guardandoHoras.value = false;
+  }
+}
+
+const modalActividad = reactive({
+  visible: false,
+  registro: null,
+  texto: '',
+  loading: false,
+});
+
+function abrirModalActividad(registro) {
+  modalActividad.registro = registro;
+  modalActividad.texto = registro.actividad || '';
+  modalActividad.loading = false;
+  modalActividad.visible = true;
+}
+
+async function guardarActividad() {
+  if (!modalActividad.registro?.id) return;
+  modalActividad.loading = true;
+  try {
+    await actualizarActividad(modalActividad.registro.id, modalActividad.texto);
+    modalActividad.visible = false;
+  } catch { /* silencioso */ } finally {
+    modalActividad.loading = false;
+  }
 }
 
 function toggleCargueMenu() {

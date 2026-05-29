@@ -73,6 +73,10 @@ export class HoraExtra {
   @Column({ type: 'nvarchar', length: 1000, nullable: true })
   observacion: string | null;
 
+  // Justificación obligatoria cuando hay horas extra reales (más allá de la reposición)
+  @Column({ type: 'nvarchar', length: 500, nullable: true })
+  actividad: string | null;
+
   // Cargo del colaborador
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   cargo: string | null;

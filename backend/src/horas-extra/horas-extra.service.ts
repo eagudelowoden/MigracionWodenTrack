@@ -326,6 +326,7 @@ export class HorasExtraService {
     turno: any | null,
     esFestivo: boolean,
     esFestivoSiguiente: boolean = false,
+    retrasoMins: number = 0,
   ): Pick<HoraExtra, 'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'> {
     const result = { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
     if (!localIn || !localOut) return result;
@@ -347,9 +348,15 @@ export class HorasExtraService {
     }
 
     if (outMins <= 1440) {
-      // ── Sin cruce de medianoche: lógica original (sin cambios) ──────────────
+      // ── Sin cruce de medianoche ──────────────────────────────────────────────
+      //
+      // finEfectivo: el turno "efectivo" se extiende por el retraso de llegada,
+      // así las primeras retrasoMins después del turno son reposición (no extras).
+      // Solo aplica a la salida tardía; la llegada anticipada no se ve afectada.
+      const finEfectivo = shiftEnd !== null ? shiftEnd + retrasoMins : null;
+
       if (esFestivo) {
-        if (shiftStart !== null && shiftEnd !== null) {
+        if (shiftStart !== null && shiftEnd !== null && finEfectivo !== null) {
           const dentroStart = Math.max(inMins, shiftStart);
           const dentroEnd   = Math.min(outMins, shiftEnd);
           if (dentroEnd > dentroStart) {
@@ -361,8 +368,8 @@ export class HorasExtraService {
             result.hefd += toHex(minsDiurno(inMins, extraEnd));
             result.hefn += toHex(minsNocturno(inMins, extraEnd));
           }
-          if (outMins > shiftEnd + TOLERANCIA) {
-            const extraStart = Math.max(inMins, shiftEnd);
+          if (outMins > finEfectivo + TOLERANCIA) {
+            const extraStart = Math.max(inMins, finEfectivo);
             result.hefd += toHex(minsDiurno(extraStart, outMins));
             result.hefn += toHex(minsNocturno(extraStart, outMins));
           }
@@ -371,7 +378,7 @@ export class HorasExtraService {
           result.hefn = toHex(minsNocturno(inMins, outMins));
         }
       } else {
-        if (!turno || shiftStart === null || shiftEnd === null) {
+        if (!turno || shiftStart === null || shiftEnd === null || finEfectivo === null) {
           // Sin turno en día ordinario: todo el tiempo trabajado es HEDO/HENO
           result.hedo = toHex(minsDiurno(inMins, outMins));
           result.heno = toHex(minsNocturno(inMins, outMins));
@@ -382,8 +389,8 @@ export class HorasExtraService {
             result.hedo += toHex(minsDiurno(inMins, extraEnd));
             result.heno += toHex(minsNocturno(inMins, extraEnd));
           }
-          if (outMins > shiftEnd + TOLERANCIA) {
-            const extraStart = Math.max(inMins, shiftEnd);
+          if (outMins > finEfectivo + TOLERANCIA) {
+            const extraStart = Math.max(inMins, finEfectivo);
             result.hedo += toHex(minsDiurno(extraStart, outMins));
             result.heno += toHex(minsNocturno(extraStart, outMins));
           }
@@ -392,27 +399,25 @@ export class HorasExtraService {
     } else {
       // ── Cruce de medianoche: partir en Día 1 y Día 2 ────────────────────────
       //
-      // Límites del turno para cada porción calendárica:
-      //   Día 1: el turno nocturno ocupa [shiftStart, 1440] (hasta medianoche)
-      //   Día 2: el turno nocturno continúa [0, shiftEnd-1440] (desde medianoche)
-      //          Si el turno es diurno (shiftEnd ≤ 1440), no hay porción en Día 2.
+      // El retraso solo afecta la salida (Día 2): la persona debe quedarse
+      // retrasoMins más allá de su fin de turno en Día 2 para reponer.
       const day1TurnoStart = shiftStart;
       const day1TurnoEnd   = shiftEnd !== null ? Math.min(shiftEnd, 1440) : null;
       const day2TurnoStart = shiftStart !== null ? 0 : null;
       const day2TurnoEnd   = shiftEnd  !== null ? Math.max(0, shiftEnd - 1440) : null;
 
-      // Porción Día 1 → usa esFestivo (tipo del día de entrada)
+      // Porción Día 1 → sin retraso (la salida no ocurre en Día 1)
       this.acumularPorcion(
         result, inMins, 1440,
         day1TurnoStart, day1TurnoEnd,
-        esFestivo, TOLERANCIA,
+        esFestivo, TOLERANCIA, 0,
       );
 
-      // Porción Día 2 → usa esFestivoSiguiente (tipo del día siguiente al de entrada)
+      // Porción Día 2 → aplica retraso en el fin efectivo del turno
       this.acumularPorcion(
         result, 0, outMins - 1440,
         day2TurnoStart, day2TurnoEnd,
-        esFestivoSiguiente, TOLERANCIA,
+        esFestivoSiguiente, TOLERANCIA, retrasoMins,
       );
     }
 
@@ -443,10 +448,13 @@ export class HorasExtraService {
     turnoEnd: number | null,
     esFestivoDia: boolean,
     TOLERANCIA: number,
+    retrasoMins: number = 0,
   ): void {
     if (wEnd <= wStart) return;
 
     const hayTurno = turnoStart !== null && turnoEnd !== null && turnoEnd > turnoStart;
+    // Fin efectivo del turno: se extiende retrasoMins para descontar la reposición
+    const finEfectivo = turnoEnd !== null ? turnoEnd + retrasoMins : null;
 
     if (esFestivoDia) {
       if (hayTurno) {
@@ -465,9 +473,9 @@ export class HorasExtraService {
             result.hefn += toHex(minsNocturno(wStart, extraEnd));
           }
         }
-        // Extra después del turno → HEFD + HEFN
-        if (wEnd > turnoEnd! + TOLERANCIA) {
-          const extraStart = Math.max(wStart, turnoEnd!);
+        // Extra después del fin efectivo → HEFD + HEFN
+        if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
+          const extraStart = Math.max(wStart, finEfectivo);
           if (wEnd > extraStart) {
             result.hefd += toHex(minsDiurno(extraStart, wEnd));
             result.hefn += toHex(minsNocturno(extraStart, wEnd));
@@ -485,11 +493,11 @@ export class HorasExtraService {
         result.heno += toHex(minsNocturno(wStart, wEnd));
         return;
       }
-      // Recargo nocturno dentro del turno → RN (19:00–06:00)
+      // Recargo nocturno dentro del turno → RN
       const dentroStart = Math.max(wStart, turnoStart!);
       const dentroEnd   = Math.min(wEnd,   turnoEnd!);
       if (dentroEnd > dentroStart) {
-        result.rn += toHex(minsRN(dentroStart, dentroEnd));
+        result.rn += toHex(minsNocturno(dentroStart, dentroEnd));
       }
       // Extra antes del turno → HEDO + HENO
       if (wStart < turnoStart! - TOLERANCIA) {
@@ -499,9 +507,9 @@ export class HorasExtraService {
           result.heno += toHex(minsNocturno(wStart, extraEnd));
         }
       }
-      // Extra después del turno → HEDO + HENO
-      if (wEnd > turnoEnd! + TOLERANCIA) {
-        const extraStart = Math.max(wStart, turnoEnd!);
+      // Extra después del fin efectivo → HEDO + HENO
+      if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
+        const extraStart = Math.max(wStart, finEfectivo);
         if (wEnd > extraStart) {
           result.hedo += toHex(minsDiurno(extraStart, wEnd));
           result.heno += toHex(minsNocturno(extraStart, wEnd));
@@ -914,9 +922,22 @@ export class HorasExtraService {
       //  - Con turno → RN dentro del turno + HEDO/HENO/HEFD/HEFN extras
       //  - Sin turno en festivo/domingo → HEFD/HEFN (todo el tiempo trabajado es extra festivo)
       //  - Sin turno en día ordinario (incl. sábado sin malla) → HEDO/HENO (todo es extra ordinario)
+      // Reposición por llegada tardía: si entró más de TOLERANCIA minutos después
+      // del inicio del turno, debe reponer ese tiempo al final antes de contar extras.
+      // Tolerancia = 6 min (llegar hasta 6 min tarde se acepta sin reposición).
+      const TOLERANCIA_REPOS = HorasExtraService.TOLERANCIA_MINS;
+      let retrasoMins = 0;
+      if (turno && localIn) {
+        const shiftStartMins = Number(turno.hora_inicio) * 60;
+        const inMinsLocal    = this.parseMinutos(localIn);
+        if (inMinsLocal > shiftStartMins + TOLERANCIA_REPOS) {
+          retrasoMins = inMinsLocal - shiftStartMins;
+        }
+      }
+
       const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
-        ? this.calcularCategorias(localIn, localOut, turno, esFestivo, esFestivoSiguiente)
+        ? this.calcularCategorias(localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins)
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
 
       // Compatibilidad con campos legacy (minutos)
@@ -1086,7 +1107,44 @@ export class HorasExtraService {
     aprobado: boolean | null,
     observacion?: string,
   ): Promise<HoraExtra | null> {
+    // Bloquear aprobación si hay horas extra sin justificación (actividad)
+    if (aprobado === true) {
+      const reg = await this.horaExtraRepo.findOne({ where: { id } });
+      if (reg) {
+        // Solo exigir justificación cuando los extras suman >= 0.5h (30 min)
+        const totalExtras =
+          Number(reg.hedo) + Number(reg.heno) +
+          Number(reg.hefd) + Number(reg.hefn);
+        const tieneExtras = totalExtras >= 0.5;
+        if (tieneExtras && !reg.actividad?.trim()) {
+          throw new Error(
+            'ACTIVIDAD_REQUERIDA: Este registro tiene horas extra sin justificación. Agrega una actividad antes de aprobar.',
+          );
+        }
+      }
+    }
     await this.horaExtraRepo.update(id, { aprobado, observacion: observacion ?? null });
+    return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async actualizarActividad(id: number, actividad: string): Promise<HoraExtra | null> {
+    await this.horaExtraRepo.update(id, { actividad: actividad?.trim() || null });
+    return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async actualizarHoras(
+    id: number,
+    horas: { rn?: number; rndf?: number; rddf?: number; hedo?: number; heno?: number; hefd?: number; hefn?: number },
+  ): Promise<HoraExtra | null> {
+    const campos: Partial<HoraExtra> = {};
+    const validos = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'] as const;
+    for (const campo of validos) {
+      if (horas[campo] !== undefined) {
+        campos[campo] = Math.max(0, Number(horas[campo]));
+      }
+    }
+    if (!Object.keys(campos).length) return this.horaExtraRepo.findOne({ where: { id } });
+    await this.horaExtraRepo.update(id, campos);
     return this.horaExtraRepo.findOne({ where: { id } });
   }
 

@@ -101,6 +101,22 @@ export class HorasExtraController {
     return this.service.aprobarRegistro(Number(id), dto.aprobado, dto.observacion);
   }
 
+  @Patch(':id/actividad')
+  actualizarActividad(
+    @Param('id') id: string,
+    @Body('actividad') actividad: string,
+  ) {
+    return this.service.actualizarActividad(Number(id), actividad ?? '');
+  }
+
+  @Patch(':id/horas')
+  actualizarHoras(
+    @Param('id') id: string,
+    @Body() horas: { rn?: number; rndf?: number; rddf?: number; hedo?: number; heno?: number; hefd?: number; hefn?: number },
+  ) {
+    return this.service.actualizarHoras(Number(id), horas);
+  }
+
   @Get('novedades-aprobadas')
   novedadesAprobadas(
     @Query('startDate') startDate?: string,

@@ -440,6 +440,35 @@ export function useReporteMallas() {
     }
   }
 
+  async function actualizarHoras(id, horas) {
+    try {
+      const res = await axios.patch(`${API_BASE_URL}/horas-extra/${id}/horas`, horas);
+      const actualizado = res.data;
+      const idx = registrosGuardados.value.findIndex((r) => r.id === id);
+      if (idx !== -1) {
+        registrosGuardados.value[idx] = { ...registrosGuardados.value[idx], ...actualizado };
+      }
+      return actualizado;
+    } catch (err) {
+      console.error("Error actualizando horas:", err);
+      throw err;
+    }
+  }
+
+  async function actualizarActividad(id, actividad) {
+    try {
+      await axios.patch(`${API_BASE_URL}/horas-extra/${id}/actividad`, { actividad });
+      // Actualizar en registrosGuardados
+      const idx = registrosGuardados.value.findIndex((r) => r.id === id);
+      if (idx !== -1) {
+        registrosGuardados.value[idx] = { ...registrosGuardados.value[idx], actividad: actividad?.trim() || null };
+      }
+    } catch (err) {
+      console.error("Error actualizando actividad:", err);
+      throw err;
+    }
+  }
+
   async function notificarAprobados() {
     try {
       isNotifying.value = true;
@@ -656,6 +685,8 @@ export function useReporteMallas() {
     calcularYCargar,
     aprobarRegistro,
     aprobarMasivo,
+    actualizarActividad,
+    actualizarHoras,
     exportarExcel,
 
     // Helpers UI
