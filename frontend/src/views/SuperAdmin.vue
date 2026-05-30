@@ -574,8 +574,14 @@ onMounted(async () => {
   flex-direction: column;
   flex-shrink: 0;
   transition: width .3s ease;
-  overflow: hidden;
+  overflow: visible;
   border-right: 1px solid;
+}
+
+/* El nav interior sí hace scroll pero sin clip al botón que sobresale */
+.sa-sidebar > .sa-nav {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sa-sidebar-dark {
@@ -606,35 +612,37 @@ onMounted(async () => {
 /* Colapsar */
 .sa-collapse-btn {
   position: absolute;
-  right: -12px;
-  top: 24px;
+  right: -13px;
+  top: 28px;
   z-index: 60;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 1px solid;
+  border: 1.5px solid;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all .2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
 }
 
 .sa-collapse-dark {
-  background: #161B26;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
+  background: #1e2638;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .sa-collapse-light {
   background: #fff;
-  border-color: #e2e8f0;
-  color: #94a3b8;
+  border-color: #cbd5e1;
+  color: #64748b;
 }
 
 .sa-collapse-btn:hover {
   border-color: #3b82f6;
   color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.25);
 }
 
 /* Brand */

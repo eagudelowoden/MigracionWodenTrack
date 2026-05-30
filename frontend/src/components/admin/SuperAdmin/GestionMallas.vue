@@ -1,5 +1,5 @@
 <template>
-  <div class="gm-root h-full flex flex-col gap-3 animate-fade-in" :class="isDark ? 'gm-dark' : 'gm-light'">
+  <div class="gm-root h-full flex flex-col gap-3 animate-fade-in overflow-y-auto" :class="isDark ? 'gm-dark' : 'gm-light'">
 
     <!-- HEADER + TABS -->
     <header class="gm-header">
