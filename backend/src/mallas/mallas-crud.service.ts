@@ -151,10 +151,33 @@ export class MallasCrudService {
       return '';
     };
 
-    // ─── Detectar formato: VERTICAL (plantilla) vs HORIZONTAL (días como columnas) ───
+    // ─── Detectar formato ─────────────────────────────────────────────────────
+    // VERTICAL:           nombre | compania | dia | hora_inicio | hora_fin | periodo
+    // HORIZONTAL VIEJO:   turno  | lunes | martes | ...
+    // HORIZONTAL NUEVO:   turno  | compania | lunes | martes | ... | periodo
     const headerRow = ws.getRow(1);
-    const col2Header = getCellString(headerRow.getCell(2)).toLowerCase().normalize('NFC').trim();
-    const isHorizontal = col2Header in DIA_MAP; // "lunes","martes"… → formato horizontal
+    const maxCols = Math.max(ws.columnCount || 0, 10);
+
+    // Mapear TODAS las columnas del header
+    const headerTexts = new Map<number, string>(); // colIdx → texto normalizado
+    for (let c = 1; c <= maxCols; c++) {
+      headerTexts.set(c, getCellString(headerRow.getCell(c)).toLowerCase().normalize('NFC').trim());
+    }
+
+    // Hay formato horizontal si alguna columna (desde col 2 en adelante) es un día
+    const isHorizontal = Array.from(headerTexts.entries())
+      .some(([c, t]) => c >= 2 && t in DIA_MAP);
+
+    // ─── Mapeo de periodo textual ─────────────────────────────────────────────
+    const PERIODO_MAP: Record<string, string> = {
+      mañana: 'morning', manana: 'morning', morning: 'morning',
+      tarde: 'afternoon', afternoon: 'afternoon',
+      noche: 'night', night: 'night',
+    };
+    const parsePeriodo = (raw: string): string => {
+      const key = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+      return PERIODO_MAP[key] || '';
+    };
 
     // Agrupar filas por nombre de malla
     const mallasMap = new Map<string, { compania: string; detalles: any[] }>();
@@ -163,26 +186,37 @@ export class MallasCrudService {
 
     if (isHorizontal) {
       // ════════════════════════════════════════════════════════
-      // FORMATO HORIZONTAL: una fila por turno, días como columnas
-      // Ejemplo: TURNO | LUNES | MARTES | ... | SÁBADO
-      //          Turno1 | "8:00 AM a 2:00PM" | ...
+      // FORMATO HORIZONTAL (viejo y nuevo)
+      // Viejo: TURNO | LUNES | MARTES | ...
+      // Nuevo: TURNO | COMPAÑIA | LUNES | MARTES | ... | PERIODO
       // ════════════════════════════════════════════════════════
       console.log('[MallasCrud] Formato detectado: HORIZONTAL');
 
-      // 1. Mapear columnas a números de día (ignorar columnas no-día como ALMUERZO)
-      const dayColumns = new Map<number, number>(); // colIdx → diaSemana (0-6)
-      for (let c = 2; c <= (ws.columnCount || 10); c++) {
-        const headerText = getCellString(headerRow.getCell(c)).toLowerCase().normalize('NFC').trim();
-        if (headerText in DIA_MAP) {
-          dayColumns.set(c, DIA_MAP[headerText]);
-        }
+      const col2Text = headerTexts.get(2) || '';
+      const col2EsDia = col2Text in DIA_MAP;
+
+      // Columna de compañia: col 2 si NO es día, sino inexistente
+      const companiaCol = col2EsDia ? null : 2;
+
+      // Columna de periodo: buscar header "periodo" o "período"
+      let periodoCol: number | null = null;
+      for (const [c, t] of headerTexts.entries()) {
+        const norm = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        if (norm === 'periodo' || norm === 'period') { periodoCol = c; break; }
       }
 
-      // 2. Parsear "8:00 AM a 2:00PM" → { horaInicio, horaFin }
+      // Mapear columnas de días
+      const dayColumns = new Map<number, number>(); // colIdx → diaSemana (0-6)
+      for (const [c, t] of headerTexts.entries()) {
+        if (c === 1 || c === companiaCol || c === periodoCol) continue;
+        if (t in DIA_MAP) dayColumns.set(c, DIA_MAP[t]);
+      }
+
+      // Parsear "07:00 - 16:00" o "8:00 AM a 2:00PM" → { horaInicio, horaFin }
       const parseRango = (rango: string): { horaInicio: number; horaFin: number } | null => {
         if (!rango || rango === '-') return null;
-        // Separador: " a ", " A ", " - " (sin confundir con "-" solo)
-        const partes = rango.split(/\s+[aA]\s+/);
+        // Separadores: " - ", " a ", " A "
+        const partes = rango.split(/\s+[-aA]\s+/);
         if (partes.length < 2) return null;
         const horaInicio = parseHora(partes[0].trim());
         const horaFin = parseHora(partes[1].trim());
@@ -190,23 +224,35 @@ export class MallasCrudService {
         return { horaInicio, horaFin };
       };
 
-      // 3. Iterar filas de datos
+      // Iterar filas de datos
       ws.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
         const nombre = getCellString(row.getCell(1)).trim();
         if (!nombre) return;
         totalFilas++;
 
+        const compania = companiaCol ? getCellString(row.getCell(companiaCol)).trim() : '';
+
+        // Periodo global de la fila (si hay columna periodo)
+        const periodoFila = periodoCol
+          ? parsePeriodo(getCellString(row.getCell(periodoCol)).trim())
+          : '';
+
         for (const [colIdx, diaSemana] of dayColumns.entries()) {
           const rangoRaw = getCellString(row.getCell(colIdx)).trim();
+          const descanso = rangoRaw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+          if (!rangoRaw || descanso === 'descanso' || descanso === '-') continue;
+
           const parsed = parseRango(rangoRaw);
           if (!parsed) continue;
 
           const { horaInicio, horaFin } = parsed;
-          const periodo = horaInicio < 12 ? 'morning' : horaInicio < 18 ? 'afternoon' : 'night';
+          // Prioridad: columna periodo > auto-detección por hora
+          const periodo = periodoFila ||
+            (horaInicio < 12 ? 'morning' : horaInicio < 18 ? 'afternoon' : 'night');
 
           if (!mallasMap.has(nombre)) {
-            mallasMap.set(nombre, { compania: '', detalles: [] });
+            mallasMap.set(nombre, { compania, detalles: [] });
           }
           mallasMap.get(nombre)!.detalles.push({ dia_semana: diaSemana, hora_inicio: horaInicio, hora_fin: horaFin, periodo });
         }

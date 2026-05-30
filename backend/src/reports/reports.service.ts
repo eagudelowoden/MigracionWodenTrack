@@ -35,18 +35,18 @@ export class ReportsService {
     });
 
     worksheet.columns = [
-      { header: 'cedula', key: 'cedula', width: 22 },
-      { header: 'nombre_malla', key: 'nombre_malla', width: 50 },
+      { header: 'cedula', key: 'cedula', width: 14 },
+      { header: 'nombre_malla', key: 'nombre_malla', width: 35 },
     ];
 
-    // ── Estilo cabecera ───────────────────────────────────────────────────────
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 24;
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.eachCell((cell) => {
-      cell.border = {
+    // ── Estilo cabecera — solo celdas A1 y B1 ────────────────────────────────
+    worksheet.getRow(1).height = 24;
+    (['A1', 'B1'] as const).forEach((addr) => {
+      const cell = worksheet.getCell(addr);
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border    = {
         top:    { style: 'thin', color: { argb: 'FFE07B00' } },
         left:   { style: 'thin', color: { argb: 'FFE07B00' } },
         bottom: { style: 'thin', color: { argb: 'FFE07B00' } },
@@ -100,7 +100,8 @@ export class ReportsService {
       row.height = 18;
       const bgColor = idx % 2 === 0 ? COLOR_IMPAR : COLOR_PAR;
 
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      [1, 2].forEach((colNum) => {
+        const cell = row.getCell(colNum);
         cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
         cell.font   = { size: 10, name: 'Calibri', color: { argb: 'FF1E293B' } };
         cell.border = {
@@ -109,10 +110,9 @@ export class ReportsService {
           bottom: { style: 'hair', color: { argb: BORDER_COLOR } },
           right:  { style: 'hair', color: { argb: BORDER_COLOR } },
         };
-        // Cédula centrada, malla alineada a la izquierda
         cell.alignment = {
           vertical: 'middle',
-          horizontal: colNumber === 1 ? 'center' : 'left',
+          horizontal: colNum === 1 ? 'center' : 'left',
         };
       });
     });
