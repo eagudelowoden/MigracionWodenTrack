@@ -2355,6 +2355,9 @@ export class UsuariosService {
       }
 
       // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
+      // Antes de eliminar el usuario hay que borrar primero sus registros
+      // dependientes que tienen FK hacia usuario_id_odoo, de lo contrario
+      // SQL Server lanza error 547 (REFERENCE constraint violation).
       for (const user of toDelete) {
         if (this.syncProgress.isCancelled) {
           return {
@@ -2363,6 +2366,10 @@ export class UsuariosService {
           };
         }
 
+        // 1. Eliminar asignaciones de malla del usuario
+        await this.asignacionRepo.delete({ usuario_id_odoo: user.id_odoo });
+
+        // 2. Eliminar el usuario
         await this.usuarioRepo.delete(user.id);
         eliminados++;
         this.syncProgress.current = odooEmployees.length + eliminados;

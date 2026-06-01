@@ -355,14 +355,29 @@ export function useReporteMallas() {
     }
   }
 
-  async function guardarCalculados(company) {
+  const CAMPOS_HORAS_HX = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'];
+
+  async function guardarCalculados(company, usarDecimales = true) {
     try {
       isSaving.value = true;
       const s = getSession();
-      const toSave =
+      const base =
         selectedRecords.value.length > 0
           ? selectedRecords.value
           : registrosFiltrados.value;
+
+      // Si el toggle de decimales está OFF, guardamos horas enteras (Math.floor)
+      // para que el correo y el Excel muestren los mismos valores que la tabla.
+      const toSave = usarDecimales
+        ? base
+        : base.map((r) => {
+            const copia = { ...r };
+            for (const c of CAMPOS_HORAS_HX) {
+              copia[c] = Math.floor(Number(r[c] || 0));
+            }
+            return copia;
+          });
+
       await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
         registros: toSave,
         calculado_por: s.name || "Desconocido",

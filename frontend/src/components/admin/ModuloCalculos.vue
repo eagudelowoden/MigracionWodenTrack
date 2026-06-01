@@ -1760,8 +1760,8 @@ let _saveSuccessTimer = null;
 async function handleGuardar() {
   try {
     const n = selectedRecords.value.length;
-    await guardarCalculados(props.company);
-    // Mostrar mensaje de éxito sin salir de Cálculos
+    // Pasar el estado del toggle: si decimales OFF → guarda horas enteras (Math.floor)
+    await guardarCalculados(props.company, mostrarDecimales.value);
     saveSuccessMsg.value = `✅ ${n} registro(s) guardado(s) correctamente`;
     clearTimeout(_saveSuccessTimer);
     _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 4000);
