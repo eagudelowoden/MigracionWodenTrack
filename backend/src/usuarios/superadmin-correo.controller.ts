@@ -37,4 +37,28 @@ export class SuperAdminCorreoController {
   saveDestinatariosNovedades(@Body() body: { destinatarios: string[]; updatedBy?: string }) {
     return this.svc.saveDestinatariosNovedades(body.destinatarios, body.updatedBy || 'superadmin');
   }
+
+  // ── Capital Humano ────────────────────────────────────────────
+  @Get('capital-humano')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  getCapitalHumano() {
+    return this.svc.getCapitalHumano();
+  }
+
+  @Post('capital-humano')
+  saveCapitalHumano(@Body() body: { emails: string[]; updatedBy?: string }) {
+    return this.svc.saveCapitalHumano(body.emails ?? [], body.updatedBy || 'superadmin');
+  }
+
+  // ── Coordinadores por departamento ────────────────────────────
+  @Get('coordinadores')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  getCoordinadores() {
+    return this.svc.getCoordinadores();
+  }
+
+  @Post('coordinadores')
+  saveCoordinadores(@Body() body: { items: { email: string; segmento: string | null }[]; updatedBy?: string }) {
+    return this.svc.saveCoordinadores(body.items ?? [], body.updatedBy || 'superadmin');
+  }
 }

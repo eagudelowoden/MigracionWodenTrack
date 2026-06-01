@@ -1446,15 +1446,14 @@ const isSuperAdmin = session.isSuperAdmin || false;
 // Tab activo
 const activeTab = ref('calculos');
 
-// Toggle: mostrar decimales (7.5) o horas cerradas (7) en la tabla de cálculos.
-// OFF → parte entera: 7.5 → 7, 10.5 → 10  (Math.floor, sin redondear)
-// ON  → decimal limpio: 7.5 → "7.5", 10.0 → "10"  (sin ceros innecesarios)
+// Toggle: mostrar decimales (7.66) o horas cerradas (7) en la tabla de cálculos.
+// OFF → parte entera sin redondear: 7.66 → 7, 10.5 → 10  (Math.floor)
+// ON  → igual que formatDecimal: 7.66 → "7.66" | 1.5 → "1.5" | 2.0 → "2"
 const mostrarDecimales = ref(false);
 function fmtCalculo(val) {
   const n = Number(val || 0);
   if (!mostrarDecimales.value) return Math.floor(n);
-  // Mostrar decimal solo si tiene fracción (7.5 → "7.5", 7.0 → "7")
-  return n % 1 === 0 ? String(n) : n.toFixed(1);
+  return parseFloat(n.toFixed(2)).toString();
 }
 
 // ── Composable Cálculos ──────────────────────────────────────────────────────

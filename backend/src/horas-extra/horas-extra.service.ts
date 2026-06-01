@@ -7,6 +7,7 @@ import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
 import { MailService } from '../logsEmail/mail.service';
+import { SuperAdminCorreoService } from '../usuarios/superadmin-correo.service';
 import * as ExcelJS from 'exceljs';
 
 function getFechaColombiaHoy(): string {
@@ -195,6 +196,7 @@ export class HorasExtraService {
     private readonly usuarioRepo: Repository<Usuario>,
     private readonly odoo: OdooService,
     private readonly mail: MailService,
+    private readonly correoSvc: SuperAdminCorreoService,
   ) {}
 
   private async resolverIdsPorEstructura(
@@ -1150,8 +1152,19 @@ export class HorasExtraService {
 
   async notificarAprobados(registros: any[]): Promise<{ enviado: boolean }> {
     if (!registros.length) return { enviado: false };
+
+    // Extraer departamentos únicos de los registros para filtrar coordinadores
+    const departamentos = [
+      ...new Set(
+        registros.map(r => r.departamento).filter(Boolean) as string[],
+      ),
+    ];
+
+    // Capital Humano (siempre) + coordinadores del departamento
+    const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
+
     const excelBuffer = await this._generarExcelDesdeRegistros(registros);
-    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer });
+    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios });
     return { enviado: true };
   }
 
@@ -1378,7 +1391,10 @@ export class HorasExtraService {
     }
 
     let rowIdx = 3;
-    const numFmt = '0.00';
+    // '0.##' muestra el decimal real sin ceros innecesarios:
+    // 1.5 → "1.5"  |  2.0 → "2"  |  0.5 → "0.5"
+    // Evita la confusión de '0.00' donde "1.50" se leía como "1h50min"
+    const numFmt = '0.##';
     const COLS_HX = [
       'rn',
       'rndf',

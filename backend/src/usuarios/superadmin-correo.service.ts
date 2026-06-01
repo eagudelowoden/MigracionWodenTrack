@@ -146,14 +146,13 @@ export class SuperAdminCorreoService {
     }
   }
 
-  // ── Destinatarios de novedades (tabla correo_destinatarios) ──
+  // ── Destinatarios de novedades (legacy — mantener por compatibilidad) ────
   async getDestinatariosNovedades(): Promise<string[]> {
     const rows = await this.destRepo.find({ where: { tipo: 'novedades' } });
     return rows.map(r => r.email);
   }
 
   async saveDestinatariosNovedades(destinatarios: string[], updatedBy: string): Promise<{ ok: boolean }> {
-    // Borra todos los actuales del tipo 'novedades' y reinserta
     await this.destRepo.delete({ tipo: 'novedades' });
     if (destinatarios.length > 0) {
       const entities = destinatarios.map(email =>
@@ -162,6 +161,74 @@ export class SuperAdminCorreoService {
       await this.destRepo.save(entities);
     }
     return { ok: true };
+  }
+
+  // ── Capital Humano (lista global, siempre recibe) ─────────────
+  async getCapitalHumano(): Promise<string[]> {
+    const rows = await this.destRepo.find({ where: { tipo: 'capital_humano' } });
+    return rows.map(r => r.email);
+  }
+
+  async saveCapitalHumano(emails: string[], updatedBy: string): Promise<{ ok: boolean }> {
+    await this.destRepo.delete({ tipo: 'capital_humano' });
+    if (emails.length > 0) {
+      const entities = emails.map(email =>
+        this.destRepo.create({ tipo: 'capital_humano', email: email.toLowerCase().trim(), creado_por: updatedBy }),
+      );
+      await this.destRepo.save(entities);
+    }
+    return { ok: true };
+  }
+
+  // ── Coordinadores por departamento ────────────────────────────
+  async getCoordinadores(): Promise<{ email: string; segmento: string | null }[]> {
+    const rows = await this.destRepo.find({ where: { tipo: 'coordinador' } });
+    return rows.map(r => ({ email: r.email, segmento: r.segmento ?? null }));
+  }
+
+  async saveCoordinadores(
+    items: { email: string; segmento: string | null }[],
+    updatedBy: string,
+  ): Promise<{ ok: boolean }> {
+    await this.destRepo.delete({ tipo: 'coordinador' });
+    if (items.length > 0) {
+      const entities = items.map(item =>
+        this.destRepo.create({
+          tipo: 'coordinador',
+          email: item.email.toLowerCase().trim(),
+          segmento: item.segmento?.trim() || null,
+          creado_por: updatedBy,
+        }),
+      );
+      await this.destRepo.save(entities);
+    }
+    return { ok: true };
+  }
+
+  /**
+   * Resuelve los destinatarios completos para una notificación de horas extra:
+   *  - Todos los de Capital Humano (siempre)
+   *  - Coordinadores cuyo segmento coincide con algún departamento de los registros
+   */
+  async resolverDestinatariosHX(departamentos: string[]): Promise<string[]> {
+    const [capitalHumano, coordinadores] = await Promise.all([
+      this.getCapitalHumano(),
+      this.getCoordinadores(),
+    ]);
+
+    const deptoSet = new Set(departamentos.map(d => d?.toLowerCase().trim()).filter(Boolean));
+
+    const coordFiltrados = coordinadores
+      .filter(c =>
+        // Sin segmento asignado → siempre recibe
+        !c.segmento ||
+        // Con segmento → solo si ese depto está en la lista
+        deptoSet.has(c.segmento.toLowerCase().trim()),
+      )
+      .map(c => c.email);
+
+    // Union sin duplicados
+    return [...new Set([...capitalHumano, ...coordFiltrados])];
   }
 
   // ── Envío de aprobación de novedad ───────────────────────────

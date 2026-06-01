@@ -493,42 +493,136 @@
           </div>
         </div>
 
-        <!-- Destinatarios -->
+        <!-- Capital Humano -->
         <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
           <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
             <div class="cfg-chip-icon bg-violet-500/12 border-violet-500/20">
-              <i class="fas fa-users text-violet-400 text-[10px]"></i>
+              <i class="fas fa-user-tie text-violet-400 text-[10px]"></i>
             </div>
             <div>
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Destinatarios de Novedades</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Recibirán un correo cuando RRHH apruebe o rechace una novedad</p>
+              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Capital Humano</p>
+              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Siempre recibirán el correo al notificar novedades de horas extra aprobadas
+              </p>
             </div>
           </div>
           <div class="cfg-card-body">
-            <div v-if="correo.destinatarios.length" class="cfg-dest-chips">
-              <div v-for="email in correo.destinatarios" :key="email" class="cfg-dest-chip"
+            <div v-if="correo.capitalHumano.length" class="cfg-dest-chips">
+              <div v-for="email in correo.capitalHumano" :key="email" class="cfg-dest-chip"
                 :class="isDark ? 'cfg-chip-violet-dark' : 'cfg-chip-violet-light'">
                 <i class="fas fa-envelope text-[7px] opacity-60"></i>
                 {{ email }}
-                <button @click="quitarDestinatario(email)" class="cfg-chip-remove">
+                <button @click="quitarCapitalHumano(email)" class="cfg-chip-remove">
                   <i class="fas fa-xmark text-[8px]"></i>
                 </button>
               </div>
             </div>
             <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
-              No hay destinatarios configurados aún
+              No hay correos configurados aún
             </p>
             <div class="cfg-dest-input-row">
-              <input v-model="correo.nuevoDestinatario" type="email" placeholder="correo@empresa.com"
-                @keydown.enter.prevent="agregarDestinatario"
+              <input v-model="correo.nuevoCapitalHumano" type="email" placeholder="capitalhumano@empresa.com"
+                @keydown.enter.prevent="agregarCapitalHumano"
                 class="cfg-input flex-1" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
-              <button @click="agregarDestinatario" class="cfg-btn-ghost" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
+              <button @click="agregarCapitalHumano" class="cfg-btn-ghost" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
                 <i class="fas fa-plus text-[9px]"></i>
               </button>
-              <button @click="guardarDestinatarios" :disabled="correo.guardandoDest" class="cfg-btn-violet">
-                <i class="fas text-[9px]" :class="correo.guardandoDest ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+              <button @click="guardarCapitalHumano" :disabled="correo.guardandoCH" class="cfg-btn-violet">
+                <i class="fas text-[9px]" :class="correo.guardandoCH ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
                 Guardar
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coordinadores por Departamento -->
+        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
+          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
+            <div class="cfg-chip-icon bg-blue-500/12 border-blue-500/20">
+              <i class="fas fa-sitemap text-blue-400 text-[10px]"></i>
+            </div>
+            <div>
+              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Coordinadores por Departamento</p>
+              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Recibirán el correo solo cuando se notifiquen registros de su departamento.
+                Sin departamento asignado → siempre recibe.
+              </p>
+            </div>
+          </div>
+          <div class="cfg-card-body flex flex-col gap-3">
+
+            <!-- Lista de coordinadores -->
+            <div v-if="correo.coordinadores.length" class="flex flex-col gap-1.5">
+              <div v-for="(item, idx) in correo.coordinadores" :key="idx"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]"
+                :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-slate-200 bg-slate-50'">
+                <i class="fas fa-envelope opacity-40 text-[9px]"></i>
+                <span class="flex-1 truncate" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ item.email }}</span>
+                <span v-if="item.segmento"
+                  class="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-blue-500/10 text-blue-400">
+                  {{ item.segmento }}
+                </span>
+                <span v-else class="px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                  :class="isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'">
+                  Todos
+                </span>
+                <button @click="quitarCoordinador(idx)" class="cfg-chip-remove">
+                  <i class="fas fa-xmark text-[8px]"></i>
+                </button>
+              </div>
+            </div>
+            <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
+              No hay coordinadores configurados aún
+            </p>
+
+            <!-- Agregar nuevo coordinador -->
+            <div class="flex flex-col gap-3 pt-2 border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+              <p class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                <i class="fas fa-plus-circle text-[#3B82F6] mr-1 text-[10px]"></i>
+                Agregar coordinador
+              </p>
+
+              <!-- Correo -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  Correo electrónico
+                </label>
+                <input v-model="correo.nuevoCoordEmail" type="email" placeholder="coordinador@empresa.com"
+                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+              </div>
+
+              <!-- Segmento -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  Segmento / Departamento
+                  <span class="opacity-60 font-normal">(opcional — vacío = recibe de todos)</span>
+                </label>
+                <select v-model="correo.nuevoCoordSegmento"
+                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'">
+                  <option value="">— Sin filtro (recibe de todos los departamentos) —</option>
+                  <option v-for="s in correo.segmentos" :key="s" :value="s">{{ s }}</option>
+                </select>
+                <p v-if="!correo.segmentos.length" class="text-[10px] text-amber-400">
+                  <i class="fas fa-triangle-exclamation mr-1"></i>
+                  No hay segmentos creados. Créalos en Organización → Segmentos.
+                </p>
+              </div>
+
+              <!-- Botones -->
+              <div class="flex items-center gap-2">
+                <button @click="agregarCoordinador"
+                  :disabled="!correo.nuevoCoordEmail.trim()"
+                  class="cfg-btn-ghost flex-1 disabled:opacity-40"
+                  :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
+                  <i class="fas fa-plus text-[9px]"></i>
+                  Agregar a la lista
+                </button>
+                <button @click="guardarCoordinadores" :disabled="correo.guardandoCoord || !correo.coordinadores.length"
+                  class="cfg-btn-blue flex-1 disabled:opacity-40">
+                  <i class="fas text-[9px]" :class="correo.guardandoCoord ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+                  {{ correo.guardandoCoord ? 'Guardando…' : 'Guardar' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -779,24 +873,37 @@ const correo = ref({
   config: { host: '', port: '587', user: '', passConfigurado: false, fromNombre: 'WodenTrack', habilitado: false },
   form:   { host: '', port: '587', user: '', pass: '',              fromNombre: 'WodenTrack', habilitado: false },
   guardando: false, testeando: false, testResult: null,
+  // Legacy (mantener por compatibilidad)
   destinatarios: [], nuevoDestinatario: '', guardandoDest: false,
+  // Capital Humano
+  capitalHumano: [], nuevoCapitalHumano: '', guardandoCH: false,
+  // Coordinadores por departamento
+  coordinadores: [],          // [{ email, segmento }]
+  nuevoCoordEmail: '',
+  nuevoCoordSegmento: '',
+  guardandoCoord: false,
+  segmentos: [],              // nombres de segmentos disponibles
   correoTest: '', enviandoTest: false, testEnvioResult: null,
 });
 
 const cargarConfigCorreo = async () => {
   try {
-    const [resCfg, resDest] = await Promise.all([
-      fetch(`${API_URL}/superadmin/correo/config`, { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, { cache: 'no-store' }),
+    const [resCfg, resCH, resCord, resSegs] = await Promise.all([
+      fetch(`${API_URL}/superadmin/correo/config`,          { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/capital-humano`,  { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/coordinadores`,   { cache: 'no-store' }),
+      fetch(`${API_URL}/organizacion/segmentos`,             { cache: 'no-store' }),
     ]);
     if (resCfg.ok) {
       const cfg = await resCfg.json();
       correo.value.config = cfg;
       correo.value.form   = { host: cfg.host, port: cfg.port, user: cfg.user, pass: '', fromNombre: cfg.fromNombre, habilitado: cfg.habilitado };
     }
-    if (resDest.ok) {
-      const lista = await resDest.json();
-      correo.value.destinatarios = Array.isArray(lista) ? lista : [];
+    if (resCH.ok)   correo.value.capitalHumano  = await resCH.json();
+    if (resCord.ok) correo.value.coordinadores   = await resCord.json();
+    if (resSegs.ok) {
+      const segs = await resSegs.json();
+      correo.value.segmentos = Array.isArray(segs) ? segs.map(s => s.nombre ?? s) : [];
     }
   } catch (e) { emit('error', 'Error al cargar configuración de correo'); }
 };
@@ -854,6 +961,67 @@ const guardarDestinatarios = async () => {
     emit('success', 'Destinatarios guardados');
   } catch { emit('error', 'Error al guardar destinatarios'); }
   finally { correo.value.guardandoDest = false; }
+};
+
+// ── Capital Humano ──────────────────────────────────────────────────────────
+const agregarCapitalHumano = () => {
+  const email = correo.value.nuevoCapitalHumano.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if (!correo.value.capitalHumano.includes(email)) correo.value.capitalHumano.push(email);
+  correo.value.nuevoCapitalHumano = '';
+};
+
+const quitarCapitalHumano = async (email) => {
+  correo.value.capitalHumano = correo.value.capitalHumano.filter(e => e !== email);
+  await guardarCapitalHumano(false); // persistir sin hacer flush del input
+};
+
+const guardarCapitalHumano = async (flushInput = true) => {
+  if (flushInput) agregarCapitalHumano();
+  correo.value.guardandoCH = true;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/capital-humano`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emails: correo.value.capitalHumano, updatedBy: session.name || 'superadmin' }),
+    });
+    if (!res.ok) throw new Error();
+    emit('success', 'Capital Humano guardado');
+    await cargarConfigCorreo();
+  } catch { emit('error', 'Error al guardar Capital Humano'); }
+  finally { correo.value.guardandoCH = false; }
+};
+
+// ── Coordinadores por departamento ──────────────────────────────────────────
+const agregarCoordinador = () => {
+  const email = correo.value.nuevoCoordEmail.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  const segmento = correo.value.nuevoCoordSegmento?.trim() || null;
+  const yaExiste = correo.value.coordinadores.some(c => c.email === email && c.segmento === segmento);
+  if (!yaExiste) correo.value.coordinadores.push({ email, segmento });
+  correo.value.nuevoCoordEmail = '';
+  correo.value.nuevoCoordSegmento = '';
+};
+
+const quitarCoordinador = async (idx) => {
+  correo.value.coordinadores.splice(idx, 1);
+  await guardarCoordinadores(false); // persistir sin hacer flush del input
+};
+
+const guardarCoordinadores = async (flushInput = true) => {
+  if (flushInput) agregarCoordinador();
+  correo.value.guardandoCoord = true;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/coordinadores`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: correo.value.coordinadores, updatedBy: session.name || 'superadmin' }),
+    });
+    if (!res.ok) throw new Error();
+    emit('success', 'Coordinadores guardados');
+    await cargarConfigCorreo();
+  } catch { emit('error', 'Error al guardar coordinadores'); }
+  finally { correo.value.guardandoCoord = false; }
 };
 
 const enviarCorreoTest = async () => {

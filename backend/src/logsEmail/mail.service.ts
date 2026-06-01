@@ -103,8 +103,15 @@ export class MailService {
   async enviarNovedadesAprobadas(datos: {
     registros: any[];
     excelBuffer: Buffer;
+    destinatarios?: string[];
   }) {
-    if (!process.env.MAIL_ALERT_TO) return;
+    // Usar SOLO los destinatarios configurados en la BD.
+    // El fallback MAIL_ALERT_TO ya no aplica — si no hay destinatarios configurados
+    // simplemente no se envía, para evitar notificar a correos no deseados.
+    const to = datos.destinatarios?.length
+      ? datos.destinatarios.join(', ')
+      : null;
+    if (!to) return;
     try {
       const { registros, excelBuffer } = datos;
       const fecha = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
@@ -146,7 +153,7 @@ export class MailService {
       const fechaArchivo = new Date().toISOString().slice(0, 10);
       await this.transporter.sendMail({
         from: `"Sistema Asistencias" <${process.env.MAIL_USER}>`,
-        to: process.env.MAIL_ALERT_TO,
+        to,
         subject: `✅ Novedades HX aprobadas (${registros.length} registros) — ${fechaArchivo}`,
         html,
         attachments: [

@@ -259,7 +259,10 @@ function formatFecha(fechaStr) {
 }
 function formatDecimal(val) {
   const n = Number(val) || 0;
-  return String(Math.floor(n));
+  // Mostrar el valor real hasta 2 decimales, sin ceros finales:
+  // 7.66 → "7.66" | 1.5 → "1.5" | 2.0 → "2" | 0.5 → "0.5"
+  // Igual que el Excel (numFmt '0.##'), así UI y archivo siempre coinciden.
+  return parseFloat(n.toFixed(2)).toString();
 }
 function getAprobadoLabel(aprobado) {
   if (aprobado === true) return "APROBADO";
