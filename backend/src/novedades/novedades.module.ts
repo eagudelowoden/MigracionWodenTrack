@@ -7,17 +7,20 @@ import { NovedadesService } from './novedades.service';
 import { Novedad } from './entities/novedad.entity';
 import { NovedadEstadoCh } from './entities/novedad-estado-ch.entity';
 import { NovedadArchivo } from './entities/novedad-archivo.entity';
+import { PazSalvo } from './entities/paz-salvo.entity';
+import { PazSalvoController } from './paz-salvo.controller';
+import { PazSalvoService } from './paz-salvo.service';
 import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Novedad, NovedadEstadoCh, NovedadArchivo]),
+    TypeOrmModule.forFeature([Novedad, NovedadEstadoCh, NovedadArchivo, PazSalvo]),
     MulterModule.register({ storage: memoryStorage() }),
     SistemaConfigModule,
     forwardRef(() => UsuariosModule),
   ],
-  controllers: [NovedadesController],
-  providers: [NovedadesService],
+  controllers: [NovedadesController, PazSalvoController],
+  providers: [NovedadesService, PazSalvoService],
 })
 export class NovedadesModule {}

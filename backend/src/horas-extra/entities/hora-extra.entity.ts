@@ -70,6 +70,10 @@ export class HoraExtra {
   @Column({ type: 'bit', nullable: true })
   aprobado: boolean | null;
 
+  /** true = ya se envió la notificación por correo → pasa a Historial */
+  @Column({ type: 'bit', nullable: true, default: null })
+  notificado: boolean | null;
+
   @Column({ type: 'nvarchar', length: 1000, nullable: true })
   observacion: string | null;
 

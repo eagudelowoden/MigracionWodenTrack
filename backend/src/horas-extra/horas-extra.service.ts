@@ -1026,6 +1026,8 @@ export class HorasExtraService {
     cargo?: string;
     departamento?: string;
     soloConExtras?: boolean;
+    soloNotificados?: boolean;   // true → solo aprobados+notificados (tab Historial)
+    soloNoAprobados?: boolean;   // true → solo pendientes/rechazados (tab Guardados)
     area_id?: number;
     segmento_id?: number;
   }): Promise<HoraExtra[]> {
@@ -1033,6 +1035,15 @@ export class HorasExtraService {
       .createQueryBuilder('h')
       .orderBy('h.nombre', 'ASC')
       .addOrderBy('h.fecha', 'ASC');
+
+    // Solo aprobados + notificados → tab Historial
+    if (filters.soloNotificados) {
+      qb.andWhere('h.aprobado = 1').andWhere('h.notificado = 1');
+    }
+    // Solo pendientes o rechazados → tab Guardados
+    if (filters.soloNoAprobados) {
+      qb.andWhere('(h.aprobado IS NULL OR h.aprobado = 0)');
+    }
 
     if (filters.startDate)
       qb.andWhere('h.fecha >= :start', { start: filters.startDate });
@@ -1055,7 +1066,6 @@ export class HorasExtraService {
         '(h.hedo > 0 OR h.heno > 0 OR h.hefd > 0 OR h.hefn > 0 OR h.total_minutos_extra > 0)',
       );
 
-    // Filtro por estructura (área/segmento) → OR entre ambos criterios
     if (filters.area_id || filters.segmento_id) {
       const conditions: any[] = [];
       if (filters.area_id) conditions.push({ area_id: filters.area_id });
@@ -1153,35 +1163,60 @@ export class HorasExtraService {
   async notificarAprobados(registros: any[]): Promise<{ enviado: boolean }> {
     if (!registros.length) return { enviado: false };
 
-    // Extraer departamentos únicos de los registros para filtrar coordinadores
     const departamentos = [
-      ...new Set(
-        registros.map(r => r.departamento).filter(Boolean) as string[],
-      ),
+      ...new Set(registros.map(r => r.departamento).filter(Boolean) as string[]),
     ];
-
-    // Capital Humano (siempre) + coordinadores del departamento
     const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
-
-    const excelBuffer = await this._generarExcelDesdeRegistros(registros);
+    const excelBuffer   = await this._generarExcelDesdeRegistros(registros);
     await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios });
+
+    // Marcar como notificados → pasan al Historial
+    const ids = registros.map(r => r.id).filter(Boolean) as number[];
+    if (ids.length) {
+      await this.horaExtraRepo
+        .createQueryBuilder()
+        .update(HoraExtra)
+        .set({ notificado: true } as any)
+        .where('id IN (:...ids)', { ids })
+        .execute();
+    }
+
     return { enviado: true };
   }
 
   async guardarSeleccionados(
     registros: any[],
     calculado_por: string,
-  ): Promise<{ guardados: number }> {
-    if (!registros.length) return { guardados: 0 };
+  ): Promise<{ guardados: number; omitidos: { nombre: string; fecha: string }[] }> {
+    if (!registros.length) return { guardados: 0, omitidos: [] };
 
-    // Borrar solo los pares cedula+fecha que vienen en la lista
+    const omitidos: { nombre: string; fecha: string }[] = [];
+
+    // Borrar solo los pares cedula+fecha que NO estén aprobados
     for (const r of registros) {
-      if (r.cedula && r.fecha) {
-        await this.horaExtraRepo.delete({ cedula: r.cedula, fecha: r.fecha });
+      if (!r.cedula || !r.fecha) continue;
+
+      // Verificar si ya existe un registro APROBADO → no tocar
+      const aprobado = await this.horaExtraRepo.findOne({
+        where: { cedula: r.cedula, fecha: r.fecha, aprobado: true },
+      });
+      if (aprobado) {
+        omitidos.push({ nombre: r.nombre ?? r.cedula, fecha: r.fecha });
+        continue;
       }
+
+      // Eliminar versión anterior no aprobada para reemplazarla
+      await this.horaExtraRepo.delete({ cedula: r.cedula, fecha: r.fecha });
     }
 
-    const entities = registros.map((r) =>
+    // Filtrar los que se pueden guardar (no omitidos)
+    const omitidosKey = new Set(omitidos.map(o => `${o.nombre}__${o.fecha}`));
+    const aSalvar = registros.filter(r => {
+      const key = `${r.nombre ?? r.cedula}__${r.fecha}`;
+      return !omitidosKey.has(key);
+    });
+
+    const entities = aSalvar.map((r) =>
       this.horaExtraRepo.create({
         cedula: r.cedula,
         nombre: r.nombre,
@@ -1214,7 +1249,7 @@ export class HorasExtraService {
       await this.horaExtraRepo.save(entities.slice(i, i + CHUNK));
     }
 
-    return { guardados: entities.length };
+    return { guardados: entities.length, omitidos };
   }
 
   async getNovedadesAprobadas(filters: {
@@ -1227,7 +1262,8 @@ export class HorasExtraService {
   }): Promise<HoraExtra[]> {
     const qb = this.horaExtraRepo
       .createQueryBuilder('h')
-      .where('h.aprobado = 1')   // bit=1 en SQL Server (no usar :param boolean aquí)
+      .where('h.aprobado = 1')
+      .andWhere('(h.notificado = 0 OR h.notificado IS NULL)')  // pendientes de notificar
       .orderBy('h.nombre', 'ASC')
       .addOrderBy('h.fecha', 'ASC');
 

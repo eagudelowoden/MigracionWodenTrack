@@ -63,6 +63,8 @@ export class HorasExtraController {
     @Query('cargo') cargo?: string,
     @Query('departamento') departamento?: string,
     @Query('soloConExtras') soloConExtras?: string,
+    @Query('soloNotificados') soloNotificados?: string,
+    @Query('soloNoAprobados') soloNoAprobados?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
   ) {
@@ -75,6 +77,8 @@ export class HorasExtraController {
       cargo,
       departamento,
       soloConExtras: soloConExtras === 'true',
+      soloNotificados: soloNotificados === 'true',
+      soloNoAprobados: soloNoAprobados === 'true',
       area_id: area_id ? Number(area_id) : undefined,
       segmento_id: segmento_id ? Number(segmento_id) : undefined,
     });
@@ -98,7 +102,11 @@ export class HorasExtraController {
     @Param('id') id: string,
     @Body() dto: { aprobado: boolean | null; observacion?: string },
   ) {
-    return this.service.aprobarRegistro(Number(id), dto.aprobado, dto.observacion);
+    return this.service.aprobarRegistro(
+      Number(id),
+      dto.aprobado,
+      dto.observacion,
+    );
   }
 
   @Patch(':id/actividad')
@@ -112,7 +120,16 @@ export class HorasExtraController {
   @Patch(':id/horas')
   actualizarHoras(
     @Param('id') id: string,
-    @Body() horas: { rn?: number; rndf?: number; rddf?: number; hedo?: number; heno?: number; hefd?: number; hefn?: number },
+    @Body()
+    horas: {
+      rn?: number;
+      rndf?: number;
+      rddf?: number;
+      hedo?: number;
+      heno?: number;
+      hefd?: number;
+      hefn?: number;
+    },
   ) {
     return this.service.actualizarHoras(Number(id), horas);
   }
@@ -199,10 +216,7 @@ export class HorasExtraController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res!.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res!.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res!.send(buffer);
   }
 

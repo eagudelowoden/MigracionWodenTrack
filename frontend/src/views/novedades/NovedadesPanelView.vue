@@ -105,6 +105,35 @@
                     </div>
                 </button>
 
+                <!-- Consultas Card -->
+                <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin') || hasPerm('admin.novedades.rrhh')"
+                    @click="subModule = 'consultas'"
+                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
+                    :class="isDark
+                        ? 'bg-[#161B26] border-[#222938] hover:border-emerald-500/60 hover:bg-[#1F2533]'
+                        : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-sm'">
+                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
+                        :class="isDark
+                            ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/15'
+                            : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100'">
+                        <i class="fas fa-magnifying-glass text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-[13px] font-semibold tracking-tight"
+                            :class="isDark ? 'text-white' : 'text-slate-900'">
+                            Consultas
+                        </h3>
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Renuncias · Paz y Salvo
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                        Entrar
+                        <i class="fas fa-arrow-right text-[8px]"></i>
+                    </div>
+                </button>
+
             </div>
         </div>
 
@@ -119,10 +148,10 @@
 
         <!-- ── Sub-vistas con keep-alive ───────────────────────────────────── -->
         <keep-alive>
-            <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />
-            <NovedadesRRHH v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
-            <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company"
-                :employee="employee" />
+            <NovedadesAdmin   v-if="subModule === 'admin'"     :isDark="isDark" :company="company" />
+            <NovedadesRRHH    v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
+            <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
+            <ConsultasView    v-else-if="subModule === 'consultas'" :isDark="isDark" :company="company" />
         </keep-alive>
 
     </div>
@@ -130,9 +159,10 @@
 
 <script setup>
 import { ref, inject } from 'vue';
-import NovedadesAdmin from './novedadesadminView.vue';
-import NovedadesRRHH from './novedadesRRHView.vue';
+import NovedadesAdmin   from './novedadesadminView.vue';
+import NovedadesRRHH    from './novedadesRRHView.vue';
 import NovedadesUsuario from './novedadesusuarioView.vue';
+import ConsultasView    from './ConsultasView.vue';
 
 const props = defineProps({
     isDark: Boolean,

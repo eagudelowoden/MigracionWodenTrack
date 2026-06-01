@@ -25,6 +25,17 @@
             ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
             : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-circle-check text-[10px]"></i>Novedades Aprobadas
+          <span v-if="novedadesAprobadas.length"
+            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+            :class="activeTab === 'aprobadas' ? 'bg-[#3B82F6]/20 text-[#3B82F6]' : 'bg-[#3B82F6]/15 text-[#3B82F6]'">
+            {{ novedadesAprobadas.length }}
+          </span>
+        </button>
+        <button v-if="isSuperAdmin || hasPerm('horas.novedades_aprobadas')" @click="handleTabHistorial"
+          class="px-3 h-7 rounded-[5px] text-[11px] font-medium transition-all flex items-center gap-1.5" :class="activeTab === 'historial'
+            ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
+            : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-clock-rotate-left text-[10px]"></i>Historial
         </button>
         <!-- Cargue Horas — al final con dropdown -->
         <div v-if="isSuperAdmin || hasPerm('horas.cargue')" class="relative cargue-menu-wrapper">
@@ -1106,20 +1117,31 @@
     <template v-else-if="activeTab === 'aprobadas' && (isSuperAdmin || hasPerm('horas.novedades_aprobadas'))">
 
       <!-- Toolbar notificar -->
-      <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length
-          }}</span>
-          registro(s) aprobado(s) en el rango
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length }}</span>
+          registro(s) pendientes de notificar
+          <span v-if="selectedNovedades.size" class="ml-2 font-semibold text-[#3B82F6]">
+            · {{ selectedNovedades.size }} seleccionado(s)
+          </span>
         </span>
-        <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
-            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
-          <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[10px]"></i>
-          {{ isNotifying ? 'Enviando…' : 'Notificar por correo' }}
-        </button>
+        <div class="ml-auto flex items-center gap-1.5">
+          <!-- Limpiar selección -->
+          <button v-if="selectedNovedades.size" @click="clearSeleccionNovedades"
+            class="h-7 px-2 rounded-[5px] border text-[11px] font-medium transition-all"
+            :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+            <i class="fas fa-xmark text-[9px]"></i> Limpiar
+          </button>
+          <!-- Notificar -->
+          <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+            :class="selectedNovedades.size
+              ? (isDark ? 'bg-[#3B82F6]/15 border-[#3B82F6]/60 text-[#60A5FA]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/40 text-[#2563eb]')
+              : (isDark ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60' : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60')">
+            <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[10px]"></i>
+            {{ isNotifying ? 'Enviando…' : selectedNovedades.size ? `Notificar (${selectedNovedades.size})` : 'Notificar todos' }}
+          </button>
+        </div>
       </div>
 
       <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
@@ -1143,44 +1165,49 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Cédula</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Nombre</th>
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Fecha</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Departamento</th>
+                <!-- Checkbox seleccionar todos -->
+                <th class="px-3 py-2 text-center border-b border-r border-[#f5f5f7] w-8">
+                  <input type="checkbox"
+                    :checked="selectedNovedades.size === novedadesAprobadas.length && novedadesAprobadas.length > 0"
+                    :indeterminate="selectedNovedades.size > 0 && selectedNovedades.size < novedadesAprobadas.length"
+                    @change="toggleAllNovedades"
+                    class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                </th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
                 <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col }}
                 </th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Observación</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
-                  Acciones</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id" class="group transition-all"
-                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id"
+                class="group transition-all cursor-pointer"
+                :class="[
+                  selectedNovedades.has(r.id)
+                    ? (isDark ? 'bg-[#3B82F6]/[0.08]' : 'bg-blue-50/70')
+                    : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : '',
+                ]"
+                @click="toggleNovedadSelected(r.id)">
+                <!-- Checkbox -->
+                <td class="px-3 py-2 border-b border-r text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                  <input type="checkbox" :checked="selectedNovedades.has(r.id)"
+                    @change="toggleNovedadSelected(r.id)"
+                    class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                </td>
                 <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}
-                </td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
                 <td class="px-3 py-2 border-b border-r font-bold uppercase"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
-                </td>
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
                 <td class="px-3 py-2 border-b border-r text-center"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
-                    formatFecha(r.fecha) }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
                 <td class="px-3 py-2 border-b border-r"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
-                    r.departamento || '—' }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
                 <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
                   :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
                   Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
@@ -1216,6 +1243,88 @@
       </div>
     </template>
     <!-- ══ FIN TAB NOVEDADES APROBADAS ══════════════════════════════════════ -->
+
+    <!-- ══ TAB HISTORIAL ════════════════════════════════════════════════════ -->
+    <template v-else-if="activeTab === 'historial' && (isSuperAdmin || hasPerm('horas.novedades_aprobadas'))">
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ historial.length }}</span>
+          registro(s) notificados en el rango
+        </span>
+        <button @click="cargarHistorial(props.company)" :disabled="isLoadingHistorial"
+          class="ml-auto h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
+          :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingHistorial }"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <div v-if="isLoadingHistorial" class="flex-1 flex items-center justify-center">
+          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
+        </div>
+
+        <div v-else-if="!historial.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+            :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+            <i class="fas fa-clock-rotate-left text-xl text-[#3B82F6]"></i>
+          </div>
+          <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            No hay registros notificados en el rango seleccionado
+          </p>
+        </div>
+
+        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+          <table class="w-full border-separate border-spacing-0 text-[11px]">
+            <thead class="sticky top-0 z-30">
+              <tr class="bg-[#1e2538]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th v-for="col in COLS_HX" :key="col"
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  {{ col.toUpperCase() }}
+                </th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, idx) in historial" :key="r.id" class="transition-all"
+                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
+                <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
+                <td class="px-3 py-2 border-b border-r font-bold uppercase"
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
+                <td class="px-3 py-2 border-b border-r text-center"
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
+                <td class="px-3 py-2 border-b border-r"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
+                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
+                  :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                    Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  {{ formatDecimal(r[col]) }}
+                </td>
+                <td class="px-3 py-2 border-b text-[10px]"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                  {{ r.observacion || '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-3 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+          <p class="text-[9px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            Historial: <span class="text-[#3B82F6]">{{ historial.length }}</span> registros notificados
+          </p>
+        </div>
+      </div>
+    </template>
+    <!-- ══ FIN TAB HISTORIAL ═════════════════════════════════════════════════ -->
 
 
     <!-- ══ MODAL ELIMINAR ═══════════════════════════════════════════════════ -->
@@ -1477,7 +1586,6 @@ const {
   currentPage,
   totalPages,
   totalRegistros,
-  cargarHistorial,
   calcular,
   guardarCalculados,
   aprobarRegistro,
@@ -1492,6 +1600,13 @@ const {
   novedadesAprobadas,
   isLoadingNovedades,
   cargarNovedadesAprobadas,
+  selectedNovedades,
+  toggleNovedadSelected,
+  toggleAllNovedades,
+  clearSeleccionNovedades,
+  historial,
+  isLoadingHistorial,
+  cargarHistorial,
   registrosGuardados,
   isLoadingGuardados,
   currentPageGuardados,
@@ -1707,6 +1822,11 @@ async function handleTabNovedades(tab) {
   }
 }
 
+async function handleTabHistorial() {
+  activeTab.value = 'historial';
+  await cargarHistorial(props.company);
+}
+
 async function handleTabGuardados() {
   activeTab.value = 'guardados';
   await cargarGuardados(props.company);
@@ -1759,11 +1879,21 @@ let _saveSuccessTimer = null;
 async function handleGuardar() {
   try {
     const n = selectedRecords.value.length;
-    // Pasar el estado del toggle: si decimales OFF → guarda horas enteras (Math.floor)
-    await guardarCalculados(props.company, mostrarDecimales.value);
-    saveSuccessMsg.value = `✅ ${n} registro(s) guardado(s) correctamente`;
+    const result = await guardarCalculados(props.company, mostrarDecimales.value);
+    const guardados = result?.guardados ?? n;
+    const omitidos  = result?.omitidos ?? [];
+
+    if (omitidos.length && guardados === 0) {
+      // Todos omitidos
+      saveSuccessMsg.value = `⚠️ ${omitidos.length} registro(s) no guardado(s): ya existen aprobados para esa fecha`;
+    } else if (omitidos.length) {
+      // Algunos omitidos
+      saveSuccessMsg.value = `✅ ${guardados} guardado(s). ⚠️ ${omitidos.length} omitido(s) por tener registro aprobado`;
+    } else {
+      saveSuccessMsg.value = `✅ ${guardados} registro(s) guardado(s) correctamente`;
+    }
     clearTimeout(_saveSuccessTimer);
-    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 4000);
+    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 6000);
   } catch { /* el composable ya loguea */ }
 }
 

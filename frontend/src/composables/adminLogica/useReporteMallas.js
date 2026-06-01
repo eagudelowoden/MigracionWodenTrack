@@ -51,10 +51,16 @@ const currentPage = ref(1);
 // Selección por checkbox
 const selectedKeys = ref(new Set());
 
-// Novedades aprobadas
+// Novedades aprobadas (pendientes de notificar)
 const novedadesAprobadas = ref([]);
 const isLoadingNovedades = ref(false);
 const isNotifying = ref(false);
+// Checkboxes en novedades aprobadas
+const selectedNovedades = ref(new Set()); // Set de ids seleccionados
+
+// Historial (aprobadas + notificadas)
+const historial = ref([]);
+const isLoadingHistorial = ref(false);
 
 // Novedades HX (legacy, se mantiene para compat)
 const novedadesHX = ref([]);
@@ -381,11 +387,17 @@ export function useReporteMallas() {
             return copia;
           });
 
-      await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
+      const { data } = await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
         registros: toSave,
         calculado_por: s.name || "Desconocido",
       });
       clearSelection();
+
+      // Retornar omitidos para que el componente pueda mostrar el aviso
+      return {
+        guardados: data.guardados ?? 0,
+        omitidos: data.omitidos ?? [],
+      };
     } catch (err) {
       console.error("Error guardando horas extra:", err);
       throw err;
@@ -424,31 +436,38 @@ export function useReporteMallas() {
         aprobado,
         observacion: observacion || null,
       });
-      // Actualizar en registrosGuardados
       const idxG = registrosGuardados.value.findIndex((r) => r.id === id);
-      if (idxG !== -1) {
-        registrosGuardados.value[idxG] = {
-          ...registrosGuardados.value[idxG],
-          aprobado,
-          observacion: observacion || null,
-        };
-      }
-      // Sincronizar novedadesAprobadas
+
       if (aprobado === true) {
-        const reg = registrosGuardados.value[idxG] ?? { id };
+        // Aprobado → sacar de Guardados y mover a Novedades Aprobadas
+        const reg = idxG !== -1 ? registrosGuardados.value[idxG] : { id };
+        registrosGuardados.value = registrosGuardados.value.filter((r) => r.id !== id);
         const yaExiste = novedadesAprobadas.value.findIndex((n) => n.id === id);
         if (yaExiste === -1) {
           novedadesAprobadas.value = [
             { ...reg, aprobado: true, observacion: observacion || null },
             ...novedadesAprobadas.value,
           ];
-        } else {
-          novedadesAprobadas.value[yaExiste] = {
-            ...novedadesAprobadas.value[yaExiste],
+        }
+      } else if (aprobado === false) {
+        // Rechazado → actualizar estado pero mantener en Guardados
+        if (idxG !== -1) {
+          registrosGuardados.value[idxG] = {
+            ...registrosGuardados.value[idxG],
+            aprobado: false,
             observacion: observacion || null,
           };
         }
+        novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
       } else {
+        // Deshacer aprobación (null) → volver a Guardados
+        if (idxG !== -1) {
+          registrosGuardados.value[idxG] = {
+            ...registrosGuardados.value[idxG],
+            aprobado: null,
+            observacion: observacion || null,
+          };
+        }
         novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
       }
     } catch (err) {
@@ -487,12 +506,37 @@ export function useReporteMallas() {
     }
   }
 
+  // Helpers de selección en novedades aprobadas
+  function toggleNovedadSelected(id) {
+    if (selectedNovedades.value.has(id)) selectedNovedades.value.delete(id);
+    else selectedNovedades.value.add(id);
+    selectedNovedades.value = new Set(selectedNovedades.value); // trigger reactivity
+  }
+  function toggleAllNovedades() {
+    if (selectedNovedades.value.size === novedadesAprobadas.value.length) {
+      selectedNovedades.value = new Set();
+    } else {
+      selectedNovedades.value = new Set(novedadesAprobadas.value.map(n => n.id));
+    }
+  }
+  function clearSeleccionNovedades() {
+    selectedNovedades.value = new Set();
+  }
+
   async function notificarAprobados() {
     try {
       isNotifying.value = true;
+      // Notificar solo los seleccionados; si no hay selección, notificar todos
+      const aNotificar = selectedNovedades.value.size > 0
+        ? novedadesAprobadas.value.filter(n => selectedNovedades.value.has(n.id))
+        : novedadesAprobadas.value;
       await axios.post(`${API_BASE_URL}/horas-extra/notificar-aprobados`, {
-        registros: novedadesAprobadas.value,
+        registros: aNotificar,
       });
+      // Quitar del listado los que ya se notificaron
+      const notificadosIds = new Set(aNotificar.map(n => n.id));
+      novedadesAprobadas.value = novedadesAprobadas.value.filter(n => !notificadosIds.has(n.id));
+      selectedNovedades.value = new Set();
     } catch (err) {
       console.error("Error enviando notificación:", err);
       throw err;
@@ -516,10 +560,33 @@ export function useReporteMallas() {
         { params: { ...params, _t: Date.now() } },
       );
       novedadesAprobadas.value = data;
+      selectedNovedades.value = new Set(); // reset selección al recargar
     } catch (err) {
       console.error("Error cargando novedades aprobadas:", err);
     } finally {
       isLoadingNovedades.value = false;
+    }
+  }
+
+  async function cargarHistorial(company) {
+    try {
+      isLoadingHistorial.value = true;
+      await _asegurarPerfil();
+      const params = {
+        startDate: startDate.value,
+        endDate: endDate.value,
+        ...(company && company !== "Todas" ? { company } : {}),
+        ...getAreaSegmento(),
+      };
+      const { data } = await axios.get(
+        `${API_BASE_URL}/horas-extra/historial`,
+        { params: { ...params, soloNotificados: true, _t: Date.now() } },
+      );
+      historial.value = data;
+    } catch (err) {
+      console.error("Error cargando historial:", err);
+    } finally {
+      isLoadingHistorial.value = false;
     }
   }
 
@@ -576,7 +643,10 @@ export function useReporteMallas() {
       if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
         if (s.department) params.departamento = s.department;
       }
-      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
+      // Solo mostrar registros pendientes o rechazados (no aprobados ni notificados)
+      const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, {
+        params: { ...params, soloNoAprobados: true },
+      });
       registrosGuardados.value = data;
       currentPageGuardados.value = 1;
     } catch (err) {
@@ -675,15 +745,24 @@ export function useReporteMallas() {
     toggleAllFiltered,
     clearSelection,
 
-    // Novedades
+    // Novedades aprobadas (pendientes de notificar)
     novedadesAprobadas,
     isLoadingNovedades,
     cargarNovedadesAprobadas,
+    selectedNovedades,
+    toggleNovedadSelected,
+    toggleAllNovedades,
+    clearSeleccionNovedades,
     novedadesHX,
     isLoadingNovedadesHX,
     cargarNovedadesHX,
     isNotifying,
     notificarAprobados,
+
+    // Historial (aprobadas + notificadas)
+    historial,
+    isLoadingHistorial,
+    cargarHistorial,
 
     // Guardados
     registrosGuardados,
@@ -697,7 +776,6 @@ export function useReporteMallas() {
     deshacerAprobacion,
 
     // Acciones
-    cargarHistorial,
     calcular,
     guardarCalculados,
     calcularYCargar,
