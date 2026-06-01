@@ -74,7 +74,7 @@
             : (isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')"
           :title="mostrarDecimales ? 'Mostrando medias horas (0.5). Clic para ver horas cerradas' : 'Mostrando horas cerradas (7). Clic para ver medias horas'">
           <i class="fas fa-toggle-on text-[11px]" :class="mostrarDecimales ? '' : 'opacity-40 rotate-180'"></i>
-          <span>{{ mostrarDecimales ? '7.5' : '7' }}</span>
+          <span>{{ mostrarDecimales ? 'Decimales' : 'Decimales' }}</span>
         </button>
 
         <!-- Exportar -->
