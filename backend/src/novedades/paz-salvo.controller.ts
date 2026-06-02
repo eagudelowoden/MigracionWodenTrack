@@ -44,14 +44,14 @@ export class PazSalvoController {
   @Patch(':id/modulo')
   actualizarModulo(
     @Param('id') id: string,
-    @Body() body: { modulo: 'sst' | 'ch' | 'it'; ok: boolean; notas?: string; por?: string },
+    @Body() body: { modulo: 'sst' | 'ch' | 'it'; ok: boolean; por?: string; items?: Record<string, boolean> },
   ) {
     return this.svc.actualizarModulo(
       Number(id),
       body.modulo,
       body.ok,
-      body.notas ?? '',
       body.por ?? 'Sistema',
+      body.items,
     );
   }
 }

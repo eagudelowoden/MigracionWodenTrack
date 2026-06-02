@@ -130,9 +130,9 @@
                   <div class="flex items-center justify-between w-full mb-2">
                     <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ mod.label }}</span>
                     <span
-                      :class="verificarModuloCompleto(mod.key, item.pazSalvo) ? 'text-emerald-500' : 'text-amber-500'">
+                      :class="verificarModuloCompleto(mod.key, item) ? 'text-emerald-500' : 'text-amber-500'">
                       <i
-                        :class="verificarModuloCompleto(mod.key, item.pazSalvo) ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
+                        :class="verificarModuloCompleto(mod.key, item) ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
                     </span>
                   </div>
 
@@ -150,12 +150,12 @@
                   <div class="flex-1 h-1.5 rounded-full overflow-hidden"
                     :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'">
                     <div class="h-full rounded-full transition-all duration-500"
-                      :class="progreso(item.pazSalvo) === 100 ? 'bg-emerald-500' : 'bg-amber-400'"
-                      :style="`width: ${progreso(item.pazSalvo)}%`"></div>
+                      :class="progreso(item) === 100 ? 'bg-emerald-500' : 'bg-amber-400'"
+                      :style="`width: ${progreso(item)}%`"></div>
                   </div>
                   <span class="text-[11px] font-semibold shrink-0"
-                    :class="progreso(item.pazSalvo) === 100 ? 'text-emerald-500' : (isDark ? 'text-amber-400' : 'text-amber-600')">
-                    {{ progreso(item.pazSalvo) }}%
+                    :class="progreso(item) === 100 ? 'text-emerald-500' : (isDark ? 'text-amber-400' : 'text-amber-600')">
+                    {{ progreso(item) }}%
                   </span>
                   <span v-if="item.pazSalvo.proceso_completo"
                     class="text-[10px] font-semibold text-emerald-500 flex items-center gap-1">
@@ -243,85 +243,153 @@
       </div>
     </Teleport>
 
+    <!-- Toast estilo Vercel -->
+    <Teleport to="body">
+      <transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-2 scale-95"
+        enter-to-class="opacity-100 translate-y-0 scale-100"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0 scale-100"
+        leave-to-class="opacity-0 translate-y-1 scale-95">
+        <div v-if="toast.visible"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border shadow-2xl"
+          style="background:#111; border-color:rgba(255,255,255,0.1); min-width:220px; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+          <span class="shrink-0 w-1.5 h-1.5 rounded-full" :class="toast.error ? 'bg-red-400' : 'bg-emerald-400'"></span>
+          <p class="text-[12px] font-medium text-white flex-1" style="letter-spacing:0.01em">{{ toast.mensaje }}</p>
+          <button @click="toast.visible = false"
+            class="shrink-0 text-[10px] text-white/30 hover:text-white/70 transition-colors ml-1">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </transition>
+    </Teleport>
+
     <!-- Modal Paz y Salvo -->
     <Teleport to="body">
-      <div v-if="pazSalvoModal.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style="background:rgba(0,0,0,0.6)" @click.self="pazSalvoModal.visible = false">
-        <div class="w-full max-w-2xl rounded-xl border shadow-2xl overflow-hidden"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+      <transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 scale-[0.97]"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-[0.97]">
+        <div v-if="pazSalvoModal.visible"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(3px)"
+          @click.self="pazSalvoModal.visible = false">
 
-          <!-- Header modal -->
-          <div class="flex items-center justify-between px-6 py-4 border-b"
-            :class="isDark ? 'border-[#222938] bg-[#0d1117]' : 'border-slate-100 bg-emerald-50'">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-file-certificate text-emerald-500 text-xl"></i>
-              <div>
-                <p class="text-[14px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Paz y Salvo</p>
-                <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Proceso de offboarding
-                  completado</p>
+          <div id="paz-salvo-print" class="w-full max-w-[520px] rounded-xl overflow-hidden shadow-2xl border"
+            :class="isDark ? 'bg-[#111318] border-[#222938]' : 'bg-white border-slate-200'">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-3.5 border-b"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-400'">Paz y Salvo · Offboarding</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button @click="imprimirPazYSalvo"
+                  class="flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-medium border transition-all"
+                  :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'">
+                  <i class="fas fa-arrow-up-from-bracket text-[9px]"></i> Imprimir
+                </button>
+                <button @click="pazSalvoModal.visible = false"
+                  class="w-7 h-7 rounded-md flex items-center justify-center border transition-all"
+                  :class="isDark ? 'border-[#2d3548] text-slate-500 hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+                  <i class="fas fa-times text-[10px]"></i>
+                </button>
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <button @click="imprimirPazYSalvo"
-                class="h-8 px-3 rounded-[6px] text-[11px] font-medium bg-emerald-500 text-white hover:bg-emerald-600 flex items-center gap-1.5">
-                <i class="fas fa-print text-[10px]"></i> Imprimir
-              </button>
-              <button @click="pazSalvoModal.visible = false"
-                class="w-8 h-8 rounded-[6px] flex items-center justify-center border transition-all"
-                :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500'">
-                <i class="fas fa-times text-[10px]"></i>
-              </button>
-            </div>
-          </div>
 
-          <!-- Contenido Paz y Salvo (imprimible) -->
-          <div id="paz-salvo-print" class="px-8 py-6 space-y-5">
-            <div class="text-center border-b pb-4" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-              <p class="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">Paz y Salvo</p>
-              <h3 class="text-[18px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
-                {{ pazSalvoModal.item?.novedad?.nombre }}
-              </h3>
-              <p class="text-[12px] mt-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                CC {{ pazSalvoModal.item?.novedad?.cedula }}
-                <span v-if="pazSalvoModal.item?.novedad?.departamento">
-                  · {{ pazSalvoModal.item.novedad.departamento }}
-                </span>
-              </p>
-            </div>
+            <!-- Body -->
+            <div class="px-6 py-5 space-y-5">
 
-            <p class="text-[12px]" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-              Se certifica que el colaborador ha completado satisfactoriamente todos los módulos
-              del proceso de desvinculación, habiendo recibido el visto bueno de los departamentos
-              responsables.
-            </p>
-
-            <!-- Detalle de módulos -->
-            <div class="grid grid-cols-3 gap-3">
-              <div v-for="mod in MODULOS" :key="mod.key" class="flex flex-col gap-1.5 p-3 rounded-lg border"
-                :class="isDark ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-emerald-200 bg-emerald-50'">
-                <div class="flex items-center gap-2">
-                  <i :class="mod.icon" class="text-emerald-500 text-[11px]"></i>
-                  <span class="text-[11px] font-semibold text-emerald-600">{{ mod.label }}</span>
-                  <i class="fas fa-circle-check text-emerald-500 ml-auto text-[10px]"></i>
+              <!-- Colaborador / Fecha -->
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">Colaborador</p>
+                  <p class="text-[16px] font-semibold tracking-tight"
+                    :class="isDark ? 'text-white' : 'text-slate-900'">
+                    {{ pazSalvoModal.item?.novedad?.nombre }}
+                  </p>
+                  <p class="text-[12px] mt-0.5"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                    CC {{ pazSalvoModal.item?.novedad?.cedula }}
+                    <span v-if="pazSalvoModal.item?.novedad?.departamento">
+                      · {{ pazSalvoModal.item.novedad.departamento }}
+                    </span>
+                  </p>
                 </div>
-                <p class="text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
-                  Completado por: {{ getModuloPor(pazSalvoModal.item?.pazSalvo, mod.key) }}
-                </p>
-                <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                  {{ getModuloFecha(pazSalvoModal.item?.pazSalvo, mod.key) }}
-                </p>
+                <div class="text-right shrink-0">
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">Generado</p>
+                  <p class="text-[12px] font-medium"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFechaHoy() }}</p>
+                </div>
               </div>
-            </div>
 
-            <div class="text-center pt-2 border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-              <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                Generado el {{ formatFechaHoy() }} · Sistema WodenTrack
-              </p>
+              <!-- Separador punteado -->
+              <div class="border-t border-dashed"
+                :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
+
+              <!-- Tabla de módulos -->
+              <div>
+                <div class="flex items-center justify-between px-1 mb-2">
+                  <span class="text-[10px] font-semibold uppercase tracking-[0.1em]"
+                    :class="isDark ? 'text-slate-600' : 'text-slate-400'">Módulo</span>
+                  <span class="text-[10px] font-semibold uppercase tracking-[0.1em]"
+                    :class="isDark ? 'text-slate-600' : 'text-slate-400'">Responsable · Fecha</span>
+                </div>
+                <div v-for="(mod, i) in MODULOS" :key="mod.key"
+                  class="flex items-center justify-between px-1 py-2.5"
+                  :class="i < MODULOS.length - 1 ? (isDark ? 'border-b border-[#1e2433]' : 'border-b border-slate-100') : ''">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-emerald-500/10">
+                      <i :class="mod.icon" class="text-emerald-500" style="font-size:9px"></i>
+                    </span>
+                    <span class="text-[13px] font-medium"
+                      :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{ mod.label }}</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="text-right">
+                      <p class="text-[11px] font-medium"
+                        :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+                        {{ getModuloPor(pazSalvoModal.item?.pazSalvo, mod.key) }}
+                      </p>
+                      <p class="text-[10px]"
+                        :class="isDark ? 'text-slate-600' : 'text-slate-400'">
+                        {{ getModuloFecha(pazSalvoModal.item?.pazSalvo, mod.key) }}
+                      </p>
+                    </div>
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/10">
+                      <i class="fas fa-check text-emerald-500" style="font-size:8px"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Separador punteado -->
+              <div class="border-t border-dashed"
+                :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
+
+              <!-- Footer -->
+              <div class="flex items-center justify-between">
+                <p class="text-[11px]" :class="isDark ? 'text-slate-600' : 'text-slate-400'">
+                  WodenTrack · Sistema de Gestión
+                </p>
+                <span class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500">
+                  <i class="fas fa-circle-check text-[9px]"></i> Proceso completo
+                </span>
+              </div>
+
             </div>
           </div>
         </div>
-      </div>
+      </transition>
     </Teleport>
 
   </div>
@@ -348,6 +416,15 @@ const buscando = ref(false);
 const buscado = ref(false);
 
 const pazSalvoModal = reactive({ visible: false, item: null });
+const toast = reactive({ visible: false, mensaje: '', error: false });
+let _toastTimer = null;
+function mostrarToast(mensaje, error = false) {
+  clearTimeout(_toastTimer);
+  toast.mensaje = mensaje;
+  toast.error = error;
+  toast.visible = true;
+  _toastTimer = setTimeout(() => { toast.visible = false; }, 3000);
+}
 
 function formatFecha(f) {
   if (!f) return '—';
@@ -356,9 +433,10 @@ function formatFecha(f) {
 function formatFechaHoy() {
   return new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 }
-function progreso(ps) {
-  if (!ps) return 0;
-  return Math.round(([ps.sst_ok, ps.ch_ok, ps.it_ok].filter(Boolean).length / 3) * 100);
+function progreso(item) {
+  if (!item) return 0;
+  const completados = MODULOS.filter(mod => verificarModuloCompleto(mod.key, item)).length;
+  return Math.round((completados / MODULOS.length) * 100);
 }
 function getModuloPor(ps, key) {
   if (!ps) return '—';
@@ -381,7 +459,14 @@ async function buscar() {
 
     const { data } = await axios.get(`${API_URL}/novedades/paz-salvo/buscar`, { params });
     // API_URL ya incluye /usuarios → ruta final: /usuarios/novedades/paz-salvo/buscar
-    resultados.value = data.map(r => ({ ...r, _iniciando: false }));
+    resultados.value = data.map(r => {
+      const respuestas = {}
+      for (const mod of MODULOS) {
+        const raw = r.pazSalvo?.[`${mod.key}_items`]
+        if (raw) Object.assign(respuestas, JSON.parse(raw))
+      }
+      return { ...r, _iniciando: false, _respuestas: respuestas }
+    });
   } catch (e) {
     console.error(e);
     resultados.value = [];
@@ -449,66 +534,291 @@ const abrirSubModal = (modulo, item) => {
   subModalOpen.value = true
 }
 
-const cerrarSubModal = () => {
+const cerrarSubModal = async () => {
+  if (moduloActivo.value && itemActivo.value) {
+    const modKey = moduloActivo.value.key
+    const preguntas = CHECKLISTS_POR_MODULO[modKey] ?? []
+    const respuestas = itemActivo.value._respuestas ?? {}
+    const items = Object.fromEntries(preguntas.map(p => [p.id, respuestas[p.id] ?? null]).filter(([, v]) => v !== null))
+    const ok = preguntas.length > 0 && preguntas.every(p => respuestas[p.id] !== undefined && respuestas[p.id] !== null)
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}')
+    try {
+      const { data } = await axios.patch(
+        `${API_URL}/novedades/paz-salvo/${itemActivo.value.pazSalvo.id}/modulo`,
+        { modulo: modKey, ok, por: session.name || 'Sistema', items },
+      )
+      const guardado = itemActivo.value
+      guardado.pazSalvo = data
+      mostrarToast('Checklist guardado correctamente')
+    } catch (e) {
+      console.error(e)
+      mostrarToast('Error al guardar, intenta de nuevo', true)
+    }
+  }
   subModalOpen.value = false
   moduloActivo.value = null
   itemActivo.value = null
 }
 
-// Retorna la respuesta guardada (true/false) desde el objeto de pazSalvo del item
 const obtenerRespuestaActual = (preguntaId) => {
-  if (!itemActivo.value || !itemActivo.value.pazSalvo) return null
-  // Asumiendo que guardas las respuestas en un objeto interno de respuestas
-  return itemActivo.value.pazSalvo.respuestas?.[preguntaId] ?? null
+  if (!itemActivo.value) return null
+  return itemActivo.value._respuestas?.[preguntaId] ?? null
 }
 
-// Guarda interactivamente el click del Sí o No
 const guardarRespuesta = (preguntaId, valor) => {
-  if (!itemActivo.value.pazSalvo.respuestas) {
-    itemActivo.value.pazSalvo.respuestas = {}
+  if (!itemActivo.value._respuestas) {
+    itemActivo.value._respuestas = {}
   }
-
-  // Asigna el valor (true o false)
-  itemActivo.value.pazSalvo.respuestas[preguntaId] = valor
-
-  // Dispara tu evento existente para guardar en Base de Datos de forma reactiva
-  actualizarModulo(itemActivo.value, {
-    moduloKey: moduloActivo.value.key,
-    respuestas: itemActivo.value.pazSalvo.respuestas
-  })
+  itemActivo.value._respuestas[preguntaId] = valor
 }
 
-// Función auxiliar para pintar el icono verde/amarillo en el botón principal externo
-const verificarModuloCompleto = (moduloKey, pazSalvo) => {
-  if (!pazSalvo || !pazSalvo.respuestas) return false
-
+const verificarModuloCompleto = (moduloKey, item) => {
+  if (!item._respuestas) return false
   const preguntas = CHECKLISTS_POR_MODULO[moduloKey]
   if (!preguntas) return false
-
-  // Se considera completo si todas las preguntas del módulo tienen respuesta (ya sea true o false)
-  return preguntas.every(p => pazSalvo.respuestas[p.id] !== undefined && pazSalvo.respuestas[p.id] !== null)
+  return preguntas.every(p => item._respuestas[p.id] !== undefined && item._respuestas[p.id] !== null)
 }
 
 function imprimirPazYSalvo() {
-  const contenido = document.getElementById('paz-salvo-print')?.innerHTML;
-  if (!contenido) return;
+  const item = pazSalvoModal.item;
+  if (!item) return;
+  const ps = item.pazSalvo;
+  const novedad = item.novedad;
+
+  const modulosHtml = MODULOS.map(mod => `
+    <tr>
+      <td class="mod-name">${mod.label}</td>
+      <td class="mod-by">${getModuloPor(ps, mod.key)}</td>
+      <td class="mod-date">${getModuloFecha(ps, mod.key)}</td>
+      <td class="mod-status"><span class="badge-ok">&#10003; Aprobado</span></td>
+    </tr>
+  `).join('');
+
   const w = window.open('', '_blank');
-  w.document.write(`
-    <html><head><title>Paz y Salvo</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-      h3 { color: #1a1a1a; }
-      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
-      .card { border: 1px solid #16a34a; border-radius: 8px; padding: 12px; background: #f0fdf4; }
-      .label { font-weight: 600; color: #16a34a; font-size: 12px; }
-      .small { font-size: 11px; color: #666; margin-top: 4px; }
-      .center { text-align: center; }
-      .border-b { border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
-      .badge { display: inline-block; background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
-    </style>
-    </head><body>${contenido}</body></html>
-  `);
+  w.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Paz y Salvo — ${novedad?.nombre ?? ''}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #fff;
+      color: #111;
+      padding: 56px 64px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 24px;
+      border-bottom: 2px solid #111;
+      margin-bottom: 32px;
+    }
+    .header-brand { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: #111; }
+    .header-sub   { font-size: 11px; color: #888; margin-top: 2px; letter-spacing: 0.02em; }
+    .header-right { text-align: right; }
+    .doc-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #16a34a;
+    }
+    .doc-id { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    /* ── Employee block ── */
+    .employee-block {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+    .emp-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #999;
+      margin-bottom: 5px;
+    }
+    .emp-name  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #111; }
+    .emp-meta  { font-size: 12px; color: #666; margin-top: 4px; }
+    .emp-date-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 5px; text-align: right; }
+    .emp-date  { font-size: 13px; font-weight: 500; color: #444; text-align: right; }
+
+    /* ── Certificación ── */
+    .cert-text {
+      font-size: 12.5px;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 32px;
+      padding: 16px 20px;
+      background: #f9fafb;
+      border-left: 3px solid #16a34a;
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* ── Tabla de módulos ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #999;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+    }
+    thead tr { border-bottom: 1px solid #e5e7eb; }
+    thead th {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      padding: 0 12px 8px;
+      text-align: left;
+    }
+    tbody tr { border-bottom: 1px solid #f3f4f6; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 11px 12px; vertical-align: middle; }
+    .mod-name  { font-weight: 600; font-size: 13px; color: #111; }
+    .mod-by    { font-size: 12px; color: #555; }
+    .mod-date  { font-size: 11px; color: #999; }
+    .mod-status { text-align: right; }
+    .badge-ok {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      color: #15803d;
+      background: #dcfce7;
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Firma ── */
+    .signatures {
+      display: flex;
+      gap: 48px;
+      margin-top: 48px;
+      margin-bottom: 40px;
+    }
+    .sig-box {
+      flex: 1;
+      border-top: 1px solid #d1d5db;
+      padding-top: 10px;
+    }
+    .sig-name  { font-size: 12px; font-weight: 600; color: #111; }
+    .sig-role  { font-size: 11px; color: #999; margin-top: 2px; }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-left  { font-size: 11px; color: #bbb; }
+    .footer-right {
+      font-size: 11px;
+      font-weight: 600;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block; }
+
+    @media print {
+      body { padding: 32px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="header-brand">WodenTrack</div>
+      <div class="header-sub">Sistema de Gestión de Talento Humano</div>
+    </div>
+    <div class="header-right">
+      <div class="doc-title">Paz y Salvo</div>
+      <div class="doc-id">Generado el ${formatFechaHoy()}</div>
+    </div>
+  </div>
+
+  <div class="employee-block">
+    <div>
+      <div class="emp-label">Colaborador</div>
+      <div class="emp-name">${novedad?.nombre ?? '—'}</div>
+      <div class="emp-meta">
+        Cédula: ${novedad?.cedula ?? '—'}
+        ${novedad?.departamento ? ' &nbsp;·&nbsp; ' + novedad.departamento : ''}
+        ${novedad?.cargo ? ' &nbsp;·&nbsp; ' + novedad.cargo : ''}
+      </div>
+    </div>
+    <div>
+      <div class="emp-date-label">Fecha de renuncia</div>
+      <div class="emp-date">${formatFecha(novedad?.fechaInicio)}</div>
+    </div>
+  </div>
+
+  <div class="cert-text">
+    Se certifica que el colaborador <strong>${novedad?.nombre ?? ''}</strong> ha completado
+    satisfactoriamente todos los módulos del proceso de desvinculación, habiendo recibido el
+    visto bueno de los departamentos responsables. El presente documento avala que no existen
+    obligaciones pendientes entre las partes a la fecha de su emisión.
+  </div>
+
+  <div class="section-label">Detalle de módulos</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Módulo</th>
+        <th>Responsable</th>
+        <th>Fecha</th>
+        <th style="text-align:right">Estado</th>
+      </tr>
+    </thead>
+    <tbody>${modulosHtml}</tbody>
+  </table>
+
+  <div class="signatures">
+    <div class="sig-box">
+      <div class="sig-name">_________________________________</div>
+      <div class="sig-role">Firma del colaborador</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-name">_________________________________</div>
+      <div class="sig-role">Capital Humano</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-name">_________________________________</div>
+      <div class="sig-role">Gerencia</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">WodenTrack · Documento generado automáticamente · No requiere sello físico</div>
+    <div class="footer-right"><span class="dot"></span> Proceso completado</div>
+  </div>
+
+</body>
+</html>`);
   w.document.close();
-  w.print();
+  setTimeout(() => w.print(), 400);
 }
 </script>

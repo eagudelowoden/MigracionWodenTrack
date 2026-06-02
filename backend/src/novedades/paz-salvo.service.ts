@@ -126,28 +126,30 @@ export class PazSalvoService {
     id: number,
     modulo: Modulo,
     ok: boolean,
-    notas: string,
     por: string,
+    items?: Record<string, boolean>,
   ): Promise<PazSalvo> {
     const reg = await this.psRepo.findOne({ where: { id } });
     if (!reg) throw new Error('Registro paz y salvo no encontrado');
 
     const ahora = new Date();
+    const itemsJson = items ? JSON.stringify(items) : undefined;
+
     if (modulo === 'sst') {
       reg.sst_ok    = ok;
-      reg.sst_notas = notas ?? null;
       reg.sst_por   = ok ? por : null;
       reg.sst_fecha = ok ? ahora : null;
+      if (itemsJson !== undefined) reg.sst_items = itemsJson;
     } else if (modulo === 'ch') {
       reg.ch_ok    = ok;
-      reg.ch_notas = notas ?? null;
       reg.ch_por   = ok ? por : null;
       reg.ch_fecha = ok ? ahora : null;
+      if (itemsJson !== undefined) reg.ch_items = itemsJson;
     } else {
       reg.it_ok    = ok;
-      reg.it_notas = notas ?? null;
       reg.it_por   = ok ? por : null;
       reg.it_fecha = ok ? ahora : null;
+      if (itemsJson !== undefined) reg.it_items = itemsJson;
     }
 
     // Verificar si todos los módulos están completos
