@@ -233,7 +233,7 @@ function mostrarToast(mensaje, error = false) {
 async function cargar() {
   cargando.value = true;
   try {
-    const { data } = await axios.get(`${API_URL}/novedades/paz-salvo-checklist/admin`);
+    const { data } = await axios.get(`${API_URL}/offboarding/checklist/admin`);
     items.value = data;
   } catch { mostrarToast('Error al cargar', true); }
   finally { cargando.value = false; }
@@ -259,13 +259,13 @@ async function guardar() {
   try {
     if (modal.editando) {
       const { data } = await axios.patch(
-        `${API_URL}/novedades/paz-salvo-checklist/${modal.id}`,
+        `${API_URL}/offboarding/checklist/${modal.id}`,
         { texto: modal.form.texto, orden: modal.form.orden },
       );
       const idx = items.value.findIndex(i => i.id === modal.id);
       if (idx !== -1) items.value[idx] = data;
     } else {
-      const { data } = await axios.post(`${API_URL}/novedades/paz-salvo-checklist`, {
+      const { data } = await axios.post(`${API_URL}/offboarding/checklist`, {
         ...modal.form,
         creado_por: session.name || 'Sistema',
       });
@@ -280,7 +280,7 @@ async function guardar() {
 async function toggleActivo(item) {
   try {
     const { data } = await axios.patch(
-      `${API_URL}/novedades/paz-salvo-checklist/${item.id}`,
+      `${API_URL}/offboarding/checklist/${item.id}`,
       { activo: !item.activo },
     );
     const idx = items.value.findIndex(i => i.id === item.id);
@@ -292,7 +292,7 @@ async function toggleActivo(item) {
 async function confirmarEliminar(item) {
   if (!confirm(`¿Eliminar la pregunta?\n\n"${item.texto}"`)) return;
   try {
-    await axios.delete(`${API_URL}/novedades/paz-salvo-checklist/${item.id}`);
+    await axios.delete(`${API_URL}/offboarding/checklist/${item.id}`);
     items.value = items.value.filter(i => i.id !== item.id);
     mostrarToast('Pregunta eliminada');
   } catch { mostrarToast('Error al eliminar', true); }

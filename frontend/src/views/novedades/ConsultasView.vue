@@ -422,7 +422,7 @@ const MODULOS = computed(() =>
 const checklistDB = ref({});
 onMounted(async () => {
   try {
-    const { data } = await axios.get(`${API_URL}/novedades/paz-salvo-checklist`);
+    const { data } = await axios.get(`${API_URL}/offboarding/checklist`);
     const agrupado = {};
     for (const item of data) {
       if (!agrupado[item.modulo]) agrupado[item.modulo] = [];

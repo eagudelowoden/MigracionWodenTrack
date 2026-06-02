@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PazSalvoChecklist } from './entities/paz-salvo-checklist.entity';
 
-@Controller('usuarios/novedades/paz-salvo-checklist')
+@Controller('usuarios/offboarding/checklist')
 export class PazSalvoChecklistController {
   constructor(
     @InjectRepository(PazSalvoChecklist)
