@@ -64,7 +64,8 @@
       "Bash(dir \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" /s /b /a-d)",
       "Bash(findstr /i \"hora\")",
       "PowerShell($env:DB_NAME)",
-      "Bash(Find \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -type f -name \"*.js\" -o -name \"*.py\" -o -name \"*.ts\")"
+      "Bash(Find \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -type f -name \"*.js\" -o -name \"*.py\" -o -name \"*.ts\")",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)"
     ]
   }
 }

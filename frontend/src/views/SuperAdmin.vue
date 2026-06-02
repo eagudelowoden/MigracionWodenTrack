@@ -38,6 +38,7 @@ const NAV_GROUPS = [
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
+      offboarding: { icon: 'fas fa-list-check', label: 'Checklist Offboarding', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     },
   },
 ];
@@ -64,6 +65,7 @@ import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vu
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
+import GestionChecklistOffboarding from '../components/admin/SuperAdmin/GestionChecklistOffboarding.vue';
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
 import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue';
@@ -102,6 +104,7 @@ const TAB_PERMS = {
   modulos: 'super.superadmin',
   solicitudes: 'super.solicitudes',
   reportes: 'super.reportes',
+  offboarding: 'super.offboarding',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -474,7 +477,7 @@ onMounted(async () => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'analitica', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes']"
+          v-for="tab in ['mallas', 'analitica', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -491,6 +494,7 @@ onMounted(async () => {
             <GestionSolicitudes v-if="tab === 'solicitudes'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
             <ModuloReportesFalla v-if="tab === 'reportes'" :isDark="isDark" />
+            <GestionChecklistOffboarding v-if="tab === 'offboarding'" :isDark="isDark" />
           </div>
         </template>
 

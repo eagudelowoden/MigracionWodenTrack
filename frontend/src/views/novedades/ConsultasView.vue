@@ -208,7 +208,7 @@
           </div>
 
           <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-            <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo.key]" :key="idx"
+            <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo?.key]" :key="idx"
               class="flex items-center justify-between p-3 rounded-lg border"
               :class="isDark ? 'bg-[#0b0f17] border-[#222938]' : 'bg-slate-50 border-slate-100'">
               <span class="text-xs font-medium pr-4">{{ pregunta.texto }}</span>
@@ -396,19 +396,41 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
-import ModuloChecklist from './ModuloChecklist.vue';
 
 const props = defineProps({ isDark: Boolean, company: String });
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const MODULOS = [
-  { key: 'sst', label: 'SST', icon: 'fas fa-hard-hat', color: 'amber' },
-  { key: 'ch', label: 'Capital Humano', icon: 'fas fa-users', color: 'blue' },
-  { key: 'it', label: 'IT', icon: 'fas fa-laptop', color: 'violet' },
+const TODOS_MODULOS = [
+  { key: 'sst', label: 'SST',            icon: 'fas fa-hard-hat', perm: 'novedades.offboarding.sst' },
+  { key: 'ch',  label: 'Capital Humano', icon: 'fas fa-users',    perm: 'novedades.offboarding.ch'  },
+  { key: 'it',  label: 'IT',             icon: 'fas fa-laptop',   perm: 'novedades.offboarding.it'  },
 ];
+
+// Permisos del usuario en sesión
+const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+const isSuperAdmin = !!session.isSuperAdmin;
+
+// Módulos visibles según permisos (superadmin ve todos)
+const MODULOS = computed(() =>
+  TODOS_MODULOS.filter(m => isSuperAdmin || session.permisos?.[m.perm])
+);
+
+// Checklist cargado desde la BD (clave: modulo → preguntas[])
+const checklistDB = ref({});
+onMounted(async () => {
+  try {
+    const { data } = await axios.get(`${API_URL}/novedades/paz-salvo-checklist`);
+    const agrupado = {};
+    for (const item of data) {
+      if (!agrupado[item.modulo]) agrupado[item.modulo] = [];
+      agrupado[item.modulo].push({ id: `${item.modulo}_${item.id}`, texto: item.texto, _dbId: item.id });
+    }
+    checklistDB.value = agrupado;
+  } catch { /* checklist no disponible aún */ }
+});
 
 const filtros = reactive({ cedula: '', fechaInicio: '', fechaFin: '' });
 const resultados = ref([]);
@@ -435,8 +457,9 @@ function formatFechaHoy() {
 }
 function progreso(item) {
   if (!item) return 0;
-  const completados = MODULOS.filter(mod => verificarModuloCompleto(mod.key, item)).length;
-  return Math.round((completados / MODULOS.length) * 100);
+  const mods = MODULOS.value;
+  const completados = mods.filter(mod => verificarModuloCompleto(mod.key, item)).length;
+  return Math.round((completados / (mods.length || 1)) * 100);
 }
 function getModuloPor(ps, key) {
   if (!ps) return '—';
@@ -448,6 +471,10 @@ function getModuloFecha(ps, key) {
 }
 
 async function buscar() {
+  if (!filtros.cedula.trim()) {
+    mostrarToast('Ingresa una cédula para buscar', true);
+    return;
+  }
   buscando.value = true;
   buscado.value = true;
   try {
@@ -461,7 +488,7 @@ async function buscar() {
     // API_URL ya incluye /usuarios → ruta final: /usuarios/novedades/paz-salvo/buscar
     resultados.value = data.map(r => {
       const respuestas = {}
-      for (const mod of MODULOS) {
+      for (const mod of TODOS_MODULOS) {
         const raw = r.pazSalvo?.[`${mod.key}_items`]
         if (raw) Object.assign(respuestas, JSON.parse(raw))
       }
@@ -508,24 +535,8 @@ const subModalOpen = ref(false)
 const moduloActivo = ref(null) // Guarda el objeto del módulo (p.ej. TI, Recursos Humanos)
 const itemActivo = ref(null)   // Guarda el registro del colaborador actual
 
-// 2. Diccionario de Checklists por cada módulo (Personaliza las preguntas aquí)
-const CHECKLISTS_POR_MODULO = {
-  sst: [
-    { id: 'sst_epp', texto: '¿Se realizó la entrega formal de los EPP asignados?' },
-    { id: 'sst_examen', texto: '¿Realizó o rechazó por escrito el examen médico de egreso?' },
-    { id: 'sst_accidentes', texto: '¿No hay accidentes de trabajo pendientes de cierre?' }
-  ],
-  ch: [
-    { id: 'ch_renuncia', texto: '¿Se cuenta con la carta de renuncia/despido firmada?' },
-    { id: 'ch_liquidacion', texto: '¿El cálculo de la liquidación de ley fue aprobado?' },
-    { id: 'ch_carnet', texto: '¿Se devolvió el carnet o identificación corporativa?' }
-  ],
-  it: [
-    { id: 'it_laptop', texto: '¿Hizo entrega de la Laptop y cargador corporativo?' },
-    { id: 'it_accesos', texto: '¿Se revocaron las cuentas de correo y accesos de seguridad?' },
-    { id: 'it_celular', texto: '¿Devolvió el teléfono móvil asignado?' }
-  ]
-}
+// Checklist dinámico cargado desde la BD (ver onMounted arriba)
+const CHECKLISTS_POR_MODULO = computed(() => checklistDB.value)
 
 // 3. Funciones Controladoras
 const abrirSubModal = (modulo, item) => {
@@ -537,7 +548,7 @@ const abrirSubModal = (modulo, item) => {
 const cerrarSubModal = async () => {
   if (moduloActivo.value && itemActivo.value) {
     const modKey = moduloActivo.value.key
-    const preguntas = CHECKLISTS_POR_MODULO[modKey] ?? []
+    const preguntas = CHECKLISTS_POR_MODULO.value[modKey] ?? []
     const respuestas = itemActivo.value._respuestas ?? {}
     const items = Object.fromEntries(preguntas.map(p => [p.id, respuestas[p.id] ?? null]).filter(([, v]) => v !== null))
     const ok = preguntas.length > 0 && preguntas.every(p => respuestas[p.id] !== undefined && respuestas[p.id] !== null)
@@ -574,8 +585,8 @@ const guardarRespuesta = (preguntaId, valor) => {
 
 const verificarModuloCompleto = (moduloKey, item) => {
   if (!item._respuestas) return false
-  const preguntas = CHECKLISTS_POR_MODULO[moduloKey]
-  if (!preguntas) return false
+  const preguntas = CHECKLISTS_POR_MODULO.value[moduloKey]
+  if (!preguntas?.length) return false
   return preguntas.every(p => item._respuestas[p.id] !== undefined && item._respuestas[p.id] !== null)
 }
 
