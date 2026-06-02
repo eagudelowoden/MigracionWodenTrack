@@ -176,59 +176,6 @@
             </div>
           </div>
 
-          <div v-if="subModalOpen && moduloActivo && itemActivo"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-
-            <div class="relative w-full max-w-lg rounded-xl shadow-xl border p-5"
-              :class="isDark ? 'bg-[#151b26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
-
-              <div class="flex items-center justify-between border-b pb-3 mb-4"
-                :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <div>
-                  <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-500">Módulo</h4>
-                  <h3 class="text-sm font-bold">{{ moduloActivo.label }}</h3>
-                </div>
-                <button @click="cerrarSubModal" class="text-slate-400 hover:text-slate-600 text-sm">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-
-              <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo.key]" :key="idx"
-                  class="flex items-center justify-between p-3 rounded-lg border"
-                  :class="isDark ? 'bg-[#0b0f17] border-[#222938]' : 'bg-slate-50 border-slate-100'">
-
-                  <span class="text-xs font-medium pr-4">{{ pregunta.texto }}</span>
-
-                  <div class="flex gap-1 bg-slate-200 dark:bg-[#1f2937] p-0.5 rounded-md shrink-0">
-                    <button @click="guardarRespuesta(pregunta.id, true)"
-                      class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === true
-                        ? 'bg-emerald-500 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
-                      SÍ
-                    </button>
-                    <button @click="guardarRespuesta(pregunta.id, false)"
-                      class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === false
-                        ? 'bg-rose-500 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
-                      NO
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-
-              <div class="mt-5 pt-3 border-t flex justify-end gap-2"
-                :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <button @click="cerrarSubModal"
-                  class="h-8 px-4 rounded-md text-[11px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                  Guardar y Cerrar
-                </button>
-              </div>
-
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -241,6 +188,60 @@
       </div>
 
     </div>
+
+    <!-- Modal Checklist -->
+    <Teleport to="body">
+      <div v-if="subModalOpen && moduloActivo && itemActivo"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div class="relative w-full max-w-lg rounded-xl shadow-xl border p-5"
+          :class="isDark ? 'bg-[#151b26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
+
+          <div class="flex items-center justify-between border-b pb-3 mb-4"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-500">Módulo</h4>
+              <h3 class="text-sm font-bold">{{ moduloActivo.label }}</h3>
+            </div>
+            <button @click="cerrarSubModal" class="text-slate-400 hover:text-slate-600 text-sm">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo.key]" :key="idx"
+              class="flex items-center justify-between p-3 rounded-lg border"
+              :class="isDark ? 'bg-[#0b0f17] border-[#222938]' : 'bg-slate-50 border-slate-100'">
+              <span class="text-xs font-medium pr-4">{{ pregunta.texto }}</span>
+              <div class="flex gap-1 bg-slate-200 dark:bg-[#1f2937] p-0.5 rounded-md shrink-0">
+                <button @click="guardarRespuesta(pregunta.id, true)"
+                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
+                  :class="obtenerRespuestaActual(pregunta.id) === true
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
+                  SÍ
+                </button>
+                <button @click="guardarRespuesta(pregunta.id, false)"
+                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
+                  :class="obtenerRespuestaActual(pregunta.id) === false
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
+                  NO
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-3 border-t flex justify-end gap-2"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+            <button @click="cerrarSubModal"
+              class="h-8 px-4 rounded-md text-[11px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+              Guardar y Cerrar
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Modal Paz y Salvo -->
     <Teleport to="body">
@@ -424,20 +425,20 @@ const itemActivo = ref(null)   // Guarda el registro del colaborador actual
 
 // 2. Diccionario de Checklists por cada módulo (Personaliza las preguntas aquí)
 const CHECKLISTS_POR_MODULO = {
-  tecnologia: [
-    { id: 'entrego_laptop', texto: '¿Hizo entrega de la Laptop y cargador corporativo?' },
-    { id: 'baja_accesos', texto: '¿Se revocaron las cuentas de correo y accesos de seguridad?' },
-    { id: 'entrego_celular', texto: '¿Devolvió el teléfono móvil asignado?' }
+  sst: [
+    { id: 'sst_epp', texto: '¿Se realizó la entrega formal de los EPP asignados?' },
+    { id: 'sst_examen', texto: '¿Realizó o rechazó por escrito el examen médico de egreso?' },
+    { id: 'sst_accidentes', texto: '¿No hay accidentes de trabajo pendientes de cierre?' }
   ],
-  talento_humano: [
-    { id: 'firma_renuncia', texto: '¿Se cuenta con la carta de renuncia/despido firmada?' },
-    { id: 'liquidacion_ok', texto: '¿El cálculo de la liquidación de ley fue aprobado?' },
-    { id: 'examen_egreso', texto: '¿Realizó o rechazó por escrito el examen médico de egreso?' }
+  ch: [
+    { id: 'ch_renuncia', texto: '¿Se cuenta con la carta de renuncia/despido firmada?' },
+    { id: 'ch_liquidacion', texto: '¿El cálculo de la liquidación de ley fue aprobado?' },
+    { id: 'ch_carnet', texto: '¿Se devolvió el carnet o identificación corporativa?' }
   ],
-  financiero: [
-    { id: 'sin_deudas', texto: '¿El empleado se encuentra libre de deudas o préstamos internos?' },
-    { id: 'tarjeta_credito', texto: '¿Se canceló y devolvió la tarjeta de crédito corporativa?' },
-    { id: 'caja_chica', texto: '¿Rindió cuentas de todos los viáticos o cajas chicas pendientes?' }
+  it: [
+    { id: 'it_laptop', texto: '¿Hizo entrega de la Laptop y cargador corporativo?' },
+    { id: 'it_accesos', texto: '¿Se revocaron las cuentas de correo y accesos de seguridad?' },
+    { id: 'it_celular', texto: '¿Devolvió el teléfono móvil asignado?' }
   ]
 }
 
