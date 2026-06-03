@@ -129,10 +129,8 @@
 
                   <div class="flex items-center justify-between w-full mb-2">
                     <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ mod.label }}</span>
-                    <span
-                      :class="verificarModuloCompleto(mod.key, item) ? 'text-emerald-500' : 'text-amber-500'">
-                      <i
-                        :class="verificarModuloCompleto(mod.key, item) ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
+                    <span :class="verificarModuloCompleto(mod.key, item) ? 'text-emerald-500' : 'text-amber-500'">
+                      <i :class="verificarModuloCompleto(mod.key, item) ? 'fas fa-check-circle' : 'fas fa-clock'"></i>
                     </span>
                   </div>
 
@@ -214,15 +212,13 @@
               <span class="text-xs font-medium pr-4">{{ pregunta.texto }}</span>
               <div class="flex gap-1 bg-slate-200 dark:bg-[#1f2937] p-0.5 rounded-md shrink-0">
                 <button @click="guardarRespuesta(pregunta.id, true)"
-                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
-                  :class="obtenerRespuestaActual(pregunta.id) === true
+                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === true
                     ? 'bg-emerald-500 text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
                   SÍ
                 </button>
                 <button @click="guardarRespuesta(pregunta.id, false)"
-                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
-                  :class="obtenerRespuestaActual(pregunta.id) === false
+                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === false
                     ? 'bg-rose-500 text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
                   NO
@@ -245,12 +241,9 @@
 
     <!-- Toast estilo Vercel -->
     <Teleport to="body">
-      <transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 translate-y-2 scale-95"
-        enter-to-class="opacity-100 translate-y-0 scale-100"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100 translate-y-0 scale-100"
+      <transition enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-2 scale-95" enter-to-class="opacity-100 translate-y-0 scale-100"
+        leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0 scale-100"
         leave-to-class="opacity-0 translate-y-1 scale-95">
         <div v-if="toast.visible"
           class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border shadow-2xl"
@@ -267,17 +260,11 @@
 
     <!-- Modal Paz y Salvo -->
     <Teleport to="body">
-      <transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 scale-[0.97]"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-[0.97]">
-        <div v-if="pazSalvoModal.visible"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(3px)"
-          @click.self="pazSalvoModal.visible = false">
+      <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-[0.97]"
+        enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-[0.97]">
+        <div v-if="pazSalvoModal.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(3px)" @click.self="pazSalvoModal.visible = false">
 
           <div id="paz-salvo-print" class="w-full max-w-[520px] rounded-xl overflow-hidden shadow-2xl border"
             :class="isDark ? 'bg-[#111318] border-[#222938]' : 'bg-white border-slate-200'">
@@ -294,7 +281,7 @@
                 <button @click="imprimirPazYSalvo"
                   class="flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-medium border transition-all"
                   :class="isDark ? 'border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'">
-                  <i class="fas fa-arrow-up-from-bracket text-[9px]"></i> Imprimir
+                  <i class="fas fa-arrow-up-from-bracket text-[9px]"></i> Resumen
                 </button>
                 <button @click="pazSalvoModal.visible = false"
                   class="w-7 h-7 rounded-md flex items-center justify-center border transition-all"
@@ -312,12 +299,10 @@
                 <div>
                   <p class="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1"
                     :class="isDark ? 'text-slate-500' : 'text-slate-400'">Colaborador</p>
-                  <p class="text-[16px] font-semibold tracking-tight"
-                    :class="isDark ? 'text-white' : 'text-slate-900'">
+                  <p class="text-[16px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
                     {{ pazSalvoModal.item?.novedad?.nombre }}
                   </p>
-                  <p class="text-[12px] mt-0.5"
-                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                  <p class="text-[12px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                     CC {{ pazSalvoModal.item?.novedad?.cedula }}
                     <span v-if="pazSalvoModal.item?.novedad?.departamento">
                       · {{ pazSalvoModal.item.novedad.departamento }}
@@ -327,14 +312,13 @@
                 <div class="text-right shrink-0">
                   <p class="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1"
                     :class="isDark ? 'text-slate-500' : 'text-slate-400'">Generado</p>
-                  <p class="text-[12px] font-medium"
-                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFechaHoy() }}</p>
+                  <p class="text-[12px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{
+                    formatFechaHoy() }}</p>
                 </div>
               </div>
 
               <!-- Separador punteado -->
-              <div class="border-t border-dashed"
-                :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
+              <div class="border-t border-dashed" :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
 
               <!-- Tabla de módulos -->
               <div>
@@ -344,24 +328,21 @@
                   <span class="text-[10px] font-semibold uppercase tracking-[0.1em]"
                     :class="isDark ? 'text-slate-600' : 'text-slate-400'">Responsable · Fecha</span>
                 </div>
-                <div v-for="(mod, i) in MODULOS" :key="mod.key"
-                  class="flex items-center justify-between px-1 py-2.5"
+                <div v-for="(mod, i) in MODULOS" :key="mod.key" class="flex items-center justify-between px-1 py-2.5"
                   :class="i < MODULOS.length - 1 ? (isDark ? 'border-b border-[#1e2433]' : 'border-b border-slate-100') : ''">
                   <div class="flex items-center gap-2.5">
                     <span class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-emerald-500/10">
                       <i :class="mod.icon" class="text-emerald-500" style="font-size:9px"></i>
                     </span>
-                    <span class="text-[13px] font-medium"
-                      :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{ mod.label }}</span>
+                    <span class="text-[13px] font-medium" :class="isDark ? 'text-slate-200' : 'text-slate-700'">{{
+                      mod.label }}</span>
                   </div>
                   <div class="flex items-center gap-3">
                     <div class="text-right">
-                      <p class="text-[11px] font-medium"
-                        :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+                      <p class="text-[11px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
                         {{ getModuloPor(pazSalvoModal.item?.pazSalvo, mod.key) }}
                       </p>
-                      <p class="text-[10px]"
-                        :class="isDark ? 'text-slate-600' : 'text-slate-400'">
+                      <p class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-slate-400'">
                         {{ getModuloFecha(pazSalvoModal.item?.pazSalvo, mod.key) }}
                       </p>
                     </div>
@@ -373,15 +354,15 @@
               </div>
 
               <!-- Separador punteado -->
-              <div class="border-t border-dashed"
-                :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
+              <div class="border-t border-dashed" :class="isDark ? 'border-[#2d3548]' : 'border-slate-200'"></div>
 
               <!-- Footer -->
               <div class="flex items-center justify-between">
                 <p class="text-[11px]" :class="isDark ? 'text-slate-600' : 'text-slate-400'">
                   WodenTrack · Sistema de Gestión
                 </p>
-                <span class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500">
+                <span
+                  class="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500">
                   <i class="fas fa-circle-check text-[9px]"></i> Proceso completo
                 </span>
               </div>
@@ -404,9 +385,9 @@ const props = defineProps({ isDark: Boolean, company: String });
 const API_URL = import.meta.env.VITE_API_URL;
 
 const TODOS_MODULOS = [
-  { key: 'sst', label: 'SST',            icon: 'fas fa-hard-hat', perm: 'novedades.offboarding.sst' },
-  { key: 'ch',  label: 'Capital Humano', icon: 'fas fa-users',    perm: 'novedades.offboarding.ch'  },
-  { key: 'it',  label: 'IT',             icon: 'fas fa-laptop',   perm: 'novedades.offboarding.it'  },
+  { key: 'sst', label: 'SST', icon: 'fas fa-hard-hat', perm: 'novedades.offboarding.sst' },
+  { key: 'ch', label: 'Capital Humano', icon: 'fas fa-users', perm: 'novedades.offboarding.ch' },
+  { key: 'it', label: 'IT', icon: 'fas fa-laptop', perm: 'novedades.offboarding.it' },
 ];
 
 // Permisos del usuario en sesión
@@ -596,7 +577,7 @@ function imprimirPazYSalvo() {
   const ps = item.pazSalvo;
   const novedad = item.novedad;
 
-  const modulosHtml = MODULOS.map(mod => `
+  const modulosHtml = TODOS_MODULOS.map(mod => `
     <tr>
       <td class="mod-name">${mod.label}</td>
       <td class="mod-by">${getModuloPor(ps, mod.key)}</td>
