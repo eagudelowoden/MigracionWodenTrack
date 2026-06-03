@@ -11,6 +11,14 @@ import {
 } from '@nestjs/common';
 import { SuperAdminFondosService } from './superadmin-fondos.service';
 
+interface NotificarFondoDto {
+  empleado: string;
+  cedula?: string;
+  departamento?: string;
+  fechaRenuncia?: string;
+  enviadoPor?: string;
+}
+
 @Controller('usuarios/superadmin/fondos-empleados')
 export class SuperAdminFondosController {
   constructor(private readonly svc: SuperAdminFondosService) {}
@@ -41,5 +49,14 @@ export class SuperAdminFondosController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.svc.remove(id);
+  }
+
+  /** POST /usuarios/superadmin/fondos-empleados/:id/notificar */
+  @Post(':id/notificar')
+  notificar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: NotificarFondoDto,
+  ) {
+    return this.svc.notificarFondo(id, body);
   }
 }

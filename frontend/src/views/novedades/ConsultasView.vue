@@ -217,54 +217,201 @@
 
     <!-- Modal Checklist -->
     <Teleport to="body">
-      <div v-if="subModalOpen && moduloActivo && itemActivo"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-        <div class="relative w-full max-w-lg rounded-xl shadow-xl border p-5"
-          :class="isDark ? 'bg-[#151b26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
+      <transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-[0.97]"
+        enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-[0.97]">
+        <div v-if="subModalOpen && moduloActivo && itemActivo"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)">
+          <div class="relative w-full rounded-xl shadow-2xl border flex flex-col"
+            :class="[
+              moduloActivo.key === 'ch' ? 'max-w-3xl' : 'max-w-lg',
+              isDark ? 'bg-[#0d1117] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800',
+            ]"
+            style="max-height:88vh">
 
-          <div class="flex items-center justify-between border-b pb-3 mb-4"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-            <div>
-              <h4 class="text-xs font-semibold uppercase tracking-wider text-emerald-500">Módulo</h4>
-              <h3 class="text-sm font-bold">{{ moduloActivo.label }}</h3>
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b shrink-0"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center"
+                  :class="moduloActivo.key === 'ch'
+                    ? 'bg-violet-500/15'
+                    : moduloActivo.key === 'sst'
+                      ? 'bg-amber-500/15'
+                      : 'bg-blue-500/15'">
+                  <i :class="[moduloActivo.icon, 'text-[14px]',
+                    moduloActivo.key === 'ch' ? 'text-violet-400'
+                    : moduloActivo.key === 'sst' ? 'text-amber-400'
+                    : 'text-blue-400']"></i>
+                </div>
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-widest"
+                    :class="moduloActivo.key === 'ch' ? 'text-violet-400'
+                      : moduloActivo.key === 'sst' ? 'text-amber-400' : 'text-blue-400'">
+                    Módulo · Checklist
+                  </p>
+                  <h3 class="text-[15px] font-bold">{{ moduloActivo.label }}</h3>
+                </div>
+              </div>
+              <button @click="cerrarSubModal"
+                class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'">
+                <i class="fas fa-times text-[11px]"></i>
+              </button>
             </div>
-            <button @click="cerrarSubModal" class="text-slate-400 hover:text-slate-600 text-sm">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
 
-          <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-            <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo?.key]" :key="idx"
-              class="flex items-center justify-between p-3 rounded-lg border"
-              :class="isDark ? 'bg-[#0b0f17] border-[#222938]' : 'bg-slate-50 border-slate-100'">
-              <span class="text-xs font-medium pr-4">{{ pregunta.texto }}</span>
-              <div class="flex gap-1 bg-slate-200 dark:bg-[#1f2937] p-0.5 rounded-md shrink-0">
-                <button @click="guardarRespuesta(pregunta.id, true)"
-                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === true
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
-                  SÍ
-                </button>
-                <button @click="guardarRespuesta(pregunta.id, false)"
-                  class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all" :class="obtenerRespuestaActual(pregunta.id) === false
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
-                  NO
-                </button>
+            <!-- Cuerpo: 2 columnas para CH, 1 para los demás -->
+            <div class="flex-1 overflow-hidden min-h-0"
+              :class="moduloActivo.key === 'ch' ? 'grid grid-cols-2 divide-x' : ''"
+              :style="moduloActivo.key === 'ch'
+                ? (isDark ? 'divide-color:#222938' : 'divide-color:#e2e8f0')
+                : ''">
+
+              <!-- Columna izquierda: preguntas del checklist -->
+              <div class="overflow-y-auto p-4 flex flex-col gap-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wider mb-1"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Checklist</p>
+
+                <div v-if="!CHECKLISTS_POR_MODULO[moduloActivo?.key]?.length"
+                  class="flex flex-col items-center justify-center py-10 gap-2 opacity-40">
+                  <i class="fas fa-clipboard-list text-2xl" :class="isDark ? 'text-slate-600' : 'text-slate-400'"></i>
+                  <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin preguntas configuradas</p>
+                </div>
+
+                <div v-for="(pregunta, idx) in CHECKLISTS_POR_MODULO[moduloActivo?.key]" :key="idx"
+                  class="flex items-center justify-between p-3 rounded-lg border"
+                  :class="isDark ? 'bg-[#111827] border-[#222938]' : 'bg-slate-50 border-slate-100'">
+                  <span class="text-[11px] font-medium pr-4" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                    {{ pregunta.texto }}
+                  </span>
+                  <div class="flex gap-0.5 p-0.5 rounded-md shrink-0"
+                    :class="isDark ? 'bg-[#1f2937]' : 'bg-slate-200'">
+                    <button @click="guardarRespuesta(pregunta.id, true)"
+                      class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
+                      :class="obtenerRespuestaActual(pregunta.id) === true
+                        ? 'bg-emerald-500 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
+                      SÍ
+                    </button>
+                    <button @click="guardarRespuesta(pregunta.id, false)"
+                      class="px-3 py-1 text-[10px] font-bold rounded-sm transition-all"
+                      :class="obtenerRespuestaActual(pregunta.id) === false
+                        ? 'bg-rose-500 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'">
+                      NO
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Columna derecha: Fondos de empleados (solo CH) -->
+              <div v-if="moduloActivo.key === 'ch'" class="overflow-y-auto p-4 flex flex-col gap-3"
+                :class="isDark ? 'border-[#222938]' : 'border-slate-200'"
+                style="border-left-width:1px">
+
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-[10px] font-semibold uppercase tracking-wider"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">Fondos de Empleados</p>
+                  <span class="text-[9px] px-2 py-0.5 rounded-full font-medium"
+                    :class="isDark ? 'bg-violet-500/15 text-violet-400' : 'bg-violet-50 text-violet-600'">
+                    Notificaciones
+                  </span>
+                </div>
+
+                <!-- Cargando -->
+                <div v-if="fondosCargando" class="flex items-center justify-center py-8 opacity-40">
+                  <i class="fas fa-spinner fa-spin text-lg" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
+                </div>
+
+                <!-- Sin fondos -->
+                <div v-else-if="!fondosList.length"
+                  class="flex flex-col items-center justify-center py-10 gap-2 opacity-40">
+                  <i class="fas fa-building-user text-2xl" :class="isDark ? 'text-slate-600' : 'text-slate-400'"></i>
+                  <p class="text-[11px] text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                    Sin fondos configurados.<br>Créalos en la pestaña Fondos.
+                  </p>
+                </div>
+
+                <!-- Lista de fondos -->
+                <div v-else class="flex flex-col gap-2">
+                  <div v-for="fondo in fondosList" :key="fondo.id"
+                    class="rounded-lg border overflow-hidden"
+                    :class="isDark ? 'border-[#222938] bg-[#111827]' : 'border-slate-200 bg-white'">
+
+                    <!-- Cabecera fondo -->
+                    <div class="flex items-center justify-between px-3 py-2.5 border-b"
+                      :class="isDark ? 'border-[#1a2030] bg-[#0d1117]' : 'border-slate-100 bg-slate-50'">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-md flex items-center justify-center bg-violet-500/15">
+                          <i class="fas fa-building-user text-violet-400 text-[9px]"></i>
+                        </div>
+                        <span class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                          {{ fondo.nombre }}
+                        </span>
+                      </div>
+                      <button
+                        @click="notificarFondo(fondo)"
+                        :disabled="!fondo.correos?.length || fondosNotificando[fondo.id]"
+                        class="h-7 px-3 rounded-md text-[10px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        :class="fondosNotificados[fondo.id]
+                          ? 'bg-emerald-500/15 text-emerald-500'
+                          : 'bg-violet-500 text-white hover:bg-violet-600'">
+                        <i class="text-[8px]"
+                          :class="fondosNotificando[fondo.id] ? 'fas fa-circle-notch fa-spin'
+                            : fondosNotificados[fondo.id] ? 'fas fa-check'
+                            : 'fas fa-paper-plane'"></i>
+                        {{ fondosNotificando[fondo.id] ? 'Enviando…'
+                          : fondosNotificados[fondo.id] ? 'Enviado'
+                          : 'Notificar' }}
+                      </button>
+                    </div>
+
+                    <!-- Correos del fondo -->
+                    <div class="px-3 py-2 flex flex-col gap-1">
+                      <div v-if="!fondo.correos?.length"
+                        class="text-[10px] py-1" :class="isDark ? 'text-slate-600' : 'text-slate-400'">
+                        <i class="fas fa-exclamation-circle mr-1 text-amber-400"></i>
+                        Sin correos asociados
+                      </div>
+                      <div v-for="email in fondo.correos" :key="email"
+                        class="flex items-center gap-1.5 text-[10px]"
+                        :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                        <i class="fas fa-envelope text-[8px] opacity-40"></i>
+                        <span class="truncate">{{ email }}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Info empleado que renunció -->
+                <div class="mt-auto pt-3 border-t text-[10px]"
+                  :class="isDark ? 'border-[#222938] text-slate-500' : 'border-slate-100 text-slate-400'">
+                  <i class="fas fa-user mr-1"></i>
+                  Notificación para:
+                  <strong :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                    {{ itemActivo?.novedad?.nombre }}
+                  </strong>
+                  · CC {{ itemActivo?.novedad?.cedula }}
+                </div>
+
               </div>
             </div>
-          </div>
 
-          <div class="mt-5 pt-3 border-t flex justify-end gap-2"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-            <button @click="cerrarSubModal"
-              class="h-8 px-4 rounded-md text-[11px] font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-              Guardar y Cerrar
-            </button>
-          </div>
+            <!-- Footer -->
+            <div class="px-5 py-3.5 border-t shrink-0 flex justify-end gap-2"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <button @click="cerrarSubModal"
+                class="h-8 px-5 rounded-md text-[11px] font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                <i class="fas fa-check text-[9px]"></i>
+                Guardar y Cerrar
+              </button>
+            </div>
 
+          </div>
         </div>
-      </div>
+      </transition>
     </Teleport>
 
     <!-- Toast estilo Vercel -->
@@ -549,6 +696,47 @@ const subModalOpen = ref(false)
 const moduloActivo = ref(null) // Guarda el objeto del módulo (p.ej. TI, Recursos Humanos)
 const itemActivo = ref(null)   // Guarda el registro del colaborador actual
 
+// ── Fondos de Empleados (para modal CH) ────────────────────────────────────
+const fondosList = ref([]);
+const fondosCargando = ref(false);
+const fondosNotificando = ref({});  // { [fondoId]: boolean }
+const fondosNotificados = ref({});  // { [fondoId]: boolean }
+
+async function cargarFondos() {
+  fondosCargando.value = true;
+  try {
+    const res = await fetch(`${API_URL}/superadmin/fondos-empleados`, { cache: 'no-store' });
+    if (res.ok) fondosList.value = await res.json();
+  } catch { /* silencioso */ }
+  finally { fondosCargando.value = false; }
+}
+
+async function notificarFondo(fondo) {
+  if (!fondo.correos?.length) return;
+  fondosNotificando.value = { ...fondosNotificando.value, [fondo.id]: true };
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/fondos-empleados/${fondo.id}/notificar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        empleado: itemActivo.value?.novedad?.nombre,
+        cedula: itemActivo.value?.novedad?.cedula,
+        departamento: itemActivo.value?.novedad?.departamento,
+        fechaRenuncia: itemActivo.value?.novedad?.fechaInicio,
+        enviadoPor: session.name || 'Capital Humano',
+      }),
+    });
+    if (!res.ok) throw new Error();
+    fondosNotificados.value = { ...fondosNotificados.value, [fondo.id]: true };
+    mostrarToast(`Notificación enviada a ${fondo.nombre}`);
+  } catch {
+    mostrarToast(`Error al notificar ${fondo.nombre}`, true);
+  } finally {
+    fondosNotificando.value = { ...fondosNotificando.value, [fondo.id]: false };
+  }
+}
+
 // Checklist dinámico cargado desde la BD (ver onMounted arriba)
 const CHECKLISTS_POR_MODULO = computed(() => checklistDB.value)
 
@@ -557,6 +745,12 @@ const abrirSubModal = (modulo, item) => {
   moduloActivo.value = modulo
   itemActivo.value = item
   subModalOpen.value = true
+  // Cargar fondos y resetear estados de notificación al abrir CH
+  if (modulo.key === 'ch') {
+    fondosNotificados.value = {};
+    fondosNotificando.value = {};
+    cargarFondos();
+  }
 }
 
 const cerrarSubModal = async () => {
