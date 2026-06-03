@@ -66,7 +66,10 @@
       "PowerShell($env:DB_NAME)",
       "Bash(Find \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -type f -name \"*.js\" -o -name \"*.py\" -o -name \"*.ts\")",
       "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer"
     ]
   }
 }

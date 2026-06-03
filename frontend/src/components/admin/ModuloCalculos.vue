@@ -1384,103 +1384,226 @@
     <!-- ══ MODAL VISTA PREVIA NOTIFICACIÓN ══════════════════════════════════ -->
     <Teleport to="body">
       <div v-if="modalVistaPrevia" class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style="background:rgba(0,0,0,0.6)">
-        <div class="w-full max-w-2xl rounded-xl border shadow-2xl flex flex-col max-h-[85vh]"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+        style="background:rgba(0,0,0,0.65)" @click.self="cerrarVistaPrevia">
+        <div class="w-full max-w-5xl rounded-xl border shadow-2xl flex flex-col" style="max-height:90vh"
+          :class="isDark ? 'bg-[#0F1420] border-[#222938]' : 'bg-white border-slate-200'">
 
-          <!-- Header -->
-          <div class="flex items-center gap-3 px-5 py-4 border-b flex-shrink-0"
+          <!-- ── Header ── -->
+          <div class="flex items-center gap-3 px-5 py-3.5 border-b flex-shrink-0"
             :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[#3B82F6]/15">
-              <i class="fas fa-envelope text-[#3B82F6] text-[13px]"></i>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 flex-shrink-0">
+              <i class="fas fa-envelope-open-text text-emerald-500 text-[13px]"></i>
             </div>
-            <div>
-              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Vista previa —
-                Notificación</p>
-              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Se notificarán
-                <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
-                  {{ selectedNovedades.size > 0 ? selectedNovedades.size : novedadesAprobadas.length }}
+            <div class="min-w-0">
+              <p class="text-[13px] font-semibold leading-tight" :class="isDark ? 'text-white' : 'text-slate-900'">Vista
+                previa — Notificación a Capital Humano</p>
+              <p class="text-[11px] leading-tight mt-0.5" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Revisa que los datos sean correctos antes de enviar.
+                <span class="font-semibold ml-1" :class="isDark ? 'text-white' : 'text-slate-800'">
+                  {{ registrosANotificar.length }} registro(s) seleccionado(s)
                 </span>
-                registro(s)
               </p>
             </div>
             <button @click="cerrarVistaPrevia"
-              class="ml-auto w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+              class="ml-auto flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all"
               :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'">
               <i class="fas fa-xmark text-[12px]"></i>
             </button>
           </div>
 
-          <!-- Tabla de registros a notificar -->
-          <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-4">
-            <p class="text-[10px] font-semibold uppercase mb-2" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-              Registros que se incluirán en la notificación
-            </p>
-            <div class="rounded-lg border overflow-hidden" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-              <table class="w-full text-[11px] border-separate border-spacing-0">
-                <thead>
-                  <tr :class="isDark ? 'bg-[#0B0F19]' : 'bg-slate-50'">
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">Nombre
-                    </th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">Fecha</th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
-                      Departamento
-                    </th>
-                    <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                      class="px-2 py-2 text-center text-[10px] font-medium border-b w-10"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
-                      {{ col }}
-                    </th>
-                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
-                      Observación
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(r, idx) in (selectedNovedades.size > 0 ? novedadesAprobadas.filter(n => selectedNovedades.has(n.id)) : novedadesAprobadas)"
-                    :key="r.id" :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/50') : ''">
-                    <td class="px-3 py-1.5 border-b font-bold uppercase text-[10px]"
-                      :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
-                    </td>
-                    <td class="px-3 py-1.5 border-b text-center"
-                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">{{
-                        formatFecha(r.fecha) }}</td>
-                    <td class="px-3 py-1.5 border-b"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
-                        r.departamento || '—' }}</td>
-                    <td v-for="col in COLS_HX" :key="col" class="px-2 py-1.5 border-b text-center"
-                      :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                      Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-600 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                      {{ formatDecimal(r[col]) }}
-                    </td>
-                    <td class="px-3 py-1.5 border-b italic text-[10px]"
-                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
-                        r.observacion || '—' }}</td>
-                  </tr>
-                </tbody>
-              </table>
+          <!-- ── Simulación de correo ── -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar">
+
+            <!-- Cabecera del correo (para/asunto) -->
+            <div class="px-5 pt-4 pb-3 border-b flex flex-col gap-1.5 flex-shrink-0"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <div class="flex items-center gap-2 text-[11px]">
+                <span class="w-14 text-right flex-shrink-0 font-medium"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Para:</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                  :class="isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-700'">
+                  Capital Humano (destinatarios configurados)
+                </span>
+              </div>
+              <div class="flex items-center gap-2 text-[11px]">
+                <span class="w-14 text-right flex-shrink-0 font-medium"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Asunto:</span>
+                <span class="font-semibold" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                  ✅ Novedades HX aprobadas ({{ registrosANotificar.length }} registros) — {{ fechaHoyISO }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2 text-[11px]">
+                <span class="w-14 text-right flex-shrink-0 font-medium"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Adjunto:</span>
+                <span class="flex items-center gap-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  <i class="fas fa-file-excel text-emerald-500 text-[10px]"></i>
+                  novedades_hx_aprobadas_{{ fechaHoyISO }}.xlsx
+                </span>
+              </div>
+            </div>
+
+            <!-- Cuerpo del correo simulado -->
+            <div class="px-5 py-4">
+              <!-- Banner verde igual al correo real -->
+              <div class="rounded-lg border-l-4 border-emerald-500 px-4 py-3 mb-4"
+                :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50'">
+                <p class="text-[12px] font-semibold mb-1" :class="isDark ? 'text-white' : 'text-slate-900'">
+                  ✅ Novedades de horas extra aprobadas
+                </p>
+                <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  {{ registrosANotificar.length }} registro(s) aprobado(s). Ver detalle en el archivo adjunto.
+                </p>
+              </div>
+
+              <!-- Tabla detalle completa (marcación + horas) -->
+              <p class="text-[9px] font-semibold uppercase tracking-wide mb-2"
+                :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                Detalle de marcación y horas calculadas
+              </p>
+              <div class="rounded-lg border overflow-auto custom-scrollbar"
+                :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+                <table class="w-full text-[11px] border-separate border-spacing-0" style="min-width:860px">
+                  <thead class="sticky top-0 z-10">
+                    <tr :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-100'">
+                      <th class="px-3 py-2 text-left text-[10px] font-semibold border-b border-r"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300' : 'border-slate-200 text-slate-600'">Cédula
+                      </th>
+                      <th class="px-3 py-2 text-left text-[10px] font-semibold border-b border-r"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300' : 'border-slate-200 text-slate-600'">Nombre
+                      </th>
+                      <th class="px-3 py-2 text-center text-[10px] font-semibold border-b border-r"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300' : 'border-slate-200 text-slate-600'">Fecha
+                      </th>
+                      <th class="px-3 py-2 text-left text-[10px] font-semibold border-b border-r"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300' : 'border-slate-200 text-slate-600'">Depto.
+                      </th>
+                      <!-- Marcación -->
+                      <th colspan="3"
+                        class="px-2 py-2 text-center text-[10px] font-semibold border-b border-r bg-blue-500/10"
+                        :class="isDark ? 'border-[#2d3748] text-blue-300' : 'border-slate-200 text-blue-700'">
+                        Marcación
+                      </th>
+                      <!-- Horas extra -->
+                      <th colspan="7"
+                        class="px-2 py-2 text-center text-[10px] font-semibold border-b border-r bg-emerald-500/10"
+                        :class="isDark ? 'border-[#2d3748] text-emerald-300' : 'border-slate-200 text-emerald-700'">
+                        Horas calculadas
+                      </th>
+                      <th class="px-3 py-2 text-left text-[10px] font-semibold border-b"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300' : 'border-slate-200 text-slate-600'">
+                        Observación
+                      </th>
+                    </tr>
+                    <!-- Sub-headers marcación + horas -->
+                    <tr :class="isDark ? 'bg-[#161B26]' : 'bg-white'">
+                      <th colspan="4" class="border-b border-r"
+                        :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+                      </th>
+                      <!-- Marcación sub -->
+                      <th class="px-2 py-1.5 text-center text-[9px] font-medium border-b border-r bg-blue-500/5"
+                        :class="isDark ? 'border-[#222938] text-blue-400' : 'border-slate-200 text-blue-600'">Entrada
+                      </th>
+                      <th class="px-2 py-1.5 text-center text-[9px] font-medium border-b border-r bg-blue-500/5"
+                        :class="isDark ? 'border-[#222938] text-blue-400' : 'border-slate-200 text-blue-600'">Salida
+                      </th>
+                      <!-- Horas sub -->
+                      <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
+                        class="px-2 py-1.5 text-center text-[9px] font-medium border-b border-r bg-emerald-500/5 w-10"
+                        :class="isDark ? 'border-[#222938] text-emerald-400' : 'border-slate-200 text-emerald-700'">
+                        {{ col }}
+                      </th>
+                      <th class="border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-200'"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(r, idx) in registrosANotificar" :key="r.id" class="transition-colors"
+                      :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.025]' : 'bg-slate-50/70') : ''">
+                      <!-- Cédula -->
+                      <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
+                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                        {{ r.cedula }}
+                      </td>
+                      <!-- Nombre -->
+                      <td class="px-3 py-2 border-b border-r font-bold uppercase text-[10px]"
+                        :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">
+                        {{ r.nombre }}
+                        <div v-if="r.cargo" class="text-[8px] font-normal mt-0.5"
+                          :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ r.cargo }}</div>
+                      </td>
+                      <!-- Fecha -->
+                      <td class="px-3 py-2 border-b border-r text-center"
+                        :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
+                        {{ formatFecha(r.fecha) }}
+                      </td>
+                      <!-- Depto -->
+                      <td class="px-3 py-2 border-b border-r"
+                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                        {{ r.departamento || '—' }}
+                      </td>
+                      <!-- Entrada -->
+                      <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px] bg-blue-500/[0.03]"
+                        :class="isDark ? 'border-[#222938] text-blue-300' : 'border-slate-100 text-blue-700'">
+                        {{ r.fecha_entrada ? (r.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '—') : '—' }}
+                      </td>
+                      <!-- Salida -->
+                      <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px] bg-blue-500/[0.03]"
+                        :class="isDark ? 'border-[#222938] text-blue-300' : 'border-slate-100 text-blue-700'">
+                        {{ r.fecha_salida ? (r.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '—') : '—' }}
+                      </td>
+                      <!-- T. Laborado -->
+
+                      <!-- Cols HX -->
+                      <td v-for="col in COLS_HX" :key="col"
+                        class="px-2 py-2 border-b border-r text-center bg-emerald-500/[0.03]" :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                        Number(r[col]) > 0
+                          ? (isDark ? 'text-emerald-400 font-semibold' : 'text-emerald-700 font-semibold')
+                          : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                        {{ Number(r[col]) > 0 ? formatDecimal(r[col]) : '—' }}
+                      </td>
+                      <!-- Observación -->
+                      <td class="px-3 py-2 border-b italic text-[10px]"
+                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                        {{ r.observacion || '—' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Resumen totales -->
+              <div class="mt-4 grid grid-cols-4 gap-2">
+                <div v-for="col in COLS_HX.filter(c => ['hedo', 'heno', 'hefd', 'hefn'].includes(c))" :key="col"
+                  class="rounded-lg border px-3 py-2 text-center"
+                  :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
+                  <p class="text-[9px] font-semibold uppercase mb-0.5"
+                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ col.toUpperCase() }}</p>
+                  <p class="text-[14px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                    {{formatDecimal(registrosANotificar.reduce((s, r) => s + Number(r[col] || 0), 0))}}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Acciones -->
-          <div class="flex items-center justify-end gap-2 px-5 py-4 border-t flex-shrink-0"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-            <button @click="cerrarVistaPrevia" class="h-8 px-4 rounded-lg border text-[11px] font-medium transition-all"
-              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
-              Cancelar
-            </button>
-            <button @click="confirmarNotificar" :disabled="isNotifying"
-              class="h-8 px-4 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
-              :class="isDark ? 'bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb]' : 'bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb]'">
-              <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[10px]"></i>
-              {{ isNotifying ? 'Enviando…' : 'Confirmar y notificar' }}
-            </button>
+          <!-- ── Acciones ── -->
+          <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-t flex-shrink-0"
+            :class="isDark ? 'border-[#222938] bg-[#0B0F19]/60' : 'border-slate-200 bg-slate-50/80'">
+            <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <i class="fas fa-circle-info mr-1"></i>
+              Se adjuntará un Excel con el detalle completo al correo.
+            </p>
+            <div class="flex items-center gap-2">
+              <button @click="cerrarVistaPrevia"
+                class="h-8 px-4 rounded-lg border text-[11px] font-medium transition-all"
+                :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white hover:border-slate-600' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+                Cancelar
+              </button>
+              <button @click="confirmarNotificar" :disabled="isNotifying"
+                class="h-8 px-5 rounded-lg text-[11px] font-semibold flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[10px]"></i>
+                {{ isNotifying ? 'Enviando correo…' : 'Confirmar y notificar a Capital Humano' }}
+              </button>
+            </div>
           </div>
 
         </div>
@@ -1938,6 +2061,16 @@ function handleCargueMenuOutsideClick(e) {
 
 // ── Modal vista previa notificación ──────────────────────────────────────────
 const modalVistaPrevia = ref(false);
+
+/** Registros que se van a notificar: los seleccionados, o todos si no hay selección */
+const registrosANotificar = computed(() =>
+  selectedNovedades.value.size > 0
+    ? novedadesAprobadas.value.filter(n => selectedNovedades.value.has(n.id))
+    : novedadesAprobadas.value
+);
+
+/** Fecha de hoy en formato YYYY-MM-DD para el asunto del correo */
+const fechaHoyISO = computed(() => new Date().toISOString().slice(0, 10));
 
 function abrirVistaPrevia() {
   modalVistaPrevia.value = true;
