@@ -1,21 +1,49 @@
 <template>
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
-    <!-- Header -->
-    <div class="flex items-center gap-3 px-4 py-3 rounded-md border shrink-0"
+    <!-- Header con tabs de vista -->
+    <div class="flex items-center justify-between px-4 py-3 rounded-md border shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/15">
-        <i class="fas fa-magnifying-glass text-emerald-500 text-[13px]"></i>
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/15">
+          <i class="fas fa-magnifying-glass text-emerald-500 text-[13px]"></i>
+        </div>
+        <div>
+          <h2 class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+            Consultas — Proceso de Offboarding
+          </h2>
+          <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+            Renuncias aprobadas · Seguimiento de Paz y Salvo
+          </p>
+        </div>
       </div>
-      <div>
-        <h2 class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
-          Consultas — Proceso de Offboarding
-        </h2>
-        <p class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-          Renuncias aprobadas · Seguimiento de Paz y Salvo
-        </p>
+      <!-- Selector de sub-vista -->
+      <div class="flex items-center gap-1 p-0.5 rounded-lg border"
+        :class="isDark ? 'border-[#222938] bg-[#111827]' : 'border-slate-200 bg-slate-100'">
+        <button @click="consultaVista = 'renuncias'"
+          class="h-7 px-3 rounded-md text-[11px] font-medium transition-all"
+          :class="consultaVista === 'renuncias'
+            ? 'bg-emerald-500 text-white shadow-sm'
+            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-user-minus mr-1.5 text-[9px]"></i>Renuncias
+        </button>
+        <button @click="consultaVista = 'fondos'"
+          class="h-7 px-3 rounded-md text-[11px] font-medium transition-all"
+          :class="consultaVista === 'fondos'
+            ? 'bg-violet-500 text-white shadow-sm'
+            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-building-user mr-1.5 text-[9px]"></i>Fondos
+        </button>
       </div>
     </div>
+
+    <!-- Vista: Fondos de Empleados -->
+    <GestionFondoEmpleados v-if="consultaVista === 'fondos'" :isDark="isDark"
+      class="flex-1 min-h-0 rounded-md border overflow-hidden"
+      :class="isDark ? 'border-[#222938]' : 'border-slate-200'" />
+
+    <!-- Vista: Renuncias -->
+    <template v-if="consultaVista === 'renuncias'">
 
     <!-- Filtros de búsqueda -->
     <div class="flex flex-wrap items-end gap-3 px-4 py-3 rounded-md border shrink-0"
@@ -373,16 +401,21 @@
       </transition>
     </Teleport>
 
+    </template><!-- /v-if renuncias -->
+
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
+import GestionFondoEmpleados from '../../components/admin/SuperAdmin/GestionFondoEmpleados.vue';
 
 const props = defineProps({ isDark: Boolean, company: String });
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const consultaVista = ref('renuncias');
 
 const TODOS_MODULOS = [
   { key: 'sst', label: 'SST', icon: 'fas fa-hard-hat', perm: 'novedades.offboarding.sst' },

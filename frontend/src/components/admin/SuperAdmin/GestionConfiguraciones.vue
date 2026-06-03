@@ -193,6 +193,56 @@
             </Transition>
           </div>
         </div>
+
+        <!-- ─── Correos de notificación de Renuncia ──────────────────────── -->
+        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
+          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
+            <div class="cfg-chip-icon bg-rose-500/12 border-rose-500/20">
+              <i class="fas fa-envelope-open-text text-rose-400 text-[10px]"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Notificaciones de Renuncia</p>
+              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Correos que reciben aviso cuando se registra una novedad con tipificación de <strong>Renuncia</strong>
+              </p>
+            </div>
+          </div>
+          <div class="cfg-card-body flex flex-col gap-3">
+            <!-- Lista -->
+            <div v-if="correo.renunciaEmails.length" class="flex flex-col gap-1.5">
+              <div v-for="email in correo.renunciaEmails" :key="email"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]"
+                :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-slate-200 bg-slate-50'">
+                <i class="fas fa-envelope opacity-40 text-[9px]"></i>
+                <span class="flex-1 truncate" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ email }}</span>
+                <button @click="quitarRenunciaEmail(email)" class="cfg-chip-remove">
+                  <i class="fas fa-xmark text-[8px]"></i>
+                </button>
+              </div>
+            </div>
+            <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
+              No hay correos configurados para notificaciones de renuncia
+            </p>
+            <!-- Agregar -->
+            <div class="cfg-dest-input-row">
+              <input v-model="correo.nuevoRenunciaEmail" type="email"
+                placeholder="notificacion@empresa.com"
+                @keydown.enter="agregarRenunciaEmail"
+                class="cfg-input flex-1" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+              <button @click="agregarRenunciaEmail"
+                :disabled="!correo.nuevoRenunciaEmail.trim()"
+                class="cfg-btn-ghost disabled:opacity-40" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
+                <i class="fas fa-plus text-[9px]"></i> Agregar
+              </button>
+              <button @click="guardarRenunciaEmails" :disabled="correo.guardandoRenuncia || !correo.renunciaEmails.length"
+                class="cfg-btn-blue disabled:opacity-40">
+                <i class="fas text-[9px]" :class="correo.guardandoRenuncia ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+                {{ correo.guardandoRenuncia ? 'Guardando…' : 'Guardar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- ─── TAB PROGRAMACIÓN ─────────────────────────────────────────────── -->
@@ -877,6 +927,8 @@ const correo = ref({
   destinatarios: [], nuevoDestinatario: '', guardandoDest: false,
   // Capital Humano
   capitalHumano: [], nuevoCapitalHumano: '', guardandoCH: false,
+  // Novedades — Renuncia
+  renunciaEmails: [], nuevoRenunciaEmail: '', guardandoRenuncia: false,
   // Coordinadores por departamento
   coordinadores: [],          // [{ email, segmento }]
   nuevoCoordEmail: '',
@@ -888,11 +940,12 @@ const correo = ref({
 
 const cargarConfigCorreo = async () => {
   try {
-    const [resCfg, resCH, resCord, resSegs] = await Promise.all([
-      fetch(`${API_URL}/superadmin/correo/config`,          { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/capital-humano`,  { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/coordinadores`,   { cache: 'no-store' }),
-      fetch(`${API_URL}/organizacion/segmentos`,             { cache: 'no-store' }),
+    const [resCfg, resCH, resCord, resSegs, resRen] = await Promise.all([
+      fetch(`${API_URL}/superadmin/correo/config`,             { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/capital-humano`,     { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/coordinadores`,      { cache: 'no-store' }),
+      fetch(`${API_URL}/organizacion/segmentos`,                { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/novedades-renuncia`, { cache: 'no-store' }),
     ]);
     if (resCfg.ok) {
       const cfg = await resCfg.json();
@@ -901,6 +954,7 @@ const cargarConfigCorreo = async () => {
     }
     if (resCH.ok)   correo.value.capitalHumano  = await resCH.json();
     if (resCord.ok) correo.value.coordinadores   = await resCord.json();
+    if (resRen.ok)  correo.value.renunciaEmails  = await resRen.json();
     if (resSegs.ok) {
       const segs = await resSegs.json();
       correo.value.segmentos = Array.isArray(segs) ? segs.map(s => s.nombre ?? s) : [];
@@ -990,6 +1044,35 @@ const guardarCapitalHumano = async (flushInput = true) => {
     await cargarConfigCorreo();
   } catch { emit('error', 'Error al guardar Capital Humano'); }
   finally { correo.value.guardandoCH = false; }
+};
+
+// ── Novedades — Renuncia ────────────────────────────────────────────────────
+const agregarRenunciaEmail = () => {
+  const email = correo.value.nuevoRenunciaEmail.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if (!correo.value.renunciaEmails.includes(email)) correo.value.renunciaEmails.push(email);
+  correo.value.nuevoRenunciaEmail = '';
+};
+
+const quitarRenunciaEmail = async (email) => {
+  correo.value.renunciaEmails = correo.value.renunciaEmails.filter(e => e !== email);
+  await guardarRenunciaEmails(false);
+};
+
+const guardarRenunciaEmails = async (flushInput = true) => {
+  if (flushInput) agregarRenunciaEmail();
+  correo.value.guardandoRenuncia = true;
+  try {
+    const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+    const res = await fetch(`${API_URL}/superadmin/correo/novedades-renuncia`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emails: correo.value.renunciaEmails, updatedBy: session.name || 'superadmin' }),
+    });
+    if (!res.ok) throw new Error();
+    emit('success', 'Correos de renuncia guardados');
+    await cargarConfigCorreo();
+  } catch { emit('error', 'Error al guardar correos de renuncia'); }
+  finally { correo.value.guardandoRenuncia = false; }
 };
 
 // ── Coordinadores por departamento ──────────────────────────────────────────
