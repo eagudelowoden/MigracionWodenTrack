@@ -418,4 +418,25 @@ export class SuperAdminCorreoService {
         </div>
       </div>`;
   }
+
+  // ── Novedades — Renuncia ──────────────────────────────────────
+  async getNovedadesRenuncia(): Promise<string[]> {
+    const rows = await this.destRepo.find({ where: { tipo: 'novedad_renuncia' } });
+    return rows.map((r) => r.email);
+  }
+
+  async saveNovedadesRenuncia(emails: string[], updatedBy: string): Promise<{ ok: boolean }> {
+    await this.destRepo.delete({ tipo: 'novedad_renuncia' });
+    if (emails.length > 0) {
+      const entities = emails.map((email) =>
+        this.destRepo.create({
+          tipo: 'novedad_renuncia',
+          email: email.toLowerCase().trim(),
+          creado_por: updatedBy,
+        }),
+      );
+      await this.destRepo.save(entities);
+    }
+    return { ok: true };
+  }
 }

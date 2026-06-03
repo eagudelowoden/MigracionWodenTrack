@@ -61,4 +61,16 @@ export class SuperAdminCorreoController {
   saveCoordinadores(@Body() body: { items: { email: string; segmento: string | null }[]; updatedBy?: string }) {
     return this.svc.saveCoordinadores(body.items ?? [], body.updatedBy || 'superadmin');
   }
+
+  // ── Novedades — Renuncia ──────────────────────────────────────
+  @Get('novedades-renuncia')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  getNovedadesRenuncia() {
+    return this.svc.getNovedadesRenuncia();
+  }
+
+  @Post('novedades-renuncia')
+  saveNovedadesRenuncia(@Body() body: { emails: string[]; updatedBy?: string }) {
+    return this.svc.saveNovedadesRenuncia(body.emails ?? [], body.updatedBy || 'superadmin');
+  }
 }
