@@ -859,17 +859,60 @@
       <!-- Toolbar -->
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length
-          }}</span>
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length }}</span>
           registro(s) guardado(s) en el rango
+          <span v-if="selectedGuardados.size" class="ml-2 font-semibold text-[#3B82F6]">
+            · {{ selectedGuardados.size }} seleccionado(s)
+          </span>
         </span>
-        <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
-          class="ml-auto h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
-        </button>
+
+        <div class="ml-auto flex items-center gap-1.5 flex-wrap">
+          <!-- Acciones masivas: solo visibles cuando hay selección -->
+          <template v-if="selectedGuardados.size > 0">
+            <!-- Limpiar -->
+            <button @click="clearSeleccionGuardados"
+              class="h-7 px-2 rounded-[5px] border text-[11px] font-medium transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              <i class="fas fa-xmark text-[9px]"></i> Limpiar
+            </button>
+            <!-- Aprobar seleccionados -->
+            <button @click="aprobarSeleccionadosGuardados(true)" :disabled="bulkGuardandoAprobacion"
+              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
+              :class="isDark ? 'bg-[#16a34a]/10 border-[#16a34a]/40 text-[#4ade80] hover:bg-[#16a34a]/20' : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'">
+              <i :class="bulkGuardandoAprobacion ? 'fas fa-spinner fa-spin' : 'fas fa-check'" class="text-[9px]"></i>
+              Aprobar ({{ selectedGuardados.size }})
+            </button>
+            <!-- Rechazar seleccionados -->
+            <button @click="aprobarSeleccionadosGuardados(false)" :disabled="bulkGuardandoAprobacion"
+              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
+              :class="isDark ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#f87171] hover:bg-[#dc2626]/20' : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'">
+              <i class="fas fa-times text-[9px]"></i>
+              Rechazar ({{ selectedGuardados.size }})
+            </button>
+            <!-- Eliminar seleccionados -->
+            <button @click="eliminarSeleccionadosGuardados" :disabled="bulkEliminandoGuardados"
+              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
+              :class="isDark ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#f87171] hover:bg-[#dc2626]/20' : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'">
+              <i :class="bulkEliminandoGuardados ? 'fas fa-spinner fa-spin' : 'fas fa-trash'" class="text-[9px]"></i>
+              Eliminar ({{ selectedGuardados.size }})
+            </button>
+          </template>
+
+          <!-- Obs. grupal por fecha -->
+          <button v-if="fechasUnicasGuardados.length" @click="abrirObsGrupal()"
+            class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all"
+            :class="isDark ? 'bg-[#161B26] border-amber-500/30 text-amber-400 hover:bg-amber-500/10' : 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50'"
+            title="Agregar observación/justificación a todos los registros de una fecha">
+            <i class="fas fa-pen-to-square text-[9px]"></i> Obs. por fecha
+          </button>
+
+          <!-- Refresh -->
+          <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
+            :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
+            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
+          </button>
+        </div>
       </div>
 
       <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
@@ -894,36 +937,35 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <!-- Checkbox seleccionar todos -->
+                <th class="px-3 py-2 text-center border-b border-r border-[#f5f5f7] w-8">
+                  <input type="checkbox"
+                    :checked="allGuardadosSelected"
+                    :indeterminate="someGuardadosSelected"
+                    @change="toggleAllGuardados"
+                    class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                </th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Cédula</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Nombre</th>
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Fecha</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Departamento</th>
-
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
                   Entrada</th>
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
                   Salida</th>
-
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                  T. Laborado</th>
                 <th v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col.toUpperCase() }}
                 </th>
-
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
                   Estado</th>
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
                   Actividad</th>
                 <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">
                   Acciones</th>
@@ -934,7 +976,7 @@
 
                 <!-- Empresa -->
                 <tr v-if="item.tipo === 'empresa'">
-                  <td colspan="16" class="px-4 py-2 text-[10px] font-medium border-b"
+                  <td colspan="18" class="px-4 py-2 text-[10px] font-medium border-b"
                     :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
                     <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
                   </td>
@@ -942,10 +984,20 @@
 
                 <!-- Fila normal -->
                 <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100" :class="[
-                  editandoId === item.data.id
-                    ? (isDark ? 'bg-[#3B82F6]/[0.06]' : 'bg-blue-50/60')
-                    : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''
+                  selectedGuardados.has(item.data.id)
+                    ? (isDark ? 'bg-[#3B82F6]/[0.07]' : 'bg-blue-50/70')
+                    : editandoId === item.data.id
+                      ? (isDark ? 'bg-[#3B82F6]/[0.06]' : 'bg-blue-50/60')
+                      : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''
                 ]">
+                  <!-- Checkbox -->
+                  <td class="px-3 py-2 border-b border-r text-center"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                    <input type="checkbox"
+                      :checked="selectedGuardados.has(item.data.id)"
+                      @change="toggleGuardadoSelected(item.data.id)"
+                      class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                  </td>
                   <!-- Cédula -->
                   <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
                     :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
@@ -953,10 +1005,8 @@
                   </td>
                   <!-- Nombre -->
                   <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
-                      item.data.nombre }}</div>
-                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
-                      item.data.cargo || '—' }}</div>
+                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
+                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
                   </td>
                   <!-- Fecha -->
                   <td class="px-3 py-2 border-b border-r text-center"
@@ -968,16 +1018,23 @@
                     :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
                     {{ item.data.departamento || '—' }}
                   </td>
-
                   <!-- Entrada -->
                   <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
-                    {{ item.data.fecha_entrada ? item.data.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
+                    {{ item.data.fecha_entrada ? item.data.fecha_entrada.split(' ')[1]?.slice(0,5) ?? '—' : '—' }}
                   </td>
                   <!-- Salida -->
                   <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
-                    {{ item.data.fecha_salida ? item.data.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
+                    {{ item.data.fecha_salida ? item.data.fecha_salida.split(' ')[1]?.slice(0,5) ?? '—' : '—' }}
+                  </td>
+                  <!-- T. Laborado -->
+                  <td class="px-2 py-2 border-b border-r text-center text-[10px] font-semibold"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
+                    <template v-if="item.data.fecha_entrada && item.data.fecha_salida">
+                      {{ calcularTiempoLaborado(item.data.fecha_entrada, item.data.fecha_salida) }}
+                    </template>
+                    <span v-else :class="isDark ? 'text-slate-600' : 'text-slate-300'">—</span>
                   </td>
 
 
@@ -1090,7 +1147,7 @@
 
                 <!-- Subtotal -->
                 <tr v-else-if="item.tipo === 'subtotal'">
-                  <td colspan="4" class="px-3 py-2 border-b border-r text-[10px] font-medium"
+                  <td colspan="8" class="px-3 py-2 border-b border-r text-[10px] font-medium"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     Subtotal — {{ item.data.nombre }}
                   </td>
@@ -1099,7 +1156,7 @@
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     {{ formatDecimal(item.data.subtotales[col]) }}
                   </td>
-                  <td colspan="6" class="border-b"
+                  <td colspan="3" class="border-b"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
                 </tr>
 
@@ -1381,6 +1438,108 @@
     <!-- ══ FIN TAB HISTORIAL ═════════════════════════════════════════════════ -->
 
 
+    <!-- ══ MODAL OBSERVACIÓN GRUPAL POR FECHA ══════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="modalObsGrupal.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.55)" @click.self="modalObsGrupal.visible = false">
+        <div class="w-full max-w-md rounded-xl border shadow-2xl"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center gap-3 px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-500/10 flex-shrink-0">
+              <i class="fas fa-pen-to-square text-amber-500 text-[13px]"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                Observación / Justificación grupal
+              </p>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Se aplicará a todos los registros de la fecha seleccionada
+              </p>
+            </div>
+            <button @click="modalObsGrupal.visible = false"
+              class="ml-auto w-7 h-7 rounded-lg flex items-center justify-center transition-all flex-shrink-0"
+              :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'">
+              <i class="fas fa-xmark text-[12px]"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="px-5 py-4 flex flex-col gap-4">
+
+            <!-- Selector de fecha -->
+            <div>
+              <label class="block text-[10px] font-semibold uppercase mb-1.5"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha</label>
+              <div class="flex flex-wrap gap-1.5">
+                <button v-for="f in fechasUnicasGuardados" :key="f"
+                  @click="modalObsGrupal.fecha = f"
+                  class="px-3 py-1 rounded-[5px] border text-[11px] font-medium transition-all"
+                  :class="modalObsGrupal.fecha === f
+                    ? 'bg-[#3B82F6] border-[#3B82F6] text-white'
+                    : (isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300 hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300')">
+                  {{ formatFecha(f) }}
+                  <span class="ml-1 opacity-60 text-[9px]">
+                    ({{ soloFilasGuardados.filter(r => r.fecha === f).length }})
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Registros afectados -->
+            <div v-if="modalObsGrupal.fecha">
+              <label class="block text-[10px] font-semibold uppercase mb-1.5"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Registros afectados ({{ soloFilasGuardados.filter(r => r.fecha === modalObsGrupal.fecha).length }})
+              </label>
+              <div class="rounded-lg border overflow-hidden" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+                <div v-for="r in soloFilasGuardados.filter(rr => rr.fecha === modalObsGrupal.fecha)"
+                  :key="r.id"
+                  class="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 text-[11px]"
+                  :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <i class="fas fa-user text-[9px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
+                  <span class="font-semibold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ r.nombre }}</span>
+                  <span class="ml-auto text-[9px] shrink-0" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ r.departamento || '—' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observación -->
+            <div>
+              <label class="block text-[10px] font-semibold uppercase mb-1.5"
+                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Observación / Justificación</label>
+              <textarea v-model="modalObsGrupal.observacion" rows="3"
+                placeholder="Ej: Trabajo en cierre de mes, turno extra autorizado por gerencia..."
+                class="w-full rounded-lg border px-3 py-2 text-[11px] resize-none outline-none transition-all"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-white placeholder-slate-600 focus:border-[#3B82F6]/60'
+                  : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:border-blue-400'">
+              </textarea>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-2 px-5 py-4 border-t"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <button @click="modalObsGrupal.visible = false"
+              class="h-8 px-4 rounded-lg border text-[11px] font-medium transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="guardarObsGrupal"
+              :disabled="!modalObsGrupal.fecha || !modalObsGrupal.observacion.trim() || modalObsGrupal.loading"
+              class="h-8 px-4 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white">
+              <i :class="modalObsGrupal.loading ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
+              {{ modalObsGrupal.loading ? 'Guardando…' : 'Aplicar a todos' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ══ MODAL VISTA PREVIA NOTIFICACIÓN ══════════════════════════════════ -->
     <Teleport to="body">
       <div v-if="modalVistaPrevia" class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1570,18 +1729,6 @@
                 </table>
               </div>
 
-              <!-- Resumen totales -->
-              <div class="mt-4 grid grid-cols-4 gap-2">
-                <div v-for="col in COLS_HX.filter(c => ['hedo', 'heno', 'hefd', 'hefn'].includes(c))" :key="col"
-                  class="rounded-lg border px-3 py-2 text-center"
-                  :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50 border-slate-200'">
-                  <p class="text-[9px] font-semibold uppercase mb-0.5"
-                    :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ col.toUpperCase() }}</p>
-                  <p class="text-[14px] font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
-                    {{formatDecimal(registrosANotificar.reduce((s, r) => s + Number(r[col] || 0), 0))}}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -2059,6 +2206,108 @@ function handleCargueMenuOutsideClick(e) {
   }
 }
 
+// ── Selección masiva en Guardados ────────────────────────────────────────────
+const selectedGuardados = ref(new Set());
+
+const soloFilasGuardados = computed(() =>
+  filasAplanadasGuardados.value.filter(f => f.tipo === 'fila').map(f => f.data)
+);
+
+const allGuardadosSelected = computed(() =>
+  soloFilasGuardados.value.length > 0 &&
+  soloFilasGuardados.value.every(r => selectedGuardados.value.has(r.id))
+);
+const someGuardadosSelected = computed(() =>
+  soloFilasGuardados.value.some(r => selectedGuardados.value.has(r.id)) && !allGuardadosSelected.value
+);
+
+function toggleGuardadoSelected(id) {
+  const s = new Set(selectedGuardados.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  selectedGuardados.value = s;
+}
+function toggleAllGuardados() {
+  if (allGuardadosSelected.value) {
+    selectedGuardados.value = new Set();
+  } else {
+    selectedGuardados.value = new Set(soloFilasGuardados.value.map(r => r.id));
+  }
+}
+function clearSeleccionGuardados() {
+  selectedGuardados.value = new Set();
+}
+
+// Aprobar/rechazar todos los seleccionados
+const bulkGuardandoAprobacion = ref(false);
+async function aprobarSeleccionadosGuardados(aprobado) {
+  const ids = [...selectedGuardados.value];
+  if (!ids.length) return;
+  bulkGuardandoAprobacion.value = true;
+  try {
+    for (const id of ids) {
+      await aprobarRegistro(id, aprobado, '');
+    }
+    clearSeleccionGuardados();
+    await cargarGuardados(props.company);
+  } catch { /* silencioso */ } finally {
+    bulkGuardandoAprobacion.value = false;
+  }
+}
+
+// Eliminar todos los seleccionados
+const bulkEliminandoGuardados = ref(false);
+async function eliminarSeleccionadosGuardados() {
+  const ids = [...selectedGuardados.value];
+  if (!ids.length) return;
+  bulkEliminandoGuardados.value = true;
+  try {
+    for (const id of ids) {
+      await eliminarRegistro(id);
+    }
+    clearSeleccionGuardados();
+  } catch { /* silencioso */ } finally {
+    bulkEliminandoGuardados.value = false;
+  }
+}
+
+// ── Modal observación grupal por fecha ───────────────────────────────────────
+const modalObsGrupal = reactive({
+  visible: false,
+  fecha: '',           // YYYY-MM-DD
+  observacion: '',
+  loading: false,
+});
+
+/** Fechas únicas presentes en los registros guardados */
+const fechasUnicasGuardados = computed(() => {
+  const set = new Set(soloFilasGuardados.value.map(r => r.fecha).filter(Boolean));
+  return [...set].sort();
+});
+
+function abrirObsGrupal(fecha = '') {
+  modalObsGrupal.fecha = fecha || (fechasUnicasGuardados.value[0] ?? '');
+  modalObsGrupal.observacion = '';
+  modalObsGrupal.loading = false;
+  modalObsGrupal.visible = true;
+}
+
+async function guardarObsGrupal() {
+  if (!modalObsGrupal.fecha) return;
+  modalObsGrupal.loading = true;
+  try {
+    const ids = soloFilasGuardados.value
+      .filter(r => r.fecha === modalObsGrupal.fecha)
+      .map(r => r.id);
+    for (const id of ids) {
+      await actualizarActividad(id, modalObsGrupal.observacion);
+    }
+    modalObsGrupal.visible = false;
+    await cargarGuardados(props.company);
+  } catch { /* silencioso */ } finally {
+    modalObsGrupal.loading = false;
+  }
+}
+
 // ── Modal vista previa notificación ──────────────────────────────────────────
 const modalVistaPrevia = ref(false);
 
@@ -2136,6 +2385,7 @@ async function handleTabHistorial() {
 
 async function handleTabGuardados() {
   activeTab.value = 'guardados';
+  clearSeleccionGuardados();
   await cargarGuardados(props.company);
 }
 
