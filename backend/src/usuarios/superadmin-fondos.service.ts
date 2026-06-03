@@ -183,12 +183,18 @@ export class SuperAdminFondosService {
           </div>
         </div>`;
 
-      await t.sendMail({
-        from: `"${fromNombre}" <${fromUser}>`,
-        to: correos.join(', '),
-        subject: `Renuncia — ${data.empleado} · Fondo ${fondo.nombre}`,
-        html,
-      });
+      // Enviamos un correo individual a cada destinatario para evitar
+      // que algunos SMTP (Office365) truncen la lista de recipients.
+      await Promise.all(
+        correos.map((dest) =>
+          t.sendMail({
+            from: `"${fromNombre}" <${fromUser}>`,
+            to: dest,
+            subject: `Renuncia — ${data.empleado} · Fondo ${fondo.nombre}`,
+            html,
+          }),
+        ),
+      );
 
       return {
         ok: true,
