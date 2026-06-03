@@ -859,7 +859,8 @@
       <!-- Toolbar -->
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length }}</span>
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length
+            }}</span>
           registro(s) guardado(s) en el rango
           <span v-if="selectedGuardados.size" class="ml-2 font-semibold text-[#3B82F6]">
             · {{ selectedGuardados.size }} seleccionado(s)
@@ -939,33 +940,39 @@
               <tr class="bg-[#1e2538]">
                 <!-- Checkbox seleccionar todos -->
                 <th class="px-3 py-2 text-center border-b border-r border-[#f5f5f7] w-8">
-                  <input type="checkbox"
-                    :checked="allGuardadosSelected"
-                    :indeterminate="someGuardadosSelected"
-                    @change="toggleAllGuardados"
-                    class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                  <input type="checkbox" :checked="allGuardadosSelected" :indeterminate="someGuardadosSelected"
+                    @change="toggleAllGuardados" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Nombre</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Fecha</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Departamento</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
                   Entrada</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
                   Salida</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
                   T. Laborado</th>
                 <th v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col.toUpperCase() }}
                 </th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
                   Estado</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
                   Actividad</th>
                 <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">
                   Acciones</th>
@@ -993,8 +1000,7 @@
                   <!-- Checkbox -->
                   <td class="px-3 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
-                    <input type="checkbox"
-                      :checked="selectedGuardados.has(item.data.id)"
+                    <input type="checkbox" :checked="selectedGuardados.has(item.data.id)"
                       @change="toggleGuardadoSelected(item.data.id)"
                       class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                   </td>
@@ -1005,8 +1011,10 @@
                   </td>
                   <!-- Nombre -->
                   <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{ item.data.nombre }}</div>
-                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ item.data.cargo || '—' }}</div>
+                    <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+                      item.data.nombre }}</div>
+                    <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
+                      item.data.cargo || '—' }}</div>
                   </td>
                   <!-- Fecha -->
                   <td class="px-3 py-2 border-b border-r text-center"
@@ -1021,12 +1029,12 @@
                   <!-- Entrada -->
                   <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
-                    {{ item.data.fecha_entrada ? item.data.fecha_entrada.split(' ')[1]?.slice(0,5) ?? '—' : '—' }}
+                    {{ item.data.fecha_entrada ? item.data.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
                   </td>
                   <!-- Salida -->
                   <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
                     :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
-                    {{ item.data.fecha_salida ? item.data.fecha_salida.split(' ')[1]?.slice(0,5) ?? '—' : '—' }}
+                    {{ item.data.fecha_salida ? item.data.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
                   </td>
                   <!-- T. Laborado -->
                   <td class="px-2 py-2 border-b border-r text-center text-[10px] font-semibold"
@@ -1474,15 +1482,14 @@
               <label class="block text-[10px] font-semibold uppercase mb-1.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha</label>
               <div class="flex flex-wrap gap-1.5">
-                <button v-for="f in fechasUnicasGuardados" :key="f"
-                  @click="modalObsGrupal.fecha = f"
+                <button v-for="f in fechasUnicasGuardados" :key="f" @click="modalObsGrupal.fecha = f"
                   class="px-3 py-1 rounded-[5px] border text-[11px] font-medium transition-all"
                   :class="modalObsGrupal.fecha === f
                     ? 'bg-[#3B82F6] border-[#3B82F6] text-white'
                     : (isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300 hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300')">
                   {{ formatFecha(f) }}
                   <span class="ml-1 opacity-60 text-[9px]">
-                    ({{ soloFilasGuardados.filter(r => r.fecha === f).length }})
+                    ({{soloFilasGuardados.filter(r => r.fecha === f).length}})
                   </span>
                 </button>
               </div>
@@ -1492,16 +1499,17 @@
             <div v-if="modalObsGrupal.fecha">
               <label class="block text-[10px] font-semibold uppercase mb-1.5"
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Registros afectados ({{ soloFilasGuardados.filter(r => r.fecha === modalObsGrupal.fecha).length }})
+                Registros afectados ({{soloFilasGuardados.filter(r => r.fecha === modalObsGrupal.fecha).length}})
               </label>
               <div class="rounded-lg border overflow-hidden" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-                <div v-for="r in soloFilasGuardados.filter(rr => rr.fecha === modalObsGrupal.fecha)"
-                  :key="r.id"
+                <div v-for="r in soloFilasGuardados.filter(rr => rr.fecha === modalObsGrupal.fecha)" :key="r.id"
                   class="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 text-[11px]"
                   :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <i class="fas fa-user text-[9px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
-                  <span class="font-semibold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{ r.nombre }}</span>
-                  <span class="ml-auto text-[9px] shrink-0" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ r.departamento || '—' }}</span>
+                  <span class="font-semibold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    r.nombre }}</span>
+                  <span class="ml-auto text-[9px] shrink-0" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
+                    r.departamento || '—' }}</span>
                 </div>
               </div>
             </div>
@@ -1512,11 +1520,10 @@
                 :class="isDark ? 'text-slate-400' : 'text-slate-500'">Observación / Justificación</label>
               <textarea v-model="modalObsGrupal.observacion" rows="3"
                 placeholder="Ej: Trabajo en cierre de mes, turno extra autorizado por gerencia..."
-                class="w-full rounded-lg border px-3 py-2 text-[11px] resize-none outline-none transition-all"
-                :class="isDark
+                class="w-full rounded-lg border px-3 py-2 text-[11px] resize-none outline-none transition-all" :class="isDark
                   ? 'bg-[#0B0F19] border-[#222938] text-white placeholder-slate-600 focus:border-[#3B82F6]/60'
                   : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:border-blue-400'">
-              </textarea>
+          </textarea>
             </div>
           </div>
 
@@ -1531,7 +1538,8 @@
             <button @click="guardarObsGrupal"
               :disabled="!modalObsGrupal.fecha || !modalObsGrupal.observacion.trim() || modalObsGrupal.loading"
               class="h-8 px-4 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white">
-              <i :class="modalObsGrupal.loading ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
+              <i :class="modalObsGrupal.loading ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'"
+                class="text-[10px]"></i>
               {{ modalObsGrupal.loading ? 'Guardando…' : 'Aplicar a todos' }}
             </button>
           </div>
@@ -2291,13 +2299,24 @@ function abrirObsGrupal(fecha = '') {
   modalObsGrupal.visible = true;
 }
 
+/** Registros que recibirán la observación grupal:
+ *  - Si hay selección activa → solo los seleccionados
+ *  - Si no hay selección     → todos los de la fecha elegida
+ */
+const registrosObsGrupal = computed(() => {
+  if (selectedGuardados.value.size > 0) {
+    return soloFilasGuardados.value.filter(r => selectedGuardados.value.has(r.id));
+  }
+  return soloFilasGuardados.value.filter(r => r.fecha === modalObsGrupal.fecha);
+});
+
+const haySeleccionActiva = computed(() => selectedGuardados.value.size > 0);
+
 async function guardarObsGrupal() {
-  if (!modalObsGrupal.fecha) return;
+  const ids = registrosObsGrupal.value.map(r => r.id);
+  if (!ids.length) return;
   modalObsGrupal.loading = true;
   try {
-    const ids = soloFilasGuardados.value
-      .filter(r => r.fecha === modalObsGrupal.fecha)
-      .map(r => r.id);
     for (const id of ids) {
       await actualizarActividad(id, modalObsGrupal.observacion);
     }
