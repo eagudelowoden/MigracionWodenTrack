@@ -906,10 +906,19 @@
                 <th
                   class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Departamento</th>
+
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  Entrada</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  Salida</th>
+
                 <th v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col.toUpperCase() }}
                 </th>
+
                 <th
                   class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
                   Estado</th>
@@ -925,7 +934,7 @@
 
                 <!-- Empresa -->
                 <tr v-if="item.tipo === 'empresa'">
-                  <td colspan="13" class="px-4 py-2 text-[10px] font-medium border-b"
+                  <td colspan="16" class="px-4 py-2 text-[10px] font-medium border-b"
                     :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
                     <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
                   </td>
@@ -960,6 +969,19 @@
                     {{ item.data.departamento || '—' }}
                   </td>
 
+                  <!-- Entrada -->
+                  <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
+                    {{ item.data.fecha_entrada ? item.data.fecha_entrada.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
+                  </td>
+                  <!-- Salida -->
+                  <td class="px-2 py-2 border-b border-r text-center font-mono text-[10px]"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">
+                    {{ item.data.fecha_salida ? item.data.fecha_salida.split(' ')[1]?.slice(0, 5) ?? '—' : '—' }}
+                  </td>
+
+
+
                   <!-- Celdas de horas: input en modo edición, valor normal en modo lectura -->
                   <td v-for="col in COLS_HX" :key="col" class="px-1 py-1 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -975,6 +997,8 @@
                         : (isDark ? 'text-slate-600' : 'text-slate-300')
                     ]">{{ formatDecimal(item.data[col]) }}</span>
                   </td>
+
+
 
                   <!-- Estado -->
                   <td class="px-2 py-2 border-b border-r text-center"
@@ -1075,7 +1099,7 @@
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     {{ formatDecimal(item.data.subtotales[col]) }}
                   </td>
-                  <td colspan="3" class="border-b"
+                  <td colspan="6" class="border-b"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'"></td>
                 </tr>
 
@@ -1119,7 +1143,8 @@
       <!-- Toolbar notificar -->
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length }}</span>
+          <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ novedadesAprobadas.length
+          }}</span>
           registro(s) pendientes de notificar
           <span v-if="selectedNovedades.size" class="ml-2 font-semibold text-[#3B82F6]">
             · {{ selectedNovedades.size }} seleccionado(s)
@@ -1133,13 +1158,16 @@
             <i class="fas fa-xmark text-[9px]"></i> Limpiar
           </button>
           <!-- Notificar -->
-          <button @click="handleNotificar" :disabled="isNotifying || !novedadesAprobadas.length"
+          <button @click="abrirVistaPrevia" :disabled="isNotifying || !novedadesAprobadas.length"
             class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
             :class="selectedNovedades.size
               ? (isDark ? 'bg-[#3B82F6]/15 border-[#3B82F6]/60 text-[#60A5FA]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/40 text-[#2563eb]')
               : (isDark ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60' : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60')">
             <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[10px]"></i>
-            {{ isNotifying ? 'Enviando…' : selectedNovedades.size ? `Notificar (${selectedNovedades.size})` : 'Notificar todos' }}
+            {{ isNotifying ? 'Enviando…' : selectedNovedades.size ? `Notificar (${selectedNovedades.size})` :
+              'Notificar'
+              +
+              'todos' }}
           </button>
         </div>
       </div>
@@ -1170,44 +1198,55 @@
                   <input type="checkbox"
                     :checked="selectedNovedades.size === novedadesAprobadas.length && novedadesAprobadas.length > 0"
                     :indeterminate="selectedNovedades.size > 0 && selectedNovedades.size < novedadesAprobadas.length"
-                    @change="toggleAllNovedades"
-                    class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
+                    @change="toggleAllNovedades" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Cédula</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Nombre</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Fecha</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Departamento</th>
                 <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col }}
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">Acciones</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Observación</th>
+                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id"
-                class="group transition-all cursor-pointer"
-                :class="[
-                  selectedNovedades.has(r.id)
-                    ? (isDark ? 'bg-[#3B82F6]/[0.08]' : 'bg-blue-50/70')
-                    : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : '',
-                ]"
-                @click="toggleNovedadSelected(r.id)">
+              <tr v-for="(r, idx) in novedadesAprobadas" :key="r.id" class="group transition-all cursor-pointer" :class="[
+                selectedNovedades.has(r.id)
+                  ? (isDark ? 'bg-[#3B82F6]/[0.08]' : 'bg-blue-50/70')
+                  : idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : '',
+              ]" @click="toggleNovedadSelected(r.id)">
                 <!-- Checkbox -->
-                <td class="px-3 py-2 border-b border-r text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
-                  <input type="checkbox" :checked="selectedNovedades.has(r.id)"
-                    @change="toggleNovedadSelected(r.id)"
+                <td class="px-3 py-2 border-b border-r text-center"
+                  :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                  <input type="checkbox" :checked="selectedNovedades.has(r.id)" @change="toggleNovedadSelected(r.id)"
                     class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                 </td>
                 <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}
+                </td>
                 <td class="px-3 py-2 border-b border-r font-bold uppercase"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
+                </td>
                 <td class="px-3 py-2 border-b border-r text-center"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                    formatFecha(r.fecha) }}</td>
                 <td class="px-3 py-2 border-b border-r"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
+                    r.departamento || '—' }}</td>
                 <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
                   :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
                   Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
@@ -1280,31 +1319,44 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Departamento</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Cédula</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Nombre</th>
+                <th
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Fecha</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  Departamento</th>
                 <th v-for="col in COLS_HX" :key="col"
                   class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col.toUpperCase() }}
                 </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">Observación</th>
+                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  Observación</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(r, idx) in historial" :key="r.id" class="transition-all"
                 :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
                 <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}
+                </td>
                 <td class="px-3 py-2 border-b border-r font-bold uppercase"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}</td>
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
+                </td>
                 <td class="px-3 py-2 border-b border-r text-center"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ formatFecha(r.fecha) }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                    formatFecha(r.fecha) }}</td>
                 <td class="px-3 py-2 border-b border-r"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{ r.departamento || '—' }}</td>
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
+                    r.departamento || '—' }}</td>
                 <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
                   :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                    Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                  Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
                   {{ formatDecimal(r[col]) }}
                 </td>
                 <td class="px-3 py-2 border-b text-[10px]"
@@ -1317,8 +1369,10 @@
         </div>
 
         <!-- Footer -->
-        <div class="px-3 py-1.5 border-t shrink-0" :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
-          <p class="text-[9px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+        <div class="px-3 py-1.5 border-t shrink-0"
+          :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+          <p class="text-[9px] font-semibold uppercase tracking-wide"
+            :class="isDark ? 'text-slate-500' : 'text-slate-400'">
             Historial: <span class="text-[#3B82F6]">{{ historial.length }}</span> registros notificados
           </p>
         </div>
@@ -1326,6 +1380,112 @@
     </template>
     <!-- ══ FIN TAB HISTORIAL ═════════════════════════════════════════════════ -->
 
+
+    <!-- ══ MODAL VISTA PREVIA NOTIFICACIÓN ══════════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="modalVistaPrevia" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.6)">
+        <div class="w-full max-w-2xl rounded-xl border shadow-2xl flex flex-col max-h-[85vh]"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center gap-3 px-5 py-4 border-b flex-shrink-0"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[#3B82F6]/15">
+              <i class="fas fa-envelope text-[#3B82F6] text-[13px]"></i>
+            </div>
+            <div>
+              <p class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Vista previa —
+                Notificación</p>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Se notificarán
+                <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                  {{ selectedNovedades.size > 0 ? selectedNovedades.size : novedadesAprobadas.length }}
+                </span>
+                registro(s)
+              </p>
+            </div>
+            <button @click="cerrarVistaPrevia"
+              class="ml-auto w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+              :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'">
+              <i class="fas fa-xmark text-[12px]"></i>
+            </button>
+          </div>
+
+          <!-- Tabla de registros a notificar -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-4">
+            <p class="text-[10px] font-semibold uppercase mb-2" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              Registros que se incluirán en la notificación
+            </p>
+            <div class="rounded-lg border overflow-hidden" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+              <table class="w-full text-[11px] border-separate border-spacing-0">
+                <thead>
+                  <tr :class="isDark ? 'bg-[#0B0F19]' : 'bg-slate-50'">
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">Nombre
+                    </th>
+                    <th class="px-3 py-2 text-center text-[10px] font-medium border-b"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">Fecha</th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
+                      Departamento
+                    </th>
+                    <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
+                      class="px-2 py-2 text-center text-[10px] font-medium border-b w-10"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
+                      {{ col }}
+                    </th>
+                    <th class="px-3 py-2 text-left text-[10px] font-medium border-b"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-200 text-slate-500'">
+                      Observación
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(r, idx) in (selectedNovedades.size > 0 ? novedadesAprobadas.filter(n => selectedNovedades.has(n.id)) : novedadesAprobadas)"
+                    :key="r.id" :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/50') : ''">
+                    <td class="px-3 py-1.5 border-b font-bold uppercase text-[10px]"
+                      :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
+                    </td>
+                    <td class="px-3 py-1.5 border-b text-center"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-600'">{{
+                        formatFecha(r.fecha) }}</td>
+                    <td class="px-3 py-1.5 border-b"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                        r.departamento || '—' }}</td>
+                    <td v-for="col in COLS_HX" :key="col" class="px-2 py-1.5 border-b text-center"
+                      :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                      Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-600 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
+                      {{ formatDecimal(r[col]) }}
+                    </td>
+                    <td class="px-3 py-1.5 border-b italic text-[10px]"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                        r.observacion || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="flex items-center justify-end gap-2 px-5 py-4 border-t flex-shrink-0"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+            <button @click="cerrarVistaPrevia" class="h-8 px-4 rounded-lg border text-[11px] font-medium transition-all"
+              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
+              Cancelar
+            </button>
+            <button @click="confirmarNotificar" :disabled="isNotifying"
+              class="h-8 px-4 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
+              :class="isDark ? 'bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb]' : 'bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb]'">
+              <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[10px]"></i>
+              {{ isNotifying ? 'Enviando…' : 'Confirmar y notificar' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </Teleport>
 
     <!-- ══ MODAL ELIMINAR ═══════════════════════════════════════════════════ -->
     <Teleport to="body">
@@ -1776,6 +1936,20 @@ function handleCargueMenuOutsideClick(e) {
   }
 }
 
+// ── Modal vista previa notificación ──────────────────────────────────────────
+const modalVistaPrevia = ref(false);
+
+function abrirVistaPrevia() {
+  modalVistaPrevia.value = true;
+}
+function cerrarVistaPrevia() {
+  modalVistaPrevia.value = false;
+}
+async function confirmarNotificar() {
+  modalVistaPrevia.value = false;
+  await handleNotificar();
+}
+
 // ── Modal observación ─────────────────────────────────────────────────────────
 const modalAprobar = reactive({
   visible: false,
@@ -1881,7 +2055,7 @@ async function handleGuardar() {
     const n = selectedRecords.value.length;
     const result = await guardarCalculados(props.company, mostrarDecimales.value);
     const guardados = result?.guardados ?? n;
-    const omitidos  = result?.omitidos ?? [];
+    const omitidos = result?.omitidos ?? [];
 
     if (omitidos.length && guardados === 0) {
       // Todos omitidos
@@ -1919,6 +2093,15 @@ function esDomingo(fecha) {
   if (!fecha) return false;
   const [y, m, d] = fecha.split('-').map(Number);
   return new Date(y, m - 1, d).getDay() === 0; // 0 = domingo en JS
+}
+
+function calcularTiempoLaborado(entrada, salida) {
+  if (!entrada || !salida) return '—';
+  const diff = (new Date(salida) - new Date(entrada)) / 60000;
+  if (isNaN(diff) || diff <= 0) return '—';
+  const h = Math.floor(diff / 60);
+  const m = Math.floor(diff % 60);
+  return `${h}h ${m.toString().padStart(2, '0')}m`;
 }
 
 onMounted(() => {

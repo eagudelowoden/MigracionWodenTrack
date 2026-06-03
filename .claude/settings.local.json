@@ -65,7 +65,8 @@
       "Bash(findstr /i \"hora\")",
       "PowerShell($env:DB_NAME)",
       "Bash(Find \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -type f -name \"*.js\" -o -name \"*.py\" -o -name \"*.ts\")",
-      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })"
     ]
   }
 }
