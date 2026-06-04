@@ -250,6 +250,12 @@ export class SuperAdminCorreoService {
     if (!(await this.correoHabilitado())) return { ok: false, mensaje: 'Sistema de correo deshabilitado' };
 
     const destinatarios = await this.getDestinatariosNovedades();
+    if (data.tipificacion === 'Renuncia') {
+      const renunciaEmails = await this.getNovedadesRenuncia();
+      for (const email of renunciaEmails) {
+        if (!destinatarios.includes(email)) destinatarios.push(email);
+      }
+    }
     if (!destinatarios.length) return { ok: false, mensaje: 'No hay destinatarios configurados para novedades' };
 
     try {
