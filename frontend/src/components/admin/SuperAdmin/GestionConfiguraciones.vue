@@ -1,409 +1,264 @@
 <template>
-  <div class="cfg-root" :class="isDark ? 'cfg-dark' : 'cfg-light'">
+  <div class="c-root" :class="isDark ? 'c-dark' : 'c-light'">
 
-    <!-- ══ HEADER ═══════════════════════════════════════════════════════════ -->
-    <div class="cfg-header" :class="isDark ? 'cfg-header-dark' : 'cfg-header-light'">
-      <div class="cfg-header-left">
-        <div class="cfg-header-icon" :class="isDark ? 'cfg-icon-dark' : 'cfg-icon-light'">
-          <i class="fas fa-sliders text-[13px] text-orange-400"></i>
-        </div>
-        <div>
-          <h2 class="cfg-title" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Configuración del Sistema
-          </h2>
-          <p class="cfg-subtitle" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            Versión {{ appVersion }}
-          </p>
-        </div>
+    <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+    <div class="c-header" :class="isDark ? 'c-header-dark' : 'c-header-light'">
+      <div>
+        <h2 class="c-title" :class="isDark ? 'text-white' : 'text-[#111]'">Configuración del Sistema</h2>
+        <p class="c-subtitle" :class="isDark ? 'text-[#555]' : 'text-[#999]'">v{{ appVersion }}</p>
       </div>
-
-      <div class="flex items-center gap-2">
-        <!-- Badge estado sistema -->
-        <div class="cfg-status-badge"
-          :class="mantenimiento.enabled
-            ? 'cfg-badge-maintenance'
-            : (isDark ? 'cfg-badge-ok-dark' : 'cfg-badge-ok-light')">
-          <span class="cfg-status-dot"
-            :class="mantenimiento.enabled ? 'bg-rose-400 animate-pulse' : 'bg-emerald-400'"></span>
-          {{ mantenimiento.enabled ? 'En mantenimiento' : 'Sistema operativo' }}
+      <div class="flex items-center gap-3">
+        <div class="c-status-row">
+          <span class="c-status-dot" :class="mantenimiento.enabled ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'"></span>
+          <span class="c-status-label" :class="isDark ? 'text-[#666]' : 'text-[#999]'">
+            {{ mantenimiento.enabled ? 'Mantenimiento' : 'Operativo' }}
+          </span>
         </div>
-
-        <!-- Guardar -->
-        <button @click="guardar" :disabled="saving" class="cfg-btn-save">
+        <button @click="guardar" :disabled="saving" class="c-btn-primary">
           <i class="text-[9px]" :class="saving ? 'fas fa-circle-notch fa-spin' : 'fas fa-floppy-disk'"></i>
-          {{ saving ? 'Guardando…' : 'Guardar cambios' }}
+          {{ saving ? 'Guardando…' : 'Guardar' }}
         </button>
       </div>
     </div>
 
-    <!-- ══ TABS ══════════════════════════════════════════════════════════════ -->
-    <div class="cfg-tabs" :class="isDark ? 'cfg-tabs-dark' : 'cfg-tabs-light'">
+    <!-- ══ TABS ═════════════════════════════════════════════════════════════ -->
+    <div class="c-tabs" :class="isDark ? 'c-tabs-dark' : 'c-tabs-light'">
       <button v-for="t in tabs" :key="t.id" @click="activeTab = t.id"
-        class="cfg-tab"
-        :class="activeTab === t.id
-          ? 'cfg-tab-active'
-          : (isDark ? 'cfg-tab-idle-dark' : 'cfg-tab-idle-light')">
-        <i :class="t.icon" class="text-[9px]"></i>
+        class="c-tab" :class="activeTab === t.id ? (isDark ? 'c-tab-active-dark' : 'c-tab-active-light') : (isDark ? 'c-tab-idle-dark' : 'c-tab-idle-light')">
         {{ t.label }}
-        <span v-if="activeTab === t.id" class="cfg-tab-bar"></span>
+        <span v-if="activeTab === t.id" class="c-tab-line"></span>
       </button>
     </div>
 
     <!-- ══ BODY ══════════════════════════════════════════════════════════════ -->
-    <div class="cfg-body">
+    <div class="c-body">
 
-      <!-- ─── TAB SISTEMA ──────────────────────────────────────────────────── -->
-      <div v-if="activeTab === 'sistema'" class="cfg-section">
+      <!-- ── TAB SISTEMA ──────────────────────────────────────────────────── -->
+      <div v-if="activeTab === 'sistema'" class="c-section">
 
         <!-- Mantenimiento IIS -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon"
-              :class="mantenimiento.enabled
-                ? 'bg-rose-500/15 border-rose-500/20'
-                : (isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200')">
-              <i class="fas fa-hard-hat text-[10px]"
-                :class="mantenimiento.enabled ? 'text-rose-400' : (isDark ? 'text-white/40' : 'text-slate-500')"></i>
-            </div>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-row" :class="isDark ? 'c-row-dark' : 'c-row-light'">
             <div class="flex-1 min-w-0">
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Modo mantenimiento IIS</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Redirige a los usuarios a una página de mantenimiento</p>
+              <p class="c-row-label" :class="isDark ? 'text-white' : 'text-[#111]'">Modo mantenimiento IIS</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Redirige a los usuarios a una página de mantenimiento</p>
             </div>
             <button @click="toggleMantenimiento" :disabled="mantenimiento.saving || !mantenimiento.configured"
-              class="cfg-toggle shrink-0"
-              :class="mantenimiento.enabled ? 'cfg-toggle-on-rose' : (isDark ? 'cfg-toggle-off-dark' : 'cfg-toggle-off-light')">
-              <span v-if="mantenimiento.saving" class="cfg-toggle-spin">
-                <i class="fas fa-spinner fa-spin text-white text-[8px]"></i>
-              </span>
-              <span v-else class="cfg-toggle-knob"
-                :class="mantenimiento.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'"></span>
+              class="c-toggle" :class="mantenimiento.enabled ? 'c-toggle-on-rose' : (isDark ? 'c-toggle-off-dark' : 'c-toggle-off-light')">
+              <span v-if="mantenimiento.saving" class="c-toggle-spin"><i class="fas fa-spinner fa-spin text-white text-[7px]"></i></span>
+              <span v-else class="c-toggle-knob" :class="mantenimiento.enabled ? 'translate-x-[18px]' : 'translate-x-[2px]'"></span>
             </button>
           </div>
-
-          <div class="cfg-card-body">
-            <div v-if="!mantenimiento.configured" class="cfg-alert cfg-alert-amber">
-              <i class="fas fa-triangle-exclamation text-amber-400 text-[10px] shrink-0"></i>
-              <span>La variable <code class="cfg-code">WEBCONFIG_PATH</code> no está configurada en el servidor.</span>
+          <div class="c-card-body">
+            <div v-if="!mantenimiento.configured" class="c-alert c-alert-amber">
+              <i class="fas fa-triangle-exclamation text-[9px] shrink-0"></i>
+              La variable <code class="c-code">WEBCONFIG_PATH</code> no está configurada en el servidor.
             </div>
-            <div v-else class="flex items-center justify-between gap-3">
-              <div>
-                <p class="cfg-info-label"
-                  :class="mantenimiento.enabled ? 'text-rose-400' : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
-                  {{ mantenimiento.enabled ? 'Sitio en mantenimiento' : 'Sitio operativo' }}
-                </p>
-                <p class="cfg-info-sub" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  {{ mantenimiento.enabled
-                    ? 'Los usuarios son redirigidos a mantenimiento.html'
-                    : 'Todos los usuarios acceden normalmente' }}
-                </p>
-              </div>
-              <span class="cfg-state-pill"
-                :class="mantenimiento.enabled
-                  ? 'cfg-pill-rose'
-                  : (isDark ? 'cfg-pill-green-dark' : 'cfg-pill-green-light')">
-                <i :class="mantenimiento.enabled ? 'fas fa-lock' : 'fas fa-check-circle'" class="text-[8px]"></i>
-                {{ mantenimiento.enabled ? 'Activo' : 'Normal' }}
-              </span>
-            </div>
+            <p v-else class="c-row-desc" :class="mantenimiento.enabled ? 'text-rose-500' : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
+              {{ mantenimiento.enabled ? 'Los usuarios son redirigidos a mantenimiento.html' : 'Todos los usuarios acceden normalmente' }}
+            </p>
           </div>
         </div>
 
         <!-- Almacenamiento -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon" :class="isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'">
-              <i class="fas fa-database text-[10px]" :class="isDark ? 'text-white/40' : 'text-slate-500'"></i>
-            </div>
-            <div>
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Almacenamiento de soportes</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Dónde se guardan los archivos adjuntos del sistema</p>
-            </div>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+            <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Almacenamiento de soportes</p>
+            <p class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Dónde se guardan los archivos adjuntos</p>
           </div>
-          <div class="cfg-card-body">
-            <div class="cfg-storage-grid">
+          <div class="c-card-body">
+            <div class="c-radio-list">
               <button v-for="opt in storageOpts" :key="opt.v" @click="config.storage_mode = opt.v"
-                class="cfg-storage-opt"
-                :class="config.storage_mode === opt.v
-                  ? 'cfg-opt-active'
-                  : (isDark ? 'cfg-opt-idle-dark' : 'cfg-opt-idle-light')">
-                <i :class="[opt.icon, 'text-lg']"
-                  :style="config.storage_mode === opt.v ? 'color:#f97316' : ''"></i>
-                <div class="text-left flex-1 min-w-0">
-                  <p class="cfg-opt-label"
-                    :class="config.storage_mode === opt.v ? 'text-orange-400' : (isDark ? 'text-white/80' : 'text-slate-700')">
-                    {{ opt.label }}
-                  </p>
-                  <p class="cfg-opt-desc" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ opt.desc }}</p>
+                class="c-radio-row" :class="isDark ? 'c-radio-row-dark' : 'c-radio-row-light'">
+                <span class="c-radio-indicator" :class="config.storage_mode === opt.v ? 'c-radio-on' : (isDark ? 'c-radio-off-dark' : 'c-radio-off-light')">
+                  <span v-if="config.storage_mode === opt.v" class="c-radio-dot"></span>
+                </span>
+                <div class="text-left flex-1">
+                  <p class="c-radio-label" :class="isDark ? 'text-white' : 'text-[#111]'">{{ opt.label }}</p>
+                  <p class="c-row-desc" :class="isDark ? 'text-[#555]' : 'text-[#999]'">{{ opt.desc }}</p>
                 </div>
-                <i v-if="config.storage_mode === opt.v" class="fas fa-circle-check text-orange-400 text-[11px] shrink-0"></i>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ─── TAB MÓDULOS ──────────────────────────────────────────────────── -->
-      <div v-if="activeTab === 'modulos'" class="cfg-section">
-        <p class="cfg-section-hint" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-          Los módulos inactivos muestran un mensaje de mantenimiento a los usuarios en lugar del contenido.
+      <!-- ── TAB MÓDULOS ─────────────────────────────────────────────────── -->
+      <div v-if="activeTab === 'modulos'" class="c-section">
+        <p class="c-hint" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">
+          Los módulos inactivos muestran un mensaje de mantenimiento en lugar del contenido.
         </p>
-
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
           <div v-for="(mod, idx) in modulos" :key="mod.key">
-            <div class="cfg-mod-row" :class="[
-              idx > 0 ? (isDark ? 'cfg-mod-sep-dark' : 'cfg-mod-sep-light') : '',
-              !isActive(mod.key) ? (isDark ? 'bg-rose-950/20' : 'bg-rose-50/60') : '',
-            ]">
-              <div class="cfg-chip-icon"
-                :class="isActive(mod.key)
-                  ? (isDark ? 'bg-emerald-500/12 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200')
-                  : (isDark ? 'bg-rose-500/12 border-rose-500/20' : 'bg-rose-50 border-rose-200')">
-                <i :class="[mod.icon, 'text-[10px]', isActive(mod.key)
-                    ? (isDark ? 'text-emerald-400' : 'text-emerald-600')
-                    : (isDark ? 'text-rose-400' : 'text-rose-500')]"></i>
-              </div>
+            <div class="c-row" :class="[idx > 0 ? (isDark ? 'c-row-sep-dark' : 'c-row-sep-light') : '']">
+              <span class="c-dot" :class="isActive(mod.key) ? 'bg-emerald-500' : 'bg-rose-500'"></span>
               <div class="flex-1 min-w-0">
-                <p class="cfg-mod-label" :class="isDark ? 'text-white' : 'text-slate-800'">{{ mod.label }}</p>
-                <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ mod.desc }}</p>
+                <p class="c-row-label" :class="isDark ? 'text-white' : 'text-[#111]'">{{ mod.label }}</p>
+                <p class="c-row-desc" :class="isDark ? 'text-[#555]' : 'text-[#999]'">{{ mod.desc }}</p>
               </div>
-              <div class="flex items-center gap-2.5 shrink-0">
-                <span class="cfg-mod-state"
-                  :class="isActive(mod.key) ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : 'text-rose-400'">
-                  {{ isActive(mod.key) ? 'Activo' : 'Inactivo' }}
-                </span>
-                <button @click="toggleModulo(mod.key)"
-                  class="cfg-toggle"
-                  :class="isActive(mod.key) ? 'cfg-toggle-on-green' : (isDark ? 'cfg-toggle-off-dark' : 'cfg-toggle-off-light')">
-                  <span class="cfg-toggle-knob"
-                    :class="isActive(mod.key) ? 'translate-x-[22px]' : 'translate-x-0.5'"></span>
-                </button>
-              </div>
+              <span class="c-badge" :class="isActive(mod.key)
+                ? (isDark ? 'c-badge-green-dark' : 'c-badge-green-light')
+                : 'c-badge-red'">
+                {{ isActive(mod.key) ? 'Activo' : 'Inactivo' }}
+              </span>
             </div>
 
             <Transition name="slide">
-              <div v-if="!isActive(mod.key)" class="cfg-mod-msg-wrap" :class="isDark ? 'cfg-mod-sep-dark' : 'cfg-mod-sep-light'">
-                <div class="cfg-mod-msg-inner" :class="isDark ? 'cfg-mod-msg-dark' : 'cfg-mod-msg-light'">
-                  <i class="fas fa-message text-[9px] shrink-0" :class="isDark ? 'text-white/25' : 'text-slate-400'"></i>
+              <div v-if="!isActive(mod.key)" class="c-msg-wrap" :class="isDark ? 'c-row-sep-dark' : 'c-row-sep-light'">
+                <div class="c-msg-inner" :class="isDark ? 'c-msg-dark' : 'c-msg-light'">
+                  <i class="fas fa-message text-[8px] shrink-0 opacity-30"></i>
                   <input v-model="config[mod.key + '_message']" type="text"
                     placeholder="Mensaje que verán los usuarios…"
-                    class="cfg-mod-msg-input"
-                    :class="isDark ? 'text-white placeholder-white/20' : 'text-slate-700 placeholder-slate-400'" />
+                    class="c-msg-input" :class="isDark ? 'text-white placeholder-white/20' : 'text-[#333] placeholder-[#ccc]'" />
                 </div>
               </div>
             </Transition>
+
+            <!-- Acordeón Renuncia dentro de Novedades -->
+            <div v-if="mod.key === 'module_novedades'" class="c-row-sep-dark" :class="isDark ? 'c-row-sep-dark' : 'c-row-sep-light'">
+              <button @click="renunciaOpen = !renunciaOpen"
+                class="c-accordion-trigger" :class="isDark ? 'c-accordion-dark' : 'c-accordion-light'">
+                <i class="fas fa-envelope-open-text text-rose-400 text-[9px] shrink-0"></i>
+                <span class="flex-1 text-left c-row-label" :class="isDark ? 'text-[#888]' : 'text-[#666]'">
+                  Notificaciones de Renuncia
+                </span>
+                <span v-if="correo.renunciaEmails.length"
+                  class="c-count-badge text-rose-400 bg-rose-500/10">
+                  {{ correo.renunciaEmails.length }}
+                </span>
+                <i class="fas text-[9px] transition-transform duration-150"
+                  :class="[renunciaOpen ? 'fa-chevron-up' : 'fa-chevron-down', isDark ? 'text-[#444]' : 'text-[#ccc]']"></i>
+              </button>
+
+              <Transition name="slide">
+                <div v-if="renunciaOpen" class="c-accordion-body" :class="isDark ? 'c-accordion-body-dark' : 'c-accordion-body-light'">
+                  <p class="c-row-desc mb-3" :class="isDark ? 'text-[#555]' : 'text-[#999]'">
+                    Correos adicionales que reciben aviso cuando la tipificación es
+                    <span class="text-rose-400 font-semibold">Renuncia</span>
+                  </p>
+                  <div v-if="correo.renunciaEmails.length" class="flex flex-col gap-1 mb-3">
+                    <div v-for="email in correo.renunciaEmails" :key="email"
+                      class="c-email-row" :class="isDark ? 'c-email-dark' : 'c-email-light'">
+                      <i class="fas fa-at text-[8px] opacity-30 shrink-0"></i>
+                      <span class="flex-1 truncate" :class="isDark ? 'text-[#aaa]' : 'text-[#444]'">{{ email }}</span>
+                      <button @click="quitarRenunciaEmail(email)" class="c-remove-btn">
+                        <i class="fas fa-xmark text-[8px]"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p v-else class="c-row-desc mb-3" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">Sin correos configurados</p>
+                  <div class="c-input-row">
+                    <input v-model="correo.nuevoRenunciaEmail" type="email" placeholder="correo@empresa.com"
+                      @keydown.enter="agregarRenunciaEmail"
+                      class="c-input flex-1" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
+                    <button @click="agregarRenunciaEmail" :disabled="!correo.nuevoRenunciaEmail.trim()"
+                      class="c-btn-ghost disabled:opacity-40" :class="isDark ? 'c-ghost-dark' : 'c-ghost-light'">
+                      <i class="fas fa-plus text-[9px]"></i> Agregar
+                    </button>
+                    <button @click="guardarRenunciaEmails" :disabled="correo.guardandoRenuncia || !correo.renunciaEmails.length"
+                      class="c-btn-primary disabled:opacity-40">
+                      <i class="fas text-[9px]" :class="correo.guardandoRenuncia ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+                      {{ correo.guardandoRenuncia ? 'Guardando…' : 'Guardar' }}
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
-
-        <!-- ─── Correos de notificación de Renuncia ──────────────────────── -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-rose-500/12 border-rose-500/20">
-              <i class="fas fa-envelope-open-text text-rose-400 text-[10px]"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Notificaciones de Renuncia</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Correos que reciben aviso cuando se registra una novedad con tipificación de <strong>Renuncia</strong>
-              </p>
-            </div>
-          </div>
-          <div class="cfg-card-body flex flex-col gap-3">
-            <!-- Lista -->
-            <div v-if="correo.renunciaEmails.length" class="flex flex-col gap-1.5">
-              <div v-for="email in correo.renunciaEmails" :key="email"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]"
-                :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-slate-200 bg-slate-50'">
-                <i class="fas fa-envelope opacity-40 text-[9px]"></i>
-                <span class="flex-1 truncate" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ email }}</span>
-                <button @click="quitarRenunciaEmail(email)" class="cfg-chip-remove">
-                  <i class="fas fa-xmark text-[8px]"></i>
-                </button>
-              </div>
-            </div>
-            <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
-              No hay correos configurados para notificaciones de renuncia
-            </p>
-            <!-- Agregar -->
-            <div class="cfg-dest-input-row">
-              <input v-model="correo.nuevoRenunciaEmail" type="email"
-                placeholder="notificacion@empresa.com"
-                @keydown.enter="agregarRenunciaEmail"
-                class="cfg-input flex-1" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
-              <button @click="agregarRenunciaEmail"
-                :disabled="!correo.nuevoRenunciaEmail.trim()"
-                class="cfg-btn-ghost disabled:opacity-40" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
-                <i class="fas fa-plus text-[9px]"></i> Agregar
-              </button>
-              <button @click="guardarRenunciaEmails" :disabled="correo.guardandoRenuncia || !correo.renunciaEmails.length"
-                class="cfg-btn-blue disabled:opacity-40">
-                <i class="fas text-[9px]" :class="correo.guardandoRenuncia ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
-                {{ correo.guardandoRenuncia ? 'Guardando…' : 'Guardar' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      <!-- ─── TAB PROGRAMACIÓN ─────────────────────────────────────────────── -->
-      <div v-if="activeTab === 'schedule'" class="cfg-section">
+      <!-- ── TAB PROGRAMACIÓN ─────────────────────────────────────────────── -->
+      <div v-if="activeTab === 'schedule'" class="c-section">
 
-        <!-- Control habilitado -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-indigo-500/12 border-indigo-500/20">
-              <i class="fas fa-calendar-check text-indigo-500 text-[10px]"></i>
-            </div>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-row">
             <div class="flex-1 min-w-0">
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Control de fechas de cargue</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                {{ config.mallas_schedule_enabled === 'true'
-                  ? 'Activo — el cargue solo está disponible en los días configurados'
-                  : 'Inactivo — el botón de cargue siempre está disponible' }}
+              <p class="c-row-label" :class="isDark ? 'text-white' : 'text-[#111]'">Control de fechas de cargue</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#555]' : 'text-[#999]'">
+                {{ config.mallas_schedule_enabled === 'true' ? 'El cargue solo está disponible en los días configurados' : 'El botón de cargue siempre está disponible' }}
               </p>
             </div>
-            <button
-              @click="config.mallas_schedule_enabled = config.mallas_schedule_enabled === 'true' ? 'false' : 'true'"
-              class="cfg-toggle shrink-0"
-              :class="config.mallas_schedule_enabled === 'true' ? 'cfg-toggle-on-indigo' : (isDark ? 'cfg-toggle-off-dark' : 'cfg-toggle-off-light')">
-              <span class="cfg-toggle-knob"
-                :class="config.mallas_schedule_enabled === 'true' ? 'translate-x-[22px]' : 'translate-x-0.5'"></span>
+            <button @click="config.mallas_schedule_enabled = config.mallas_schedule_enabled === 'true' ? 'false' : 'true'"
+              class="c-toggle" :class="config.mallas_schedule_enabled === 'true' ? 'c-toggle-on-indigo' : (isDark ? 'c-toggle-off-dark' : 'c-toggle-off-light')">
+              <span class="c-toggle-knob" :class="config.mallas_schedule_enabled === 'true' ? 'translate-x-[18px]' : 'translate-x-[2px]'"></span>
             </button>
           </div>
         </div>
 
-        <!-- Modo libre -->
-        <div v-if="config.mallas_schedule_enabled !== 'true'"
-          class="cfg-info-banner" :class="isDark ? 'cfg-banner-green-dark' : 'cfg-banner-green-light'">
-          <i class="fas fa-unlock text-emerald-500 text-base shrink-0"></i>
+        <div v-if="config.mallas_schedule_enabled !== 'true'" class="c-banner" :class="isDark ? 'c-banner-green-dark' : 'c-banner-green-light'">
+          <i class="fas fa-unlock text-emerald-500 text-sm shrink-0"></i>
           <div>
-            <p class="cfg-banner-title" :class="isDark ? 'text-emerald-400' : 'text-emerald-700'">Cargue siempre disponible</p>
-            <p class="cfg-banner-desc" :class="isDark ? 'text-emerald-500/60' : 'text-emerald-600/70'">
-              Los usuarios pueden cargar mallas en cualquier momento. Activa el control para programar ventanas.
-            </p>
+            <p class="c-row-label" :class="isDark ? 'text-emerald-400' : 'text-emerald-700'">Cargue siempre disponible</p>
+            <p class="c-row-desc mt-0.5" :class="isDark ? 'text-emerald-600' : 'text-emerald-600/70'">Activa el control para definir ventanas de cargue.</p>
           </div>
         </div>
 
         <template v-if="config.mallas_schedule_enabled === 'true'">
-
-          <!-- Selector de modo -->
-          <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-            <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-              <i class="fas fa-sliders text-[9px] text-orange-400"></i>
-              <span class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Modo de programación</span>
+          <!-- Selector modo -->
+          <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+            <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Modo de programación</p>
             </div>
-            <div class="cfg-card-body">
-              <div class="cfg-mode-grid">
+            <div class="c-card-body">
+              <div class="c-mode-grid">
                 <button v-for="m in SCHEDULE_MODES" :key="m.value" @click="config.mallas_schedule_mode = m.value"
-                  class="cfg-mode-opt"
+                  class="c-mode-btn"
                   :class="config.mallas_schedule_mode === m.value
-                    ? 'cfg-mode-active'
-                    : (isDark ? 'cfg-mode-idle-dark' : 'cfg-mode-idle-light')">
-                  <i :class="[m.icon, 'text-xl', config.mallas_schedule_mode === m.value ? 'text-indigo-400' : (isDark ? 'text-white/25' : 'text-slate-400')]"></i>
-                  <p class="cfg-mode-label"
-                    :class="config.mallas_schedule_mode === m.value ? 'text-indigo-400' : (isDark ? 'text-white/70' : 'text-slate-600')">
-                    {{ m.label }}
-                  </p>
-                  <p class="cfg-mode-desc" :class="isDark ? 'text-white/25' : 'text-slate-400'">{{ m.desc }}</p>
+                    ? (isDark ? 'c-mode-active-dark' : 'c-mode-active-light')
+                    : (isDark ? 'c-mode-idle-dark' : 'c-mode-idle-light')">
+                  <i :class="[m.icon, 'text-base mb-1', config.mallas_schedule_mode === m.value ? 'text-indigo-400' : (isDark ? 'text-[#444]' : 'text-[#ccc]')]"></i>
+                  <p class="c-mode-label" :class="config.mallas_schedule_mode === m.value ? 'text-indigo-400' : (isDark ? 'text-[#888]' : 'text-[#555]')">{{ m.label }}</p>
+                  <p class="c-row-desc text-center" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">{{ m.desc }}</p>
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- SEMANAL -->
-          <div v-if="config.mallas_schedule_mode === 'weekly'"
-            class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-            <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-              <i class="fas fa-calendar-week text-[9px] text-indigo-400"></i>
-              <span class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Días de la semana habilitados</span>
+          <!-- Semanal -->
+          <div v-if="config.mallas_schedule_mode === 'weekly'" class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+            <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Días habilitados</p>
             </div>
-            <div class="cfg-card-body">
+            <div class="c-card-body">
               <div class="cfg-week-grid">
-                <button v-for="d in diasSemanaFull" :key="d.v"
-                  @click="toggleScheduleDay('weekly', d.v)"
+                <button v-for="d in diasSemanaFull" :key="d.v" @click="toggleScheduleDay('weekly', d.v)"
                   class="cfg-day-btn"
-                  :class="scheduleWeeklyDays.includes(d.v)
-                    ? 'cfg-day-active'
-                    : (isDark ? 'cfg-day-idle-dark' : 'cfg-day-idle-light')">
-                  <span class="cfg-day-short"
-                    :class="scheduleWeeklyDays.includes(d.v) ? 'text-indigo-400' : (isDark ? 'text-white/35' : 'text-slate-400')">
-                    {{ d.short }}
-                  </span>
-                  <span class="cfg-day-num"
-                    :class="scheduleWeeklyDays.includes(d.v) ? 'text-indigo-400' : (isDark ? 'text-white/70' : 'text-slate-700')">
-                    {{ d.nextDate }}
-                  </span>
+                  :class="scheduleWeeklyDays.includes(d.v) ? 'cfg-day-active' : (isDark ? 'cfg-day-idle-dark' : 'cfg-day-idle-light')">
+                  <span class="cfg-day-short" :class="scheduleWeeklyDays.includes(d.v) ? 'text-indigo-400' : (isDark ? 'text-white/35' : 'text-slate-400')">{{ d.short }}</span>
+                  <span class="cfg-day-num" :class="scheduleWeeklyDays.includes(d.v) ? 'text-indigo-400' : (isDark ? 'text-white/70' : 'text-slate-700')">{{ d.nextDate }}</span>
                   <span class="cfg-day-month" :class="isDark ? 'text-white/25' : 'text-slate-400'">{{ d.nextMonth }}</span>
                   <span v-if="d.isToday" class="cfg-today-pill">Hoy</span>
                 </button>
               </div>
-              <p v-if="scheduleWeeklyDays.length" class="cfg-schedule-summary" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              <p v-if="scheduleWeeklyDays.length" class="cfg-schedule-summary" :class="isDark ? 'text-[#555]' : 'text-[#999]'">
                 Habilitado cada {{ diasSemanaFull.filter(d => scheduleWeeklyDays.includes(d.v)).map(d => d.full).join(', ') }}
               </p>
             </div>
           </div>
 
-          <!-- MENSUAL -->
-          <div v-if="config.mallas_schedule_mode === 'monthly'"
-            class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-            <div class="cfg-cal-nav" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-              <button @click="prevMonth" class="cfg-cal-nav-btn" :class="isDark ? 'cfg-cal-nav-dark' : 'cfg-cal-nav-light'">
-                <i class="fas fa-chevron-left text-[9px]"></i>
-              </button>
-              <p class="cfg-cal-title" :class="isDark ? 'text-white' : 'text-slate-700'">{{ monthName }} {{ calYear }}</p>
-              <button @click="nextMonth" class="cfg-cal-nav-btn" :class="isDark ? 'cfg-cal-nav-dark' : 'cfg-cal-nav-light'">
-                <i class="fas fa-chevron-right text-[9px]"></i>
-              </button>
+          <!-- Mensual / Fechas exactas calendar -->
+          <div v-if="config.mallas_schedule_mode === 'monthly' || config.mallas_schedule_mode === 'specific'"
+            class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+            <div class="c-cal-nav" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+              <button @click="prevMonth" class="c-cal-btn" :class="isDark ? 'c-cal-btn-dark' : 'c-cal-btn-light'"><i class="fas fa-chevron-left text-[9px]"></i></button>
+              <p class="c-cal-title" :class="isDark ? 'text-white' : 'text-[#111]'">{{ monthName }} {{ calYear }}</p>
+              <button @click="nextMonth" class="c-cal-btn" :class="isDark ? 'c-cal-btn-dark' : 'c-cal-btn-light'"><i class="fas fa-chevron-right text-[9px]"></i></button>
             </div>
-            <div class="cfg-card-body">
+            <div class="c-card-body">
               <div class="cfg-cal-head-row">
-                <div v-for="h in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']" :key="h" class="cfg-cal-head-cell"
-                  :class="isDark ? 'text-white/30' : 'text-slate-400'">{{ h }}</div>
-              </div>
-              <div class="cfg-cal-grid">
-                <div v-for="(cell, idx) in calendarGrid" :key="idx">
-                  <button v-if="cell" @click="toggleScheduleDay('monthly', cell)"
-                    class="cfg-cal-day"
-                    :class="scheduleMonthlyDays.includes(cell)
-                      ? 'cfg-cal-day-active'
-                      : (isDark ? 'cfg-cal-day-idle-dark' : 'cfg-cal-day-idle-light')">
-                    {{ cell }}
-                  </button>
-                  <div v-else class="cfg-cal-day"></div>
-                </div>
-              </div>
-              <p v-if="scheduleMonthlyDays.length" class="cfg-schedule-summary cfg-schedule-summary-center"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Habilitado el día {{ scheduleMonthlyDays.join(', ') }} de cada mes
-              </p>
-            </div>
-          </div>
-
-          <!-- FECHAS EXACTAS -->
-          <div v-if="config.mallas_schedule_mode === 'specific'"
-            class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-            <div class="cfg-cal-nav" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-              <button @click="prevMonth" class="cfg-cal-nav-btn" :class="isDark ? 'cfg-cal-nav-dark' : 'cfg-cal-nav-light'">
-                <i class="fas fa-chevron-left text-[9px]"></i>
-              </button>
-              <p class="cfg-cal-title" :class="isDark ? 'text-white' : 'text-slate-700'">{{ monthName }} {{ calYear }}</p>
-              <button @click="nextMonth" class="cfg-cal-nav-btn" :class="isDark ? 'cfg-cal-nav-dark' : 'cfg-cal-nav-light'">
-                <i class="fas fa-chevron-right text-[9px]"></i>
-              </button>
-            </div>
-            <div class="cfg-card-body">
-              <div class="cfg-cal-head-row">
-                <div v-for="h in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']" :key="h" class="cfg-cal-head-cell"
-                  :class="isDark ? 'text-white/30' : 'text-slate-400'">{{ h }}</div>
+                <div v-for="h in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']" :key="h" class="cfg-cal-head-cell" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">{{ h }}</div>
               </div>
               <div class="cfg-cal-grid">
                 <div v-for="(cell, idx) in calendarGrid" :key="idx">
                   <button v-if="cell"
-                    @click="!isPastDate(calYear, calMonth, cell) && toggleSpecificDate(calYear, calMonth, cell)"
+                    @click="config.mallas_schedule_mode === 'monthly'
+                      ? toggleScheduleDay('monthly', cell)
+                      : (!isPastDate(calYear, calMonth, cell) && toggleSpecificDate(calYear, calMonth, cell))"
                     class="cfg-cal-day"
-                    :class="isSpecificDateSelected(calYear, calMonth, cell)
+                    :class="(config.mallas_schedule_mode === 'monthly' ? scheduleMonthlyDays.includes(cell) : isSpecificDateSelected(calYear, calMonth, cell))
                       ? 'cfg-cal-day-active'
-                      : isPastDate(calYear, calMonth, cell)
+                      : (config.mallas_schedule_mode === 'specific' && isPastDate(calYear, calMonth, cell))
                         ? (isDark ? 'cfg-cal-day-past-dark' : 'cfg-cal-day-past-light')
                         : (isDark ? 'cfg-cal-day-idle-dark' : 'cfg-cal-day-idle-light')">
                     {{ cell }}
@@ -411,132 +266,98 @@
                   <div v-else class="cfg-cal-day"></div>
                 </div>
               </div>
-
-              <!-- Chips fechas seleccionadas -->
-              <div v-if="scheduleSpecificDates.length" class="cfg-specific-chips" :class="isDark ? 'border-white/8' : 'border-slate-100'">
-                <span v-for="d in scheduleSpecificDates" :key="d" class="cfg-specific-chip"
-                  :class="isDark ? 'cfg-chip-indigo-dark' : 'cfg-chip-indigo-light'">
+              <div v-if="config.mallas_schedule_mode === 'specific' && scheduleSpecificDates.length" class="cfg-specific-chips" :class="isDark ? 'border-white/8' : 'border-slate-100'">
+                <span v-for="d in scheduleSpecificDates" :key="d" class="cfg-specific-chip" :class="isDark ? 'cfg-chip-indigo-dark' : 'cfg-chip-indigo-light'">
                   {{ formatSpecificDate(d) }}
-                  <button @click="removeSpecificDate(d)" class="cfg-chip-remove">
-                    <i class="fas fa-times text-[8px]"></i>
-                  </button>
+                  <button @click="removeSpecificDate(d)" class="c-remove-btn"><i class="fas fa-times text-[8px]"></i></button>
                 </span>
               </div>
-              <p v-else class="cfg-schedule-summary cfg-schedule-summary-center" :class="isDark ? 'text-white/30' : 'text-slate-400'">
+              <p v-else-if="config.mallas_schedule_mode === 'specific'" class="cfg-schedule-summary cfg-schedule-summary-center" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">
                 Haz clic en los días para seleccionar fechas exactas
+              </p>
+              <p v-if="config.mallas_schedule_mode === 'monthly' && scheduleMonthlyDays.length" class="cfg-schedule-summary cfg-schedule-summary-center" :class="isDark ? 'text-[#555]' : 'text-[#999]'">
+                Habilitado el día {{ scheduleMonthlyDays.join(', ') }} de cada mes
               </p>
             </div>
           </div>
 
-          <!-- Próximas fechas -->
-          <div v-if="proximasFechas.length" class="cfg-card cfg-proximas" :class="isDark ? 'cfg-proximas-dark' : 'cfg-proximas-light'">
-            <p class="cfg-proximas-title" :class="isDark ? 'text-indigo-400' : 'text-indigo-600'">
-              <i class="fas fa-calendar-circle-user mr-1.5"></i>Próximas ventanas habilitadas
-            </p>
-            <div class="cfg-proximas-chips">
-              <span v-for="f in proximasFechas" :key="f" class="cfg-proxima-chip"
-                :class="isDark ? 'cfg-chip-indigo-dark' : 'cfg-proxima-chip-light'">
-                {{ f }}
-              </span>
+          <div v-if="proximasFechas.length" class="c-card c-proximas" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+            <p class="c-section-label mb-2" :class="isDark ? 'text-indigo-400' : 'text-indigo-600'">Próximas ventanas habilitadas</p>
+            <div class="flex flex-wrap gap-1.5">
+              <span v-for="f in proximasFechas" :key="f" class="cfg-proxima-chip" :class="isDark ? 'cfg-chip-indigo-dark' : 'cfg-proxima-chip-light'">{{ f }}</span>
             </div>
           </div>
-
-          <div v-else-if="config.mallas_schedule_mode !== 'free'"
-            class="cfg-alert cfg-alert-amber">
-            <i class="fas fa-triangle-exclamation text-amber-400 text-[10px] shrink-0"></i>
-            <span>No hay fechas habilitadas configuradas aún.</span>
+          <div v-else-if="config.mallas_schedule_mode !== 'free'" class="c-alert c-alert-amber">
+            <i class="fas fa-triangle-exclamation text-[9px] shrink-0"></i>
+            No hay fechas habilitadas configuradas aún.
           </div>
-
         </template>
       </div>
 
-      <!-- ─── TAB CORREO ───────────────────────────────────────────────────── -->
-      <div v-if="activeTab === 'correo'" class="cfg-section">
+      <!-- ── TAB CORREO ───────────────────────────────────────────────────── -->
+      <div v-if="activeTab === 'correo'" class="c-section">
 
         <!-- SMTP -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-blue-500/12 border-blue-500/20">
-              <i class="fas fa-gear text-blue-400 text-[10px]"></i>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+            <div class="flex-1">
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Configuración SMTP</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Outlook / Office 365 — smtp.office365.com:587</p>
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Configuración SMTP</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Outlook / Office 365 — smtp.office365.com:587</p>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="cfg-smtp-dot" :class="correo.form.habilitado ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'"></span>
-              <span class="cfg-smtp-state" :class="correo.form.habilitado ? 'text-emerald-400' : (isDark ? 'text-slate-500' : 'text-slate-400')">
+            <div class="flex items-center gap-2">
+              <span class="c-dot" :class="correo.form.habilitado ? 'bg-emerald-500 animate-pulse' : (isDark ? 'bg-[#333]' : 'bg-[#ddd]')"></span>
+              <span class="c-row-desc" :class="correo.form.habilitado ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-[#444]' : 'text-[#bbb]')">
                 {{ correo.form.habilitado ? 'Activo' : 'Inactivo' }}
               </span>
             </div>
           </div>
-
-          <div class="cfg-card-body">
-            <div class="cfg-form-grid2">
-              <div class="cfg-field">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Host SMTP *</label>
-                <input v-model="correo.form.host" type="text" placeholder="smtp.office365.com"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+          <div class="c-card-body">
+            <div class="c-form-grid">
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Host SMTP</label>
+                <input v-model="correo.form.host" type="text" placeholder="smtp.office365.com" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-              <div class="cfg-field">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Puerto</label>
-                <input v-model="correo.form.port" type="text" placeholder="587"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Puerto</label>
+                <input v-model="correo.form.port" type="text" placeholder="587" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-              <div class="cfg-field cfg-span2">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Correo Outlook (usuario SMTP) *</label>
-                <input v-model="correo.form.user" type="email" placeholder="notificaciones@miempresa.com"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+              <div class="c-field c-span2">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Usuario SMTP</label>
+                <input v-model="correo.form.user" type="email" placeholder="notificaciones@empresa.com" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-              <div class="cfg-field cfg-span2">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  Contraseña de aplicación *
-                  <span v-if="correo.config.passConfigurado" class="cfg-pass-hint">
-                    (configurada — dejar vacío para no cambiar)
-                  </span>
+              <div class="c-field c-span2">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">
+                  Contraseña de aplicación
+                  <span v-if="correo.config.passConfigurado" class="opacity-50 font-normal"> · configurada</span>
                 </label>
-                <input v-model="correo.form.pass" type="password" placeholder="••••••••"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+                <input v-model="correo.form.pass" type="password" placeholder="••••••••" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-              <div class="cfg-field">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Nombre del remitente</label>
-                <input v-model="correo.form.fromNombre" type="text" placeholder="WodenTrack RRHH"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Nombre remitente</label>
+                <input v-model="correo.form.fromNombre" type="text" placeholder="WodenTrack RRHH" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-              <div class="cfg-field">
-                <label class="cfg-label" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Envío de correos</label>
-                <div class="cfg-toggle-field"
-                  :class="correo.form.habilitado
-                    ? (isDark ? 'border-emerald-500/30 bg-emerald-500/8' : 'border-emerald-200 bg-emerald-50')
-                    : (isDark ? 'border-white/10' : 'border-slate-200')">
-                  <p class="cfg-toggle-field-label"
-                    :class="correo.form.habilitado ? 'text-emerald-500' : (isDark ? 'text-white/50' : 'text-slate-500')">
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Envío de correos</label>
+                <div class="c-toggle-row" :class="correo.form.habilitado ? (isDark ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-emerald-200 bg-emerald-50/60') : (isDark ? 'border-[#222]' : 'border-[#eee]')">
+                  <span class="c-row-desc" :class="correo.form.habilitado ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-[#444]' : 'text-[#bbb]')">
                     {{ correo.form.habilitado ? 'Habilitado' : 'Deshabilitado' }}
-                  </p>
+                  </span>
                   <button @click="correo.form.habilitado = !correo.form.habilitado"
-                    class="cfg-toggle shrink-0"
-                    :class="correo.form.habilitado ? 'cfg-toggle-on-green' : (isDark ? 'cfg-toggle-off-dark' : 'cfg-toggle-off-light')">
-                    <span class="cfg-toggle-knob"
-                      :class="correo.form.habilitado ? 'translate-x-[22px]' : 'translate-x-0.5'"></span>
+                    class="c-toggle shrink-0" :class="correo.form.habilitado ? 'c-toggle-on-green' : (isDark ? 'c-toggle-off-dark' : 'c-toggle-off-light')">
+                    <span class="c-toggle-knob" :class="correo.form.habilitado ? 'translate-x-[18px]' : 'translate-x-[2px]'"></span>
                   </button>
                 </div>
               </div>
             </div>
-
-            <div class="cfg-smtp-actions">
-              <button @click="testConexion" :disabled="correo.testeando"
-                class="cfg-btn-ghost" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
-                <i class="fas text-[9px]" :class="correo.testeando ? 'fa-circle-notch fa-spin' : 'fa-plug'"></i>
-                Probar conexión
+            <div class="c-actions">
+              <button @click="testConexion" :disabled="correo.testeando" class="c-btn-ghost" :class="isDark ? 'c-ghost-dark' : 'c-ghost-light'">
+                <i class="fas text-[9px]" :class="correo.testeando ? 'fa-circle-notch fa-spin' : 'fa-plug'"></i> Probar conexión
               </button>
-              <button @click="guardarConfigCorreo" :disabled="correo.guardando" class="cfg-btn-blue">
-                <i class="fas text-[9px]" :class="correo.guardando ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
-                Guardar SMTP
+              <button @click="guardarConfigCorreo" :disabled="correo.guardando" class="c-btn-primary">
+                <i class="fas text-[9px]" :class="correo.guardando ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i> Guardar SMTP
               </button>
             </div>
-
-            <div v-if="correo.testResult" class="cfg-result-banner mt-3"
-              :class="correo.testResult.ok ? 'cfg-result-ok' : 'cfg-result-err'">
+            <div v-if="correo.testResult" class="c-result mt-3" :class="correo.testResult.ok ? 'c-result-ok' : 'c-result-err'">
               <i :class="correo.testResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="text-[9px]"></i>
               {{ correo.testResult.mensaje }}
             </div>
@@ -544,131 +365,80 @@
         </div>
 
         <!-- Capital Humano -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-violet-500/12 border-violet-500/20">
-              <i class="fas fa-user-tie text-violet-400 text-[10px]"></i>
-            </div>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
             <div>
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Capital Humano</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Siempre recibirán el correo al notificar novedades de horas extra aprobadas
-              </p>
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Capital Humano</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Siempre recibirán el correo al notificar novedades de horas extra aprobadas</p>
             </div>
           </div>
-          <div class="cfg-card-body">
-            <div v-if="correo.capitalHumano.length" class="cfg-dest-chips">
-              <div v-for="email in correo.capitalHumano" :key="email" class="cfg-dest-chip"
-                :class="isDark ? 'cfg-chip-violet-dark' : 'cfg-chip-violet-light'">
-                <i class="fas fa-envelope text-[7px] opacity-60"></i>
+          <div class="c-card-body">
+            <div v-if="correo.capitalHumano.length" class="flex flex-wrap gap-1.5 mb-3">
+              <div v-for="email in correo.capitalHumano" :key="email" class="c-tag" :class="isDark ? 'c-tag-dark' : 'c-tag-light'">
                 {{ email }}
-                <button @click="quitarCapitalHumano(email)" class="cfg-chip-remove">
-                  <i class="fas fa-xmark text-[8px]"></i>
-                </button>
+                <button @click="quitarCapitalHumano(email)" class="c-remove-btn ml-1"><i class="fas fa-xmark text-[8px]"></i></button>
               </div>
             </div>
-            <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
-              No hay correos configurados aún
-            </p>
-            <div class="cfg-dest-input-row">
+            <p v-else class="c-row-desc mb-3" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">Sin correos configurados</p>
+            <div class="c-input-row">
               <input v-model="correo.nuevoCapitalHumano" type="email" placeholder="capitalhumano@empresa.com"
-                @keydown.enter.prevent="agregarCapitalHumano"
-                class="cfg-input flex-1" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
-              <button @click="agregarCapitalHumano" class="cfg-btn-ghost" :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
+                @keydown.enter.prevent="agregarCapitalHumano" class="c-input flex-1" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
+              <button @click="agregarCapitalHumano" class="c-btn-ghost" :class="isDark ? 'c-ghost-dark' : 'c-ghost-light'">
                 <i class="fas fa-plus text-[9px]"></i>
               </button>
-              <button @click="guardarCapitalHumano" :disabled="correo.guardandoCH" class="cfg-btn-violet">
+              <button @click="guardarCapitalHumano" :disabled="correo.guardandoCH" class="c-btn-primary">
                 <i class="fas text-[9px]" :class="correo.guardandoCH ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
-                Guardar
+                {{ correo.guardandoCH ? 'Guardando…' : 'Guardar' }}
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Coordinadores por Departamento -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-blue-500/12 border-blue-500/20">
-              <i class="fas fa-sitemap text-blue-400 text-[10px]"></i>
-            </div>
+        <!-- Coordinadores -->
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
             <div>
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Coordinadores por Departamento</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Recibirán el correo solo cuando se notifiquen registros de su departamento.
-                Sin departamento asignado → siempre recibe.
-              </p>
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Coordinadores por Departamento</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Reciben el correo según su departamento asignado. Sin asignar → siempre recibe.</p>
             </div>
           </div>
-          <div class="cfg-card-body flex flex-col gap-3">
-
-            <!-- Lista de coordinadores -->
-            <div v-if="correo.coordinadores.length" class="flex flex-col gap-1.5">
+          <div class="c-card-body flex flex-col gap-3">
+            <div v-if="correo.coordinadores.length" class="flex flex-col gap-1">
               <div v-for="(item, idx) in correo.coordinadores" :key="idx"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]"
-                :class="isDark ? 'border-[#222938] bg-[#0B0F19]' : 'border-slate-200 bg-slate-50'">
-                <i class="fas fa-envelope opacity-40 text-[9px]"></i>
-                <span class="flex-1 truncate" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ item.email }}</span>
-                <span v-if="item.segmento"
-                  class="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-blue-500/10 text-blue-400">
-                  {{ item.segmento }}
-                </span>
-                <span v-else class="px-2 py-0.5 rounded-full text-[9px] font-semibold"
-                  :class="isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'">
-                  Todos
-                </span>
-                <button @click="quitarCoordinador(idx)" class="cfg-chip-remove">
-                  <i class="fas fa-xmark text-[8px]"></i>
-                </button>
+                class="c-email-row" :class="isDark ? 'c-email-dark' : 'c-email-light'">
+                <i class="fas fa-envelope text-[8px] opacity-30 shrink-0"></i>
+                <span class="flex-1 truncate" :class="isDark ? 'text-[#aaa]' : 'text-[#444]'">{{ item.email }}</span>
+                <span v-if="item.segmento" class="c-badge c-badge-blue">{{ item.segmento }}</span>
+                <span v-else class="c-badge" :class="isDark ? 'c-badge-neutral-dark' : 'c-badge-neutral-light'">Todos</span>
+                <button @click="quitarCoordinador(idx)" class="c-remove-btn"><i class="fas fa-xmark text-[8px]"></i></button>
               </div>
             </div>
-            <p v-else class="cfg-empty-hint" :class="isDark ? 'text-white/30' : 'text-slate-400'">
-              No hay coordinadores configurados aún
-            </p>
+            <p v-else class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">Sin coordinadores configurados</p>
 
-            <!-- Agregar nuevo coordinador -->
-            <div class="flex flex-col gap-3 pt-2 border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-              <p class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                <i class="fas fa-plus-circle text-[#3B82F6] mr-1 text-[10px]"></i>
-                Agregar coordinador
-              </p>
-
-              <!-- Correo -->
-              <div class="flex flex-col gap-1">
-                <label class="text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  Correo electrónico
-                </label>
+            <div class="flex flex-col gap-2 pt-3 border-t" :class="isDark ? 'border-[#1a1a1a]' : 'border-[#f0f0f0]'">
+              <p class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Agregar coordinador</p>
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Correo electrónico</label>
                 <input v-model="correo.nuevoCoordEmail" type="email" placeholder="coordinador@empresa.com"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
+                  class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
               </div>
-
-              <!-- Segmento -->
-              <div class="flex flex-col gap-1">
-                <label class="text-[10px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                  Segmento / Departamento
-                  <span class="opacity-60 font-normal">(opcional — vacío = recibe de todos)</span>
-                </label>
-                <select v-model="correo.nuevoCoordSegmento"
-                  class="cfg-input" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'">
-                  <option value="">— Sin filtro (recibe de todos los departamentos) —</option>
+              <div class="c-field">
+                <label class="c-label" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Segmento <span class="opacity-50">(opcional)</span></label>
+                <select v-model="correo.nuevoCoordSegmento" class="c-input" :class="isDark ? 'c-input-dark' : 'c-input-light'">
+                  <option value="">— Sin filtro —</option>
                   <option v-for="s in correo.segmentos" :key="s" :value="s">{{ s }}</option>
                 </select>
-                <p v-if="!correo.segmentos.length" class="text-[10px] text-amber-400">
-                  <i class="fas fa-triangle-exclamation mr-1"></i>
-                  No hay segmentos creados. Créalos en Organización → Segmentos.
+                <p v-if="!correo.segmentos.length" class="c-row-desc mt-1 text-amber-500">
+                  <i class="fas fa-triangle-exclamation mr-1 text-[9px]"></i>No hay segmentos creados.
                 </p>
               </div>
-
-              <!-- Botones -->
-              <div class="flex items-center gap-2">
-                <button @click="agregarCoordinador"
-                  :disabled="!correo.nuevoCoordEmail.trim()"
-                  class="cfg-btn-ghost flex-1 disabled:opacity-40"
-                  :class="isDark ? 'cfg-ghost-dark' : 'cfg-ghost-light'">
-                  <i class="fas fa-plus text-[9px]"></i>
-                  Agregar a la lista
+              <div class="c-input-row">
+                <button @click="agregarCoordinador" :disabled="!correo.nuevoCoordEmail.trim()"
+                  class="c-btn-ghost flex-1 disabled:opacity-40" :class="isDark ? 'c-ghost-dark' : 'c-ghost-light'">
+                  <i class="fas fa-plus text-[9px]"></i> Agregar a la lista
                 </button>
                 <button @click="guardarCoordinadores" :disabled="correo.guardandoCoord || !correo.coordinadores.length"
-                  class="cfg-btn-blue flex-1 disabled:opacity-40">
+                  class="c-btn-primary flex-1 disabled:opacity-40">
                   <i class="fas text-[9px]" :class="correo.guardandoCoord ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
                   {{ correo.guardandoCoord ? 'Guardando…' : 'Guardar' }}
                 </button>
@@ -678,28 +448,20 @@
         </div>
 
         <!-- Prueba de envío -->
-        <div class="cfg-card" :class="isDark ? 'cfg-card-dark' : 'cfg-card-light'">
-          <div class="cfg-card-head" :class="isDark ? 'cfg-chead-dark' : 'cfg-chead-light'">
-            <div class="cfg-chip-icon bg-emerald-500/12 border-emerald-500/20">
-              <i class="fas fa-paper-plane text-emerald-400 text-[10px]"></i>
-            </div>
-            <div>
-              <p class="cfg-card-title" :class="isDark ? 'text-white' : 'text-slate-800'">Prueba de envío</p>
-              <p class="cfg-card-desc" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Envía un correo de prueba para verificar que la configuración funciona</p>
-            </div>
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+            <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Prueba de envío</p>
           </div>
-          <div class="cfg-card-body">
-            <div class="cfg-dest-input-row">
+          <div class="c-card-body">
+            <div class="c-input-row">
               <input v-model="correo.correoTest" type="email" placeholder="mi-correo@empresa.com"
-                class="cfg-input flex-1" :class="isDark ? 'cfg-input-dark' : 'cfg-input-light'" />
-              <button @click="enviarCorreoTest" :disabled="correo.enviandoTest || !correo.correoTest"
-                class="cfg-btn-emerald">
+                class="c-input flex-1" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
+              <button @click="enviarCorreoTest" :disabled="correo.enviandoTest || !correo.correoTest" class="c-btn-primary">
                 <i class="fas text-[9px]" :class="correo.enviandoTest ? 'fa-circle-notch fa-spin' : 'fa-paper-plane'"></i>
                 {{ correo.enviandoTest ? 'Enviando…' : 'Enviar prueba' }}
               </button>
             </div>
-            <div v-if="correo.testEnvioResult" class="cfg-result-banner mt-3"
-              :class="correo.testEnvioResult.ok ? 'cfg-result-ok' : 'cfg-result-err'">
+            <div v-if="correo.testEnvioResult" class="c-result mt-3" :class="correo.testEnvioResult.ok ? 'c-result-ok' : 'c-result-err'">
               <i :class="correo.testEnvioResult.ok ? 'fas fa-check' : 'fas fa-xmark'" class="text-[9px]"></i>
               {{ correo.testEnvioResult.mensaje }}
             </div>
@@ -708,7 +470,7 @@
 
       </div>
 
-    </div><!-- /cfg-body -->
+    </div><!-- /c-body -->
   </div>
 </template>
 
@@ -747,6 +509,7 @@ const modulos = [
   { key: 'module_novedades',   label: 'Novedades',     icon: 'fas fa-file-circle-plus', desc: 'Registro y gestión de novedades'   },
 ];
 
+const renunciaOpen = ref(false);
 const saving     = ref(false);
 const appVersion = ref('—');
 const mantenimiento = reactive({ enabled: false, configured: false, saving: false });
@@ -1132,7 +895,274 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 </script>
 
 <style scoped>
-/* ── ROOT ─────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   ROOT
+════════════════════════════════════════════════════════════ */
+.c-root { height: 100%; display: flex; flex-direction: column; font-family: 'Inter', system-ui, sans-serif; overflow: hidden; }
+.c-dark  { background: transparent; color: #fff; }
+.c-light { background: transparent; color: #111; }
+
+/* ── HEADER ─────────────────────────────────────────────── */
+.c-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 12px; flex-shrink: 0; border-bottom: 1px solid;
+}
+.c-header-dark  { border-color: #1a1a1a; }
+.c-header-light { border-color: #ececec; }
+.c-title    { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+.c-subtitle { font-size: 11px; margin-top: 1px; }
+.c-status-row  { display: flex; align-items: center; gap: 6px; }
+.c-status-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.c-status-label { font-size: 11px; }
+
+/* ── TABS ────────────────────────────────────────────────── */
+.c-tabs {
+  display: flex; padding: 0 20px; border-bottom: 1px solid; flex-shrink: 0;
+}
+.c-tabs-dark  { border-color: #1a1a1a; }
+.c-tabs-light { border-color: #ececec; }
+.c-tab {
+  position: relative; padding: 10px 14px; font-size: 11px; font-weight: 500;
+  cursor: pointer; border: none; background: none; transition: color .15s; letter-spacing: -0.01em;
+}
+.c-tab-active-dark        { color: #fff; }
+.c-tab-active-light       { color: #111; }
+.c-tab-idle-dark          { color: #444; }
+.c-tab-idle-dark:hover    { color: #888; }
+.c-tab-idle-light         { color: #bbb; }
+.c-tab-idle-light:hover   { color: #666; }
+.c-tab-line {
+  position: absolute; bottom: -1px; left: 14px; right: 14px;
+  height: 1px; background: currentColor; border-radius: 1px;
+}
+
+/* ── BODY ────────────────────────────────────────────────── */
+.c-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+.c-body::-webkit-scrollbar { width: 3px; }
+.c-body::-webkit-scrollbar-track { background: transparent; }
+.c-body::-webkit-scrollbar-thumb { background: rgba(100,116,139,.15); border-radius: 2px; }
+.c-section { display: flex; flex-direction: column; gap: 10px; }
+.c-hint { font-size: 11px; padding-bottom: 2px; }
+
+/* ── CARDS ───────────────────────────────────────────────── */
+.c-card       { border-radius: 8px; border: 1px solid; overflow: hidden; }
+.c-card-dark  { background: #0d0d0d; border-color: #1a1a1a; }
+.c-card-light { background: #fff; border-color: #e8e8e8; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+.c-card-head { padding: 11px 14px; border-bottom: 1px solid; }
+.c-head-dark  { border-color: #1a1a1a; background: #0a0a0a; }
+.c-head-light { border-color: #f0f0f0; background: #fafafa; }
+
+.c-card-body { padding: 14px; }
+
+/* ── ROWS ────────────────────────────────────────────────── */
+.c-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.c-row-sep-dark  { border-top: 1px solid #1a1a1a; }
+.c-row-sep-light { border-top: 1px solid #f0f0f0; }
+.c-row-label { font-size: 12px; font-weight: 500; letter-spacing: -0.01em; }
+.c-row-desc  { font-size: 11px; margin-top: 1px; line-height: 1.4; }
+.c-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.c-section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+
+/* ── TOGGLE ──────────────────────────────────────────────── */
+.c-toggle {
+  position: relative; width: 36px; height: 20px;
+  border-radius: 999px; border: none; cursor: pointer;
+  transition: background .2s; overflow: hidden; flex-shrink: 0;
+}
+.c-toggle:disabled { opacity: .4; cursor: default; }
+.c-toggle-on-green  { background: #16a34a; }
+.c-toggle-on-rose   { background: #dc2626; }
+.c-toggle-on-indigo { background: #4f46e5; }
+.c-toggle-off-dark  { background: #222; }
+.c-toggle-off-light { background: #d4d4d8; }
+.c-toggle-knob {
+  position: absolute; top: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform .18s;
+}
+.c-toggle-spin { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+/* ── TOGGLE INLINE ROW ───────────────────────────────────── */
+.c-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 6px; border: 1px solid;
+}
+
+/* ── BADGES ──────────────────────────────────────────────── */
+.c-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 4px; border: 1px solid;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap;
+}
+.c-badge-green-dark  { color: #4ade80; background: rgba(74,222,128,.08); border-color: rgba(74,222,128,.2); }
+.c-badge-green-light { color: #15803d; background: rgba(21,128,61,.06);  border-color: rgba(21,128,61,.2); }
+.c-badge-red         { color: #f87171; background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.2); }
+.c-badge-blue        { color: #60a5fa; background: rgba(96,165,250,.08); border-color: rgba(96,165,250,.2); }
+.c-badge-neutral-dark  { color: #555; background: #111; border-color: #222; }
+.c-badge-neutral-light { color: #999; background: #f5f5f5; border-color: #e5e5e5; }
+
+/* ── RADIO LIST (almacenamiento) ─────────────────────────── */
+.c-radio-list { display: flex; flex-direction: column; }
+.c-radio-row  {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 6px; border: 1px solid;
+  cursor: pointer; transition: border-color .15s; background: transparent;
+  margin-bottom: 6px;
+}
+.c-radio-row-dark:hover  { border-color: #333; }
+.c-radio-row-light:hover { border-color: #ccc; }
+.c-radio-indicator {
+  width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.c-radio-on       { border-color: #111; }
+.c-radio-off-dark { border-color: #333; }
+.c-radio-off-light { border-color: #ccc; }
+.c-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #111; }
+.c-radio-label { font-size: 12px; font-weight: 500; }
+
+/* ── ACCORDION ───────────────────────────────────────────── */
+.c-accordion-trigger {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; background: transparent; border: none; cursor: pointer;
+  transition: background .1s;
+}
+.c-accordion-dark:hover  { background: rgba(255,255,255,.02); }
+.c-accordion-light:hover { background: rgba(0,0,0,.02); }
+
+.c-count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 4px; font-size: 9px; font-weight: 700;
+}
+
+.c-accordion-body { padding: 0 16px 14px; }
+.c-accordion-body-dark  {}
+.c-accordion-body-light {}
+
+/* ── INACTIVE MESSAGE ────────────────────────────────────── */
+.c-msg-wrap  { padding: 0 14px 10px; }
+.c-msg-inner { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; border: 1px solid; }
+.c-msg-dark  { background: #0a0a0a; border-color: #1a1a1a; }
+.c-msg-light { background: #fafafa; border-color: #ececec; }
+.c-msg-input { flex: 1; background: transparent; font-size: 11px; outline: none; border: none; }
+
+/* ── INPUTS ──────────────────────────────────────────────── */
+.c-input {
+  width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid;
+  font-size: 12px; outline: none; transition: border-color .15s; font-family: inherit;
+}
+.c-input-dark  { background: #0a0a0a; border-color: #1e1e1e; color: #ddd; }
+.c-input-dark::placeholder  { color: #333; }
+.c-input-dark:focus  { border-color: #333; }
+.c-input-light { background: #fff; border-color: #e5e5e5; color: #111; }
+.c-input-light::placeholder { color: #ccc; }
+.c-input-light:focus { border-color: #aaa; }
+
+/* ── FORM GRID ───────────────────────────────────────────── */
+.c-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 500px) { .c-form-grid { grid-template-columns: 1fr; } }
+.c-span2 { grid-column: 1 / -1; }
+.c-field  { display: flex; flex-direction: column; gap: 4px; }
+.c-label  { font-size: 10px; font-weight: 500; }
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.c-btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; height: 30px; border-radius: 6px; border: none;
+  background: #111; color: #fff; font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
+}
+.c-dark .c-btn-primary  { background: #fff; color: #111; }
+.c-btn-primary:hover:not(:disabled) { opacity: .85; }
+.c-btn-primary:disabled { opacity: .4; cursor: default; }
+
+.c-btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; height: 30px; border-radius: 6px; border: 1px solid;
+  font-size: 11px; font-weight: 500; cursor: pointer;
+  transition: all .15s; background: transparent; font-family: inherit; white-space: nowrap;
+}
+.c-btn-ghost:disabled { opacity: .4; cursor: default; }
+.c-ghost-dark  { border-color: #222; color: #555; }
+.c-ghost-dark:hover:not(:disabled)  { border-color: #333; color: #aaa; }
+.c-ghost-light { border-color: #e5e5e5; color: #888; }
+.c-ghost-light:hover:not(:disabled) { border-color: #ccc; color: #333; }
+
+/* ── INPUT ROW / ACTIONS ─────────────────────────────────── */
+.c-input-row { display: flex; gap: 8px; align-items: center; }
+.c-actions   { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ── EMAIL ROW ───────────────────────────────────────────── */
+.c-email-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid; }
+.c-email-dark  { background: #0a0a0a; border-color: #1a1a1a; }
+.c-email-light { background: #fafafa; border-color: #ebebeb; }
+
+/* ── TAGS ────────────────────────────────────────────────── */
+.c-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; border: 1px solid; font-size: 11px; }
+.c-tag-dark  { background: #111; border-color: #222; color: #888; }
+.c-tag-light { background: #f5f5f5; border-color: #e5e5e5; color: #444; }
+
+/* ── REMOVE BTN ──────────────────────────────────────────── */
+.c-remove-btn { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 3px; border: none; background: transparent; cursor: pointer; opacity: .4; transition: opacity .15s; }
+.c-remove-btn:hover { opacity: 1; }
+
+/* ── ALERT / BANNER ──────────────────────────────────────── */
+.c-alert {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: 6px; border: 1px solid;
+  font-size: 11px; font-weight: 500;
+}
+.c-alert-amber { background: rgba(245,158,11,.05); border-color: rgba(245,158,11,.2); color: #f59e0b; }
+.c-code { font-family: monospace; font-size: 10px; background: rgba(245,158,11,.1); padding: 1px 4px; border-radius: 3px; }
+
+.c-banner { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 8px; border: 1px solid; }
+.c-banner-green-dark  { background: rgba(22,163,74,.05); border-color: rgba(22,163,74,.15); }
+.c-banner-green-light { background: rgba(22,163,74,.04); border-color: rgba(22,163,74,.15); }
+
+/* ── RESULT ──────────────────────────────────────────────── */
+.c-result { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; border: 1px solid; font-size: 11px; }
+.c-result-ok  { background: rgba(52,211,153,.06); border-color: rgba(52,211,153,.2); color: #34d399; }
+.c-result-err { background: rgba(248,113,113,.06); border-color: rgba(248,113,113,.2); color: #f87171; }
+
+/* ── SCHEDULE MODES ──────────────────────────────────────── */
+.c-mode-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+@media (max-width: 600px) { .c-mode-grid { grid-template-columns: repeat(2,1fr); } }
+.c-mode-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 8px; border-radius: 6px; border: 1px solid; cursor: pointer; transition: all .15s; background: transparent;
+}
+.c-mode-active-dark  { border-color: #4f46e5; background: rgba(79,70,229,.08); }
+.c-mode-active-light { border-color: #818cf8; background: rgba(99,102,241,.06); }
+.c-mode-idle-dark    { border-color: #1a1a1a; }
+.c-mode-idle-dark:hover  { border-color: #333; }
+.c-mode-idle-light   { border-color: #e8e8e8; }
+.c-mode-idle-light:hover { border-color: #ccc; }
+.c-mode-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── CALENDAR ────────────────────────────────────────────── */
+.c-cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid; }
+.c-cal-title { font-size: 12px; font-weight: 600; text-transform: capitalize; letter-spacing: -0.01em; }
+.c-cal-btn {
+  width: 24px; height: 24px; border-radius: 5px; border: none;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; background: transparent;
+}
+.c-cal-btn-dark:hover  { background: #1a1a1a; }
+.c-cal-btn-light:hover { background: #f0f0f0; }
+
+/* ── PROXIMAS ────────────────────────────────────────────── */
+.c-proximas { padding: 14px; }
+
+/* ── TRANSITIONS ─────────────────────────────────────────── */
+.slide-enter-active, .slide-leave-active { transition: all .18s ease; }
+.slide-enter-from,   .slide-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* ────────────────────────────────────────────────────────────
+   KEEP legacy classes used by calendar/schedule subcomponents
+──────────────────────────────────────────────────────────── */
 .cfg-root {
   height: 100%; display: flex; flex-direction: column;
   font-family: 'Inter', system-ui, sans-serif; overflow: hidden;
@@ -1246,6 +1276,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .cfg-toggle {
   position: relative; width: 40px; height: 22px;
   border-radius: 999px; border: none; cursor: pointer; transition: background .2s;
+  overflow: hidden;
 }
 .cfg-toggle:disabled { opacity: .4; cursor: default; }
 .cfg-toggle-on-rose   { background: #f43f5e; box-shadow: 0 0 0 3px rgba(244,63,94,.15); }
@@ -1306,7 +1337,71 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .cfg-opt-label { font-size: 11px; font-weight: 700; }
 .cfg-opt-desc  { font-size: 9px;  margin-top: 2px; }
 
-/* ── MÓDULOS ──────────────────────────────────────────────── */
+/* ── MÓDULOS v2 ───────────────────────────────────────────── */
+.cfg-mod-list {
+  border-radius: 10px; border: 1px solid; overflow: hidden;
+}
+.cfg-mod-list-dark  { background: rgba(255,255,255,.02); border-color: rgba(255,255,255,.08); }
+.cfg-mod-list-light { background: #fff; border-color: #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+
+.cfg-mod2-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; transition: background .1s;
+}
+.cfg-mod2-row:hover { background: rgba(0,0,0,.02); }
+
+.cfg-mod2-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+
+.cfg-mod2-label {
+  font-size: 12px; font-weight: 600; letter-spacing: -0.01em;
+}
+.cfg-mod2-desc {
+  font-size: 10px; margin-top: 1px;
+}
+.cfg-mod2-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* ── Acordeón Renuncia ─────────────────────────────────────── */
+.cfg-renuncia-wrap { border-top: 1px solid; }
+
+.cfg-renuncia-trigger {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; background: transparent; border: none;
+  cursor: pointer; transition: background .1s;
+}
+.cfg-renuncia-trigger:hover { background: rgba(244,63,94,.04); }
+.cfg-renuncia-trigger-dark:hover  { background: rgba(244,63,94,.06); }
+.cfg-renuncia-trigger-light:hover { background: rgba(244,63,94,.04); }
+
+.cfg-renuncia-title { font-size: 11px; font-weight: 600; }
+
+.cfg-renuncia-body {
+  padding: 0 16px 14px;
+}
+.cfg-renuncia-body-dark  {}
+.cfg-renuncia-body-light {}
+
+.cfg-renuncia-desc  { font-size: 9.5px; }
+.cfg-renuncia-tag   {
+  display: inline-block; font-weight: 700;
+  color: #f43f5e; background: rgba(244,63,94,.1);
+  padding: 0 5px; border-radius: 4px;
+}
+.cfg-renuncia-emails { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.cfg-renuncia-email-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px; border-radius: 6px; border: 1px solid;
+}
+.cfg-email-row-dark  { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.06); }
+.cfg-email-row-light { background: #fafafa;               border-color: #e5e7eb; }
+.cfg-renuncia-empty  { font-size: 10px; padding: 4px 0 8px; }
+
+/* Legacy (keep for inactive-msg rows) */
 .cfg-mod-row {
   display: flex; align-items: center; gap: 12px;
   padding: 13px 14px; transition: background .15s;
