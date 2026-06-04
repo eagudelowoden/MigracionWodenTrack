@@ -914,6 +914,26 @@
 
                         </div>
 
+                        <!-- ── Footer: reenviar notificación (ya procesadas) ── -->
+                        <div v-if="detallePanel.novedad?.aprobadoJefe !== null && detallePanel.novedad?.aprobadoJefe !== undefined"
+                            class="px-6 py-4 border-t flex items-center gap-3 shrink-0"
+                            :class="isDark ? 'border-[#222938]' : 'border-[#e5e5e5]'">
+                            <button @click="reenviarDesdeDetalle" :disabled="reenvioDetalle.loading"
+                                class="h-8 px-4 rounded-[6px] text-[11px] font-semibold uppercase tracking-wide border transition-all disabled:opacity-50 flex items-center gap-2"
+                                :class="isDark
+                                    ? 'border-[#222938] text-[#94a3b8] hover:text-white hover:bg-[#222938]'
+                                    : 'border-[#e5e5e5] text-[#555] hover:bg-[#f5f5f5]'">
+                                <i :class="reenvioDetalle.loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
+                                {{ reenvioDetalle.loading ? 'Reenviando...' : 'Reenviar notificación' }}
+                            </button>
+                            <transition name="fade-msg">
+                                <span v-if="reenvioDetalle.ok !== null" class="text-[11px] font-medium"
+                                    :class="reenvioDetalle.ok ? 'text-emerald-400' : 'text-red-400'">
+                                    {{ reenvioDetalle.ok ? 'Correo enviado' : reenvioDetalle.msg }}
+                                </span>
+                            </transition>
+                        </div>
+
                         <!-- ── Footer: aprobar / rechazar (solo pendiente) ── -->
                         <div v-if="detallePanel.novedad?.aprobadoJefe === null || detallePanel.novedad?.aprobadoJefe === undefined"
                             class="px-6 py-4 border-t flex items-center gap-3 shrink-0"
@@ -1293,6 +1313,7 @@ const abrirDetalle = (item) => {
         renunciaTransporte: item.renunciaTransporte ?? '',
     };
     renunciaMensaje.value = '';
+    reenvioDetalle.value = { loading: false, ok: null, msg: '' };
 };
 
 const guardarRenuncia = async () => {
@@ -1360,6 +1381,20 @@ const reenviarToast = async () => {
     toast.value.correoMsg = result?.mensaje ?? 'Sin respuesta';
     toast.value.reenvioLoading = false;
     setTimeout(() => { toast.value.visible = false; }, 5000);
+};
+
+const reenvioDetalle = ref({ loading: false, ok: null, msg: '' });
+
+const reenviarDesdeDetalle = async () => {
+    if (!detallePanel.value.novedad?.id) return;
+    reenvioDetalle.value = { loading: true, ok: null, msg: '' };
+    const result = await reenviarCorreo(detallePanel.value.novedad.id, 'jefe');
+    reenvioDetalle.value = {
+        loading: false,
+        ok: result?.ok ?? false,
+        msg: result?.mensaje ?? 'Sin respuesta',
+    };
+    setTimeout(() => { reenvioDetalle.value.ok = null; }, 5000);
 };
 
 </script>
