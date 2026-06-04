@@ -638,10 +638,9 @@ export class UsuariosService {
         depto: `%${departamentoName}%`,
       });
     }
-    // if (companyName && companyName !== 'Todas') {
-    //   // Si tu entidad usuario tiene el campo company, asegúrate de filtrarlo
-    //   usuarioQuery.andWhere('u.company = :company', { company: companyName });
-    // }
+    if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
+      usuarioQuery.andWhere('u.pais = :pais', { pais: companyName });
+    }
     if (areaId) {
       usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
     }

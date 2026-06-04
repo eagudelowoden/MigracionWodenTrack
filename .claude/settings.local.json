@@ -74,7 +74,8 @@
       "Bash(Format-Table FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -Force)",
       "Bash(Select-Object Name, FullName)",
-      "Bash(grep -E \"^C:|\\\\.ts$|^$\")"
+      "Bash(grep -E \"^C:|\\\\.ts$|^$\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\" | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)"
     ]
   }
 }

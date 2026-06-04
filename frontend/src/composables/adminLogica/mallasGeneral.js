@@ -12,7 +12,9 @@ export function useMallasGeneral() {
   const uploadSuccessMessage = ref("");
   const uploadProcesados = ref([]);   // detalle de los exitosos
   const showResultModal = ref(false);
-  const selectedCompany = ref("");
+  // Inicializar company desde la sesión para filtrar por país desde el inicio
+  const _sessionInit = JSON.parse(localStorage.getItem("user_session") || "{}");
+  const selectedCompany = ref(_sessionInit.company || "");
   const selectedDepartment = ref("");
 
   // Modales
