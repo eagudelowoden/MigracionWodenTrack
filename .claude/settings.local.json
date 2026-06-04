@@ -75,7 +75,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\" -Force)",
       "Bash(Select-Object Name, FullName)",
       "Bash(grep -E \"^C:|\\\\.ts$|^$\")",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\" | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\" | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\dist\\\\assets\\\\*.js\")",
+      "Bash(Select-Object Name, LastWriteTime)"
     ]
   }
 }

@@ -75,14 +75,22 @@ export class MallasUploadService {
           continue;
         }
 
-        // 2. Buscar malla por nombre — preferir la que tiene detalles
-        const mallas = await this.mallaRepo.find({
-          where: { nombre: nombreMalla, activa: true },
-          relations: ['detalles'],
-          order: { id: 'DESC' },
-        });
+        // 2. Buscar malla normalizando espacios en ambos lados (BD puede tener dobles espacios)
+        const normalizar = (s: string) => s.replace(/\s+/g, ' ').trim().toUpperCase();
+        const nombreNormalizado = normalizar(nombreMalla);
 
-        if (!mallas.length) {
+        const todasMallas = await this.mallaRepo
+          .createQueryBuilder('m')
+          .leftJoinAndSelect('m.detalles', 'd')
+          .where('m.activa = :activa', { activa: true })
+          .orderBy('m.id', 'DESC')
+          .getMany();
+
+        const mallasResult = todasMallas.filter(
+          (m) => normalizar(m.nombre) === nombreNormalizado,
+        );
+
+        if (!mallasResult.length) {
           errores.push({
             fila: rowNumber,
             cedula,
@@ -93,7 +101,7 @@ export class MallasUploadService {
 
         // Tomar la que tiene detalles; si ninguna tiene, tomar la más reciente
         const malla =
-          mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
+          mallasResult.find((m) => m.detalles && m.detalles.length > 0) || mallasResult[0];
 
         if (fechaFin) {
           // Asignación temporal: no cerrar la actual, solo insertar con rango de fechas
