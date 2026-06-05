@@ -598,15 +598,17 @@ export function useReporteMallas() {
     try {
       isLoadingHistorial.value = true;
       await _asegurarPerfil();
+      const s = getSession();
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
       };
-      // Usuario sin estructura: filtrar solo por su propia cédula
-      const cedulaPropia = _getCedulaPropia();
-      if (cedulaPropia) params.cedula = cedulaPropia;
+      // No-admin: filtra por quien calculó (id) igual que Guardados
+      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")) {
+        const idOdoo = s.employee_id || s.id_odoo;
+        if (idOdoo) params.calculado_por_id = idOdoo;
+      }
       const { data } = await axios.get(
         `${API_BASE_URL}/horas-extra/historial`,
         { params: { ...params, soloNotificados: true, _t: Date.now() } },

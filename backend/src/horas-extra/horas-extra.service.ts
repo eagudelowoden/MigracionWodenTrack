@@ -1436,10 +1436,12 @@ export class HorasExtraService {
     }
 
     let rowIdx = 3;
-    // '0.##' muestra el decimal real sin ceros innecesarios:
-    // 1.5 → "1.5"  |  2.0 → "2"  |  0.5 → "0.5"
-    // Evita la confusión de '0.00' donde "1.50" se leía como "1h50min"
-    const numFmt = '0.##';
+    // Formatea un número: si es entero → número puro, si tiene decimales → máx 2 decimales
+    // Así Excel muestra "8" y no "8," en locale colombiano
+    const fmtHx = (n: number): number | string => {
+      const val = Math.round(n * 100) / 100;
+      return val % 1 === 0 ? val : parseFloat(val.toFixed(2));
+    };
     const COLS_HX = [
       'rn',
       'rndf',
@@ -1496,20 +1498,17 @@ export class HorasExtraService {
             r.fin_turno ?? '',
             horaEntrada,
             horaSalida,
-            Number(r.rn) || 0,
-            Number(r.rndf) || 0,
-            Number(r.rddf) || 0,
-            Number(r.hedo) || 0,
-            Number(r.heno) || 0,
-            Number(r.hefd) || 0,
-            Number(r.hefn) || 0,
+            fmtHx(Number(r.rn) || 0),
+            fmtHx(Number(r.rndf) || 0),
+            fmtHx(Number(r.rddf) || 0),
+            fmtHx(Number(r.hedo) || 0),
+            fmtHx(Number(r.heno) || 0),
+            fmtHx(Number(r.hefd) || 0),
+            fmtHx(Number(r.hefn) || 0),
           ];
           values.forEach((v, ci) => {
             row.getCell(ci + 1).value = v as any;
           });
-
-          // Formato numérico cols HX
-          for (let c = 8; c <= 14; c++) row.getCell(c).numFmt = numFmt;
 
           // Estilos por celda
           const bgRow = fi % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
@@ -1532,8 +1531,7 @@ export class HorasExtraService {
         COLS_HX.forEach((col, i) => {
           const val = filas.reduce((s, r) => s + (Number(r[col]) || 0), 0);
           const cell = stRow.getCell(8 + i);
-          cell.value = Math.round(val * 100) / 100;
-          cell.numFmt = numFmt;
+          cell.value = fmtHx(val) as any;
         });
 
         for (let c = 1; c <= COLS; c++) {
