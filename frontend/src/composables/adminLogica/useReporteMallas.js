@@ -299,11 +299,17 @@ export function useReporteMallas() {
       return {};
     }
     const esResponsableSegmento = hasPerm("novedades.ver_segmento");
+    const esCoordSegmento = !esResponsableSegmento && hasPerm("coord.ver_segmento");
     const perfil = perfilUsuario.value;
     if (esResponsableSegmento && perfil?.segmento?.id) return { segmento_id: perfil.segmento.id };
+    if (esCoordSegmento && perfil?.segmento?.id) return { segmento_id: perfil.segmento.id };
+    if (hasPerm("admin.filtro_departamento") && perfil?.area?.id) return { area_id: perfil.area.id };
     if (perfil?.area?.id) return { area_id: perfil.area.id };
     if (s.segmento_id) return { segmento_id: s.segmento_id };
     if (s.area_id) return { area_id: s.area_id };
+    // Usuario sin estructura asignada — filtrar por su propia cédula
+    const cedula = perfil?.identificacion || s.identificacion || s.cedula;
+    if (cedula) return { cedula };
     return {};
   }
 
@@ -572,12 +578,20 @@ export function useReporteMallas() {
     try {
       isLoadingHistorial.value = true;
       await _asegurarPerfil();
+      const s = getSession();
+      const filtroEstructura = getAreaSegmento();
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
+        ...filtroEstructura,
       };
+      // Si no es admin y no tiene filtro de estructura, forzar cedula propia
+      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo") && !hasPerm("admin.filtro_departamento")
+          && !filtroEstructura.area_id && !filtroEstructura.segmento_id && !filtroEstructura.cedula) {
+        const cedula = perfilUsuario.value?.identificacion || s.identificacion || s.cedula;
+        if (cedula) params.cedula = cedula;
+      }
       const { data } = await axios.get(
         `${API_BASE_URL}/horas-extra/historial`,
         { params: { ...params, soloNotificados: true, _t: Date.now() } },
