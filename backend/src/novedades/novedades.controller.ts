@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Query,
@@ -208,14 +209,30 @@ export class NovedadesController {
     );
   }
 
+  // PATCH /novedades/:id/renuncia — actualiza campos de liquidación (jefe)
+  @Patch(':id/renuncia')
+  actualizarRenuncia(@Param('id') id: string, @Body() body: any) {
+    return this.novedadesService.actualizarRenuncia(+id, body);
+  }
+
   @Post(':id/aprobar-jefe')
   aprobarJefe(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
-    return this.novedadesService.aprobarJefe(+id, dto.aprobado, dto.motivo);
+    const notificar = (dto as any).notificar !== false; // true por defecto
+    return this.novedadesService.aprobarJefe(+id, dto.aprobado, dto.motivo, (dto as any).aprobadoPorNombre, notificar);
   }
 
   @Post(':id/aprobar-rrhh')
   aprobarRrhh(@Param('id') id: string, @Body() dto: UpdateAprobacionDto) {
-    return this.novedadesService.aprobarRrhh(+id, dto.aprobado, dto.motivo);
+    return this.novedadesService.aprobarRrhh(+id, dto.aprobado, dto.motivo, (dto as any).aprobadoPorNombre);
+  }
+
+  @Post(':id/reenviar-correo')
+  reenviarCorreo(
+    @Param('id') id: string,
+    @Body('rol') rol: 'jefe' | 'rrhh',
+    @Body('reenviadoPorNombre') reenviadoPorNombre?: string,
+  ) {
+    return this.novedadesService.reenviarCorreo(+id, rol || 'jefe', reenviadoPorNombre);
   }
 
   /**

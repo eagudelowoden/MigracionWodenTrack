@@ -77,17 +77,19 @@
             <tbody>
               <tr v-for="e in smFiltrados" :key="e.id_odoo" class="border-t transition-all"
                 :class="isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'">
-                <td class="px-4 py-2.5 font-semibold" :class="isDark ? 'text-white' : 'text-slate-700'">{{ e.nombre }}
+                <td class="px-4 py-2.5 font-semibold text-[12px]" :class="isDark ? 'text-white' : 'text-slate-700'">{{
+                  e.nombre }}
                 </td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                <td class="px-4 py-2.5 opacity-60 text-[12px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
                   e.cargo }}</td>
                 <td class="px-4 py-2.5">
-                  <span class="px-2 py-0.5 rounded-full text-[9px] font-bold"
-                    :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'">{{ e.area }}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[12px] font-bold"
+                    :class="isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600 text-[12px]'">{{ e.area
+                    }}</span>
                 </td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                <td class="px-4 py-2.5 opacity-60 text-[12px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
                   e.departamento }}</td>
-                <td class="px-4 py-2.5 opacity-60 text-[9px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
+                <td class="px-4 py-2.5 opacity-60 text-[12px]" :class="isDark ? 'text-white' : 'text-slate-600'">{{
                   e.segmento }}</td>
               </tr>
             </tbody>
@@ -941,7 +943,6 @@ const TABS = [
   { key: 'masivo', icon: 'fas fa-layer-group', label: 'Asig. masiva' },
   { key: 'heatmap', icon: 'fas fa-th', label: 'Heatmap' },
   { key: 'comparativa', icon: 'fas fa-chart-bar', label: 'Comparativa' },
-  { key: 'correo', icon: 'fas fa-envelope', label: 'Correo' },
   { key: 'ia', icon: 'fas fa-brain', label: 'IA' },
   { key: 'tendencias', icon: 'fas fa-chart-line', label: 'Tendencias' },
   { key: 'ranking', icon: 'fas fa-trophy', label: 'Ranking' },

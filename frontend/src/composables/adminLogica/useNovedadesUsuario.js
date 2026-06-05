@@ -36,6 +36,11 @@ export function useNovedades() {
       fd.append("tipificacion", payload.tipificacion ?? "");
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
+      if (payload.ultimoDiaTrabajado) fd.append("ultimoDiaTrabajado", payload.ultimoDiaTrabajado);
+      if (payload.renunciaDescuento) fd.append("renunciaDescuento", payload.renunciaDescuento);
+      if (payload.renunciaComisiones) fd.append("renunciaComisiones", payload.renunciaComisiones);
+      if (payload.renunciaHorasExtra) fd.append("renunciaHorasExtra", payload.renunciaHorasExtra);
+      if (payload.renunciaTransporte) fd.append("renunciaTransporte", payload.renunciaTransporte);
       fd.append("storageMode", payload.storageMode || "local");
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
@@ -148,9 +153,11 @@ export function useNovedades() {
   // ─── Aprobación Jefe ──────────────────────────────────────────────────────
   const aprobarJefe = async (id, aprobado, motivo) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Coordinador',
       });
       await fetchNovedades();
       return res.data;
@@ -163,15 +170,30 @@ export function useNovedades() {
   // ─── Aprobación RRHH ──────────────────────────────────────────────────────
   const aprobarRrhh = async (id, aprobado, motivo) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-rrhh`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Capital Humano',
       });
       await fetchNovedades();
       return res.data;
     } catch (e) {
       console.error("Error al aprobar/rechazar como RRHH:", e);
       throw e;
+    }
+  };
+
+  const reenviarCorreo = async (id, rol) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      const res = await axios.post(`${API_URL}/novedades/${id}/reenviar-correo`, {
+        rol,
+        reenviadoPorNombre: session.name || 'Sistema',
+      });
+      return res.data;
+    } catch (e) {
+      return { ok: false, mensaje: e?.response?.data?.message || 'Error al reenviar' };
     }
   };
 
@@ -187,6 +209,7 @@ export function useNovedades() {
     eliminarNovedad,
     aprobarJefe,
     aprobarRrhh,
+    reenviarCorreo,
     jefe,
     fetchJefeDeArea,
     misNovedades,

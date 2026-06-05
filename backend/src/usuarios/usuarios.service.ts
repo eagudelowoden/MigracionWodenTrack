@@ -20,6 +20,7 @@ import { PermisoDepartamento } from './entities/permiso-departamento.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Area } from './entities/area.entity';
+import { ReporteFalla } from './entities/reporte-falla.entity';
 import { MailModule } from '../logsEmail/mail.module';
 import { MailService } from '../logsEmail/mail.service';
 import { MallaHoraria } from '../mallas/entities/malla-horaria.entity';
@@ -68,6 +69,9 @@ export class UsuariosService {
     private readonly areaRepo: Repository<Area>,
     @InjectRepository(PermisoDepartamento)
     private readonly permisoDeptRepo: Repository<PermisoDepartamento>,
+
+    @InjectRepository(ReporteFalla)
+    private readonly reporteFallaRepo: Repository<ReporteFalla>,
   ) {}
 
   // CONFIGURACIÓN: Cambiar a 'true' solo si los campos existen en el Odoo actual
@@ -321,7 +325,17 @@ export class UsuariosService {
     return await this.permisoRepo.save(nuevoPermiso);
   }
 
-  async attendance(employee_id: number) {
+  // Helper: UTC string de Odoo → hora formateada Colombia "10:35 AM"
+  private formatHoraColombia(utcStr: string): string {
+    return new Date(utcStr + ' UTC').toLocaleTimeString('es-CO', {
+      timeZone: 'America/Bogota',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  async attendance(employee_id: number, action?: 'in' | 'out') {
     // Race condition guard: reject concurrent markings for the same employee
     if (this.markingInProgress.has(employee_id)) {
       return {
@@ -490,9 +504,37 @@ export class UsuariosService {
         }
       }
 
-      // 6. REGISTRO FINAL EN ODOO (USANDO UTC)
+      // 6. VALIDACIÓN DE ACCIÓN vs ESTADO REAL
+      // Si el frontend envía action explícito, verificamos que coincida con el estado real.
+      // Esto previene que un doble clic o estado stale genere entrada+salida simultánea.
+      if (action === 'in' && activeSession) {
+        return {
+          status: 'error',
+          type: 'already_inside',
+          message: 'Ya tienes una entrada activa. Marca salida primero.',
+          is_inside: true,
+          day_completed: false,
+          check_in_at: this.formatHoraColombia(lastAtt[0].check_in),
+          check_out_at: null,
+        };
+      }
+      if (action === 'out' && !activeSession) {
+        return {
+          status: 'error',
+          type: 'not_inside',
+          message: 'No tienes una entrada activa para registrar salida.',
+          is_inside: false,
+          day_completed: false,
+          check_in_at: null,
+          check_out_at: null,
+        };
+      }
+
+      // 7. REGISTRO FINAL EN ODOO (USANDO UTC)
       let typeResult = '';
-      // IMPORTANTE: Enviamos fechaHoraISO (UTC)
+      let checkInAt: string | null = null;
+      let checkOutAt: string | null = null;
+
       if (activeSession) {
         await this.odoo.executeKw(
           'hr.attendance',
@@ -505,6 +547,8 @@ export class UsuariosService {
           uid,
         );
         typeResult = 'out';
+        checkInAt  = this.formatHoraColombia(lastAtt[0].check_in);
+        checkOutAt = this.formatHoraColombia(fechaHoraISO);
       } else {
         await this.odoo.executeKw(
           'hr.attendance',
@@ -520,9 +564,11 @@ export class UsuariosService {
           uid,
         );
         typeResult = 'in';
+        checkInAt  = this.formatHoraColombia(fechaHoraISO);
+        checkOutAt = null;
       }
 
-      // 7. RESPUESTA
+      // 8. RESPUESTA
       const finalStatus = await this.getAttendanceStatus(employee_id);
       return {
         status: 'success',
@@ -533,6 +579,8 @@ export class UsuariosService {
         malla: infoMalla,
         is_inside: finalStatus.is_inside,
         day_completed: finalStatus.day_completed,
+        check_in_at: checkInAt,
+        check_out_at: checkOutAt,
       };
     } catch (error) {
       console.error('Error crítico en attendance:', error);
@@ -596,10 +644,9 @@ export class UsuariosService {
         depto: `%${departamentoName}%`,
       });
     }
-    // if (companyName && companyName !== 'Todas') {
-    //   // Si tu entidad usuario tiene el campo company, asegúrate de filtrarlo
-    //   usuarioQuery.andWhere('u.company = :company', { company: companyName });
-    // }
+    if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
+      usuarioQuery.andWhere('u.pais = :pais', { pais: companyName });
+    }
     if (areaId) {
       usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
     }
@@ -2053,6 +2100,14 @@ export class UsuariosService {
 
       let dayCompleted = false;
 
+      let checkInAt: string | null = null;
+      let checkOutAt: string | null = null;
+
+      // Hora de entrada de la sesión abierta
+      if (isInside && lastAtt.length > 0) {
+        checkInAt = this.formatHoraColombia(lastAtt[0].check_in);
+      }
+
       // 3. Si no está adentro, verificamos si ya terminó su jornada hoy
       if (!isInside) {
         const registroHoy = await this.odoo.executeKw<any[]>(
@@ -2065,19 +2120,68 @@ export class UsuariosService {
               ['check_out', '!=', false],
             ],
           ],
-          { fields: ['id'], limit: 1, order: 'check_in desc' },
+          { fields: ['id', 'check_in', 'check_out'], limit: 1, order: 'check_in desc' },
           uid,
         );
         dayCompleted = registroHoy && registroHoy.length > 0;
+        if (dayCompleted) {
+          checkInAt  = this.formatHoraColombia(registroHoy[0].check_in);
+          checkOutAt = this.formatHoraColombia(registroHoy[0].check_out);
+        }
       }
 
-      console.log('--- STATUS FINAL ---', { isInside, dayCompleted });
-      return { is_inside: isInside, day_completed: dayCompleted };
+      return { is_inside: isInside, day_completed: dayCompleted, check_in_at: checkInAt, check_out_at: checkOutAt };
     } catch (e) {
       console.error('Error en getAttendanceStatus:', e);
-      return { is_inside: false, day_completed: false };
+      return { is_inside: false, day_completed: false, check_in_at: null, check_out_at: null };
     }
   }
+  async getMallaHoy(employee_id: number) {
+    try {
+      const uid = await this.odoo.authenticate();
+      const ahoraCol = new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+      );
+
+      const contracts = await this.odoo.executeKw<any[]>(
+        'hr.contract',
+        'search_read',
+        [[['employee_id', '=', employee_id], ['state', 'in', ['open', 'draft']]]],
+        { fields: ['resource_calendar_id'], limit: 1 },
+        uid,
+      );
+
+      if (!contracts?.length || !contracts[0].resource_calendar_id) {
+        return { tiene_malla: false, nombre: null, turnos: [] };
+      }
+
+      const calId = contracts[0].resource_calendar_id[0];
+      const calNombre = contracts[0].resource_calendar_id[1];
+      const dayOfWeek = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
+
+      const turnos = await this.odoo.executeKw<any[]>(
+        'resource.calendar.attendance',
+        'search_read',
+        [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeek]]],
+        { fields: ['hour_from', 'hour_to', 'name'], order: 'hour_from asc' },
+        uid,
+      );
+
+      return {
+        tiene_malla: turnos.length > 0,
+        nombre: calNombre,
+        turnos: turnos.map(t => ({
+          entrada: this.formatDecimal(t.hour_from),
+          salida: this.formatDecimal(t.hour_to),
+          nombre: t.name || null,
+        })),
+      };
+    } catch (e) {
+      console.warn('Error obteniendo malla del día:', e);
+      return { tiene_malla: false, nombre: null, turnos: [] };
+    }
+  }
+
   // Función auxiliar para convertir 8.5 a "08:30"
   private formatDecimal(decimal: number): string {
     const hrs = Math.floor(decimal);
@@ -2280,6 +2384,9 @@ export class UsuariosService {
       }
 
       // ── FASE 2: ELIMINAR HUÉRFANOS ───────────────────────────────────────
+      // Antes de eliminar el usuario hay que borrar primero sus registros
+      // dependientes que tienen FK hacia usuario_id_odoo, de lo contrario
+      // SQL Server lanza error 547 (REFERENCE constraint violation).
       for (const user of toDelete) {
         if (this.syncProgress.isCancelled) {
           return {
@@ -2288,6 +2395,10 @@ export class UsuariosService {
           };
         }
 
+        // 1. Eliminar asignaciones de malla del usuario
+        await this.asignacionRepo.delete({ usuario_id_odoo: user.id_odoo });
+
+        // 2. Eliminar el usuario
         await this.usuarioRepo.delete(user.id);
         eliminados++;
         this.syncProgress.current = odooEmployees.length + eliminados;
@@ -2348,6 +2459,31 @@ export class UsuariosService {
     }
 
     return await this.usuarioRepo.find(queryOptions);
+  }
+
+  async reportarFalla(data: { empleado_id: number; nombre: string; descripcion: string }) {
+    const reporte = this.reporteFallaRepo.create({
+      empleado_id:  data.empleado_id,
+      nombre:       data.nombre,
+      descripcion:  data.descripcion,
+      resuelto:     false,
+    });
+    await this.reporteFallaRepo.save(reporte);
+    return { status: 'success', message: 'Reporte enviado. Gracias por reportar.' };
+  }
+
+  async getReportesFalla() {
+    return this.reporteFallaRepo.find({
+      order: { fecha: 'DESC' },
+    });
+  }
+
+  async resolverFalla(id: number) {
+    const reporte = await this.reporteFallaRepo.findOne({ where: { id } });
+    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    reporte.resuelto = true;
+    await this.reporteFallaRepo.save(reporte);
+    return { status: 'success' };
   }
 
   async removerModuloPermiso(

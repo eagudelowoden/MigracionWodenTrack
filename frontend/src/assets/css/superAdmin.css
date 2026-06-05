@@ -90,9 +90,48 @@
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(161, 161, 170, 0.25);
   border-radius: 10px;
 }
+
+/* ══ SUPER ADMIN — estilos globales (afectan componentes hijos) ══ */
+
+/* ── Scrollbar sutil para TODOS los elementos dentro del panel ── */
+.sa-root *::-webkit-scrollbar        { width: 4px; height: 4px; }
+.sa-root *::-webkit-scrollbar-track  { background: transparent; }
+.sa-dark  *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 10px; }
+.sa-light *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12);       border-radius: 10px; }
+.sa-dark  *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.sa-light *::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
+
+/* ── Tablas en modo oscuro — Geist Soft Dark ── */
+.sa-dark table                     { width: 100%; border-collapse: collapse; }
+.sa-dark table thead tr            { background: #0B0F19; }
+.sa-dark table thead th            { color: #888888; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.sa-dark table tbody tr            { background: transparent; }
+.sa-dark table tbody tr:hover      { background: rgba(255,255,255,0.02); }
+.sa-dark table tbody td            { border-top: 1px solid #222938; color: #E2E8F0; }
+
+/* ── Tablas en modo claro ── */
+.sa-light table                    { width: 100%; border-collapse: collapse; }
+.sa-light table thead tr           { background: #fafafa; }
+.sa-light table thead th           { color: #71717a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sa-light table tbody tr           { background: transparent; }
+.sa-light table tbody tr:hover     { background: #f4f4f5; }
+.sa-light table tbody td           { border-top: 1px solid #ececec; }
+
+/* ── Áreas con scroll dentro de módulos ── */
+.sa-dark  .overflow-y-auto,
+.sa-dark  .overflow-x-auto { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.10) transparent; }
+.sa-light .overflow-y-auto,
+.sa-light .overflow-x-auto { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.12) transparent; }
+
+/* ── Cabeceras de módulos (h2 dentro de cards) — tono Admin ── */
+.sa-dark .sa-card table,
+.sa-dark .sa-card .overflow-y-auto table { background: transparent; }
+
+/* ── Modo claro: separar secciones dentro de módulos ── */
+.sa-light .sa-card > * { --section-bg: #f8fafc; }
 @keyframes flash {
   0% { background-color: rgba(16, 185, 129, 0.2); } /* Color esmeralda suave */
   100% { background-color: transparent; }

@@ -19,6 +19,7 @@ import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
 import { SuperAdminAnaliticaService } from './superadmin-analitica.service';
 import { SuperAdminAnaliticaController } from './superadmin-analitica.controller';
 import { SuperAdminCorreoService } from './superadmin-correo.service';
+import { CorreoDestinatario } from './entities/correo-destinatario.entity';
 import { SuperAdminCorreoController } from './superadmin-correo.controller';
 import { SuperAdminIAService } from './superadmin-ia.service';
 import { SuperAdminIAController } from './superadmin-ia.controller';
@@ -32,6 +33,11 @@ import { SuperAdminMensajesController } from './superadmin-mensajes.controller';
 import { SuperAdminSolicitudesService } from './superadmin-solicitudes.service';
 import { SuperAdminSolicitudesController } from './superadmin-solicitudes.controller';
 import { MallasSolicitud } from './entities/mallas-solicitud.entity';
+import { ReporteFalla } from './entities/reporte-falla.entity';
+import { FondoEmpleado } from './entities/fondo-empleado.entity';
+import { FondoEmpleadoCorreo } from './entities/fondo-empleado-correo.entity';
+import { SuperAdminFondosService } from './superadmin-fondos.service';
+import { SuperAdminFondosController } from './superadmin-fondos.controller';
 
 @Module({
   imports: [
@@ -46,6 +52,10 @@ import { MallasSolicitud } from './entities/mallas-solicitud.entity';
       SesionActiva,
       MensajeInterno,
       MallasSolicitud,
+      CorreoDestinatario,
+      ReporteFalla,
+      FondoEmpleado,
+      FondoEmpleadoCorreo,
     ]),
     OdooModule,
     MailModule,
@@ -61,6 +71,7 @@ import { MallasSolicitud } from './entities/mallas-solicitud.entity';
     SuperAdminSesionesController,
     SuperAdminMensajesController,
     SuperAdminSolicitudesController,
+    SuperAdminFondosController,
   ],
   providers: [
     UsuariosService,
@@ -73,6 +84,7 @@ import { MallasSolicitud } from './entities/mallas-solicitud.entity';
     SuperAdminSesionesService,
     SuperAdminMensajesService,
     SuperAdminSolicitudesService,
+    SuperAdminFondosService,
   ],
   exports: [UsuariosService, MallasUploadService, MallasCrudService, InternoGateway, SuperAdminCorreoService],
 })

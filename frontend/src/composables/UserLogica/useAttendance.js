@@ -11,6 +11,14 @@ export function useAttendance() {
   const message = reactive({ text: "", type: "" });
   const isDark = ref(localStorage.getItem("theme") !== "light");
 
+  // Estado de malla del día y actualización de APK
+  const malla = ref(null);
+  const apkUpdate = ref(null);
+
+  // Guard contra doble marcación rápida (ms desde el último intento)
+  const lastMarkTimestamp = ref(0);
+  const MARK_COOLDOWN_MS = 4000;
+
   const toggleTheme = () => {
     isDark.value = !isDark.value;
     localStorage.setItem("theme", isDark.value ? "dark" : "light");
@@ -58,36 +66,29 @@ export function useAttendance() {
           );
           const statusData = await statusRes.json();
           data.is_inside = statusData.is_inside;
-          // ... (tu lógica de last_mark_time se mantiene igual)
         } catch (statusErr) {
           console.warn("Error sincronizando estado inicial.");
         }
 
-        // 2. GUARDAR SESIÓN (Incluye el nuevo objeto data.permisos que viene del backend)
+        // 2. GUARDAR SESIÓN
         data.last_login_date = new Date().toLocaleDateString();
         employee.value = data;
         localStorage.setItem("user_session", JSON.stringify(data));
 
         showToast(`Bienvenido ${data.name}`, "success");
 
-        // 3. LÓGICA DE REDIRECCIÓN INTELIGENTE (Prioridad a Permisos)
-
-        // Si es SuperAdmin (por cargo) o tiene permiso explícito de gestión de usuarios
+        // 3. REDIRECCIÓN INTELIGENTE
         if (
           data.isSuperAdmin ||
           (data.permisos && data.permisos["super.superadmin"])
         ) {
           router.push("/selector-perfil");
-        }
-        // Si tiene rol admin (por cargo) o tiene permiso de mallas
-        else if (
+        } else if (
           data.role === "admin" ||
           (data.permisos && data.permisos["admin.admin"])
         ) {
           router.push("/admin");
-        }
-        // Usuario normal
-        else {
+        } else {
           router.push("/marcacion");
         }
       } else {
@@ -100,38 +101,100 @@ export function useAttendance() {
     }
   };
 
-  const handleAttendance = async () => {
+  const syncEstado = async (empId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/attendance-status/${empId}`);
+      const data = await res.json();
+      if (employee.value) {
+        employee.value.is_inside     = data.is_inside;
+        employee.value.day_completed = data.day_completed;
+        employee.value.hora_entrada  = data.check_in_at  ?? null;
+        employee.value.hora_salida   = data.check_out_at ?? null;
+        localStorage.setItem("user_session", JSON.stringify(employee.value));
+      }
+    } catch (e) {
+      console.warn("Error sincronizando estado de asistencia:", e);
+    }
+  };
+
+  // Carga la malla horaria del día para el empleado actual
+  const fetchMalla = async (empId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/malla-hoy/${empId}`);
+      if (res.ok) {
+        malla.value = await res.json();
+      }
+    } catch (e) {
+      console.warn("No se pudo obtener malla del día:", e);
+    }
+  };
+
+  // Verifica si hay una nueva versión de APK disponible en el servidor
+  const checkApkUpdate = async () => {
+    try {
+      // El endpoint de APK está fuera de /usuarios
+      const apkBase = API_BASE_URL.replace(/\/usuarios\/?$/, "");
+      const res = await fetch(`${apkBase}/apk/info`, { cache: "no-store" });
+      if (!res.ok) return;
+      const info = await res.json();
+      if (!info.exists) return;
+
+      // Comparar con el timestamp de la última vez que el usuario descartó el aviso
+      const dismissedAt = localStorage.getItem("apk_update_dismissed_at");
+      const serverMs = new Date(info.lastUpdate).getTime();
+
+      if (!dismissedAt || Number(dismissedAt) < serverMs) {
+        apkUpdate.value = info;
+      }
+    } catch (e) {
+      // Fallo silencioso — no crítico
+    }
+  };
+
+  const dismissApkUpdate = () => {
+    localStorage.setItem("apk_update_dismissed_at", Date.now().toString());
+    apkUpdate.value = null;
+  };
+
+  // action: 'in' | 'out'
+  const handleAttendance = async (action) => {
     if (loading.value || !employee.value) return;
+
+    // Guard de doble marcación: bloquear si el usuario pulsó hace menos de MARK_COOLDOWN_MS
+    const now = Date.now();
+    if (now - lastMarkTimestamp.value < MARK_COOLDOWN_MS) {
+      showToast("Espera un momento antes de marcar de nuevo", "warning");
+      return;
+    }
+    lastMarkTimestamp.value = now;
 
     loading.value = true;
     try {
       const res = await fetch(`${API_BASE_URL}/attendance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: employee.value.employee_id }),
+        body: JSON.stringify({ employee_id: employee.value.employee_id, action }),
       });
 
       const data = await res.json();
 
-      if (res.ok && data.status === "success") {
-        // ACTUALIZAMOS EL ESTADO CON LO QUE VIENE DEL SERVIDOR
-        employee.value.is_inside = data.is_inside;
+      if (data.status === "success") {
+        employee.value.is_inside     = data.is_inside;
         employee.value.day_completed = data.day_completed;
-
-        employee.value.last_status = data.message;
-        employee.value.last_mark_time = new Date().toLocaleTimeString("es-CO", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-
-        // Guardamos la verdad absoluta en el storage
+        employee.value.hora_entrada  = data.check_in_at  ?? employee.value.hora_entrada;
+        employee.value.hora_salida   = data.check_out_at ?? employee.value.hora_salida;
+        employee.value.last_status   = data.message;
         localStorage.setItem("user_session", JSON.stringify(employee.value));
-        showToast(
-          data.message,
-          data.type === "completed" ? "warning" : "success",
-        );
+        showToast(data.message, data.type === "completed" ? "warning" : "success");
       } else {
+        // El backend rechazó la acción (doble entrada, doble salida, etc.)
+        // Sincronizamos el estado real para corregir el UI
+        if (data.is_inside !== undefined) {
+          employee.value.is_inside    = data.is_inside;
+          employee.value.hora_entrada = data.check_in_at  ?? employee.value.hora_entrada;
+          employee.value.hora_salida  = data.check_out_at ?? employee.value.hora_salida;
+          localStorage.setItem("user_session", JSON.stringify(employee.value));
+        }
         showToast(data.message || "Error de conexión", "error");
       }
     } catch (err) {
@@ -149,7 +212,7 @@ export function useAttendance() {
     router.push("/login");
   };
 
-  onMounted(() => {
+  onMounted(async () => {
     updateClock();
     setInterval(updateClock, 1000);
 
@@ -158,17 +221,27 @@ export function useAttendance() {
       const userData = JSON.parse(saved);
       const today = new Date().toLocaleDateString();
 
-      // RESETEADOR DIARIO: Si es un nuevo día, desbloqueamos los botones
+      // Resetear estado al inicio de un nuevo día
       if (userData.last_login_date !== today) {
-        userData.is_inside = false;
+        userData.is_inside     = false;
         userData.day_completed = false;
         userData.last_login_date = today;
-        userData.last_mark_time = null;
-        userData.last_status = null;
+        userData.hora_entrada  = null;
+        userData.hora_salida   = null;
+        userData.last_status   = null;
         localStorage.setItem("user_session", JSON.stringify(userData));
       }
 
       employee.value = userData;
+
+      // Sincronizar estado real con Odoo, cargar malla y verificar APK en paralelo
+      if (userData.employee_id) {
+        await Promise.allSettled([
+          syncEstado(userData.employee_id),
+          fetchMalla(userData.employee_id),
+          checkApkUpdate(),
+        ]);
+      }
     }
   });
 
@@ -180,9 +253,13 @@ export function useAttendance() {
     form,
     message,
     isDark,
+    malla,
+    apkUpdate,
     handleLogin,
     handleAttendance,
+    syncEstado,
     logout,
     toggleTheme,
+    dismissApkUpdate,
   };
 }

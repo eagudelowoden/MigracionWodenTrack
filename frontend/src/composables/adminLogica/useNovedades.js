@@ -67,6 +67,11 @@ export function useNovedades() {
       fd.append("tipificacion", payload.tipificacion ?? "");
       fd.append("fechaInicio", payload.fechaInicio);
       fd.append("fechaFin", payload.fechaFin);
+      if (payload.ultimoDiaTrabajado) fd.append("ultimoDiaTrabajado", payload.ultimoDiaTrabajado);
+      if (payload.renunciaDescuento) fd.append("renunciaDescuento", payload.renunciaDescuento);
+      if (payload.renunciaComisiones) fd.append("renunciaComisiones", payload.renunciaComisiones);
+      if (payload.renunciaHorasExtra) fd.append("renunciaHorasExtra", payload.renunciaHorasExtra);
+      if (payload.renunciaTransporte) fd.append("renunciaTransporte", payload.renunciaTransporte);
       fd.append("storageMode", payload.storageMode || "local");
       fd.append("responsableIdOdoo", payload.responsableIdOdoo ?? "");
       fd.append("responsableNombre", payload.responsableNombre ?? "");
@@ -162,11 +167,14 @@ export function useNovedades() {
     }
   };
 
-  const aprobarJefe = async (id, aprobado, motivo) => {
+  const aprobarJefe = async (id, aprobado, motivo, notificar = true) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-jefe`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Coordinador',
+        notificar,
       });
       await fetchNovedades();
       return res.data;
@@ -179,9 +187,11 @@ export function useNovedades() {
   // ─── Aprobación RRHH ──────────────────────────────────────────────────────
   const aprobarRrhh = async (id, aprobado, motivo) => {
     try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       const res = await axios.post(`${API_URL}/novedades/${id}/aprobar-rrhh`, {
         aprobado,
         motivo,
+        aprobadoPorNombre: session.name || 'Capital Humano',
       });
       await fetchNovedades();
       return res.data;
@@ -190,6 +200,20 @@ export function useNovedades() {
       throw e;
     }
   };
+
+  const reenviarCorreo = async (id, rol) => {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      const res = await axios.post(`${API_URL}/novedades/${id}/reenviar-correo`, {
+        rol,
+        reenviadoPorNombre: session.name || 'Sistema',
+      });
+      return res.data;
+    } catch (e) {
+      return { ok: false, mensaje: e?.response?.data?.message || 'Error al reenviar' };
+    }
+  };
+
   const jefe = ref(null);
 
   const fetchJefeDeArea = async (department) => {
@@ -354,6 +378,7 @@ export function useNovedades() {
     aprobarNovedad,
     aprobarJefe,
     aprobarRrhh,
+    reenviarCorreo,
     jefe,
     fetchJefeDeArea,
     fetchPorArea,

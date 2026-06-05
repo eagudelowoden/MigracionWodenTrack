@@ -4,7 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  // Deshabilitar ETags para evitar respuestas 304 con datos cacheados
+  app.getHttpAdapter().getInstance().set('etag', false);
 
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ limit: '50mb', extended: true }));

@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Query,
   Param,
@@ -62,6 +63,8 @@ export class HorasExtraController {
     @Query('cargo') cargo?: string,
     @Query('departamento') departamento?: string,
     @Query('soloConExtras') soloConExtras?: string,
+    @Query('soloNotificados') soloNotificados?: string,
+    @Query('soloNoAprobados') soloNoAprobados?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
   ) {
@@ -74,6 +77,8 @@ export class HorasExtraController {
       cargo,
       departamento,
       soloConExtras: soloConExtras === 'true',
+      soloNotificados: soloNotificados === 'true',
+      soloNoAprobados: soloNoAprobados === 'true',
       area_id: area_id ? Number(area_id) : undefined,
       segmento_id: segmento_id ? Number(segmento_id) : undefined,
     });
@@ -95,9 +100,72 @@ export class HorasExtraController {
   @Patch('aprobar/:id')
   aprobarRegistro(
     @Param('id') id: string,
-    @Body() dto: { aprobado: boolean | null },
+    @Body() dto: { aprobado: boolean | null; observacion?: string },
   ) {
-    return this.service.aprobarRegistro(Number(id), dto.aprobado);
+    return this.service.aprobarRegistro(
+      Number(id),
+      dto.aprobado,
+      dto.observacion,
+    );
+  }
+
+  @Patch(':id/actividad')
+  actualizarActividad(
+    @Param('id') id: string,
+    @Body('actividad') actividad: string,
+  ) {
+    return this.service.actualizarActividad(Number(id), actividad ?? '');
+  }
+
+  @Patch(':id/horas')
+  actualizarHoras(
+    @Param('id') id: string,
+    @Body()
+    horas: {
+      rn?: number;
+      rndf?: number;
+      rddf?: number;
+      hedo?: number;
+      heno?: number;
+      hefd?: number;
+      hefn?: number;
+    },
+  ) {
+    return this.service.actualizarHoras(Number(id), horas);
+  }
+
+  @Get('novedades-aprobadas')
+  novedadesAprobadas(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
+  ) {
+    return this.service.getNovedadesAprobadas({
+      startDate,
+      endDate,
+      company,
+      departamento,
+      area_id: area_id ? Number(area_id) : undefined,
+      segmento_id: segmento_id ? Number(segmento_id) : undefined,
+    });
+  }
+
+  @Post('notificar-aprobados')
+  notificarAprobados(@Body() body: { registros: any[] }) {
+    return this.service.notificarAprobados(body.registros ?? []);
+  }
+
+  @Post('guardar-seleccionados')
+  guardarSeleccionados(
+    @Body() body: { registros: any[]; calculado_por?: string },
+  ) {
+    return this.service.guardarSeleccionados(
+      body.registros ?? [],
+      body.calculado_por ?? 'Desconocido',
+    );
   }
 
   @Post('exportar-calculado')
@@ -148,10 +216,7 @@ export class HorasExtraController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res!.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res!.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res!.send(buffer);
   }
 
@@ -223,5 +288,10 @@ export class HorasExtraController {
     @Body() dto: { aprobado: boolean | null },
   ) {
     return this.service.aprobarCargue(Number(id), dto.aprobado);
+  }
+
+  @Delete(':id')
+  eliminarRegistro(@Param('id') id: string) {
+    return this.service.eliminarRegistro(Number(id));
   }
 }

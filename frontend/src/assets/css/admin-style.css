@@ -15,7 +15,11 @@
   font-family: "Inter", sans-serif;
 }
 * {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 body {
@@ -25,7 +29,11 @@ body {
     #1e293b 0%,
     var(--woden-bg-main) 100%
   );
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: white;
   min-height: 100vh;
 }
@@ -137,7 +145,7 @@ body {
 /* --- TEMAS (COLORES DINÁMICOS) --- */
 /* DARK MODE */
 .theme-dark {
-  background-color: #1e293b;
+  background-color: #3d4966;
   color: #e2e8f0;
 }
 .sidebar.theme-dark {
@@ -468,61 +476,129 @@ main.flex-1 {
   @apply h-16 flex items-center px-4 shrink-0;
 }
 /* Botones de Acción en Header */
+/* ─── BOTONES ENTRADA / SALIDA — Vercel premium con profundidad ─── */
 .btn-header-smart {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px; /* Más compacto verticalmente */
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid;
   cursor: pointer;
-  color: white;
+  font-family: 'Geist', 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Caja de icono interna para resaltar el símbolo */
+/* Brillo sutil tipo Linear / Vercel — gradiente interno */
+.btn-header-smart::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%);
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.btn-header-smart:hover:not(:disabled)::before {
+  opacity: 0.7;
+}
+
 .icon-box-smart {
-  width: 22px;
-  height: 22px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 7px;
-  transition: transform 0.2s ease;
+  background: transparent;
+  width: auto;
+  height: auto;
 }
 
-.btn-header-smart:hover:not(:disabled) .icon-box-smart {
-  transform: scale(1.1);
+.icon-box-smart i {
+  font-size: 10px;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
 }
 
-/* Colores Dinámicos con Degradados Suaves */
+.btn-header-smart > span,
+.btn-header-smart > div {
+  position: relative;
+  z-index: 1;
+}
+
+/* IN (Entrada) — verde con depth */
 .btn-header-smart.in {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+  background: #16a34a;
+  border-color: #15803d;
+  color: #ffffff;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 1px 2px 0 rgba(22, 163, 74, 0.25);
 }
 
+.btn-header-smart.in:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #166534;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 6px 0 rgba(22, 163, 74, 0.35);
+  transform: translateY(-0.5px);
+}
+
+/* OUT (Salida) — rojo con depth */
 .btn-header-smart.out {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.15);
+  background: #dc2626;
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 1px 2px 0 rgba(220, 38, 38, 0.25);
 }
 
-/* Estado Desactivado (Compacto y Elegante) */
+.btn-header-smart.out:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #991b1b;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 6px 0 rgba(220, 38, 38, 0.35);
+  transform: translateY(-0.5px);
+}
+
+.btn-header-smart:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 0.08s;
+}
+
+/* Estado Desactivado (Vercel ghost) */
 .btn-header-smart:disabled {
   background: transparent;
-  color: #eaecf0; /* slate-400 */
+  color: #71717a;
+  border-color: #222938;
   box-shadow: none;
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
-  filter: grayscale(1);
+  filter: none;
+}
+
+.btn-header-smart:disabled::before {
+  opacity: 0;
+}
+
+.theme-light .btn-header-smart:disabled,
+[class*="theme-light"] .btn-header-smart:disabled {
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  background: #fafafa;
 }
 
 .btn-header-smart:disabled .icon-box-smart {
-  background: rgba(148, 163, 184, 0.1);
+  background: transparent;
 }
 .sidebar-header {
   @apply transition-all duration-300;

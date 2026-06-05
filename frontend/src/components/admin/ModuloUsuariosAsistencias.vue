@@ -1,82 +1,100 @@
 <template>
   <div class="novedades-container-main h-full animate-in fade-in duration-500 flex flex-col gap-2">
 
-    <div
-      class="flex flex-wrap items-center justify-between gap-3 p-1.5 px-3 rounded-2xl border transition-all duration-300 font-round-custom -mt-3 shadow-sm"
-      :class="isDark ? 'bg-[#1e2538] border-white/5 shadow-black/20' : 'bg-[#f8fafc] border-slate-200 shadow-slate-200/50'">
+    <!-- Toolbar (Vercel compacto) -->
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-      <div class="relative flex items-center shrink-0 ml-1 gap-3 font-round-custom">
-        <span
-          class="lg:hidden absolute -top-4 left-0 px-1 text-[8px] font-bold uppercase tracking-[0.15em] leading-none transition-colors"
-          :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-          Asistencias
-        </span>
-
-        <div
-          class="flex items-center justify-center w-7 h-7 rounded-xl bg-[#3B82F6] text-white shadow-sm shadow-blue-500/20">
-          <i class="fas fa-clipboard-list text-xs"></i>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 bg-[#3B82F6]/10 text-[#3B82F6] rounded-md flex items-center justify-center">
+          <i class="fas fa-clipboard-list text-[11px]"></i>
         </div>
-
-        <h2 class="hidden lg:block text-base font-bold tracking-tight"
-          :class="isDark ? 'text-white' : 'text-slate-800'">
+        <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Asistencias
         </h2>
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
+
+        <!-- HOY toggle -->
         <button @click="filterHoy = !filterHoy"
-          class="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black transition-all hover:scale-105 active:scale-95"
-          :class="filterHoy ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : (isDark ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')"
+          class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
+          :class="filterHoy
+            ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
+            : (isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300')"
           title="Filtrar solo hoy">
-          <i class="fas" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
-          HOY
+          <i class="fas text-[10px]" :class="filterHoy ? 'fa-calendar-check' : 'fa-calendar'"></i>
+          Hoy
         </button>
 
-        <div class="flex items-center gap-2 px-2 py-0.5 rounded-lg border transition-all" :class="[
-          filterHoy ? 'opacity-40 pointer-events-none grayscale' : '',
-          isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        <!-- Rango de fechas -->
+        <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border transition-all" :class="[
+          filterHoy ? 'opacity-40 pointer-events-none' : '',
+          isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'
         ]">
           <input v-model="startDate" type="date"
-            class="bg-transparent text-[11px] font-bold outline-none w-26 cursor-pointer"
-            :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-          <div class="w-[1px] h-3 bg-slate-300 dark:bg-slate-600"></div>
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+            :class="isDark ? 'text-white' : 'text-slate-700'">
+          <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
           <input v-model="endDate" type="date"
-            class="bg-transparent text-[11px] font-bold outline-none w-26 cursor-pointer"
-            :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+            :class="isDark ? 'text-white' : 'text-slate-700'">
         </div>
 
-        <div class="flex items-center gap-2">
-          <template v-if="hasPerm('admin.filtro_departamento')">
-            <div class="relative">
-              <select v-model="selectedDepartment"
-                class="pl-3 pr-8 py-1 text-[10px] font-black uppercase rounded-lg border outline-none appearance-none cursor-pointer w-36 transition-all shadow-sm"
-                :class="isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'">
-                <option value="">DEPARTAMENTOS</option>
-                <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-              </select>
-              <i
-                class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none"></i>
-            </div>
-          </template>
-
-          <div class="relative group">
-            <input v-model="search" type="text" placeholder="NOMBRE O CÉDULA..."
-              @keyup.enter="fetchReporte"
-              class="pl-8 pr-3 py-1 text-[10px] font-bold uppercase rounded-lg border outline-none w-44 shadow-sm transition-all"
-              :class="isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-400' : 'bg-white border-slate-200 text-slate-600 focus:border-blue-400'">
-            <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-400"></i>
+        <!-- Departamento -->
+        <template v-if="hasPerm('admin.filtro_departamento')">
+          <div class="relative">
+            <select v-model="selectedDepartment"
+              class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-36 transition-all"
+              :class="isDark
+                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
+              <option value="">Todos los departamentos</option>
+              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
+            </select>
+            <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
+              :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
           </div>
+        </template>
+
+        <!-- Search -->
+        <div class="relative">
+          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
+            :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
+          <input v-model="search" type="text" placeholder="Nombre o cédula…" @keyup.enter="fetchReporte"
+            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-44 transition-all"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+              : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
         </div>
 
-        <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-white/10 pl-2">
-          <button @click="clearFilters" class="p-1.5 text-slate-400 hover:text-rose-500 transition-all">
-            <i class="fas fa-filter-circle-xmark text-base"></i>
+        <!-- Acciones -->
+        <div class="flex items-center gap-1.5 border-l pl-1.5 ml-0.5"
+          :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+
+          <button @click="clearFilters"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
+              : 'bg-white border-slate-200 text-slate-500 hover:text-[#dc2626] hover:border-rose-300'"
+            title="Limpiar filtros">
+            <i class="fas fa-filter-circle-xmark text-[10px]"></i>
           </button>
-          <button @click="fetchReporte" class="p-1.5 text-slate-500 hover:text-blue-400 transition-all">
-            <i class="fas fa-arrows-rotate text-base" :class="{ 'fa-spin': loading }"></i>
+
+          <button @click="fetchReporte"
+            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#f5f5f7] hover:text-white hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
+            title="Refrescar">
+            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': loading }"></i>
           </button>
+
           <button @click="downloadReport" :disabled="loading || reportData.length === 0"
-            class="ml-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
+            class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50"
+            :class="isDark
+              ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
             <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
             <span>Excel</span>
           </button>
@@ -85,120 +103,131 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg"
-      class="mx-0 mb-2 px-4 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-      <i class="fas fa-circle-exclamation"></i>
+    <div v-if="errorMsg" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+      ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+      : 'bg-red-50 border-red-200 text-red-700'">
+      <i class="fas fa-circle-exclamation text-[11px]"></i>
       {{ errorMsg }}
     </div>
 
     <!-- Progreso de carga por chunks -->
     <div v-if="loading && chunkProgress.total > 1"
-      class="mb-2 px-4 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold flex items-center gap-3">
-      <i class="fas fa-circle-notch fa-spin"></i>
+      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-3 border" :class="isDark
+        ? 'bg-[#3B82F6]/[0.08] border-[#3B82F6]/30 text-[#60A5FA]'
+        : 'bg-blue-50 border-blue-200 text-blue-700'">
+      <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
       <span class="shrink-0">Cargando datos…</span>
-      <div class="flex-1 h-1.5 rounded-full bg-amber-200 overflow-hidden">
-        <div class="h-full bg-amber-500 transition-all duration-500 rounded-full"
+      <div class="flex-1 h-1 rounded-full overflow-hidden" :class="isDark ? 'bg-[#222938]' : 'bg-blue-200'">
+        <div class="h-full bg-[#3B82F6] transition-all duration-500 rounded-full"
           :style="{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }"></div>
       </div>
-      <span class="shrink-0 tabular-nums">{{ Math.round((chunkProgress.current / chunkProgress.total) * 100) }}%</span>
+      <span class="shrink-0 tabular-nums font-semibold">{{ Math.round((chunkProgress.current / chunkProgress.total) *
+        100)
+      }}%</span>
     </div>
 
-    <div
-      class="table-wrapper flex-1 overflow-hidden rounded-xl border flex flex-col transition-all duration-300 font-round-custom"
-      :class="isDark ? 'bg-[#253045] border-[#253045]' : 'bg-white border-slate-200 shadow-sm'">
+    <!-- Tabla -->
+    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
-        <table class="w-full border-separate border-spacing-0 font-round-custom">
-          <thead class="sticky top-0 z-30 shadow-md">
-            <tr :class="isDark ? 'bg-[#3F4A6E]' : 'bg-[#334155]'">
+        <table class="w-full border-separate border-spacing-0">
+          <thead class="sticky top-0 z-30">
+            <!-- Header siempre oscuro (consistente con otros módulos) -->
+            <tr class="bg-[#1e2538]">
               <th
-                class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Colaborador</th>
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Colaborador
+              </th>
               <th
-                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Identificación</th>
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Identificación
+              </th>
               <th
-                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Entrada</th>
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Entrada
+              </th>
               <th
-                class="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Salida</th>
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Salida
+              </th>
               <th
-                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Estatus Entrada</th>
+                class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Estatus entrada
+              </th>
               <th
-                class="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.05em] border-b border-white/10 text-white">
-                Estatus Salida</th>
+                class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Estatus salida
+              </th>
             </tr>
           </thead>
 
           <tbody class="divide-y-0">
             <tr v-if="loading" v-for="n in 8" :key="'loader-' + n">
               <td colspan="6" class="px-4 py-4">
-                <div class="h-4 w-full rounded animate-pulse" :class="isDark ? 'bg-white/5' : 'bg-slate-100'"></div>
+                <div class="h-4 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
               </td>
             </tr>
 
             <tr v-else v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
               :class="[
                 index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-blue-50'
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]'
               ]">
 
-              <td class="px-4 py-3 border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center gap-3">
                   <div
                     class="avatar-mini w-8 h-8 rounded-full bg-slate-500/20 flex items-center justify-center shrink-0">
                     <i class="fas fa-user text-[10px]" :class="isDark ? 'text-slate-300' : 'text-slate-500'"></i>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-[11px] font-bold uppercase tracking-tight"
-                      :class="isDark ? 'text-white' : 'text-slate-900'">
+                    <span class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
                       {{ item.empleado }}
                     </span>
-                    <span class="text-[9px] font-bold" :class="isDark ? 'text-blue-400/90' : 'text-blue-600'">
-                      {{ item.department_id || 'Sin Depto' }}
+                    <span class="text-[10px] font-normal mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                      {{ item.department_id || 'Sin departamento' }}
                     </span>
                   </div>
                 </div>
               </td>
 
               <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
-                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
+                :class="isDark ? 'text-slate-300 border-[#222938]' : 'text-slate-700 border-slate-100'">
                 {{ item.cc }}
               </td>
 
               <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
-                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
+                :class="isDark ? 'text-slate-300 border-[#222938]' : 'text-slate-700 border-slate-100'">
                 {{ formatSoloHora(item.check_in) }}
               </td>
 
               <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
-                :class="isDark ? 'text-slate-300 border-white/5' : 'text-slate-700 border-slate-100'">
+                :class="isDark ? 'text-slate-300 border-[#222938]' : 'text-slate-700 border-slate-100'">
                 {{ formatSoloHora(item.check_out) }}
               </td>
 
-              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
                   <span :class="getStatusClass(item.c_entrada)"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_entrada || 'OK' }}
                   </span>
                   <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
-                    class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase border tracking-widest">
+                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
                 </div>
               </td>
 
-              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-white/5' : 'border-slate-100'">
+              <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
                   <span :class="getStatusClass(item.c_salida)"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_salida || 'OK' }}
                   </span>
                   <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
-                    class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase border tracking-widest">
+                    class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
                 </div>
@@ -208,30 +237,34 @@
         </table>
       </div>
 
-      <div v-if="paginatedData?.length"
-        class="px-4 py-2 border-t flex items-center justify-between font-round-custom shadow-inner"
-        :class="isDark ? 'border-white/5 bg-[#1a1d2d]' : 'border-slate-200 bg-slate-50'">
+      <!-- Paginación (Vercel) -->
+      <div v-if="paginatedData?.length" class="px-3 py-2 border-t flex items-center justify-between"
+        :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
 
-        <span class="text-[10px] font-bold uppercase tracking-wide"
-          :class="isDark ? 'text-[#5858E8]' : 'text-slate-600'">
-          Total: <span :class="isDark ? 'text-white' : 'text-slate-900'">{{ reportData.length }}</span>
+        <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+          <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ reportData.length }}</span>
+          {{ reportData.length === 1 ? 'registro' : 'registros' }}
         </span>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5">
           <button @click="currentPage--" :disabled="currentPage === 1"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
             <i class="fas fa-chevron-left text-[9px]"></i>
           </button>
 
-          <div class="flex items-center px-3 py-1 rounded-lg text-[11px] font-bold border"
-            :class="isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-300 text-slate-900 shadow-sm'">
-            {{ currentPage }} <span class="mx-1.5 opacity-40">/</span> {{ totalPages }}
+          <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
+            :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
+            {{ currentPage }} / {{ totalPages }}
           </div>
 
           <button @click="currentPage++" :disabled="currentPage >= totalPages"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20"
-            :class="isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-sm'">
+            class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
+            :class="isDark
+              ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
             <i class="fas fa-chevron-right text-[9px]"></i>
           </button>
         </div>
@@ -373,20 +406,19 @@ const formatSoloHora = (value) => {
 
 const getStatusClass = (status) => {
   if (!status || status.toUpperCase() === 'OK')
-    return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+    return 'bg-[#16a34a]/[0.10] text-[#16a34a] border-[#16a34a]/30 dark:text-[#4ade80]';
 
   const s = status.toUpperCase();
   if (s.includes('TARDE') || s.includes('INCUMPLIDO'))
-    return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+    return 'bg-[#dc2626]/[0.10] text-[#dc2626] border-[#dc2626]/30 dark:text-[#f87171]';
 
-  return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+  return 'bg-[#3B82F6]/[0.10] text-[#3B82F6] border-[#3B82F6]/30 dark:text-[#60A5FA]';
 };
 
 const getFuenteClass = (fuente) => {
   if (!fuente) return '';
-  return fuente === 'BIOMÉTRICO'
-    ? 'bg-violet-500/10 text-violet-500 border-violet-500/20'
-    : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+  // Estilo Vercel sutil: gris neutro con sutil distinción
+  return 'bg-transparent text-[#888888] border-[#222938] dark:border-[#222938]';
 };
 </script>
 

@@ -18,12 +18,17 @@ import { ApiExternaModule } from './api-externa/api-externa.module';
 import { HorasExtraModule } from './horas-extra/horas-extra.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RecordatoriosModule } from './recordatorios/recordatorios.module';
+import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponibles.module';
 
 @Module({
   imports: [
-    // 1. Carga de variables de entorno
+    // 1. Carga de variables de entorno según NODE_ENV
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env',
+      ],
     }),
 
     // 2. Configuración Asíncrona de la Base de Datos (SQL Server)
@@ -49,6 +54,7 @@ import { RecordatoriosModule } from './recordatorios/recordatorios.module';
     HorasExtraModule,
     ScheduleModule.forRoot(),
     RecordatoriosModule,
+    ModulosDisponiblesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

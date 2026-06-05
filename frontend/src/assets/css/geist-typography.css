@@ -1,0 +1,237 @@
+/* ══════════════════════════════════════════════════════════════════
+   GEIST TYPOGRAPHY SYSTEM — Vercel-style profesional y nítido
+   Geist es la fuente oficial de Vercel (SIL OFL — open source).
+   Fallback a Inter (también open source) si Geist no carga.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Geist Sans — Google Fonts oficial */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+
+/* Inter como fallback robusto */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ══════════════════════════════════════════════════════════════════
+   STACK TIPOGRÁFICO BASE
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --font-geist-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont,
+                     'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-geist-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code', Menlo,
+                     Monaco, Consolas, monospace;
+
+  /* Letter spacing tokens — Vercel usa tracking ajustado por tamaño */
+  --tracking-tight: -0.025em;   /* Titulares grandes */
+  --tracking-normal: -0.011em;  /* Texto base */
+  --tracking-wide: 0.025em;     /* Labels uppercase */
+  --tracking-widest: 0.075em;   /* Eyebrows muy pequeños */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   APLICAR GLOBAL — admin & super-admin layouts
+   ══════════════════════════════════════════════════════════════════ */
+.admin-layout,
+.sa-root,
+[class*="admin-"],
+[class*="sa-"] {
+  font-family: var(--font-geist-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  letter-spacing: var(--tracking-normal);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   JERARQUÍA TIPOGRÁFICA — sin uppercase forzado, peso natural
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Títulos */
+.admin-layout h1, .sa-root h1 {
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+.admin-layout h2, .sa-root h2,
+.admin-layout h3, .sa-root h3 {
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Datos numéricos — alineación perfecta */
+.admin-layout [class*="text-"][class*="font-mono"],
+.admin-layout code,
+.sa-root code,
+[class*="font-mono"] {
+  font-family: var(--font-geist-mono) !important;
+  font-feature-settings: 'tnum', 'zero';
+  letter-spacing: 0;
+}
+
+/* Números tabulares para datos en tablas */
+.admin-layout td,
+.admin-layout th,
+.sa-root td,
+.sa-root th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons — peso Vercel medio, no black */
+.admin-layout button,
+.sa-root button {
+  font-family: var(--font-geist-sans);
+  letter-spacing: var(--tracking-normal);
+  font-feature-settings: 'cv11';
+}
+
+/* Inputs — Geist crispness */
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea,
+.sa-root input,
+.sa-root select,
+.sa-root textarea {
+  font-family: var(--font-geist-sans);
+  font-feature-settings: 'cv11';
+  letter-spacing: -0.005em;
+}
+
+/* Override de la fuente "round-custom" antigua */
+.font-round-custom {
+  font-family: var(--font-geist-sans) !important;
+  letter-spacing: var(--tracking-normal);
+}
+
+/* Labels uppercase pequeños — tracking más ajustado */
+.admin-layout [class*="uppercase"],
+.sa-root [class*="uppercase"] {
+  letter-spacing: 0.05em;
+  font-feature-settings: 'cv11';
+}
+
+/* Eyebrows muy pequeños (text-[9px], text-[10px] uppercase) */
+.admin-layout [class*="text-[9px]"][class*="uppercase"],
+.admin-layout [class*="text-[10px]"][class*="uppercase"],
+.sa-root [class*="text-[9px]"][class*="uppercase"],
+.sa-root [class*="text-[10px]"][class*="uppercase"] {
+  letter-spacing: 0.06em;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ICONOS FINOS — estilo Vercel/Geist
+   FontAwesome Free SOLO incluye .fas con peso 900 (no se puede cambiar el weight).
+   Para que se vean más finos/sutiles usamos opacity + antialiasing.
+   ══════════════════════════════════════════════════════════════════ */
+.admin-layout .fas,
+.admin-layout .fa-solid,
+.admin-layout .far,
+.admin-layout .fa-regular,
+.sa-root .fas,
+.sa-root .fa-solid,
+.sa-root .far,
+.sa-root .fa-regular {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: always;
+}
+
+/* Iconos secundarios en texto gris/muted — opacidad sutil para verse menos pesados */
+.admin-layout [class*="text-[#888888]"] .fas,
+.admin-layout [class*="text-slate-400"] .fas,
+.admin-layout [class*="text-slate-500"] .fas,
+.sa-root [class*="text-[#888888]"] .fas,
+.sa-root [class*="text-slate-400"] .fas {
+  opacity: 0.85;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Selección de texto con tinte de marca (Vercel detail)
+   ══════════════════════════════════════════════════════════════════ */
+.admin-layout ::selection,
+.sa-root ::selection {
+  background: rgba(59, 130, 246, 0.25);
+  color: #ffffff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SCROLLBARS ULTRA SUTILES — estilo Vercel/Linear
+   Aparecen solo al hover sobre elementos scrollables.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Webkit (Chrome / Edge / Safari) — scrollbar fino y sutil */
+.admin-layout *::-webkit-scrollbar,
+.sa-root *::-webkit-scrollbar,
+.custom-scroll::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-layout *::-webkit-scrollbar-track,
+.sa-root *::-webkit-scrollbar-track,
+.custom-scroll::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-layout *::-webkit-scrollbar-thumb,
+.sa-root *::-webkit-scrollbar-thumb,
+.custom-scroll::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.0);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+/* Thumb aparece al hover sobre el elemento scrollable */
+.admin-layout *:hover::-webkit-scrollbar-thumb,
+.sa-root *:hover::-webkit-scrollbar-thumb,
+.custom-scroll:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.25);
+}
+
+.admin-layout *::-webkit-scrollbar-thumb:hover,
+.sa-root *::-webkit-scrollbar-thumb:hover,
+.custom-scroll::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.45);
+}
+
+/* Theme light scrollbar */
+.theme-light *::-webkit-scrollbar-thumb,
+[class*="theme-light"] *::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.0);
+}
+
+.theme-light *:hover::-webkit-scrollbar-thumb,
+[class*="theme-light"] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.theme-light *::-webkit-scrollbar-thumb:hover,
+[class*="theme-light"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.30);
+}
+
+/* Esquina del scrollbar (donde se cruzan vertical y horizontal) */
+.admin-layout *::-webkit-scrollbar-corner,
+.sa-root *::-webkit-scrollbar-corner,
+.custom-scroll::-webkit-scrollbar-corner,
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox — scroll thin nativo */
+.admin-layout,
+.sa-root,
+.custom-scroll,
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(136, 136, 136, 0.25) transparent;
+}
+
+.theme-light,
+[class*="theme-light"] {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}

@@ -17,7 +17,12 @@ export class MallasUploadService {
     private readonly usuarioRepo: Repository<Usuario>,
   ) { }
 
-  async procesarExcel(fileBuffer: any, asignado_por?: string) {
+  async procesarExcel(
+    fileBuffer: any,
+    asignado_por?: string,
+    fecha_inicio_override?: string | null,
+    fecha_fin?: string | null,
+  ) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer);
     const worksheet = workbook.getWorksheet(1);
@@ -37,8 +42,10 @@ export class MallasUploadService {
       try {
         const cedula = row.getCell(1).text?.trim();
         const nombreMalla = row.getCell(2).text?.trim();
-        const fechaInicio = row.getCell(3).text?.trim() ||
+        const fechaInicio = fecha_inicio_override ||
+          row.getCell(3).text?.trim() ||
           new Date().toLocaleString("sv-SE", { timeZone: "America/Bogota" }).slice(0, 10);
+        const fechaFin = fecha_fin || null;
 
         // Fila completamente vacía → ignorar silenciosamente
         if (!cedula && !nombreMalla) continue;
@@ -68,14 +75,22 @@ export class MallasUploadService {
           continue;
         }
 
-        // 2. Buscar malla por nombre — preferir la que tiene detalles
-        const mallas = await this.mallaRepo.find({
-          where: { nombre: nombreMalla, activa: true },
-          relations: ['detalles'],
-          order: { id: 'DESC' },
-        });
+        // 2. Buscar malla normalizando espacios en ambos lados (BD puede tener dobles espacios)
+        const normalizar = (s: string) => s.replace(/\s+/g, ' ').trim().toUpperCase();
+        const nombreNormalizado = normalizar(nombreMalla);
 
-        if (!mallas.length) {
+        const todasMallas = await this.mallaRepo
+          .createQueryBuilder('m')
+          .leftJoinAndSelect('m.detalles', 'd')
+          .where('m.activa = :activa', { activa: true })
+          .orderBy('m.id', 'DESC')
+          .getMany();
+
+        const mallasResult = todasMallas.filter(
+          (m) => normalizar(m.nombre) === nombreNormalizado,
+        );
+
+        if (!mallasResult.length) {
           errores.push({
             fila: rowNumber,
             cedula,
@@ -86,27 +101,38 @@ export class MallasUploadService {
 
         // Tomar la que tiene detalles; si ninguna tiene, tomar la más reciente
         const malla =
-          mallas.find((m) => m.detalles && m.detalles.length > 0) || mallas[0];
+          mallasResult.find((m) => m.detalles && m.detalles.length > 0) || mallasResult[0];
 
-        // 3. Cerrar asignaciones anteriores: actual = false + fecha_fin = fechaInicio
-        await this.asignacionRepo
-          .createQueryBuilder()
-          .update()
-          .set({ actual: false, fecha_fin: fechaInicio })
-          .where('usuario_id_odoo = :id AND actual = 1', {
-            id: usuario.id_odoo,
-          })
-          .execute();
+        if (fechaFin) {
+          // Asignación temporal: no cerrar la actual, solo insertar con rango de fechas
+          const temporal = this.asignacionRepo.create({
+            usuario_id_odoo: usuario.id_odoo,
+            malla_id: malla.id,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            actual: false,
+            asignado_por: asignado_por || undefined,
+          });
+          await this.asignacionRepo.save(temporal);
+        } else {
+          // Asignación permanente: cerrar anteriores y crear indefinida
+          await this.asignacionRepo
+            .createQueryBuilder()
+            .update()
+            .set({ actual: false, fecha_fin: fechaInicio })
+            .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
+            .execute();
 
-        // 4. Crear nueva asignación marcada como actual
-        const nueva = this.asignacionRepo.create({
-          usuario_id_odoo: usuario.id_odoo,
-          malla_id: malla.id,
-          fecha_inicio: fechaInicio,
-          actual: true,
-          asignado_por: asignado_por || undefined,
-        });
-        await this.asignacionRepo.save(nueva);
+          const nueva = this.asignacionRepo.create({
+            usuario_id_odoo: usuario.id_odoo,
+            malla_id: malla.id,
+            fecha_inicio: fechaInicio,
+            fecha_fin: null,
+            actual: true,
+            asignado_por: asignado_por || undefined,
+          });
+          await this.asignacionRepo.save(nueva);
+        }
         procesados.push({ fila: rowNumber, cedula, nombre: usuario.nombre, malla: malla.nombre, fecha: fechaInicio });
       } catch (e) {
         errores.push({ fila: rowNumber, error: e.message });

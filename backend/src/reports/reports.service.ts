@@ -23,99 +23,13 @@ export class ReportsService {
     areaId?: number,
     segmentoId?: number,
   ): Promise<Buffer> {
-    // Plantilla simple para carga masiva: cedula | nombre_malla
-    // El upload solo necesita estos dos campos para asignar mallas.
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'WodenTrack';
-    workbook.lastModifiedBy = 'WodenTrack';
-    workbook.created = new Date();
-
-    const worksheet = workbook.addWorksheet('Carga de Mallas', {
-      views: [{ state: 'frozen', ySplit: 1 }], // Congelar fila de cabecera
-    });
+    const worksheet = workbook.addWorksheet('Carga de Mallas');
 
     worksheet.columns = [
-      { header: 'cedula', key: 'cedula', width: 22 },
-      { header: 'nombre_malla', key: 'nombre_malla', width: 50 },
+      { header: 'cedula', key: 'cedula', width: 16 },
+      { header: 'nombre_malla', key: 'nombre_malla', width: 40 },
     ];
-
-    // ── Estilo cabecera ───────────────────────────────────────────────────────
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 24;
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF8F00' } };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.eachCell((cell) => {
-      cell.border = {
-        top:    { style: 'thin', color: { argb: 'FFE07B00' } },
-        left:   { style: 'thin', color: { argb: 'FFE07B00' } },
-        bottom: { style: 'thin', color: { argb: 'FFE07B00' } },
-        right:  { style: 'thin', color: { argb: 'FFE07B00' } },
-      };
-    });
-
-    // ── Traer empleados filtrando por área, segmento o departamento ──────────
-    const conditions: string[] = [`u.is_active = 1`];
-    const queryParams: (string | number)[] = [];
-
-    if (segmentoId) {
-      conditions.push(`u.segmento_id = @${queryParams.length}`);
-      queryParams.push(segmentoId);
-    } else if (areaId) {
-      conditions.push(`u.area_id = @${queryParams.length}`);
-      queryParams.push(areaId);
-    } else if (departamento && departamento !== '' && departamento !== 'Todas') {
-      conditions.push(`u.departamento LIKE @${queryParams.length}`);
-      queryParams.push(`%${departamento}%`);
-    }
-
-    const whereClause = conditions.join(' AND ');
-
-    const query = `
-      SELECT
-        u.identificacion AS cedula,
-        u.nombre,
-        h.nombre AS nombre_malla
-      FROM usuarios_registrados u
-      LEFT JOIN mallas_asignaciones a ON a.usuario_id_odoo = u.id_odoo AND a.actual = 1
-      LEFT JOIN mallas_horarias h ON h.id = a.malla_id
-      WHERE ${whereClause}
-      ORDER BY u.nombre ASC
-    `;
-
-    const empleados: Array<{ cedula: string; nombre: string; nombre_malla: string | null }> =
-      await this.dataSource.query(query, queryParams);
-
-    // ── Filas de datos con formato alternado ─────────────────────────────────
-    const COLOR_PAR   = 'FFFFF8F0'; // naranja muy suave (filas pares)
-    const COLOR_IMPAR = 'FFFFFFFF'; // blanco (filas impares)
-    const BORDER_COLOR = 'FFE2E8F0';
-
-    empleados.forEach((emp, idx) => {
-      const row = worksheet.addRow({
-        cedula:      emp.cedula || '',
-        nombre_malla: emp.nombre_malla || '',
-      });
-
-      row.height = 18;
-      const bgColor = idx % 2 === 0 ? COLOR_IMPAR : COLOR_PAR;
-
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-        cell.font   = { size: 10, name: 'Calibri', color: { argb: 'FF1E293B' } };
-        cell.border = {
-          top:    { style: 'hair', color: { argb: BORDER_COLOR } },
-          left:   { style: 'hair', color: { argb: BORDER_COLOR } },
-          bottom: { style: 'hair', color: { argb: BORDER_COLOR } },
-          right:  { style: 'hair', color: { argb: BORDER_COLOR } },
-        };
-        // Cédula centrada, malla alineada a la izquierda
-        cell.alignment = {
-          vertical: 'middle',
-          horizontal: colNumber === 1 ? 'center' : 'left',
-        };
-      });
-    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer as ArrayBuffer);

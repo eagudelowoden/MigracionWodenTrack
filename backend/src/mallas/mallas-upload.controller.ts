@@ -17,9 +17,14 @@ export class MallasUploadController {
   @UseInterceptors(FileInterceptor('file'))
   async importMallas(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { asignado_por?: string },
+    @Body() body: { asignado_por?: string; fecha_inicio_override?: string; fecha_fin?: string },
   ) {
     if (!file) throw new BadRequestException('No se recibió archivo.');
-    return await this.mallasUploadService.procesarExcel(file.buffer, body.asignado_por);
+    return await this.mallasUploadService.procesarExcel(
+      file.buffer,
+      body.asignado_por,
+      body.fecha_inicio_override || null,
+      body.fecha_fin || null,
+    );
   }
 }

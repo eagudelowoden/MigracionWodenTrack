@@ -1,108 +1,160 @@
 <template>
-  <div class="h-full flex flex-col">
+    <div class="h-full flex flex-col">
 
-    <!-- ── Panel de selección ─────────────────────────────────────────────── -->
-    <div v-if="!subModule" class="h-full flex flex-col items-center justify-start animate-fade-in pt-4">
+        <!-- ── Panel de selección (Vercel-style) ──────────────────────────── -->
+        <div v-show="!subModule" class="h-full flex flex-col items-center justify-center animate-fade-in rounded-lg"
+            :class="isDark ? 'bg-transparent' : 'bg-transparent'">
 
-      <div class="text-center mb-8">
-        <h2 class="text-xl font-black tracking-tight transition-colors duration-500"
-          :class="isDark ? 'text-white' : 'text-slate-900'">
-          Panel de <span class="text-[#3B82F6]">Novedades</span>
-        </h2>
-        <p class="text-[10px] font-medium mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Selecciona el módulo al que deseas acceder</p>
-      </div>
+            <!-- Título -->
+            <div class="text-center mb-10">
+                <p class="text-[10px] font-medium uppercase tracking-[0.12em] mb-2"
+                    :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                    Panel de novedades
+                </p>
+                <h2 class="text-2xl font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
+                    Selecciona un módulo
+                </h2>
+                <p class="text-[12px] font-normal mt-1.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                    Accede al espacio según tu rol y permisos
+                </p>
+            </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl px-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl px-6">
 
-        <!-- Admin Card -->
-        <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin')"
-          @click="subModule = 'admin'"
-          class="group relative flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1"
-          :class="isDark
-            ? 'bg-[#1a2235] border-white/10 hover:border-violet-500/50 hover:shadow-[0_8px_30px_rgba(139,92,246,0.2)]'
-            : 'bg-white border-slate-100 shadow-sm hover:border-violet-300 hover:shadow-[0_8px_25px_rgba(139,92,246,0.12)]'">
-          <div class="absolute top-0 left-4 right-4 h-px transition-all duration-500"
-            :class="isDark ? 'bg-gradient-to-r from-transparent via-violet-500/0 to-transparent group-hover:via-violet-500/60' : 'bg-gradient-to-r from-transparent via-violet-400/0 to-transparent group-hover:via-violet-300'"></div>
-          <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
+                <!-- Admin Card -->
+                <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin')" @click="subModule = 'admin'"
+                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
+                    :class="isDark
+                        ? 'bg-[#161B26] border-[#222938] hover:border-[#3B82F6]/60 hover:bg-[#1F2533]'
+                        : 'bg-white border-slate-200 hover:border-[#3B82F6] hover:shadow-sm'">
+                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
+                        :class="isDark
+                            ? 'bg-[#3B82F6]/10 text-[#60A5FA] group-hover:bg-[#3B82F6]/15'
+                            : 'bg-blue-50 text-[#3B82F6] group-hover:bg-blue-100'">
+                        <i class="fas fa-user-shield text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-[13px] font-semibold tracking-tight"
+                            :class="isDark ? 'text-white' : 'text-slate-900'">
+                            Coordinadores
+                        </h3>
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Gestión de Novedades
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
+                        Entrar
+                        <i class="fas fa-arrow-right text-[8px]"></i>
+                    </div>
+                </button>
+
+                <!-- RRHH Card -->
+                <button v-if="isSuperAdmin || hasPerm('admin.novedades.rrhh')" @click="subModule = 'rrhh'"
+                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
+                    :class="isDark
+                        ? 'bg-[#161B26] border-[#222938] hover:border-[#3B82F6]/60 hover:bg-[#1F2533]'
+                        : 'bg-white border-slate-200 hover:border-[#3B82F6] hover:shadow-sm'">
+                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
+                        :class="isDark
+                            ? 'bg-[#3B82F6]/10 text-[#60A5FA] group-hover:bg-[#3B82F6]/15'
+                            : 'bg-blue-50 text-[#3B82F6] group-hover:bg-blue-100'">
+                        <i class="fas fa-id-card text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-[13px] font-semibold tracking-tight"
+                            :class="isDark ? 'text-white' : 'text-slate-900'">
+                            Capital Humano
+                        </h3>
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Gestión de Novedades
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
+                        Entrar
+                        <i class="fas fa-arrow-right text-[8px]"></i>
+                    </div>
+                </button>
+
+                <!-- User Card -->
+                <button v-if="isSuperAdmin || hasPerm('admin.novedades.user')" @click="subModule = 'user'"
+                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
+                    :class="isDark
+                        ? 'bg-[#161B26] border-[#222938] hover:border-[#3B82F6]/60 hover:bg-[#1F2533]'
+                        : 'bg-white border-slate-200 hover:border-[#3B82F6] hover:shadow-sm'">
+                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
+                        :class="isDark
+                            ? 'bg-[#3B82F6]/10 text-[#60A5FA] group-hover:bg-[#3B82F6]/15'
+                            : 'bg-blue-50 text-[#3B82F6] group-hover:bg-blue-100'">
+                        <i class="fas fa-user-edit text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-[13px] font-semibold tracking-tight"
+                            :class="isDark ? 'text-white' : 'text-slate-900'">
+                            Mis novedades
+                        </h3>
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Acceso personal
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
+                        Entrar
+                        <i class="fas fa-arrow-right text-[8px]"></i>
+                    </div>
+                </button>
+
+                <!-- Consultas Card -->
+                <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin') || hasPerm('admin.novedades.rrhh')"
+                    @click="subModule = 'consultas'"
+                    class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
+                    :class="isDark
+                        ? 'bg-[#161B26] border-[#222938] hover:border-emerald-500/60 hover:bg-[#1F2533]'
+                        : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-sm'">
+                    <div class="w-9 h-9 rounded-md flex items-center justify-center transition-colors duration-200"
+                        :class="isDark
+                            ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/15'
+                            : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100'">
+                        <i class="fas fa-magnifying-glass text-[14px]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-[13px] font-semibold tracking-tight"
+                            :class="isDark ? 'text-white' : 'text-slate-900'">
+                            Consultas
+                        </h3>
+                        <p class="text-[11px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                            Renuncias · Paz y Salvo
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                        :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">
+                        Entrar
+                        <i class="fas fa-arrow-right text-[8px]"></i>
+                    </div>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- ── Botón volver (Vercel ghost) ─────────────────────────────────── -->
+        <button v-if="subModule" @click="subModule = null"
+            class="self-start inline-flex items-center gap-1.5 px-3 h-7 mb-2 rounded-md text-[11px] font-medium transition-all active:scale-[0.98] border"
             :class="isDark
-              ? 'bg-violet-500/10 text-violet-400 group-hover:bg-violet-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-violet-500/30'
-              : 'bg-violet-50 text-violet-500 group-hover:bg-violet-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-violet-500/25'">
-            <i class="fas fa-user-shield text-xl"></i>
-          </div>
-          <div class="text-center relative">
-            <h3 class="font-black uppercase text-[11px] tracking-wide transition-colors"
-              :class="isDark ? 'text-slate-200' : 'text-slate-800'">Acceso Coordinadores</h3>
-            <p class="text-[9px] font-bold uppercase tracking-widest mt-1 transition-colors"
-              :class="isDark ? 'text-slate-500 group-hover:text-violet-400' : 'text-slate-400 group-hover:text-violet-500'">Planta</p>
-          </div>
+                ? 'bg-transparent border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/60'
+                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400'">
+            <i class="fas fa-arrow-left text-[9px]"></i> Volver
         </button>
 
-        <!-- RRHH Card -->
-        <button v-if="isSuperAdmin || hasPerm('admin.novedades.rrhh')"
-          @click="subModule = 'rrhh'"
-          class="group relative flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1"
-          :class="isDark
-            ? 'bg-[#1a2235] border-white/10 hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(59,130,246,0.2)]'
-            : 'bg-white border-slate-100 shadow-sm hover:border-blue-300 hover:shadow-[0_8px_25px_rgba(59,130,246,0.12)]'">
-          <div class="absolute top-0 left-4 right-4 h-px transition-all duration-500"
-            :class="isDark ? 'bg-gradient-to-r from-transparent via-blue-500/0 to-transparent group-hover:via-blue-500/60' : 'bg-gradient-to-r from-transparent via-blue-400/0 to-transparent group-hover:via-blue-300'"></div>
-          <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
-            :class="isDark
-              ? 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-blue-500/30'
-              : 'bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-blue-500/25'">
-            <i class="fas fa-id-card text-xl"></i>
-          </div>
-          <div class="text-center relative">
-            <h3 class="font-black uppercase text-[11px] tracking-wide transition-colors"
-              :class="isDark ? 'text-slate-200' : 'text-slate-800'">Capital Humano</h3>
-            <p class="text-[9px] font-bold uppercase tracking-widest mt-1 transition-colors"
-              :class="isDark ? 'text-slate-500 group-hover:text-blue-400' : 'text-slate-400 group-hover:text-blue-500'">Nómina</p>
-          </div>
-        </button>
+        <!-- ── Sub-vistas con keep-alive ───────────────────────────────────── -->
+        <keep-alive>
+            <NovedadesAdmin   v-if="subModule === 'admin'"     :isDark="isDark" :company="company" />
+            <NovedadesRRHH    v-else-if="subModule === 'rrhh'" :isDark="isDark" :company="company" />
+            <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
+            <ConsultasView    v-else-if="subModule === 'consultas'" :isDark="isDark" :company="company" />
+        </keep-alive>
 
-        <!-- User Card -->
-        <button v-if="isSuperAdmin || hasPerm('admin.novedades.user')"
-          @click="subModule = 'user'"
-          class="group relative flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1"
-          :class="isDark
-            ? 'bg-[#1a2235] border-white/10 hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(16,185,129,0.2)]'
-            : 'bg-white border-slate-100 shadow-sm hover:border-emerald-300 hover:shadow-[0_8px_25px_rgba(16,185,129,0.12)]'">
-          <div class="absolute top-0 left-4 right-4 h-px transition-all duration-500"
-            :class="isDark ? 'bg-gradient-to-r from-transparent via-emerald-500/0 to-transparent group-hover:via-emerald-500/60' : 'bg-gradient-to-r from-transparent via-emerald-400/0 to-transparent group-hover:via-emerald-300'"></div>
-          <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
-            :class="isDark
-              ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/30'
-              : 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/25'">
-            <i class="fas fa-user-edit text-xl"></i>
-          </div>
-          <div class="text-center relative">
-            <h3 class="font-black uppercase text-[11px] tracking-wide transition-colors"
-              :class="isDark ? 'text-slate-200' : 'text-slate-800'">Acceso Usuarios</h3>
-            <p class="text-[9px] font-bold uppercase tracking-widest mt-1 transition-colors"
-              :class="isDark ? 'text-slate-500 group-hover:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-500'">Personal</p>
-          </div>
-        </button>
-
-      </div>
     </div>
-
-    <!-- ── Sub-vistas ──────────────────────────────────────────────────────── -->
-    <template v-else>
-      <!-- Botón volver -->
-      <button @click="subModule = null"
-        class="self-start flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border"
-        :class="isDark
-          ? 'bg-[#1e2538] border-[#2d3548] text-slate-400 hover:text-white hover:border-slate-500'
-          : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 shadow-sm'">
-        <i class="fas fa-arrow-left text-[8px]"></i> Volver
-      </button>
-
-      <NovedadesAdmin v-if="subModule === 'admin'" :isDark="isDark" :company="company" />
-      <NovedadesRRHH  v-else-if="subModule === 'rrhh'"  :isDark="isDark" :company="company" />
-      <NovedadesUsuario v-else-if="subModule === 'user'" :isDark="isDark" :company="company" :employee="employee" />
-    </template>
-
-  </div>
 </template>
 
 <script setup>
@@ -110,18 +162,18 @@ import { ref, inject } from 'vue';
 import NovedadesAdmin   from './novedadesadminView.vue';
 import NovedadesRRHH    from './novedadesRRHView.vue';
 import NovedadesUsuario from './novedadesusuarioView.vue';
+import ConsultasView    from './ConsultasView.vue';
 
 const props = defineProps({
-  isDark:  Boolean,
-  company: String,
+    isDark: Boolean,
+    company: String,
 });
 
-// employee lo provee AdminView via provide('adminEmployee', ...)
 const employee = inject('adminEmployee', null);
 
 const subModule = ref(null);
 
-const session    = JSON.parse(localStorage.getItem('user_session') || '{}');
+const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 const isSuperAdmin = session.isSuperAdmin || false;
 const hasPerm = (p) => session.permisos?.[p] === true;
 </script>

@@ -33,6 +33,22 @@ export class Novedad {
   @Column({ name: 'fecha_fin', type: 'date' })
   fechaFin: string;
 
+  @Column({ name: 'ultimo_dia_trabajado', type: 'date', nullable: true, default: null })
+  ultimoDiaTrabajado: string | null;
+
+  // ─── Campos liquidación Renuncia ─────────────────────────────────
+  @Column({ name: 'renuncia_descuento', type: 'nvarchar', length: 255, nullable: true, default: null })
+  renunciaDescuento: string | null;
+
+  @Column({ name: 'renuncia_comisiones', type: 'nvarchar', length: 255, nullable: true, default: null })
+  renunciaComisiones: string | null;
+
+  @Column({ name: 'renuncia_horas_extra', type: 'nvarchar', length: 255, nullable: true, default: null })
+  renunciaHorasExtra: string | null;
+
+  @Column({ name: 'renuncia_transporte', type: 'nvarchar', length: 255, nullable: true, default: null })
+  renunciaTransporte: string | null;
+
   @Column({ name: 'soporte_nombre_original', length: 255, nullable: true, default: null })
   soporteNombreOriginal: string;
 

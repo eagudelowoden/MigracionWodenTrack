@@ -6,6 +6,8 @@ import { HoraExtraCargue } from './entities/hora-extra-cargue.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
+import { MailService } from '../logsEmail/mail.service';
+import { SuperAdminCorreoService } from '../usuarios/superadmin-correo.service';
 import * as ExcelJS from 'exceljs';
 
 function getFechaColombiaHoy(): string {
@@ -35,21 +37,151 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
 }
 
 // Minutos nocturnos en el rango [start, end] (21:00-06:00 = 1260-1440 y 0-360)
+// Usado para RNDF, HENO, HEFN. Soporta end > 1440 para turnos que cruzan medianoche
 function minsNocturno(start: number, end: number): number {
   if (end <= start) return 0;
-  return overlap(start, end, 1260, 1440) + overlap(start, end, 0, 360);
+  if (end <= 1440) {
+    return overlap(start, end, 1260, 1440) + overlap(start, end, 0, 360);
+  }
+  // Cruce de medianoche: antes de las 24:00 y después de las 00:00
+  const antesMedianoche = overlap(start, 1440, 1260, 1440) + overlap(start, 1440, 0, 360);
+  const despuesMedianoche = overlap(0, end - 1440, 1260, 1440) + overlap(0, end - 1440, 0, 360);
+  return antesMedianoche + despuesMedianoche;
+}
+
+// Minutos de Recargo Nocturno (RN) en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
+// RN inicia a las 19:00. Soporta end > 1440 para turnos que cruzan medianoche.
+function minsRN(start: number, end: number): number {
+  if (end <= start) return 0;
+  if (end <= 1440) {
+    return overlap(start, end, 1140, 1440) + overlap(start, end, 0, 360);
+  }
+  const antesMedianoche = overlap(start, 1440, 1140, 1440) + overlap(start, 1440, 0, 360);
+  const despuesMedianoche = overlap(0, end - 1440, 1140, 1440) + overlap(0, end - 1440, 0, 360);
+  return antesMedianoche + despuesMedianoche;
 }
 
 // Minutos diurnos en el rango [start, end] (06:00-21:00 = 360-1260)
+// Soporta end > 1440 para turnos que cruzan medianoche
 function minsDiurno(start: number, end: number): number {
   if (end <= start) return 0;
-  return overlap(start, end, 360, 1260);
+  if (end <= 1440) {
+    return overlap(start, end, 360, 1260);
+  }
+  // Cruce de medianoche
+  const antesMedianoche = overlap(start, 1440, 360, 1260);
+  const despuesMedianoche = overlap(0, end - 1440, 360, 1260);
+  return antesMedianoche + despuesMedianoche;
 }
 
 // Minutos → horas sexagesimales redondeadas a 2 decimales (60→1.0, 30→0.50)
 function toHex(minutes: number): number {
   return Math.round((minutes / 60) * 100) / 100;
 }
+
+// Redondeo laboral: si los minutos de la fracción son ≥ 55, sube a la hora completa.
+// Ej: 5.93h (5h56min) → 6.00h  |  5.50h (5h30min) → 5.50h  |  6.93h (6h56min) → 7.00h
+function redondearHoras(horas: number): number {
+  if (horas <= 0) return 0;
+  const enteras = Math.floor(horas);
+  const mins    = Math.round((horas - enteras) * 60);
+  return mins >= 55 ? enteras + 1 : Math.round(horas * 100) / 100;
+}
+
+// ─── Festivos colombianos ─────────────────────────────────────────────────────
+
+/** Algoritmo Meeus/Jones/Butcher para obtener la fecha de Pascua */
+function calcularEaster(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+/** Traslada al siguiente lunes (ley Emiliani). Si ya es lunes no se mueve. */
+function siguienteLunes(date: Date): Date {
+  const dow = date.getDay(); // 0=Dom … 6=Sáb
+  const d = new Date(date);
+  d.setDate(d.getDate() + (8 - dow) % 7); // dow=1 → +0 (permanece lunes)
+  return d;
+}
+
+function addDias(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function toYMD(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Devuelve el conjunto de fechas YYYY-MM-DD que son festivos nacionales
+ * en Colombia para el año dado (Ley 51/1983 + Ley 797/2003).
+ */
+function getFestivosColombiaAnio(year: number): Set<string> {
+  const f = new Set<string>();
+
+  // ── Fijos (no se trasladan) ──────────────────────────────────────
+  f.add(`${year}-01-01`); // Año Nuevo
+  f.add(`${year}-05-01`); // Día del Trabajo
+  f.add(`${year}-07-20`); // Independencia
+  f.add(`${year}-08-07`); // Batalla de Boyacá
+  f.add(`${year}-12-08`); // Inmaculada Concepción
+  f.add(`${year}-12-25`); // Navidad
+
+  // ── Emiliani (se trasladan al lunes si no caen en lunes) ─────────
+  for (const d of [
+    new Date(year, 0, 6),   // Reyes Magos (6 ene)
+    new Date(year, 2, 19),  // San José (19 mar)
+    new Date(year, 5, 29),  // San Pedro y San Pablo (29 jun)
+    new Date(year, 7, 15),  // Asunción de la Virgen (15 ago)
+    new Date(year, 9, 12),  // Día de la Raza (12 oct)
+    new Date(year, 10, 1),  // Todos los Santos (1 nov)
+    new Date(year, 10, 11), // Independencia de Cartagena (11 nov)
+  ]) {
+    f.add(toYMD(siguienteLunes(d)));
+  }
+
+  // ── Basados en Semana Santa ──────────────────────────────────────
+  const easter = calcularEaster(year);
+  f.add(toYMD(addDias(easter, -3)));                    // Jueves Santo
+  f.add(toYMD(addDias(easter, -2)));                    // Viernes Santo
+  f.add(toYMD(siguienteLunes(addDias(easter, 39))));    // Ascensión del Señor
+  f.add(toYMD(siguienteLunes(addDias(easter, 60))));    // Corpus Christi
+  f.add(toYMD(siguienteLunes(addDias(easter, 68))));    // Sagrado Corazón de Jesús
+
+  return f;
+}
+
+/**
+ * Construye el Set de festivos para todos los años presentes en el rango.
+ * Se añade también el año siguiente al rango para cubrir turnos que cruzan
+ * el 31 de diciembre.
+ */
+function buildFestivosSet(startDay: string | undefined | null, endDay: string | undefined | null): Set<string> {
+  const yearStart = startDay ? parseInt(startDay.slice(0, 4), 10) : new Date().getFullYear();
+  const yearEnd   = endDay   ? parseInt(endDay.slice(0, 4),   10) : yearStart;
+  const result = new Set<string>();
+  for (let y = yearStart; y <= yearEnd + 1; y++) {
+    for (const d of getFestivosColombiaAnio(y)) result.add(d);
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class HorasExtraService {
@@ -63,6 +195,8 @@ export class HorasExtraService {
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
     private readonly odoo: OdooService,
+    private readonly mail: MailService,
+    private readonly correoSvc: SuperAdminCorreoService,
   ) {}
 
   private async resolverIdsPorEstructura(
@@ -177,102 +311,213 @@ export class HorasExtraService {
   // Tolerancia de 6 minutos para ignorar marcaciones mínimas
   private static readonly TOLERANCIA_MINS = 6;
 
+  /**
+   * Calcula las categorías de horas extra para un registro.
+   *
+   * Cuando el turno cruza la medianoche (outMins > 1440), las horas se parten
+   * en dos porciones calendáricas:
+   *   - Día 1 [inMins … 1440]: se aplica el tipo del día de entrada (esFestivo)
+   *   - Día 2 [0 … outMins-1440]: se aplica el tipo del día siguiente (esFestivoSiguiente)
+   *
+   * Esto permite, p.ej., que un turno nocturno que inicia en festivo y termina
+   * en día ordinario produzca RNDF (festivo) + RN (ordinario) en vez de todo RNDF.
+   */
   private calcularCategorias(
     localIn: string | null,
     localOut: string | null,
     turno: any | null,
     esFestivo: boolean,
-  ): Pick<
-    HoraExtra,
-    'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'
-  > {
-    const result = {
-      rn: 0,
-      rndf: 0,
-      rddf: 0,
-      hedo: 0,
-      heno: 0,
-      hefd: 0,
-      hefn: 0,
-    };
-
+    esFestivoSiguiente: boolean = false,
+    retrasoMins: number = 0,
+  ): Pick<HoraExtra, 'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'> {
+    const result = { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
     if (!localIn || !localOut) return result;
 
     const inMins = this.parseMinutos(localIn);
-    const outMins = this.parseMinutos(localOut);
-    if (outMins <= inMins) return result; // Salida antes de entrada → ignorar
+    let outMins  = this.parseMinutos(localOut);
+    if (outMins < inMins) outMins += 1440; // normalizar cruce de medianoche
+    if (outMins <= inMins) return result;
 
     const TOLERANCIA = HorasExtraService.TOLERANCIA_MINS;
 
-    if (esFestivo) {
-      if (turno) {
-        // Horas DENTRO del turno en festivo
-        const shiftStart = Number(turno.hora_inicio) * 60;
-        const shiftEnd = Number(turno.hora_fin) * 60;
-        const dentroStart = Math.max(inMins, shiftStart);
-        const dentroEnd = Math.min(outMins, shiftEnd);
-
-        if (dentroEnd > dentroStart) {
-          result.rddf = toHex(minsDiurno(dentroStart, dentroEnd));
-          result.rndf = toHex(minsNocturno(dentroStart, dentroEnd));
-        }
-
-        // Extra ANTES del turno
-        if (inMins < shiftStart - TOLERANCIA) {
-          const extraEnd = Math.min(outMins, shiftStart);
-          result.hefd += toHex(minsDiurno(inMins, extraEnd));
-          result.hefn += toHex(minsNocturno(inMins, extraEnd));
-        }
-
-        // Extra DESPUÉS del turno
-        if (outMins > shiftEnd + TOLERANCIA) {
-          const extraStart = Math.max(inMins, shiftEnd);
-          result.hefd += toHex(minsDiurno(extraStart, outMins));
-          result.hefn += toHex(minsNocturno(extraStart, outMins));
-        }
-      } else {
-        // Domingo sin malla: todas las horas son festivas
-        result.hefd = toHex(minsDiurno(inMins, outMins));
-        result.hefn = toHex(minsNocturno(inMins, outMins));
-      }
-    } else {
-      // Día ordinario sin malla → todas las horas son extra
-      if (!turno) {
-        result.hedo = toHex(minsDiurno(inMins, outMins));
-        result.heno = toHex(minsNocturno(inMins, outMins));
-        result.hedo = Math.round(result.hedo * 100) / 100;
-        result.heno = Math.round(result.heno * 100) / 100;
-        return result;
-      }
-
-      const shiftStart = Number(turno.hora_inicio) * 60;
-      const shiftEnd = Number(turno.hora_fin) * 60;
-
-      // Recargo nocturno dentro del turno (horas del turno que caen en noche)
-      result.rn = toHex(minsNocturno(shiftStart, shiftEnd));
-
-      // Extra ANTES del turno
-      if (inMins < shiftStart - TOLERANCIA) {
-        const extraEnd = Math.min(outMins, shiftStart);
-        result.hedo += toHex(minsDiurno(inMins, extraEnd));
-        result.heno += toHex(minsNocturno(inMins, extraEnd));
-      }
-
-      // Extra DESPUÉS del turno
-      if (outMins > shiftEnd + TOLERANCIA) {
-        const extraStart = Math.max(inMins, shiftEnd);
-        result.hedo += toHex(minsDiurno(extraStart, outMins));
-        result.heno += toHex(minsNocturno(extraStart, outMins));
-      }
+    // Límites del turno normalizados (nocturno: shiftEnd > 1440)
+    let shiftStart: number | null = null;
+    let shiftEnd:   number | null = null;
+    if (turno) {
+      shiftStart = Number(turno.hora_inicio) * 60;
+      shiftEnd   = Number(turno.hora_fin)    * 60;
+      if (shiftEnd <= shiftStart) shiftEnd += 1440;
     }
 
-    // Redondear acumulados
-    result.hefd = Math.round(result.hefd * 100) / 100;
-    result.hefn = Math.round(result.hefn * 100) / 100;
-    result.hedo = Math.round(result.hedo * 100) / 100;
-    result.heno = Math.round(result.heno * 100) / 100;
+    if (outMins <= 1440) {
+      // ── Sin cruce de medianoche ──────────────────────────────────────────────
+      //
+      // finEfectivo: el turno "efectivo" se extiende por el retraso de llegada,
+      // así las primeras retrasoMins después del turno son reposición (no extras).
+      // Solo aplica a la salida tardía; la llegada anticipada no se ve afectada.
+      const finEfectivo = shiftEnd !== null ? shiftEnd + retrasoMins : null;
 
+      if (esFestivo) {
+        if (shiftStart !== null && shiftEnd !== null && finEfectivo !== null) {
+          const dentroStart = Math.max(inMins, shiftStart);
+          const dentroEnd   = Math.min(outMins, shiftEnd);
+          if (dentroEnd > dentroStart) {
+            result.rddf = toHex(minsDiurno(dentroStart, dentroEnd));
+            result.rndf = toHex(minsNocturno(dentroStart, dentroEnd));
+          }
+          if (inMins < shiftStart - TOLERANCIA) {
+            const extraEnd = Math.min(outMins, shiftStart);
+            result.hefd += toHex(minsDiurno(inMins, extraEnd));
+            result.hefn += toHex(minsNocturno(inMins, extraEnd));
+          }
+          if (outMins > finEfectivo + TOLERANCIA) {
+            const extraStart = Math.max(inMins, finEfectivo);
+            result.hefd += toHex(minsDiurno(extraStart, outMins));
+            result.hefn += toHex(minsNocturno(extraStart, outMins));
+          }
+        } else {
+          result.hefd = toHex(minsDiurno(inMins, outMins));
+          result.hefn = toHex(minsNocturno(inMins, outMins));
+        }
+      } else {
+        if (!turno || shiftStart === null || shiftEnd === null || finEfectivo === null) {
+          // Sin turno en día ordinario: todo el tiempo trabajado es HEDO/HENO
+          result.hedo = toHex(minsDiurno(inMins, outMins));
+          result.heno = toHex(minsNocturno(inMins, outMins));
+        } else {
+          result.rn = toHex(minsNocturno(shiftStart, shiftEnd));
+          if (inMins < shiftStart - TOLERANCIA) {
+            const extraEnd = Math.min(outMins, shiftStart);
+            result.hedo += toHex(minsDiurno(inMins, extraEnd));
+            result.heno += toHex(minsNocturno(inMins, extraEnd));
+          }
+          if (outMins > finEfectivo + TOLERANCIA) {
+            const extraStart = Math.max(inMins, finEfectivo);
+            result.hedo += toHex(minsDiurno(extraStart, outMins));
+            result.heno += toHex(minsNocturno(extraStart, outMins));
+          }
+        }
+      }
+    } else {
+      // ── Cruce de medianoche: partir en Día 1 y Día 2 ────────────────────────
+      //
+      // El retraso solo afecta la salida (Día 2): la persona debe quedarse
+      // retrasoMins más allá de su fin de turno en Día 2 para reponer.
+      const day1TurnoStart = shiftStart;
+      const day1TurnoEnd   = shiftEnd !== null ? Math.min(shiftEnd, 1440) : null;
+      const day2TurnoStart = shiftStart !== null ? 0 : null;
+      const day2TurnoEnd   = shiftEnd  !== null ? Math.max(0, shiftEnd - 1440) : null;
+
+      // Porción Día 1 → sin retraso (la salida no ocurre en Día 1)
+      this.acumularPorcion(
+        result, inMins, 1440,
+        day1TurnoStart, day1TurnoEnd,
+        esFestivo, TOLERANCIA, 0,
+      );
+
+      // Porción Día 2 → aplica retraso en el fin efectivo del turno
+      this.acumularPorcion(
+        result, 0, outMins - 1440,
+        day2TurnoStart, day2TurnoEnd,
+        esFestivoSiguiente, TOLERANCIA, retrasoMins,
+      );
+    }
+
+    // Redondeo laboral: minutos ≥ 55 en la fracción → sube a la hora completa
+    result.rn   = redondearHoras(result.rn);
+    result.rndf = redondearHoras(result.rndf);
+    result.rddf = redondearHoras(result.rddf);
+    result.hefd = redondearHoras(result.hefd);
+    result.hefn = redondearHoras(result.hefn);
+    result.hedo = redondearHoras(result.hedo);
+    result.heno = redondearHoras(result.heno);
     return result;
+  }
+
+  /**
+   * Acumula las categorías de horas para una ventana de trabajo [wStart, wEnd]
+   * dentro de un único día (valores en minutos, rango 0-1440).
+   *
+   * @param turnoStart  inicio del turno en este día (null → sin turno)
+   * @param turnoEnd    fin del turno en este día   (null → sin turno)
+   * @param esFestivoDia true si este día es festivo o dominical
+   */
+  private acumularPorcion(
+    result: { rn: number; rndf: number; rddf: number; hedo: number; heno: number; hefd: number; hefn: number },
+    wStart: number,
+    wEnd: number,
+    turnoStart: number | null,
+    turnoEnd: number | null,
+    esFestivoDia: boolean,
+    TOLERANCIA: number,
+    retrasoMins: number = 0,
+  ): void {
+    if (wEnd <= wStart) return;
+
+    const hayTurno = turnoStart !== null && turnoEnd !== null && turnoEnd > turnoStart;
+    // Fin efectivo del turno: se extiende retrasoMins para descontar la reposición
+    const finEfectivo = turnoEnd !== null ? turnoEnd + retrasoMins : null;
+
+    if (esFestivoDia) {
+      if (hayTurno) {
+        // Horas dentro del turno en día festivo → RDDF + RNDF
+        const dentroStart = Math.max(wStart, turnoStart!);
+        const dentroEnd   = Math.min(wEnd,   turnoEnd!);
+        if (dentroEnd > dentroStart) {
+          result.rddf += toHex(minsDiurno(dentroStart, dentroEnd));
+          result.rndf += toHex(minsNocturno(dentroStart, dentroEnd));
+        }
+        // Extra antes del turno → HEFD + HEFN
+        if (wStart < turnoStart! - TOLERANCIA) {
+          const extraEnd = Math.min(wEnd, turnoStart!);
+          if (extraEnd > wStart) {
+            result.hefd += toHex(minsDiurno(wStart, extraEnd));
+            result.hefn += toHex(minsNocturno(wStart, extraEnd));
+          }
+        }
+        // Extra después del fin efectivo → HEFD + HEFN
+        if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
+          const extraStart = Math.max(wStart, finEfectivo);
+          if (wEnd > extraStart) {
+            result.hefd += toHex(minsDiurno(extraStart, wEnd));
+            result.hefn += toHex(minsNocturno(extraStart, wEnd));
+          }
+        }
+      } else {
+        // Sin turno en día festivo: toda la ventana es extra festiva
+        result.hefd += toHex(minsDiurno(wStart, wEnd));
+        result.hefn += toHex(minsNocturno(wStart, wEnd));
+      }
+    } else {
+      // Día ordinario sin turno: todo el tiempo trabajado es HEDO/HENO
+      if (!hayTurno) {
+        result.hedo += toHex(minsDiurno(wStart, wEnd));
+        result.heno += toHex(minsNocturno(wStart, wEnd));
+        return;
+      }
+      // Recargo nocturno dentro del turno → RN
+      const dentroStart = Math.max(wStart, turnoStart!);
+      const dentroEnd   = Math.min(wEnd,   turnoEnd!);
+      if (dentroEnd > dentroStart) {
+        result.rn += toHex(minsNocturno(dentroStart, dentroEnd));
+      }
+      // Extra antes del turno → HEDO + HENO
+      if (wStart < turnoStart! - TOLERANCIA) {
+        const extraEnd = Math.min(wEnd, turnoStart!);
+        if (extraEnd > wStart) {
+          result.hedo += toHex(minsDiurno(wStart, extraEnd));
+          result.heno += toHex(minsNocturno(wStart, extraEnd));
+        }
+      }
+      // Extra después del fin efectivo → HEDO + HENO
+      if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
+        const extraStart = Math.max(wStart, finEfectivo);
+        if (wEnd > extraStart) {
+          result.hedo += toHex(minsDiurno(extraStart, wEnd));
+          result.heno += toHex(minsNocturno(extraStart, wEnd));
+        }
+      }
+    }
   }
 
   async calcularExtras(dto: CalcularExtrasDto): Promise<HoraExtra[]> {
@@ -283,12 +528,17 @@ export class HorasExtraService {
     const endDay = dto.soloHoy ? hoy : dto.endDate;
 
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
-    let finUTC: string | null = null;
+    // finUTCAtt: límite conservador para hr.attendance (check_in hasta 04:59:59 del día siguiente)
+    // finUTCLog: límite extendido para attendance.log (captura salidas de turno nocturno ≈06:00 col)
+    let finUTCAtt: string | null = null;
+    let finUTCLog: string | null = null;
     if (endDay) {
       const [a, m, d] = endDay.split('-').map(Number);
       const fd = new Date(a, m - 1, d);
       fd.setDate(fd.getDate() + 1);
-      finUTC = `${fd.getFullYear()}-${String(fd.getMonth() + 1).padStart(2, '0')}-${String(fd.getDate()).padStart(2, '0')} 04:59:59`;
+      const base = `${fd.getFullYear()}-${String(fd.getMonth() + 1).padStart(2, '0')}-${String(fd.getDate()).padStart(2, '0')}`;
+      finUTCAtt = `${base} 04:59:59`;
+      finUTCLog = `${base} 11:59:59`;
     }
 
     const idsPorEstructura = await this.resolverIdsPorEstructura(
@@ -300,7 +550,7 @@ export class HorasExtraService {
     // Dominio para hr.attendance
     const domainAtt: any[] = [];
     if (inicioUTC) domainAtt.push(['check_in', '>=', inicioUTC]);
-    if (finUTC) domainAtt.push(['check_in', '<=', finUTC]);
+    if (finUTCAtt) domainAtt.push(['check_in', '<=', finUTCAtt]);
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', dto.company]);
     }
@@ -309,9 +559,10 @@ export class HorasExtraService {
     }
 
     // Dominio para attendance.log (biométrico / app)
+    // Usa finUTCLog extendido para capturar salidas de turno nocturno (≈06:00 Colombia = 11:00 UTC)
     const domainLog: any[] = [];
     if (inicioUTC) domainLog.push(['punching_time', '>=', inicioUTC]);
-    if (finUTC) domainLog.push(['punching_time', '<=', finUTC]);
+    if (finUTCLog) domainLog.push(['punching_time', '<=', finUTCLog]);
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
       domainLog.push(['company_id.name', '=', dto.company]);
     }
@@ -347,6 +598,30 @@ export class HorasExtraService {
 
     if (!attendances.length && !logs.length) return [];
 
+    // ── Cargar mallas ANTES de agrupar logs (necesario para detectar turnos nocturnos) ──
+    // Recopilar IDs de empleados de ambas fuentes para la carga anticipada
+    const allEmpIdsEarly = new Set<number>();
+    for (const att of attendances) { if (att.employee_id?.[0]) allEmpIdsEarly.add(att.employee_id[0]); }
+    for (const log of logs) { if (log.employee_id?.[0]) allEmpIdsEarly.add(log.employee_id[0]); }
+    const mallasMapEarly = await this.getMallasMap([...allEmpIdsEarly]);
+
+    // Helpers disponibles en todo el método
+    const getTurnoParaFecha = (empId: number, fecha: string): any | null => {
+      const asigs = mallasMapEarly.get(empId) ?? [];
+      const det = this.resolverDetallesParaFecha(asigs, fecha);
+      const dia = this.getDiaSemana(fecha);
+      return det
+        .filter((d: any) => Number(d.dia_semana) === dia)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0] ?? null;
+    };
+    const esNocturnoTurno = (t: any | null): boolean =>
+      t !== null && Number(t.hora_fin) < Number(t.hora_inicio);
+    const addUnDia = (fecha: string): string => {
+      const [a, m, d] = fecha.split('-').map(Number);
+      const dt = new Date(a, m - 1, d + 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
+
     // Agrupar hr.attendance por empId+fecha
     const grupos: Record<
       string,
@@ -379,57 +654,100 @@ export class HorasExtraService {
       grupos[key].records.push(att);
     }
 
-    // Agregar registros de attendance.log para empleados/días no cubiertos por hr.attendance
-    // Agrupar punches por empId+fecha
+    // ── Agrupar attendance.log con conciencia de turnos nocturnos ─────────────
     const idsPermitidos = idsPorEstructura ? new Set(idsPorEstructura) : null;
 
-    const logGrupos: Record<string, { empId: number; nombre: string; dept: string; fecha: string; punches: any[] }> = {};
+    // Recopilar TODOS los punches biométricos por empleado, ordenados cronológicamente
+    const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
     for (const log of logs) {
       const empId = log.employee_id?.[0];
-      const nombre = log.employee_id?.[1] || 'Desconocido';
-      const localTime = this.toLocal(log.punching_time);
-      const fecha = localTime ? localTime.split(' ')[0] : null;
-      if (!fecha || !empId) continue;
-
-      // Filtro de seguridad: si Odoo no aplicó bien el dominio, lo hacemos aquí
+      if (!empId) continue;
       if (idsPermitidos && !idsPermitidos.has(empId)) continue;
-
-      const key = `${empId}_${fecha}`;
-      if (grupos[key]) continue; // ya cubierto por hr.attendance
-
-      if (!logGrupos[key]) {
-        const dept = log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
-        logGrupos[key] = { empId, nombre, dept, fecha, punches: [] };
-      }
-      logGrupos[key].punches.push(log);
+      const localTime = this.toLocal(log.punching_time);
+      if (!localTime) continue;
+      const list = allLogsByEmp.get(empId) ?? [];
+      list.push({ localTime, rawTime: log.punching_time, log });
+      allLogsByEmp.set(empId, list);
+    }
+    for (const [, punches] of allLogsByEmp) {
+      punches.sort((a, b) => a.rawTime.localeCompare(b.rawTime));
     }
 
-    // Convertir grupos de attendance.log a registros sintéticos compatibles
-    for (const g of Object.values(logGrupos)) {
-      const sorted = g.punches.sort(
-        (a, b) => new Date(a.punching_time).getTime() - new Date(b.punching_time).getTime(),
-      );
-      const primero = sorted[0];
-      const ultimo = sorted[sorted.length - 1];
-      const haySalida =
-        sorted.length > 1 &&
-        new Date(ultimo.punching_time).getTime() - new Date(primero.punching_time).getTime() >= 60_000;
+    // Agrupar biométrico: turno nocturno → empareja entrada(día N) con salida(día N+1)
+    const processedSalidaKeys = new Set<string>(); // keys ya consumidos como salida nocturna
 
-      const key = `${g.empId}_${g.fecha}`;
-      grupos[key] = {
-        empId: g.empId,
-        nombre: g.nombre,
-        dept: g.dept,
-        fecha: g.fecha,
-        records: [
-          {
-            employee_id: [g.empId, g.nombre],
-            check_in: primero.punching_time,
-            check_out: haySalida ? ultimo.punching_time : null,
-            department_id: null,
-          },
-        ],
-      };
+    for (const [empId, punches] of allLogsByEmp) {
+      const fechasConPunch = [...new Set(punches.map(p => p.localTime.split(' ')[0]))].sort();
+
+      for (const fecha of fechasConPunch) {
+        const key = `${empId}_${fecha}`;
+        if (grupos[key]) continue; // ya cubierto por hr.attendance
+
+        const turno = getTurnoParaFecha(empId, fecha);
+
+        // Si este día fue marcado como "salida" del turno nocturno anterior,
+        // solo lo saltamos si el turno NO es nocturno (punch matutino aislado, nada más).
+        // Si ES nocturno, puede tener su propia entrada vespertina → seguimos procesando.
+        if (processedSalidaKeys.has(key) && !esNocturnoTurno(turno)) continue;
+
+        if (esNocturnoTurno(turno)) {
+          // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida ≈ hora_fin en `fecha+1`
+          const inicioMins = Number(turno.hora_inicio) * 60;
+          const finMins    = Number(turno.hora_fin)    * 60;
+          const siguiente  = addUnDia(fecha);
+
+          const entrada = punches.find(p =>
+            p.localTime.split(' ')[0] === fecha &&
+            Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
+          );
+          const salida = punches.find(p =>
+            p.localTime.split(' ')[0] === siguiente &&
+            Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
+          );
+
+          if (!entrada) continue; // Sin entrada biométrica → ignorar este día
+
+          const keySig = `${empId}_${siguiente}`;
+          // Marcar el día siguiente como "consumido" como salida de este turno
+          if (salida && !grupos[keySig]) processedSalidaKeys.add(keySig);
+
+          const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
+          const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+
+          grupos[key] = {
+            empId, nombre, dept, fecha,
+            records: [{
+              employee_id: [empId, nombre],
+              check_in:  entrada.rawTime,
+              check_out: salida?.rawTime ?? null,
+              department_id: null,
+            }],
+          };
+        } else {
+          // Turno diurno o sin turno: tomar todos los punches del día
+          const dayPunches = punches.filter(p => p.localTime.split(' ')[0] === fecha);
+          if (!dayPunches.length) continue;
+
+          const primero   = dayPunches[0];
+          const ultimoDay = dayPunches[dayPunches.length - 1];
+          const haySalida =
+            dayPunches.length > 1 &&
+            new Date(ultimoDay.rawTime).getTime() - new Date(primero.rawTime).getTime() >= 60_000;
+
+          const nombre = primero.log.employee_id?.[1] || 'Desconocido';
+          const dept   = primero.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+
+          grupos[key] = {
+            empId, nombre, dept, fecha,
+            records: [{
+              employee_id: [empId, nombre],
+              check_in:  primero.rawTime,
+              check_out: haySalida ? ultimoDay.rawTime : null,
+              department_id: null,
+            }],
+          };
+        }
+      }
     }
 
     const empIds = [
@@ -466,7 +784,11 @@ export class HorasExtraService {
       usuariosLocales.map((u) => [u.identificacion, u.cargo]),
     );
 
-    const mallasMap = await this.getMallasMap(empIds);
+    // Mallas ya cargadas anticipadamente en mallasMapEarly; reutilizar como mallasMap
+    const mallasMap = mallasMapEarly;
+
+    // Festivos colombianos para el rango consultado
+    const festivosSet = buildFestivosSet(startDay, endDay);
 
     const resultados: HoraExtra[] = [];
 
@@ -492,34 +814,133 @@ export class HorasExtraService {
           )
         : null;
 
-      const localIn = this.toLocal(primero.check_in);
-      const localOut = ultimoConSalida
+      // ── Determinar turno primero (necesario para la lógica nocturna) ─────────
+      const asignaciones = mallasMap.get(empId) ?? [];
+      // sinMalla: el registro se muestra igual, pero no se calculan horas extra
+      const sinMalla = asignaciones.length === 0;
+
+      const diaSemana = this.getDiaSemana(fecha);
+      const esDominical = diaSemana === 6;
+      const esFestivo   = esDominical || festivosSet.has(fecha);
+
+      // Tipo del día siguiente (para partir correctamente los turnos nocturnos
+      // que cruzan medianoche: las horas del día N+1 usan el tipo de ese día)
+      const fechaSiguiente       = addUnDia(fecha);
+      const diaSemSiguiente      = this.getDiaSemana(fechaSiguiente);
+      const esFestivoSiguiente   = diaSemSiguiente === 6 || festivosSet.has(fechaSiguiente);
+
+      // Resolver turno solo si tiene malla asignada
+      let turno: any = null;
+      if (!sinMalla) {
+        const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+        const turnoDetalles = detalles
+          .filter((d: any) => Number(d.dia_semana) === diaSemana)
+          .sort(
+            (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+          );
+        turno = turnoDetalles[0] ?? null;
+      }
+      // NOTA: ya no se hace `continue` por falta de malla ni por día sin turno.
+      // El registro siempre se incluye; las horas extra se calculan solo cuando corresponde.
+
+      // ── Entrada / salida desde hr.attendance (o biométrico sintético) ────────
+      let localIn = this.toLocal(primero.check_in);
+      let localOut: string | null = ultimoConSalida
         ? this.toLocal(ultimoConSalida.check_out)
         : null;
 
-      const asignaciones = mallasMap.get(empId) ?? [];
-      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
-      const diaSemana = this.getDiaSemana(fecha);
-      const turnoDetalles = detalles
-        .filter((d: any) => Number(d.dia_semana) === diaSemana)
-        .sort(
-          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
+      // ── Turnos nocturnos: corregir con biométrico real ────────────────────────
+      // hr.attendance puede tener entrada/salida mal asignadas para turnos que cruzan
+      // medianoche (ej. registra 04:59→22:09 en vez de 22:09→05:00).
+      // La fuente de verdad para nocturnos es el biométrico: entrada ≈ hora_inicio
+      // en `fecha` y salida ≈ hora_fin en `fecha+1`.
+      if (turno && esNocturnoTurno(turno) && allLogsByEmp.has(empId)) {
+        const inicioMins = Number(turno.hora_inicio) * 60;
+        const finMins    = Number(turno.hora_fin)    * 60;
+        const siguiente  = addUnDia(fecha);
+        const punches    = allLogsByEmp.get(empId)!;
+
+        const entradaBio = punches.find(p =>
+          p.localTime.split(' ')[0] === fecha &&
+          Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
+        );
+        const salidaBio = punches.find(p =>
+          p.localTime.split(' ')[0] === siguiente &&
+          Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
         );
 
-      const turno = turnoDetalles[0] ?? null;
+        if (entradaBio) {
+          localIn = entradaBio.localTime;
+          // Solo sobreescribir salida si el biométrico tiene la punch de salida;
+          // de lo contrario conservar el check_out de hr.attendance (ya asignado arriba).
+          if (salidaBio) localOut = salidaBio.localTime;
+        }
+      }
+
+      // ── Fallback biométrico general ───────────────────────────────────────────
+      // Si después de la corrección nocturna todavía no hay salida, intentar
+      // reconstruirla desde attendance.log sin importar el tipo de turno.
+      //
+      //  1. Turno DIURNO (o sin turno): buscar la última punch del mismo día
+      //     que sea al menos 10 minutos posterior a la entrada.
+      //  2. Turno NOCTURNO sin malla / sin turno definido pero entrada ≥ 21:00:
+      //     buscar la primera punch del día siguiente con hora ≤ 08:00.
+      if (!localOut && localIn && allLogsByEmp.has(empId)) {
+        const inFecha  = localIn.split(' ')[0];
+        const inMins   = this.parseMinutos(localIn);
+        const punches  = allLogsByEmp.get(empId)!;
+
+        // 1. Misma fecha: última punch posterior a la entrada (≥ 10 min después)
+        const salidaMismoDia = [...punches]
+          .filter(p =>
+            p.localTime.split(' ')[0] === inFecha &&
+            this.parseMinutos(p.localTime) >= inMins + 10,
+          )
+          .at(-1); // la más tardía del día
+
+        if (salidaMismoDia) {
+          localOut = salidaMismoDia.localTime;
+        } else if (inMins >= 1260) {
+          // 2. Entrada nocturna (≥ 21:00) sin salida ese día → buscar en día siguiente
+          const siguiente    = addUnDia(inFecha);
+          const salidaSigDia = punches.find(p =>
+            p.localTime.split(' ')[0] === siguiente &&
+            this.parseMinutos(p.localTime) <= 480, // ≤ 08:00
+          );
+          if (salidaSigDia) localOut = salidaSigDia.localTime;
+        }
+      }
+
+      // Sin salida registrada → no se puede calcular horas extras
+      if (!localOut) continue;
+
       const cedula = cedulaMap.get(empId) ?? 'N/A';
-      const esDominical = diaSemana === 6;
 
       // Cargo: primero Odoo, fallback local
       const cargo =
         cargoOdooMap.get(empId) || cargoLocalMap.get(cedula) || null;
 
-      const categorias = this.calcularCategorias(
-        localIn,
-        localOut,
-        turno,
-        esDominical,
-      );
+      // Siempre calcular si hay entrada y salida:
+      //  - Con turno → RN dentro del turno + HEDO/HENO/HEFD/HEFN extras
+      //  - Sin turno en festivo/domingo → HEFD/HEFN (todo el tiempo trabajado es extra festivo)
+      //  - Sin turno en día ordinario (incl. sábado sin malla) → HEDO/HENO (todo es extra ordinario)
+      // Reposición por llegada tardía: si entró más de TOLERANCIA minutos después
+      // del inicio del turno, debe reponer ese tiempo al final antes de contar extras.
+      // Tolerancia = 6 min (llegar hasta 6 min tarde se acepta sin reposición).
+      const TOLERANCIA_REPOS = HorasExtraService.TOLERANCIA_MINS;
+      let retrasoMins = 0;
+      if (turno && localIn) {
+        const shiftStartMins = Number(turno.hora_inicio) * 60;
+        const inMinsLocal    = this.parseMinutos(localIn);
+        if (inMinsLocal > shiftStartMins + TOLERANCIA_REPOS) {
+          retrasoMins = inMinsLocal - shiftStartMins;
+        }
+      }
+
+      const debeCalcularExtras = true;
+      const categorias = debeCalcularExtras
+        ? this.calcularCategorias(localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins)
+        : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
 
       // Compatibilidad con campos legacy (minutos)
       const hedo_mins = Math.round(categorias.hedo * 60);
@@ -539,7 +960,7 @@ export class HorasExtraService {
         fecha_entrada: localIn,
         fecha_salida: localOut,
         calculado_por: dto.calculado_por ?? null,
-        es_dominical: esDominical,
+        es_dominical: esFestivo,
         aprobado: null,
         inicio_turno: turno
           ? this.decimalToHora(Number(turno.hora_inicio))
@@ -605,6 +1026,8 @@ export class HorasExtraService {
     cargo?: string;
     departamento?: string;
     soloConExtras?: boolean;
+    soloNotificados?: boolean;   // true → solo aprobados+notificados (tab Historial)
+    soloNoAprobados?: boolean;   // true → solo pendientes/rechazados (tab Guardados)
     area_id?: number;
     segmento_id?: number;
   }): Promise<HoraExtra[]> {
@@ -612,6 +1035,15 @@ export class HorasExtraService {
       .createQueryBuilder('h')
       .orderBy('h.nombre', 'ASC')
       .addOrderBy('h.fecha', 'ASC');
+
+    // Solo aprobados + notificados → tab Historial
+    if (filters.soloNotificados) {
+      qb.andWhere('h.aprobado = 1').andWhere('h.notificado = 1');
+    }
+    // Solo pendientes o rechazados → tab Guardados
+    if (filters.soloNoAprobados) {
+      qb.andWhere('(h.aprobado IS NULL OR h.aprobado = 0)');
+    }
 
     if (filters.startDate)
       qb.andWhere('h.fecha >= :start', { start: filters.startDate });
@@ -634,7 +1066,6 @@ export class HorasExtraService {
         '(h.hedo > 0 OR h.heno > 0 OR h.hefd > 0 OR h.hefn > 0 OR h.total_minutos_extra > 0)',
       );
 
-    // Filtro por estructura (área/segmento) → OR entre ambos criterios
     if (filters.area_id || filters.segmento_id) {
       const conditions: any[] = [];
       if (filters.area_id) conditions.push({ area_id: filters.area_id });
@@ -686,9 +1117,176 @@ export class HorasExtraService {
   async aprobarRegistro(
     id: number,
     aprobado: boolean | null,
+    observacion?: string,
   ): Promise<HoraExtra | null> {
-    await this.horaExtraRepo.update(id, { aprobado });
+    // Bloquear aprobación si hay horas extra sin justificación (actividad)
+    if (aprobado === true) {
+      const reg = await this.horaExtraRepo.findOne({ where: { id } });
+      if (reg) {
+        // Solo exigir justificación cuando los extras suman >= 0.5h (30 min)
+        const totalExtras =
+          Number(reg.hedo) + Number(reg.heno) +
+          Number(reg.hefd) + Number(reg.hefn);
+        const tieneExtras = totalExtras >= 0.5;
+        if (tieneExtras && !reg.actividad?.trim()) {
+          throw new Error(
+            'ACTIVIDAD_REQUERIDA: Este registro tiene horas extra sin justificación. Agrega una actividad antes de aprobar.',
+          );
+        }
+      }
+    }
+    await this.horaExtraRepo.update(id, { aprobado, observacion: observacion ?? null });
     return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async actualizarActividad(id: number, actividad: string): Promise<HoraExtra | null> {
+    await this.horaExtraRepo.update(id, { actividad: actividad?.trim() || null });
+    return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async actualizarHoras(
+    id: number,
+    horas: { rn?: number; rndf?: number; rddf?: number; hedo?: number; heno?: number; hefd?: number; hefn?: number },
+  ): Promise<HoraExtra | null> {
+    const campos: Partial<HoraExtra> = {};
+    const validos = ['rn', 'rndf', 'rddf', 'hedo', 'heno', 'hefd', 'hefn'] as const;
+    for (const campo of validos) {
+      if (horas[campo] !== undefined) {
+        campos[campo] = Math.max(0, Number(horas[campo]));
+      }
+    }
+    if (!Object.keys(campos).length) return this.horaExtraRepo.findOne({ where: { id } });
+    await this.horaExtraRepo.update(id, campos);
+    return this.horaExtraRepo.findOne({ where: { id } });
+  }
+
+  async notificarAprobados(registros: any[]): Promise<{ enviado: boolean }> {
+    if (!registros.length) return { enviado: false };
+
+    const departamentos = [
+      ...new Set(registros.map(r => r.departamento).filter(Boolean) as string[]),
+    ];
+    const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
+    const excelBuffer   = await this._generarExcelDesdeRegistros(registros);
+    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios });
+
+    // Marcar como notificados → pasan al Historial
+    const ids = registros.map(r => r.id).filter(Boolean) as number[];
+    if (ids.length) {
+      await this.horaExtraRepo
+        .createQueryBuilder()
+        .update(HoraExtra)
+        .set({ notificado: true } as any)
+        .where('id IN (:...ids)', { ids })
+        .execute();
+    }
+
+    return { enviado: true };
+  }
+
+  async guardarSeleccionados(
+    registros: any[],
+    calculado_por: string,
+  ): Promise<{ guardados: number; omitidos: { nombre: string; fecha: string }[] }> {
+    if (!registros.length) return { guardados: 0, omitidos: [] };
+
+    const omitidos: { nombre: string; fecha: string }[] = [];
+
+    // Borrar solo los pares cedula+fecha que NO estén aprobados
+    for (const r of registros) {
+      if (!r.cedula || !r.fecha) continue;
+
+      // Verificar si ya existe un registro APROBADO → no tocar
+      const aprobado = await this.horaExtraRepo.findOne({
+        where: { cedula: r.cedula, fecha: r.fecha, aprobado: true },
+      });
+      if (aprobado) {
+        omitidos.push({ nombre: r.nombre ?? r.cedula, fecha: r.fecha });
+        continue;
+      }
+
+      // Eliminar versión anterior no aprobada para reemplazarla
+      await this.horaExtraRepo.delete({ cedula: r.cedula, fecha: r.fecha });
+    }
+
+    // Filtrar los que se pueden guardar (no omitidos)
+    const omitidosKey = new Set(omitidos.map(o => `${o.nombre}__${o.fecha}`));
+    const aSalvar = registros.filter(r => {
+      const key = `${r.nombre ?? r.cedula}__${r.fecha}`;
+      return !omitidosKey.has(key);
+    });
+
+    const entities = aSalvar.map((r) =>
+      this.horaExtraRepo.create({
+        cedula: r.cedula,
+        nombre: r.nombre,
+        employee_id_odoo: r.employee_id_odoo ?? null,
+        fecha: r.fecha,
+        company: r.company ?? null,
+        departamento: r.departamento ?? null,
+        inicio_turno: r.inicio_turno ?? null,
+        fin_turno: r.fin_turno ?? null,
+        fecha_entrada: r.fecha_entrada ?? null,
+        fecha_salida: r.fecha_salida ?? null,
+        rn: r.rn ?? 0,
+        rndf: r.rndf ?? 0,
+        rddf: r.rddf ?? 0,
+        hedo: r.hedo ?? 0,
+        heno: r.heno ?? 0,
+        hefd: r.hefd ?? 0,
+        hefn: r.hefn ?? 0,
+        es_dominical: r.es_dominical ?? false,
+        cargo: r.cargo ?? null,
+        calculado_por,
+        aprobado: r.aprobado ?? null,
+        observacion: r.observacion ?? null,
+        total_minutos_extra: r.total_minutos_extra ?? 0,
+      }),
+    );
+
+    const CHUNK = 50;
+    for (let i = 0; i < entities.length; i += CHUNK) {
+      await this.horaExtraRepo.save(entities.slice(i, i + CHUNK));
+    }
+
+    return { guardados: entities.length, omitidos };
+  }
+
+  async getNovedadesAprobadas(filters: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    departamento?: string;
+    area_id?: number;
+    segmento_id?: number;
+  }): Promise<HoraExtra[]> {
+    const qb = this.horaExtraRepo
+      .createQueryBuilder('h')
+      .where('h.aprobado = 1')
+      .andWhere('(h.notificado = 0 OR h.notificado IS NULL)')  // pendientes de notificar
+      .orderBy('h.nombre', 'ASC')
+      .addOrderBy('h.fecha', 'ASC');
+
+    if (filters.startDate)
+      qb.andWhere('h.fecha >= :start', { start: filters.startDate });
+    if (filters.endDate)
+      qb.andWhere('h.fecha <= :end', { end: filters.endDate });
+    if (filters.company && filters.company !== 'Todas')
+      qb.andWhere('h.company = :company', { company: filters.company });
+    if (filters.departamento)
+      qb.andWhere('h.departamento = :dep', { dep: filters.departamento });
+
+    if (filters.area_id || filters.segmento_id) {
+      const ids = await this.resolverIdsPorEstructura(
+        filters.area_id,
+        filters.segmento_id,
+      );
+      if (ids && ids.length) {
+        qb.andWhere('h.employee_id_odoo IN (:...ids)', { ids: ids.slice(0, 500) });
+      }
+    }
+
+    return qb.getMany();
   }
 
   async exportarCalculado(registros: any[]): Promise<Buffer> {
@@ -829,7 +1427,10 @@ export class HorasExtraService {
     }
 
     let rowIdx = 3;
-    const numFmt = '0.00';
+    // '0.##' muestra el decimal real sin ceros innecesarios:
+    // 1.5 → "1.5"  |  2.0 → "2"  |  0.5 → "0.5"
+    // Evita la confusión de '0.00' donde "1.50" se leía como "1h50min"
+    const numFmt = '0.##';
     const COLS_HX = [
       'rn',
       'rndf',
@@ -948,7 +1549,7 @@ export class HorasExtraService {
       'Se debe hacer un formato de reporte diferenciando la empresa por la cual están vinculados los colaboradores.',
       '',
       'CONVENCIONES:',
-      'RN = Recargo Nocturno: Dentro de la jornada laboral de 21:00 Hr a 6:00 Hr',
+      'RN = Recargo Nocturno: Dentro de la jornada laboral de 19:00 Hr a 6:00 Hr',
       'RNDF = Recargo Nocturno Dominical o Festivo: Dentro de la jornada Laboral, Domingo, de 21:00 Hr y 6:00 Hr',
       'RDDF = Recargo Diurno Dominical o Festivo: Dentro de la Jornada laboral, Domingo o Días Festivos de 6:00 Hr y 21:00 Hr',
       'HEDO = Hora Extra Diurna Ordinaria: Hora adicional a su jornada laboral, de 6:00 Hr y 21:00 Hr',
@@ -1161,5 +1762,9 @@ export class HorasExtraService {
 
   async aprobarCargue(id: number, aprobado: boolean | null): Promise<void> {
     await this.cargueRepo.update(id, { aprobado });
+  }
+
+  async eliminarRegistro(id: number): Promise<void> {
+    await this.horaExtraRepo.delete(id);
   }
 }
