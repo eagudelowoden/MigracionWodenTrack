@@ -67,6 +67,8 @@ export class HorasExtraController {
     @Query('soloNoAprobados') soloNoAprobados?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
+    @Query('calculado_por') calculado_por?: string,
+    @Query('calculado_por_id') calculado_por_id?: string,
   ) {
     return this.service.getHistorial({
       startDate,
@@ -81,6 +83,8 @@ export class HorasExtraController {
       soloNoAprobados: soloNoAprobados === 'true',
       area_id: area_id ? Number(area_id) : undefined,
       segmento_id: segmento_id ? Number(segmento_id) : undefined,
+      calculado_por,
+      calculado_por_id: calculado_por_id ? Number(calculado_por_id) : undefined,
     });
   }
 
@@ -160,11 +164,12 @@ export class HorasExtraController {
 
   @Post('guardar-seleccionados')
   guardarSeleccionados(
-    @Body() body: { registros: any[]; calculado_por?: string },
+    @Body() body: { registros: any[]; calculado_por?: string; calculado_por_id?: number },
   ) {
     return this.service.guardarSeleccionados(
       body.registros ?? [],
       body.calculado_por ?? 'Desconocido',
+      body.calculado_por_id,
     );
   }
 

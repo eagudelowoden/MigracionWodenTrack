@@ -2456,21 +2456,28 @@ async function handleGuardar() {
   try {
     const n = selectedRecords.value.length;
     const result = await guardarCalculados(props.company, mostrarDecimales.value);
-    const guardados = result?.guardados ?? n;
+    const guardados = result?.guardados ?? 0;
     const omitidos = result?.omitidos ?? [];
 
     if (omitidos.length && guardados === 0) {
-      // Todos omitidos
       saveSuccessMsg.value = `⚠️ ${omitidos.length} registro(s) no guardado(s): ya existen aprobados para esa fecha`;
     } else if (omitidos.length) {
-      // Algunos omitidos
       saveSuccessMsg.value = `✅ ${guardados} guardado(s). ⚠️ ${omitidos.length} omitido(s) por tener registro aprobado`;
     } else {
-      saveSuccessMsg.value = `✅ ${guardados} registro(s) guardado(s) correctamente`;
+      saveSuccessMsg.value = `✅ ${guardados} registro(s) guardado(s) — revisa la pestaña Guardados`;
     }
     clearTimeout(_saveSuccessTimer);
-    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 6000);
-  } catch { /* el composable ya loguea */ }
+    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 8000);
+
+    // Recargar Guardados en background para que estén listos al cambiar de tab
+    if (guardados > 0) {
+      cargarGuardados(props.company).catch(() => {});
+    }
+  } catch (e) {
+    saveSuccessMsg.value = `❌ Error al guardar: ${e?.response?.data?.message || e?.message || 'intente de nuevo'}`;
+    clearTimeout(_saveSuccessTimer);
+    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 8000);
+  }
 }
 
 async function handleExportar() {

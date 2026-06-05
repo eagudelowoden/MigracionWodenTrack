@@ -64,6 +64,9 @@ export class HoraExtra {
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   calculado_por: string | null;
 
+  @Column({ type: 'int', nullable: true })
+  calculado_por_id: number | null;
+
   @Column({ type: 'bit', default: false })
   es_dominical: boolean;
 

@@ -1026,10 +1026,12 @@ export class HorasExtraService {
     cargo?: string;
     departamento?: string;
     soloConExtras?: boolean;
-    soloNotificados?: boolean;   // true → solo aprobados+notificados (tab Historial)
-    soloNoAprobados?: boolean;   // true → solo pendientes/rechazados (tab Guardados)
+    soloNotificados?: boolean;
+    soloNoAprobados?: boolean;
     area_id?: number;
     segmento_id?: number;
+    calculado_por?: string;
+    calculado_por_id?: number;
   }): Promise<HoraExtra[]> {
     const qb = this.horaExtraRepo
       .createQueryBuilder('h')
@@ -1065,6 +1067,11 @@ export class HorasExtraService {
       qb.andWhere(
         '(h.hedo > 0 OR h.heno > 0 OR h.hefd > 0 OR h.hefn > 0 OR h.total_minutos_extra > 0)',
       );
+
+    if (filters.calculado_por)
+      qb.andWhere('h.calculado_por = :calculado_por', { calculado_por: filters.calculado_por });
+    if (filters.calculado_por_id)
+      qb.andWhere('h.calculado_por_id = :calculado_por_id', { calculado_por_id: filters.calculado_por_id });
 
     if (filters.area_id || filters.segmento_id) {
       const conditions: any[] = [];
@@ -1187,6 +1194,7 @@ export class HorasExtraService {
   async guardarSeleccionados(
     registros: any[],
     calculado_por: string,
+    calculado_por_id?: number,
   ): Promise<{ guardados: number; omitidos: { nombre: string; fecha: string }[] }> {
     if (!registros.length) return { guardados: 0, omitidos: [] };
 
@@ -1238,6 +1246,7 @@ export class HorasExtraService {
         es_dominical: r.es_dominical ?? false,
         cargo: r.cargo ?? null,
         calculado_por,
+        calculado_por_id: calculado_por_id ?? null,
         aprobado: r.aprobado ?? null,
         observacion: r.observacion ?? null,
         total_minutos_extra: r.total_minutos_extra ?? 0,
