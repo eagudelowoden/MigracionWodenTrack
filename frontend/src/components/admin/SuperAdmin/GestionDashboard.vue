@@ -12,9 +12,14 @@
                     <h2 class="gd-title">Vista general del sistema</h2>
                 </div>
             </div>
-            <button @click="loadData" class="gd-icon-btn" title="Actualizar">
-                <i class="fas fa-rotate" :class="isLoading ? 'fa-spin' : ''"></i>
-            </button>
+            <div class="flex items-center gap-3">
+                <span v-if="lastUpdated && !isLoading" class="text-[10px] opacity-40 font-medium hidden sm:block">
+                    Actualizado {{ lastUpdated }}
+                </span>
+                <button @click="loadData" class="gd-icon-btn" title="Actualizar">
+                    <i class="fas fa-rotate" :class="isLoading ? 'fa-spin' : ''"></i>
+                </button>
+            </div>
         </header>
 
         <!-- ─── MÉTRICAS PRINCIPALES ───────────────────────────────────── -->
@@ -199,6 +204,7 @@ const { dbUsuarios, odooUsuarios, fetchDbUsuarios, fetchOdooUsuarios } = useUsua
 const { dbCompanies, odooCompanies, fetchDbCompanies, fetchOdooRaw } = useCompanies();
 
 const isLoading = ref(true);
+const lastUpdated = ref(null);
 
 const totalEmpleados = computed(() => dbUsuarios.value?.length ?? 0);
 const totalOdoo = computed(() => odooUsuarios.value?.length ?? 0);
@@ -243,6 +249,7 @@ const loadData = async () => {
         ]);
     } finally {
         isLoading.value = false;
+        lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
     }
 };
 

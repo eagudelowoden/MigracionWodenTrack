@@ -109,20 +109,8 @@
 </template>
 <script setup>
 import '../assets/css/woden-style.css';
-import { ref, onMounted } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme } = useAttendance();
-
-const appVersion = ref('...');
-const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
-
-onMounted(async () => {
-  try {
-    const r = await fetch(`${API_BASE}/version`);
-    const d = await r.json();
-    appVersion.value = d.version || '—';
-  } catch { appVersion.value = '—'; }
-});
 </script>
 
 <style scoped>

@@ -73,35 +73,10 @@ export function adminOdoo() {
     }
   };
 
-  const handleAttendance = async () => {
-    if (!att.employee.value) return;
-    att.loading.value = true;
-    try {
-      const res = await fetch(`${API_BASE_URL}/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: att.employee.value.employee_id }),
-      });
-      const data = await res.json();
-      if (data.status === "success") {
-        await fetchReporte();
-        if (data.type === "in") {
-          att.employee.value.is_inside = true;
-          att.employee.value.day_completed = false;
-        } else {
-          att.employee.value.is_inside = false;
-          att.employee.value.day_completed = true;
-        }
-        localStorage.setItem(
-          "user_session",
-          JSON.stringify(att.employee.value),
-        );
-        att.showToast(data.message, "success");
-      }
-    } catch (err) {
-      att.showToast("Error al registrar", "error");
-    } finally {
-      att.loading.value = false;
+  const handleAttendance = async (action) => {
+    await att.handleAttendance(action);
+    if (!att.loading.value) {
+      await fetchReporte();
     }
   };
 

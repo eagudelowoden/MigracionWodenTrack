@@ -183,12 +183,12 @@
 
           <!-- Botones Entrada/Salida -->
           <div class="flex items-center gap-1.5">
-            <button @click="handleAttendance" :disabled="loading || employee?.is_inside || employee?.day_completed"
+            <button @click="handleAttendance('in')" :disabled="loading || employee?.is_inside || employee?.day_completed"
               class="btn-header-smart in group">
               <div class="icon-box-smart"><i class="fas fa-arrow-right-to-bracket"></i></div>
               <span class="hidden md:inline">Entrada</span>
             </button>
-            <button @click="handleAttendance" :disabled="loading || !employee?.is_inside || employee?.day_completed"
+            <button @click="handleAttendance('out')" :disabled="loading || !employee?.is_inside || employee?.day_completed"
               class="btn-header-smart out group">
               <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
               <span class="hidden md:inline">Salida</span>
@@ -313,7 +313,8 @@ provide('adminEmployee', employee);
 
 // ── Display helpers para el saludo ───────────────────────────────────────────
 const displayName = computed(() => {
-  const raw = employee.value?.name?.split(' ')[2]?.toLowerCase();
+  const parts = employee.value?.name?.trim().split(/\s+/) ?? [];
+  const raw = (parts[2] || parts[1] || parts[0] || '').toLowerCase();
   if (!raw) return 'Usuario';
   return raw.replace(/^\w/, c => c.toUpperCase());
 });

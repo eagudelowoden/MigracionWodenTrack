@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 // ── Constantes de navegación (agrupadas por categoría) ───────────────────────
@@ -17,7 +17,7 @@ const NAV_GROUPS = [
     label: 'Operación',
     items: {
       mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-      solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
       sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     },
@@ -52,6 +52,7 @@ const MODULE_LABELS = {
   analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
+  offboarding: 'Checklist Offboarding',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -81,7 +82,6 @@ import '../assets/css/SuperAdmin.css';
 // --- 1. CONFIGURACIÓN ---
 const API_URL = import.meta.env.VITE_API_URL;
 
-const props = defineProps({ isDark: Boolean });
 const router = useRouter();
 const route = useRoute();
 const { logout, isDark, toggleTheme, employee } = useAttendance();
@@ -193,7 +193,6 @@ const selectedUserPerms = ref(null);
 
 // --- 2. FUNCIONES DE INTERFAZ (Nivel principal) ---
 const openPerms = (user) => {
-  console.log("Abriendo permisos para:", user.nombre); // Para debugear
   selectedUserPerms.value = user;
 };
 const hasPerm = (user, slug) => {
@@ -275,13 +274,31 @@ const updateUserStructure = async (user, field) => {
   }
 };
 
+// Cierra el dropdown de usuario al hacer click fuera o presionar Escape
+const userMenuRef = ref(null);
+const handleClickOutside = (e) => {
+  if (showUserMenu.value && userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+    showUserMenu.value = false;
+  }
+};
+const handleEscape = (e) => {
+  if (e.key === 'Escape') showUserMenu.value = false;
+};
+
 // --- Carga Inicial ---
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside, true);
+  document.addEventListener('keydown', handleEscape);
   await Promise.all([
     fetchDbUsuarios(),
     fetchOrganizacion(),
     fetchOdooUsuarios(),
   ]);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside, true);
+  document.removeEventListener('keydown', handleEscape);
 });
 </script>
 <template>
@@ -406,7 +423,7 @@ onMounted(async () => {
           </button>
 
           <!-- 3. Usuario con dropdown -->
-          <div class="relative" v-if="employee?.name">
+          <div class="relative" v-if="employee?.name" ref="userMenuRef">
             <button @click="showUserMenu = !showUserMenu" class="sa-user-chip"
               :class="isDark ? 'sa-user-dark' : 'sa-user-light'">
               <div class="sa-user-avatar">
@@ -434,7 +451,7 @@ onMounted(async () => {
                     displayName
                     }}</p>
                 </div>
-                <button @click="logout(); showUserMenu = false"
+                <button @click="() => { if (confirm('¿Seguro que deseas cerrar sesión?')) { logout(); showUserMenu = false; } }"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
                   <i class="fas fa-arrow-right-from-bracket text-[10px]"></i>
                   Cerrar sesión
@@ -1052,7 +1069,7 @@ onMounted(async () => {
   padding: 5px 12px;
   border-radius: 12px;
   border: 1px solid;
-  cursor: default;
+  cursor: pointer;
 }
 
 .sa-user-dark {
