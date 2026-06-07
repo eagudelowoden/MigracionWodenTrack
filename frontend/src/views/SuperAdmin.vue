@@ -69,6 +69,7 @@ import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue'
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
 import GestionChecklistOffboarding from '../components/admin/SuperAdmin/GestionChecklistOffboarding.vue';
+import GestionOffboardingCron from '../components/admin/SuperAdmin/GestionOffboardingCron.vue';
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
 import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue';

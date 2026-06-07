@@ -374,6 +374,25 @@ export class SuperAdminCorreoService {
     });
   }
 
+  // ── Correo libre (subject + html ya construidos) ──────────────
+  async enviarCorreoLibre(
+    subject: string,
+    html: string,
+    destinatarios: string[],
+  ): Promise<void> {
+    if (!(await this.correoHabilitado())) return;
+    const t = await this.crearTransporter();
+    const all = await this.cfg.getAll();
+    const fromNombre = this.envFallback(all[K.FROM_NAME], 'MAIL_USER', 'WodenTrack');
+    const fromUser = this.envFallback(all[K.USER], 'MAIL_USER', '');
+    await t.sendMail({
+      from: `"${fromNombre}" <${fromUser}>`,
+      to: destinatarios.join(', '),
+      subject,
+      html,
+    });
+  }
+
   // ── Template HTML ─────────────────────────────────────────────
   private buildHtml(data: any): string {
     const rows: [string, string][] = [
