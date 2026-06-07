@@ -31,6 +31,30 @@ export class SuperAdminSyncCronService implements OnModuleInit {
   // ── Al arrancar el servidor, registra el cron con la config guardada ────────
   async onModuleInit() {
     const config = await this.obtenerConfig();
+
+    // Si quedó en "running" por un reinicio/caída, marcarlo como cancelado
+    if (config.ultimo_estado === 'running') {
+      config.ultimo_estado = 'error';
+      config.ultimo_error = 'Sincronización interrumpida por reinicio del servidor.';
+      if (!config.ultimo_fin) config.ultimo_fin = new Date();
+      await this.configRepo.save(config);
+
+      // También cerrar el log abierto si quedó sin fin
+      const logAbierto = await this.logRepo.findOne({
+        where: { estado: 'running' },
+        order: { inicio: 'DESC' },
+      });
+      if (logAbierto) {
+        logAbierto.estado = 'error';
+        logAbierto.error = 'Interrumpido por reinicio del servidor.';
+        logAbierto.fin = new Date();
+        logAbierto.duracion_seg = Math.round(
+          (logAbierto.fin.getTime() - logAbierto.inicio.getTime()) / 1000,
+        );
+        await this.logRepo.save(logAbierto);
+      }
+    }
+
     if (config.activo) {
       this.registrarCron(config.hora, config.minuto);
     }
@@ -70,6 +94,18 @@ export class SuperAdminSyncCronService implements OnModuleInit {
   }
 
   // ── Historial ────────────────────────────────────────────────────────────────
+
+  async obtenerPaisesOdoo(): Promise<string[]> {
+    const uid = await this.odoo.authenticate();
+    const companies = await this.odoo.executeKw<any[]>(
+      'res.company',
+      'search_read',
+      [[]],
+      { fields: ['name'] },
+      uid,
+    );
+    return companies.map((c) => c.name).sort();
+  }
 
   async obtenerHistorial(limit = 20): Promise<SyncCronLog[]> {
     return this.logRepo.find({

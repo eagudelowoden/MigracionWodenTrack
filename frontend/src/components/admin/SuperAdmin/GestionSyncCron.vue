@@ -7,7 +7,7 @@
         <h2 class="gsc-title">Sincronización Automática</h2>
         <p class="gsc-subtitle">Sincroniza empleados de Odoo con la base de datos local de forma programada.</p>
       </div>
-      <button @click="ejecutarManual" :disabled="ejecutando || config?.ultimo_estado === 'running'"
+      <button @click="ejecutarManual" :disabled="ejecutando || config?.ultimo_estado === 'running' || selectedPaises.length === 0"
         class="gsc-btn-run">
         <i class="fas" :class="ejecutando ? 'fa-spinner fa-spin' : 'fa-play'"></i>
         {{ ejecutando ? 'Ejecutando...' : 'Ejecutar ahora' }}
@@ -92,14 +92,76 @@
 
         <!-- Países -->
         <div class="gsc-form-row gsc-form-col">
-          <label class="gsc-label">Países a sincronizar</label>
-          <p class="gsc-hint">Escribe los nombres exactos separados por coma, o usa <code>TODOS</code> para sincronizar todos los países de Odoo.</p>
-          <input v-model="form.paises" class="gsc-input"
-            placeholder="Ej: COLOMBIA, PANAMA o TODOS" />
+          <div class="gsc-label-row">
+            <label class="gsc-label">Países a sincronizar</label>
+            <span class="gsc-required-hint" v-if="selectedPaises.length === 0">
+              <i class="fas fa-triangle-exclamation"></i> Selecciona al menos un país
+            </span>
+            <span class="gsc-ok-hint" v-else>
+              <i class="fas fa-check"></i> {{ selectedPaises.length }} seleccionado{{ selectedPaises.length > 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          <!-- Dropdown multi-select -->
+          <div class="gsc-dropdown-wrap" ref="dropdownRef">
+            <!-- Trigger -->
+            <button type="button" class="gsc-dropdown-trigger" @click="dropdownOpen = !dropdownOpen"
+              :class="dropdownOpen ? 'gsc-dropdown-trigger-open' : ''">
+              <span v-if="paisesDisponibles.length === 0" class="gsc-text-muted">
+                <i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>Cargando países...
+              </span>
+              <span v-else-if="selectedPaises.length === 0" class="gsc-text-muted">Selecciona los países...</span>
+              <span v-else-if="selectedPaises.length === paisesDisponibles.length" class="gsc-trigger-label">
+                Todos los países
+              </span>
+              <span v-else class="gsc-trigger-label">
+                {{ selectedPaises.length }} país{{ selectedPaises.length > 1 ? 'es' : '' }} seleccionado{{ selectedPaises.length > 1 ? 's' : '' }}
+              </span>
+              <i class="fas fa-chevron-down gsc-dropdown-caret" :class="dropdownOpen ? 'gsc-caret-open' : ''"></i>
+            </button>
+
+            <!-- Panel desplegable -->
+            <Transition name="gsc-drop">
+              <div v-if="dropdownOpen && paisesDisponibles.length > 0" class="gsc-dropdown-list"
+                :style="props.isDark ? 'background:#1e2a3a;border-color:#3d4e61' : 'background:#ffffff;border-color:#e2e8f0'">
+
+                <!-- Búsqueda -->
+                <div class="gsc-search-wrap"
+                  :style="props.isDark ? 'border-color:#3d4e61' : 'border-color:#e2e8f0'">
+                  <i class="fas fa-magnifying-glass gsc-search-icon"></i>
+                  <input v-model="paisSearch" class="gsc-search-input" placeholder="Buscar país..." autofocus />
+                </div>
+
+                <div class="gsc-dropdown-scroll">
+                  <!-- Todos los países -->
+                  <div class="gsc-dropdown-item" @click="toggleTodos">
+                    <i class="fas fa-earth-americas gsc-globe-icon"></i>
+                    <span class="gsc-dropdown-item-label">Todos los países</span>
+                    <i v-if="selectedPaises.length === paisesDisponibles.length"
+                      class="fas fa-check gsc-check-icon"></i>
+                  </div>
+                  <div class="gsc-dropdown-divider"></div>
+
+                  <!-- Lista filtrada -->
+                  <div v-for="pais in paisesFiltrados" :key="pais"
+                    class="gsc-dropdown-item" @click="togglePais(pais)"
+                    :class="selectedPaises.includes(pais) ? 'gsc-item-selected' : ''"
+                    :style="props.isDark ? 'color:#d5dbdb' : 'color:#1e293b'">
+                    <span class="gsc-dropdown-item-label">{{ pais }}</span>
+                    <i v-if="selectedPaises.includes(pais)" class="fas fa-check gsc-check-icon"></i>
+                  </div>
+
+                  <div v-if="paisesFiltrados.length === 0" class="gsc-no-results">
+                    Sin resultados
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
         </div>
 
         <div class="gsc-form-actions">
-          <button @click="guardar" :disabled="loading" class="gsc-btn-save">
+          <button @click="guardar" :disabled="loading || selectedPaises.length === 0" class="gsc-btn-save">
             <i class="fas fa-floppy-disk"></i>
             {{ loading ? 'Guardando...' : 'Guardar configuración' }}
           </button>
@@ -167,41 +229,89 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { useSyncCron } from '../../../composables/adminLogica/useSyncCron.js';
 
 const props = defineProps({ isDark: Boolean });
 
 const {
-  config, historial, loading, ejecutando, error,
-  fetchConfig, guardarConfig, ejecutarAhora, fetchHistorial,
+  config, historial, paisesDisponibles, loading, ejecutando, error,
+  fetchConfig, guardarConfig, ejecutarAhora, fetchHistorial, fetchPaises,
   estadoColor, formatDuracion, formatFecha,
 } = useSyncCron();
 
 const savedMsg = ref(false);
+const selectedPaises = ref([]);
+const dropdownOpen = ref(false);
+const dropdownRef = ref(null);
+const paisSearch = ref('');
 
-// Form local (se sincroniza con config cuando llega)
-const form = ref({ hora: 2, minuto: 0, paises: 'TODOS', activo: true });
+const paisesFiltrados = computed(() =>
+  (paisesDisponibles.value ?? []).filter(p =>
+    p.toLowerCase().includes(paisSearch.value.toLowerCase())
+  )
+);
 
-watch(config, (val) => {
-  if (val) {
-    form.value.hora = val.hora ?? 2;
-    form.value.minuto = val.minuto ?? 0;
-    form.value.paises = val.paises ?? 'TODOS';
-    form.value.activo = val.activo ?? true;
+const togglePais = (pais) => {
+  const idx = selectedPaises.value.indexOf(pais);
+  if (idx === -1) selectedPaises.value = [...selectedPaises.value, pais];
+  else selectedPaises.value = selectedPaises.value.filter(p => p !== pais);
+};
+
+const toggleTodos = () => {
+  if (selectedPaises.value.length === paisesDisponibles.value.length)
+    selectedPaises.value = [];
+  else
+    selectedPaises.value = [...paisesDisponibles.value];
+};
+
+const handleClickOutside = (e) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+    dropdownOpen.value = false;
+    paisSearch.value = '';
   }
+};
+
+// Form local
+const form = ref({ hora: 2, minuto: 0, activo: true });
+
+// Al llegar la config, pre-seleccionar los países guardados
+watch(config, (val) => {
+  if (!val) return;
+  form.value.hora   = val.hora   ?? 2;
+  form.value.minuto = val.minuto ?? 0;
+  form.value.activo = val.activo ?? true;
+  // Restaurar selección guardada cuando ya tengamos la lista
+  syncSeleccion(val.paises);
 }, { immediate: true });
 
+// Cuando llegan los países disponibles, re-aplicar la selección guardada
+watch(paisesDisponibles, () => {
+  if (config.value?.paises) syncSeleccion(config.value.paises);
+});
+
+const syncSeleccion = (paisesStr) => {
+  if (!paisesStr || paisesStr === 'TODOS') {
+    selectedPaises.value = [...(paisesDisponibles.value ?? [])];
+  } else {
+    selectedPaises.value = paisesStr.split(',').map(p => p.trim()).filter(Boolean);
+  }
+};
+
 onMounted(async () => {
-  await fetchConfig();
-  await fetchHistorial();
+  document.addEventListener('click', handleClickOutside);
+  await Promise.all([fetchConfig(), fetchHistorial(), fetchPaises()]);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 const guardar = async () => {
   await guardarConfig({
     hora: form.value.hora,
     minuto: form.value.minuto,
-    paises: form.value.paises,
+    paises: selectedPaises.value.join(', '),
     activo: form.value.activo,
   });
   savedMsg.value = true;
@@ -511,6 +621,128 @@ const labelEstado = (e) => {
 }
 .gsc-origen-auto   { background: rgba(139,92,246,.12); color: #8b5cf6; }
 .gsc-origen-manual { background: rgba(245,158,11,.12); color: #f59e0b; }
+
+/* Países */
+.gsc-label-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gsc-required-hint {
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+.gsc-ok-hint {
+  font-size: 11px;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* Dropdown wrapper */
+.gsc-dropdown-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+.gsc-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s;
+  min-height: 32px;
+}
+.gsc-dropdown-trigger:hover,
+.gsc-dropdown-trigger-open { border-color: #3b82f6; }
+.gsc-trigger-label { flex: 1; }
+.gsc-dropdown-caret {
+  font-size: 9px;
+  color: var(--text-soft);
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.gsc-caret-open { transform: rotate(180deg); }
+
+/* Panel */
+.gsc-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+
+/* Búsqueda */
+.gsc-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.gsc-search-icon { font-size: 11px; color: var(--text-soft); }
+.gsc-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-main);
+}
+.gsc-search-input::placeholder { color: var(--text-soft); }
+
+.gsc-dropdown-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Items */
+.gsc-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-main);
+  transition: background .1s;
+  user-select: none;
+}
+.gsc-dropdown-item:hover { background: var(--bg-input); }
+.gsc-item-selected { color: var(--text-main); }
+.gsc-dropdown-item-label { flex: 1; }
+.gsc-globe-icon { font-size: 13px; color: var(--text-soft); }
+.gsc-check-icon { font-size: 10px; color: #3b82f6; flex-shrink: 0; }
+.gsc-dropdown-divider { height: 1px; background: var(--border); }
+.gsc-no-results {
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--text-soft);
+  text-align: center;
+}
+.gsc-check-input { display: none; }
+
+/* Animación */
+.gsc-drop-enter-active { transition: opacity .12s ease, transform .12s ease; }
+.gsc-drop-leave-active { transition: opacity .08s ease; }
+.gsc-drop-enter-from, .gsc-drop-leave-to { opacity: 0; transform: translateY(-4px); }
 
 .gsc-error-chip {
   font-size: 10px;

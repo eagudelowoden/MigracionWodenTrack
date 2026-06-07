@@ -32,4 +32,10 @@ export class SuperAdminSyncCronController {
   async getHistorial(@Query('limit') limit?: string) {
     return this.svc.obtenerHistorial(limit ? parseInt(limit) : 20);
   }
+
+  /** GET /usuarios/sync-cron/paises — lista de países disponibles en Odoo */
+  @Get('paises')
+  async getPaises() {
+    return this.svc.obtenerPaisesOdoo();
+  }
 }

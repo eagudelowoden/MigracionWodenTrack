@@ -5,6 +5,7 @@ const API = `${import.meta.env.VITE_API_URL}/sync-cron`;
 export function useSyncCron() {
   const config = ref(null);
   const historial = ref([]);
+  const paisesDisponibles = ref([]);
   const loading = ref(false);
   const ejecutando = ref(false);
   const error = ref(null);
@@ -58,6 +59,16 @@ export function useSyncCron() {
     }
   };
 
+  // ── Países disponibles en Odoo ─────────────────────────────────────────────
+  const fetchPaises = async () => {
+    try {
+      const res = await fetch(`${API}/paises`);
+      paisesDisponibles.value = await res.json();
+    } catch (e) {
+      console.error('Error cargando países:', e);
+    }
+  };
+
   // ── Historial ──────────────────────────────────────────────────────────────
   const fetchHistorial = async () => {
     try {
@@ -91,15 +102,10 @@ export function useSyncCron() {
     });
   };
 
-  const paisesDisponibles = computed(() => {
-    if (!config.value?.paises) return [];
-    if (config.value.paises === 'TODOS') return ['TODOS'];
-    return config.value.paises.split(',').map((p) => p.trim());
-  });
-
   return {
     config,
     historial,
+    paisesDisponibles,
     loading,
     ejecutando,
     error,
@@ -107,9 +113,9 @@ export function useSyncCron() {
     guardarConfig,
     ejecutarAhora,
     fetchHistorial,
+    fetchPaises,
     estadoColor,
     formatDuracion,
     formatFecha,
-    paisesDisponibles,
   };
 }
