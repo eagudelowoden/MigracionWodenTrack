@@ -181,22 +181,15 @@ export class SuperAdminSyncCronService implements OnModuleInit {
 
     try {
       // Determinar países a sincronizar
-      const paisesStr = config.paises || 'TODOS';
-      const uid = await this.odoo.authenticate();
+      const paisesStr = config.paises || '';
+      if (!paisesStr || paisesStr.trim() === '' || paisesStr === 'TODOS') {
+        throw new Error('No hay países configurados para sincronizar. Selecciona al menos un país desde el panel.');
+      }
 
-      // Obtener lista de países disponibles desde Odoo si es TODOS
-      let paises: string[] = [];
-      if (paisesStr === 'TODOS') {
-        const companies = await this.odoo.executeKw<any[]>(
-          'res.company',
-          'search_read',
-          [[]],
-          { fields: ['name'] },
-          uid,
-        );
-        paises = companies.map((c) => c.name);
-      } else {
-        paises = paisesStr.split(',').map((p) => p.trim()).filter(Boolean);
+      const uid = await this.odoo.authenticate();
+      const paises = paisesStr.split(',').map((p) => p.trim()).filter(Boolean);
+      if (paises.length === 0) {
+        throw new Error('No hay países configurados para sincronizar.');
       }
 
       this.logger.log(`[SyncCron] Países a sincronizar: ${paises.join(', ')}`);

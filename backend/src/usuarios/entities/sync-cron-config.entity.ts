@@ -14,7 +14,7 @@ export class SyncCronConfig {
   minuto: number;
 
   /** Países a sincronizar, separados por coma. 'TODOS' = todos */
-  @Column({ type: 'varchar', length: 500, default: 'TODOS' })
+  @Column({ type: 'varchar', length: 500, default: '' })
   paises: string;
 
   /** Si el cron está activo */

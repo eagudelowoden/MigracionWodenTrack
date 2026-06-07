@@ -75,18 +75,17 @@
           <label class="gsc-label">Hora de ejecución</label>
           <div class="gsc-time-inputs">
             <div class="gsc-time-group">
-              <label class="gsc-time-label">Hora</label>
-              <select v-model.number="form.hora" class="gsc-select">
-                <option v-for="h in 24" :key="h-1" :value="h-1">{{ padHora(h-1) }}</option>
-              </select>
+              <label class="gsc-time-label">Hora (0–23)</label>
+              <input type="number" v-model.number="form.hora" min="0" max="23"
+                class="gsc-time-input" @input="form.hora = Math.min(23, Math.max(0, form.hora || 0))" />
             </div>
             <span class="gsc-time-sep">:</span>
             <div class="gsc-time-group">
-              <label class="gsc-time-label">Minuto</label>
-              <select v-model.number="form.minuto" class="gsc-select">
-                <option v-for="m in [0,5,10,15,20,25,30,35,40,45,50,55]" :key="m" :value="m">{{ padHora(m) }}</option>
-              </select>
+              <label class="gsc-time-label">Minuto (0–59)</label>
+              <input type="number" v-model.number="form.minuto" min="0" max="59"
+                class="gsc-time-input" @input="form.minuto = Math.min(59, Math.max(0, form.minuto || 0))" />
             </div>
+            <span class="gsc-time-preview">→ {{ padHora(form.hora) }}:{{ padHora(form.minuto) }}</span>
           </div>
         </div>
 
@@ -291,8 +290,9 @@ watch(paisesDisponibles, () => {
 });
 
 const syncSeleccion = (paisesStr) => {
-  if (!paisesStr || paisesStr === 'TODOS') {
-    selectedPaises.value = [...(paisesDisponibles.value ?? [])];
+  // Si no hay países específicos guardados → dejar vacío para que el usuario elija
+  if (!paisesStr || paisesStr === 'TODOS' || paisesStr.trim() === '') {
+    selectedPaises.value = [];
   } else {
     selectedPaises.value = paisesStr.split(',').map(p => p.trim()).filter(Boolean);
   }
@@ -514,10 +514,34 @@ const labelEstado = (e) => {
   outline: none;
   cursor: pointer;
 }
-.gsc-time-inputs { display: flex; align-items: center; gap: 8px; }
+.gsc-time-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .gsc-time-group { display: flex; flex-direction: column; gap: 3px; }
-.gsc-time-label { font-size: 9px; color: var(--text-soft); text-transform: uppercase; }
+.gsc-time-label { font-size: 9px; color: var(--text-soft); text-transform: uppercase; letter-spacing: .04em; }
 .gsc-time-sep { font-size: 18px; font-weight: 700; color: var(--text-soft); margin-top: 12px; }
+.gsc-time-input {
+  width: 62px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.gsc-time-input::-webkit-outer-spin-button,
+.gsc-time-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.gsc-time-input:focus { border-color: #3b82f6; }
+.gsc-time-preview {
+  font-size: 15px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-top: 12px;
+  letter-spacing: .05em;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Toggle */
 .gsc-toggle {
