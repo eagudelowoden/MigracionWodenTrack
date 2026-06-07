@@ -10,6 +10,7 @@ export function useUsuariosSync() {
   const selectedDept = ref("TODOS");
   const selectedCargo = ref("TODOS");
   const selectedCountry = ref("TODOS");
+  const soloSinId = ref(false); // filtro: solo usuarios de Odoo sin identificación
 
   const API_URL = import.meta.env.VITE_API_URL + "/sincronizar";
 
@@ -91,13 +92,22 @@ const executeSync = async () => {
 };
   // --- Propiedades Computadas para Filtros de Interfaz ---
   
+  // Devuelve el campo de identificación disponible en un empleado de Odoo
+  const getIdOdoo = (u) => u?.barcode || u?.pin || u?.doc_number || null;
+
+  // Cuántos empleados de Odoo no tienen ningún campo de identificación
+  const countSinId = computed(() =>
+    (odooUsuarios.value || []).filter(u => !getIdOdoo(u)).length
+  );
+
   const filteredOdoo = computed(() => {
     return (odooUsuarios.value || []).filter((u) => {
       const matchesSearch = u.name?.toLowerCase().includes(searchUser.value.toLowerCase()) ||
                             u.id.toString().includes(searchUser.value);
       const deptName = u.department_id ? u.department_id[1] : "Sin asignar";
       const matchesDept = selectedDept.value === "TODOS" || deptName === selectedDept.value;
-      return matchesSearch && matchesDept;
+      const matchesSinId = !soloSinId.value || !getIdOdoo(u);
+      return matchesSearch && matchesDept && matchesSinId;
     });
   });
 
@@ -135,6 +145,9 @@ const executeSync = async () => {
     selectedDept,
     selectedCargo,
     selectedCountry,
+    soloSinId,
+    countSinId,
+    getIdOdoo,
     filteredOdoo,
     filteredLocal,
     departamentosUnicos,

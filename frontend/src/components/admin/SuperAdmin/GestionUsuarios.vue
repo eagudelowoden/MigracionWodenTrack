@@ -168,9 +168,21 @@
                             <p class="gu-table-sub">Origen de datos remoto</p>
                         </div>
                     </div>
-                    <span class="gu-count-pill">
-                        {{ filteredOdoo?.length ?? 0 }} registros
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <!-- Filtro: solo sin identificación -->
+                        <button
+                            v-if="countSinId > 0"
+                            @click="soloSinId = !soloSinId"
+                            :title="soloSinId ? 'Mostrando solo sin cédula — click para ver todos' : 'Filtrar: sin cédula'"
+                            class="gu-sinid-btn"
+                            :class="soloSinId ? 'gu-sinid-active' : ''">
+                            <i class="fas fa-id-card-slash" style="font-size:9px"></i>
+                            {{ countSinId }} sin cédula
+                        </button>
+                        <span class="gu-count-pill">
+                            {{ filteredOdoo?.length ?? 0 }} registros
+                        </span>
+                    </div>
                 </div>
 
                 <div class="gu-table-body custom-scroll">
@@ -179,6 +191,7 @@
                             <tr>
                                 <th class="gu-th-id">ID</th>
                                 <th>Colaborador</th>
+                                <th class="gu-th-doc">Cédula / ID</th>
                                 <th>Departamento</th>
                             </tr>
                         </thead>
@@ -194,6 +207,9 @@
                                         <div class="gu-skel-soft" :style="{ width: (30 + (i * 7) % 25) + '%' }"></div>
                                     </td>
                                     <td>
+                                        <div class="gu-skel" style="width: 70px; height: 11px;"></div>
+                                    </td>
+                                    <td>
                                         <div class="gu-skel" :style="{ width: (40 + (i * 9) % 30) + '%' }"></div>
                                     </td>
                                 </tr>
@@ -201,18 +217,33 @@
 
                             <!-- DATOS -->
                             <template v-else>
-                                <tr v-for="u in (filteredOdoo ?? [])" :key="u.id" class="gu-tr">
+                                <tr v-for="u in (filteredOdoo ?? [])" :key="u.id"
+                                    class="gu-tr"
+                                    :class="!getIdOdoo(u) ? 'gu-tr-sinid' : ''">
                                     <td class="gu-td-id">{{ u.id }}</td>
                                     <td>
                                         <div class="gu-name">{{ u.name }}</div>
                                         <div class="gu-meta">{{ u.job_title || '—' }}</div>
+                                    </td>
+                                    <td class="gu-td-doc">
+                                        <span v-if="getIdOdoo(u)" class="gu-id-value">
+                                            {{ getIdOdoo(u) }}
+                                            <!-- Indicar de qué campo vino -->
+                                            <span class="gu-id-source">
+                                                {{ u.barcode ? 'barcode' : u.pin ? 'pin' : 'doc' }}
+                                            </span>
+                                        </span>
+                                        <span v-else class="gu-sinid-badge">
+                                            <i class="fas fa-triangle-exclamation" style="font-size:8px"></i>
+                                            Sin ID
+                                        </span>
                                     </td>
                                     <td class="gu-td-dept">
                                         {{ u.department_id ? u.department_id[1] : 'Sin asignar' }}
                                     </td>
                                 </tr>
                                 <tr v-if="!filteredOdoo?.length">
-                                    <td colspan="3" class="gu-empty">
+                                    <td colspan="4" class="gu-empty">
                                         <i class="fas fa-folder-open"></i>
                                         Sin registros para mostrar
                                     </td>
@@ -320,6 +351,7 @@ const {
     dbUsuarios, odooUsuarios,
     isSyncing: isSyncingUsers,
     searchUser, selectedDept, selectedCargo, selectedCountry,
+    soloSinId, countSinId, getIdOdoo,
     departamentosUnicos, cargosUnicos, filteredOdoo, filteredLocal,
     fetchDbUsuarios, fetchOdooUsuarios,
 } = useUsuariosSync();
@@ -372,13 +404,15 @@ const selectCargo = (val) => { selectedCargo.value = val; openDropdown.value = n
 const hasActiveFilters = computed(() =>
     selectedCountry.value !== 'TODOS' ||
     selectedDept.value !== 'TODOS' ||
-    selectedCargo.value !== 'TODOS'
+    selectedCargo.value !== 'TODOS' ||
+    soloSinId.value
 );
 
 const clearFilters = () => {
     selectedCountry.value = 'TODOS';
     selectedDept.value = 'TODOS';
     selectedCargo.value = 'TODOS';
+    soloSinId.value = false;
 };
 
 const progressPercent = ref(0);
@@ -440,6 +474,7 @@ const handleCancel = async () => {
 
 watch(selectedCountry, async () => {
     selectedDept.value = 'TODOS';
+    soloSinId.value = false;
     await Promise.all([fetchDbUsuarios(), fetchOdooUsuarios()]);
 });
 
@@ -1256,5 +1291,78 @@ onMounted(async () => {
 
 .custom-scroll::-webkit-scrollbar-thumb:hover {
     background: var(--text-soft);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   IDENTIFICACIÓN
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Fila sin identificación: fondo rojizo muy sutil */
+.gu-tr-sinid {
+    background: rgba(239, 68, 68, 0.04) !important;
+}
+.gu-dark .gu-tr-sinid {
+    background: rgba(248, 113, 113, 0.06) !important;
+}
+.gu-tr-sinid:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Badge "Sin ID" */
+.gu-sinid-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+/* Valor de identificación */
+.gu-id-value {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.gu-id-source {
+    font-size: 8.5px;
+    color: var(--text-soft);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Botón "X sin cédula" en el header de la tabla */
+.gu-sinid-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    height: 24px;
+    border-radius: 5px;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    background: rgba(220, 38, 38, 0.06);
+    color: #dc2626;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s ease;
+}
+
+.gu-sinid-btn:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.5);
+}
+
+.gu-sinid-btn.gu-sinid-active {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
 }
 </style>
