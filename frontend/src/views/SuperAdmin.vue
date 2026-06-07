@@ -195,6 +195,18 @@ const selectedUserPerms = ref(null);
 const openPerms = (user) => {
   selectedUserPerms.value = user;
 };
+
+const showLogoutModal = ref(false);
+
+const confirmarLogout = () => {
+  showUserMenu.value = false;
+  showLogoutModal.value = true;
+};
+
+const doLogout = () => {
+  showLogoutModal.value = false;
+  logout();
+};
 const hasPerm = (user, slug) => {
   if (!user || !user.permisos) return false;
   return user.permisos.some((p) => p.modulos === slug);
@@ -282,7 +294,10 @@ const handleClickOutside = (e) => {
   }
 };
 const handleEscape = (e) => {
-  if (e.key === 'Escape') showUserMenu.value = false;
+  if (e.key === 'Escape') {
+    showUserMenu.value = false;
+    showLogoutModal.value = false;
+  }
 };
 
 // --- Carga Inicial ---
@@ -451,7 +466,7 @@ onUnmounted(() => {
                     displayName
                     }}</p>
                 </div>
-                <button @click="() => { if (confirm('¿Seguro que deseas cerrar sesión?')) { logout(); showUserMenu = false; } }"
+                <button @click="confirmarLogout"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
                   <i class="fas fa-arrow-right-from-bracket text-[10px]"></i>
                   Cerrar sesión
@@ -517,6 +532,50 @@ onUnmounted(() => {
 
       </div>
     </main>
+
+    <!-- ── Modal confirmación logout (AWS Console style) ──────────────────── -->
+    <Transition name="logout-fade">
+      <div v-if="showLogoutModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        style="background: rgba(0,0,0,0.7)"
+        @click.self="showLogoutModal = false">
+
+        <Transition name="logout-pop" appear>
+          <div v-if="showLogoutModal" class="aws-modal" :class="isDark ? 'aws-dark' : 'aws-light'">
+
+            <!-- Header AWS style -->
+            <div class="aws-modal-header">
+              <span class="aws-modal-title">Cerrar sesión</span>
+              <button @click="showLogoutModal = false" class="aws-modal-close" aria-label="Cerrar">
+                <i class="fas fa-times" style="font-size:12px"></i>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="aws-modal-body">
+              <div class="aws-alert-row">
+                <i class="fas fa-circle-exclamation aws-alert-icon"></i>
+                <p class="aws-alert-text">
+                  ¿Está seguro de que desea cerrar la sesión?<br>
+                  <span class="aws-alert-sub">Se perderá el acceso a la consola hasta que inicie sesión de nuevo.</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="aws-modal-footer">
+              <button @click="showLogoutModal = false" class="aws-btn-secondary">
+                Cancelar
+              </button>
+              <button @click="doLogout" class="aws-btn-danger">
+                Cerrar sesión
+              </button>
+            </div>
+
+          </div>
+        </Transition>
+      </div>
+    </Transition>
 
     <!-- Panel de permisos -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
@@ -1152,5 +1211,185 @@ onUnmounted(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-6px) scale(0.97);
+}
+
+/* Modal logout — overlay */
+.logout-fade-enter-active,
+.logout-fade-leave-active {
+  transition: opacity .2s ease;
+}
+.logout-fade-enter-from,
+.logout-fade-leave-to {
+  opacity: 0;
+}
+
+/* Modal logout — tarjeta */
+.logout-pop-enter-active {
+  transition: all .18s ease-out;
+}
+.logout-pop-leave-active {
+  transition: all .12s ease-in;
+}
+.logout-pop-enter-from,
+.logout-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ── AWS Console Modal ───────────────────────────────────────────────────── */
+.aws-modal {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  font-family: "Amazon Ember", "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Light mode (AWS default) */
+.aws-light {
+  background: #ffffff;
+  border: 1px solid #aab7b8;
+}
+.aws-light .aws-modal-header {
+  background: #232f3e;
+  color: #ffffff;
+}
+.aws-light .aws-modal-body {
+  background: #ffffff;
+  border-bottom: 1px solid #eaeded;
+}
+.aws-light .aws-alert-text {
+  color: #16191f;
+}
+.aws-light .aws-alert-sub {
+  color: #687078;
+}
+.aws-light .aws-modal-footer {
+  background: #f2f3f3;
+  border-top: 1px solid #eaeded;
+}
+.aws-light .aws-btn-secondary {
+  background: #ffffff;
+  border: 1px solid #aab7b8;
+  color: #16191f;
+}
+.aws-light .aws-btn-secondary:hover {
+  background: #f2f3f3;
+  border-color: #879596;
+}
+.aws-light .aws-btn-danger {
+  background: #d13212;
+  border: 1px solid #a82d0e;
+  color: #ffffff;
+}
+.aws-light .aws-btn-danger:hover {
+  background: #ba2d0e;
+}
+
+/* Dark mode adaptation */
+.aws-dark {
+  background: #1a2332;
+  border: 1px solid #3d4e61;
+}
+.aws-dark .aws-modal-header {
+  background: #0f1923;
+  color: #ffffff;
+}
+.aws-dark .aws-modal-body {
+  background: #1a2332;
+  border-bottom: 1px solid #3d4e61;
+}
+.aws-dark .aws-alert-text {
+  color: #d5dbdb;
+}
+.aws-dark .aws-alert-sub {
+  color: #8d9a9a;
+}
+.aws-dark .aws-modal-footer {
+  background: #111e2b;
+  border-top: 1px solid #3d4e61;
+}
+.aws-dark .aws-btn-secondary {
+  background: transparent;
+  border: 1px solid #3d4e61;
+  color: #d5dbdb;
+}
+.aws-dark .aws-btn-secondary:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: #6a8194;
+}
+.aws-dark .aws-btn-danger {
+  background: #d13212;
+  border: 1px solid #a82d0e;
+  color: #ffffff;
+}
+.aws-dark .aws-btn-danger:hover {
+  background: #ba2d0e;
+}
+
+.aws-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+.aws-modal-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.aws-modal-close {
+  background: none;
+  border: none;
+  color: #aab7b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color .15s;
+}
+.aws-modal-close:hover {
+  color: #ffffff;
+}
+.aws-modal-body {
+  padding: 18px 16px;
+}
+.aws-alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.aws-alert-icon {
+  color: #FF9900;
+  font-size: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.aws-alert-text {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+.aws-alert-sub {
+  font-size: 12px;
+  display: block;
+  margin-top: 4px;
+}
+.aws-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+.aws-btn-secondary,
+.aws-btn-danger {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  letter-spacing: 0.02em;
 }
 </style>
