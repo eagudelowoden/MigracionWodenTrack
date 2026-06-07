@@ -230,7 +230,7 @@
                                             {{ getIdOdoo(u) }}
                                             <!-- Indicar de qué campo vino -->
                                             <span class="gu-id-source">
-                                                {{ u.barcode ? 'barcode' : u.pin ? 'pin' : 'doc' }}
+                                                {{ u.identification_id ? 'identification' : u.barcode ? 'barcode' : u.pin ? 'pin' : 'doc' }}
                                             </span>
                                         </span>
                                         <span v-else class="gu-sinid-badge">

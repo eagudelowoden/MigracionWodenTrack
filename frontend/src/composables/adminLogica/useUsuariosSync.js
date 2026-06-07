@@ -93,7 +93,7 @@ const executeSync = async () => {
   // --- Propiedades Computadas para Filtros de Interfaz ---
   
   // Devuelve el campo de identificación disponible en un empleado de Odoo
-  const getIdOdoo = (u) => u?.barcode || u?.pin || u?.doc_number || null;
+  const getIdOdoo = (u) => u?.identification_id || u?.barcode || u?.pin || u?.doc_number || null;
 
   // Cuántos empleados de Odoo no tienen ningún campo de identificación
   const countSinId = computed(() =>
