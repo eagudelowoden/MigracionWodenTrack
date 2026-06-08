@@ -39,6 +39,9 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
+  private readonly _REPORTE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+  private _reporteCache = new Map<string, { ts: number; data: any }>();
+
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
