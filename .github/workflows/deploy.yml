@@ -18,7 +18,7 @@ jobs:
       - name: Deploy TEST - Backend + Frontend
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: 18.217.246.39
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
@@ -80,7 +80,7 @@ jobs:
       - name: Deploy PROD - Backend + Frontend
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: 18.217.246.39
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
