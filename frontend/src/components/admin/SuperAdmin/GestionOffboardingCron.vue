@@ -18,23 +18,12 @@
         </div>
       </div>
 
-      <!-- Botones ejecutar -->
-      <div class="flex items-center gap-2">
-        <!-- Forzar (prueba) -->
-        <button @click="ejecutarAhora(true)" :disabled="ejecutando || config?.ultimo_estado === 'running'"
-          title="Ignora el umbral de horas — envía aunque los procesos sean recientes. Útil para pruebas."
-          class="flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-semibold transition-all disabled:opacity-50 border"
-          :class="isDark ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10' : 'border-amber-400 text-amber-600 hover:bg-amber-50'">
-          <i class="fas fa-flask text-[9px]"></i>
-          Forzar (prueba)
-        </button>
-        <!-- Ejecutar normal -->
-        <button @click="ejecutarAhora(false)" :disabled="ejecutando || config?.ultimo_estado === 'running'"
-          class="flex items-center gap-1.5 h-8 px-4 rounded-md text-[11px] font-semibold transition-all disabled:opacity-50 bg-amber-500 text-white hover:bg-amber-600">
-          <i :class="ejecutando ? 'fas fa-circle-notch fa-spin' : 'fas fa-play'" class="text-[9px]"></i>
-          {{ ejecutando ? 'Ejecutando…' : 'Ejecutar ahora' }}
-        </button>
-      </div>
+      <!-- Ejecutar ahora (manual siempre envía) -->
+      <button @click="ejecutarAhora" :disabled="ejecutando || config?.ultimo_estado === 'running'"
+        class="flex items-center gap-1.5 h-8 px-4 rounded-md text-[11px] font-semibold transition-all disabled:opacity-50 bg-amber-500 text-white hover:bg-amber-600">
+        <i :class="ejecutando ? 'fas fa-circle-notch fa-spin' : 'fas fa-play'" class="text-[9px]"></i>
+        {{ ejecutando ? 'Ejecutando…' : 'Ejecutar ahora' }}
+      </button>
     </div>
 
     <!-- ── Tarjetas de estado ── -->
@@ -518,26 +507,17 @@ async function guardar() {
 }
 
 // ── Ejecutar manualmente ──────────────────────────────────────────────────────
-async function ejecutarAhora(forzar = false) {
+async function ejecutarAhora() {
   ejecutando.value = true;
   try {
-    const res = await fetch(`${API}/ejecutar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ forzar }),
-    });
+    const res = await fetch(`${API}/ejecutar`, { method: 'POST' });
     const log = await res.json();
     if (!res.ok) throw new Error(log.message || 'Error al ejecutar');
     await cargarConfig();
     await cargarHistorial();
     const n = log.pendientes_encontrados ?? 0;
     if (n === 0) {
-      mostrarToast(
-        forzar
-          ? 'No hay procesos de offboarding incompletos en la BD'
-          : `Sin procesos pendientes con más de ${config.value?.horas_espera ?? 24}h de inactividad`,
-        true,
-      );
+      mostrarToast('No hay procesos de offboarding incompletos en la BD', true);
     } else {
       mostrarToast(`✅ Revisión completada: ${n} proceso(s) encontrado(s), correo enviado`);
     }

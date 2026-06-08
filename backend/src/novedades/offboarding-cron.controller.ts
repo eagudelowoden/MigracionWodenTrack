@@ -28,12 +28,11 @@ export class OffboardingCronController {
     return this.svc.actualizarConfig(body);
   }
 
-  /** POST /offboarding/cron/ejecutar — ejecutar manualmente
-   *  Body opcional: { forzar: true } → ignora umbral de horas (útil para pruebas)
-   */
+  /** POST /offboarding/cron/ejecutar — ejecución manual, siempre ignora umbral de horas */
   @Post('ejecutar')
-  async ejecutar(@Body() body?: { forzar?: boolean }) {
-    return this.svc.ejecutarRevision('manual', body?.forzar ?? false);
+  async ejecutar() {
+    // forzar=true: manual siempre envía sin importar el tiempo de inactividad
+    return this.svc.ejecutarRevision('manual', true);
   }
 
   /** GET /offboarding/cron/historial */

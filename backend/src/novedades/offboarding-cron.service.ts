@@ -106,7 +106,8 @@ export class OffboardingCronService implements OnModuleInit {
     const expr = `${minuto} ${hora} * * *`;
     this.logger.log(`Registrando cron offboarding: "${expr}"`);
     const job = new CronJob(expr, () => {
-      this.ejecutarRevision('auto').catch((e) =>
+      // automático: respeta el umbral de horas configurado (forzar=false)
+      this.ejecutarRevision('auto', false).catch((e) =>
         this.logger.error('Error en cron offboarding:', e),
       );
     });
