@@ -95,11 +95,15 @@
                 </header>
 
                 <div class="gn-history custom-scroll">
-                    <div v-if="!notificationLogs.length" class="gn-empty">
+                    <div v-if="loadingHistory" class="gn-empty">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        Cargando historial…
+                    </div>
+                    <div v-else-if="!notificationLogs.length" class="gn-empty">
                         <i class="fas fa-inbox"></i>
                         Sin avisos enviados aún
                     </div>
-                    <ul v-else class="gn-list">
+                    <ul v-else-if="notificationLogs.length" class="gn-list">
                         <li v-for="log in notificationLogs" :key="log.id" class="gn-item">
                             <span class="gn-item-dot" :class="`is-${log.type}`"></span>
                             <div class="gn-item-info">
@@ -137,6 +141,7 @@ const TYPES = [
 
 const notif = ref({ title: '', body: '', type: 'info' });
 const notificationLogs = ref([]);
+const loadingHistory = ref(false);
 
 const hayActivos = computed(() => notificationLogs.value.some(n => n.is_active));
 
@@ -144,6 +149,7 @@ const getTypeLabel = (t) => TYPES.find(x => x.value === t)?.label || t;
 
 const fetchNotificationLogs = async () => {
     try {
+        loadingHistory.value = true;
         const res = await fetch(`${props.apiUrl}/notifications/history`);
         const data = await res.json();
         notificationLogs.value = data.map(n => ({
@@ -151,7 +157,9 @@ const fetchNotificationLogs = async () => {
             date: new Date(n.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' }) +
                 ' ' + new Date(n.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
         }));
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); } finally {
+        loadingHistory.value = false;
+    }
 };
 
 const sendNotification = async () => {

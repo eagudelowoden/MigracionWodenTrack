@@ -38,6 +38,11 @@ import { FondoEmpleado } from './entities/fondo-empleado.entity';
 import { FondoEmpleadoCorreo } from './entities/fondo-empleado-correo.entity';
 import { SuperAdminFondosService } from './superadmin-fondos.service';
 import { SuperAdminFondosController } from './superadmin-fondos.controller';
+import { SyncCronConfig } from './entities/sync-cron-config.entity';
+import { SyncCronLog } from './entities/sync-cron-log.entity';
+import { SuperAdminSyncCronService } from './superadmin-sync-cron.service';
+import { SuperAdminSyncCronController } from './superadmin-sync-cron.controller';
+import { SchedulerRegistry } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -56,6 +61,8 @@ import { SuperAdminFondosController } from './superadmin-fondos.controller';
       ReporteFalla,
       FondoEmpleado,
       FondoEmpleadoCorreo,
+      SyncCronConfig,
+      SyncCronLog,
     ]),
     OdooModule,
     MailModule,
@@ -72,6 +79,7 @@ import { SuperAdminFondosController } from './superadmin-fondos.controller';
     SuperAdminMensajesController,
     SuperAdminSolicitudesController,
     SuperAdminFondosController,
+    SuperAdminSyncCronController,
   ],
   providers: [
     UsuariosService,
@@ -85,6 +93,8 @@ import { SuperAdminFondosController } from './superadmin-fondos.controller';
     SuperAdminMensajesService,
     SuperAdminSolicitudesService,
     SuperAdminFondosService,
+    SuperAdminSyncCronService,
+    SchedulerRegistry,
   ],
   exports: [UsuariosService, MallasUploadService, MallasCrudService, InternoGateway, SuperAdminCorreoService],
 })

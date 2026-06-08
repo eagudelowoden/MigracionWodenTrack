@@ -20,6 +20,13 @@
             : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
           <i class="fas fa-building-user mr-1.5 text-[9px]"></i>Fondos de Empleados
         </button>
+        <button @click="vistaActiva = 'recordatorio'"
+          class="h-7 px-3 rounded-md text-[11px] font-medium transition-all"
+          :class="vistaActiva === 'recordatorio'
+            ? 'bg-amber-500 text-white shadow-sm'
+            : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')">
+          <i class="fas fa-bell mr-1.5 text-[9px]"></i>Recordatorio Automático
+        </button>
       </div>
 
       <button v-if="vistaActiva === 'checklist'" @click="abrirModal(null)"
@@ -30,6 +37,9 @@
 
     <!-- Vista: Fondos de Empleados -->
     <GestionFondoEmpleados v-if="vistaActiva === 'fondos'" :isDark="isDark" class="flex-1 min-h-0" />
+
+    <!-- Vista: Recordatorio Automático -->
+    <GestionOffboardingCron v-if="vistaActiva === 'recordatorio'" :isDark="isDark" class="flex-1 min-h-0 p-4 overflow-y-auto" />
 
     <!-- Vista: Checklist -->
     <template v-if="vistaActiva === 'checklist'">
@@ -210,6 +220,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
+import GestionOffboardingCron from './GestionOffboardingCron.vue';
 import GestionFondoEmpleados from './GestionFondoEmpleados.vue';
 
 const props = defineProps({ isDark: Boolean });

@@ -12,17 +12,29 @@ import { PazSalvoController } from './paz-salvo.controller';
 import { PazSalvoService } from './paz-salvo.service';
 import { PazSalvoChecklist } from './entities/paz-salvo-checklist.entity';
 import { PazSalvoChecklistController } from './paz-salvo-checklist.controller';
+import { PazSalvoChecklistService } from './paz-salvo-checklist.service';
+import { OffboardingCronConfig } from './entities/offboarding-cron-config.entity';
+import { OffboardingCronLog } from './entities/offboarding-cron-log.entity';
+import { OffboardingCronService } from './offboarding-cron.service';
+import { OffboardingCronController } from './offboarding-cron.controller';
 import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Novedad, NovedadEstadoCh, NovedadArchivo, PazSalvo, PazSalvoChecklist]),
+    TypeOrmModule.forFeature([
+      Novedad, NovedadEstadoCh, NovedadArchivo,
+      PazSalvo, PazSalvoChecklist,
+      OffboardingCronConfig, OffboardingCronLog,
+    ]),
     MulterModule.register({ storage: memoryStorage() }),
     SistemaConfigModule,
     forwardRef(() => UsuariosModule),
   ],
-  controllers: [NovedadesController, PazSalvoController, PazSalvoChecklistController],
-  providers: [NovedadesService, PazSalvoService],
+  controllers: [
+    NovedadesController, PazSalvoController, PazSalvoChecklistController,
+    OffboardingCronController,
+  ],
+  providers: [NovedadesService, PazSalvoService, PazSalvoChecklistService, OffboardingCronService],
 })
 export class NovedadesModule {}

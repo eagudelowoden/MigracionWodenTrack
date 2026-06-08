@@ -2318,6 +2318,8 @@ export class UsuariosService {
             'id',
             'name',
             'identification_id',
+            'barcode',
+            'pin',
             'job_title',
             'department_id',
           ],
@@ -2360,8 +2362,18 @@ export class UsuariosService {
           where: { id_odoo: emp.id },
         });
 
+        // Valor de identificación disponible en Odoo (cualquiera de los 3 campos)
+        const idOdoo = emp.identification_id || emp.barcode || emp.pin || null;
+
         if (existing) {
-          // Ya existe en la DB → no tocar nada
+          // Ya existe → actualizar identificacion SOLO si está vacía en la DB
+          const sinId = !existing.identificacion ||
+            existing.identificacion.trim() === '' ||
+            existing.identificacion === 'N/A';
+
+          if (sinId && idOdoo) {
+            await this.usuarioRepo.update(existing.id, { identificacion: idOdoo });
+          }
           this.syncProgress.current = index + 1;
           continue;
         }
@@ -2371,7 +2383,7 @@ export class UsuariosService {
           id: emp.id,
           id_odoo: emp.id,
           nombre: emp.name,
-          identificacion: emp.identification_id || 'N/A',
+          identificacion: idOdoo || 'N/A',
           cargo: emp.job_title || 'Sin Cargo',
           departamento: emp.department_id
             ? emp.department_id[1]
@@ -2439,6 +2451,8 @@ export class UsuariosService {
           'id',
           'name',
           'identification_id',
+          'barcode',
+          'pin',
           'job_title',
           'department_id',
           'company_id',

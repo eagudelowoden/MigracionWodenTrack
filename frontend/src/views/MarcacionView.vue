@@ -304,29 +304,6 @@
   scrollbar-width: none;
 }
 </style>
-
-<style scoped>
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
-
-<style scoped>
-/* Oculta barras de scroll para un entorno fluido tipo App Nativa */
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
 <script setup>
 import '../assets/css/marcacion-style.css';
 import { ref, computed } from 'vue';
@@ -338,7 +315,6 @@ const router = useRouter();
 const { employee, currentTime, handleAttendance, logout, loading, isDark, toggleTheme } = useAttendance();
 
 const API_URL = import.meta.env.VITE_API_URL;
-const session = JSON.parse(localStorage.getItem('user_session') || '{}');
 
 // ── Permiso para ver el botón ──────────────────────────────────────────────
 const canRegistrarNovedad = computed(() =>
@@ -389,6 +365,7 @@ const canSubmitColectiva = computed(() =>
   selectedEmployees.value.length > 0 &&
   cForm.value.fechaInicio &&
   cForm.value.fechaFin &&
+  cForm.value.fechaFin >= cForm.value.fechaInicio &&
   cForm.value.descripcion.trim()
 );
 
@@ -417,12 +394,12 @@ const toggleSelectAll = () => {
 const fetchEmpleados = async () => {
   try {
     loadingEmpleados.value = true;
+    const emp = employee.value || {};
     const params = new URLSearchParams({ t: Date.now() });
-    if (session.company) params.append('company', session.company);
-    // Si no es superAdmin ni tiene filtro_departamento, filtra por su depto
-    const permisos = session.permisos || {};
-    if (!session.isSuperAdmin && !permisos['admin.filtro_departamento'] && session.department) {
-      params.append('departamento', session.department);
+    if (emp.company) params.append('company', emp.company);
+    const permisos = emp.permisos || {};
+    if (!emp.isSuperAdmin && !permisos['admin.filtro_departamento'] && emp.department) {
+      params.append('departamento', emp.department);
     }
     const res = await axios.get(`${API_URL}/mallas?${params}`);
     empleados.value = Array.isArray(res.data) ? res.data : [];
@@ -467,7 +444,7 @@ const submitColectiva = async () => {
       fd.append('fechaInicio', cForm.value.fechaInicio);
       fd.append('fechaFin', cForm.value.fechaFin);
       fd.append('storageMode', 'local');
-      fd.append('creadoPor', session.id_odoo ?? '');
+      fd.append('creadoPor', employee.value?.id_odoo ?? '');
 
       await axios.post(`${API_URL}/novedades`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },

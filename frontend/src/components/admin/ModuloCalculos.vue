@@ -108,15 +108,6 @@
           <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
         </button>
 
-        <!-- Mensaje éxito guardado -->
-        <transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 -translate-y-1"
-          leave-active-class="transition-all duration-200" leave-to-class="opacity-0">
-          <span v-if="saveSuccessMsg"
-            class="text-[11px] font-medium px-2.5 py-1 rounded-[5px] border flex items-center gap-1.5"
-            :class="isDark ? 'bg-[#16a34a]/10 border-[#16a34a]/30 text-[#4ade80]' : 'bg-green-50 border-green-200 text-green-700'">
-            {{ saveSuccessMsg }}
-          </span>
-        </transition>
 
         <!-- Guardar (solo registros seleccionados) -->
         <button @click="handleGuardar" :disabled="isSaving || isCalculating || !selectedRecords.length"
@@ -1975,6 +1966,45 @@
     <!-- ══ FIN MODAL OBSERVACIÓN ═════════════════════════════════════════════ -->
 
   </div>
+
+  <!-- ══ TOAST NOTIFICACIÓN ══════════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-95"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-to-class="opacity-0 translate-y-2 scale-95">
+      <div v-if="saveSuccessMsg"
+        class="fixed bottom-5 right-5 z-[9999] flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border max-w-sm w-full pointer-events-auto"
+        :class="saveSuccessMsg.startsWith('❌')
+          ? (isDark ? 'bg-[#1a0a0a] border-red-500/30 text-red-400' : 'bg-white border-red-200 text-red-700')
+          : saveSuccessMsg.startsWith('⚠')
+            ? (isDark ? 'bg-[#1a1500] border-amber-500/30 text-amber-400' : 'bg-white border-amber-200 text-amber-700')
+            : (isDark ? 'bg-[#0a1a0a] border-emerald-500/30 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-700')">
+
+        <!-- Ícono -->
+        <div class="shrink-0 mt-0.5">
+          <i v-if="saveSuccessMsg.startsWith('❌')" class="fas fa-circle-xmark text-base text-red-500"></i>
+          <i v-else-if="saveSuccessMsg.startsWith('⚠')" class="fas fa-triangle-exclamation text-base text-amber-500"></i>
+          <i v-else class="fas fa-circle-check text-base text-emerald-500"></i>
+        </div>
+
+        <!-- Texto -->
+        <div class="flex-1 min-w-0">
+          <p class="text-[11px] font-semibold leading-snug">
+            {{ saveSuccessMsg.replace(/^[✅⚠️❌]\s*/, '') }}
+          </p>
+        </div>
+
+        <!-- Cerrar -->
+        <button @click="saveSuccessMsg = ''" class="shrink-0 opacity-40 hover:opacity-100 transition-opacity ml-1">
+          <i class="fas fa-xmark text-[10px]"></i>
+        </button>
+
+      </div>
+    </Transition>
+  </Teleport>
+
 </template>
 
 <script setup>
@@ -2399,6 +2429,14 @@ async function handleTabNovedades(tab) {
 
 async function handleTabHistorial() {
   activeTab.value = 'historial';
+  // Si las fechas son del mes actual, ampliar a 30 días atrás para ver historial reciente
+  const hoy = new Date().toISOString().slice(0, 10);
+  const primerDiaMes = hoy.slice(0, 8) + '01';
+  if (startDate.value === primerDiaMes && endDate.value === hoy) {
+    const hace30 = new Date();
+    hace30.setDate(hace30.getDate() - 30);
+    startDate.value = hace30.toISOString().slice(0, 10);
+  }
   await cargarHistorial(props.company);
 }
 
@@ -2456,21 +2494,25 @@ async function handleGuardar() {
   try {
     const n = selectedRecords.value.length;
     const result = await guardarCalculados(props.company, mostrarDecimales.value);
-    const guardados = result?.guardados ?? n;
+    const guardados = result?.guardados ?? 0;
     const omitidos = result?.omitidos ?? [];
 
     if (omitidos.length && guardados === 0) {
-      // Todos omitidos
       saveSuccessMsg.value = `⚠️ ${omitidos.length} registro(s) no guardado(s): ya existen aprobados para esa fecha`;
     } else if (omitidos.length) {
-      // Algunos omitidos
-      saveSuccessMsg.value = `✅ ${guardados} guardado(s). ⚠️ ${omitidos.length} omitido(s) por tener registro aprobado`;
+      saveSuccessMsg.value = `⚠️ ${guardados} guardado(s), ${omitidos.length} omitido(s) por tener registro aprobado`;
     } else {
       saveSuccessMsg.value = `✅ ${guardados} registro(s) guardado(s) correctamente`;
     }
     clearTimeout(_saveSuccessTimer);
     _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 6000);
-  } catch { /* el composable ya loguea */ }
+
+    if (guardados > 0) cargarGuardados(props.company).catch(() => {});
+  } catch (e) {
+    saveSuccessMsg.value = `❌ Error al guardar: ${e?.response?.data?.message || e?.message || 'intente de nuevo'}`;
+    clearTimeout(_saveSuccessTimer);
+    _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 8000);
+  }
 }
 
 async function handleExportar() {

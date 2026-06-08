@@ -77,7 +77,11 @@
       "Bash(grep -E \"^C:|\\\\.ts$|^$\")",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\" | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)",
       "Bash(Get-ChildItem \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\dist\\\\assets\\\\*.js\")",
-      "Bash(Select-Object Name, LastWriteTime)"
+      "Bash(Select-Object Name, LastWriteTime)",
+      "Bash(grep -E \"\\\\.\\(vue|ts|js\\)$\")",
+      "Bash(xargs grep -l \"horas-extra\\\\|horasExtra\")",
+      "Bash(xargs grep -l \"historial\")",
+      "Bash(xargs grep -l \"horas-extra\\\\|historial\")"
     ]
   }
 }

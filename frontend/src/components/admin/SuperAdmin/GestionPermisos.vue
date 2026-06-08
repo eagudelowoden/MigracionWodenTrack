@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
     modelValue: Object,
@@ -228,7 +228,18 @@ const cargarModulos = async () => {
     }
 };
 
-onMounted(cargarModulos);
+const handleEscapePerms = (e) => {
+    if (e.key === 'Escape' && props.modelValue) emit('update:modelValue', null);
+};
+
+onMounted(() => {
+    cargarModulos();
+    document.addEventListener('keydown', handleEscapePerms);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', handleEscapePerms);
+});
 
 // ── Estado de UI ─────────────────────────────────────────────────────────────
 const deptosSeleccionados = ref([]);

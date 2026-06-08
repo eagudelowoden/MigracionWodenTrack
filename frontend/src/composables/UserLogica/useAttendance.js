@@ -1,4 +1,4 @@
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 
 export function useAttendance() {
@@ -212,9 +212,11 @@ export function useAttendance() {
     router.push("/login");
   };
 
+  let clockInterval = null;
+
   onMounted(async () => {
     updateClock();
-    setInterval(updateClock, 1000);
+    clockInterval = setInterval(updateClock, 1000);
 
     const saved = localStorage.getItem("user_session");
     if (saved) {
@@ -243,6 +245,10 @@ export function useAttendance() {
         ]);
       }
     }
+  });
+
+  onUnmounted(() => {
+    if (clockInterval) clearInterval(clockInterval);
   });
 
   return {

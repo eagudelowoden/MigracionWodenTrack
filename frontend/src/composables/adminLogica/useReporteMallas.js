@@ -281,6 +281,14 @@ function getAprobadoLabel(aprobado) {
 // ══════════════════════════════════════════════════════════════════════════════
 export function useReporteMallas() {
 
+  // Limpiar perfil si el id_odoo de sesión no coincide con el perfil cargado
+  // (evita que queden datos de otro usuario entre sesiones)
+  const s0 = getSession();
+  const idOdoo0 = s0.employee_id || s0.id_odoo;
+  if (perfilUsuario.value && perfilUsuario.value.id_odoo !== idOdoo0) {
+    perfilUsuario.value = null;
+  }
+
   async function _cargarPerfil() {
     try {
       const s = getSession();
@@ -298,13 +306,27 @@ export function useReporteMallas() {
     if (s.isSuperAdmin || s.role === "desarrollador_junior" || hasPerm("admin.ver_todo")) {
       return {};
     }
-    const esResponsableSegmento = hasPerm("novedades.ver_segmento");
     const perfil = perfilUsuario.value;
-    if (esResponsableSegmento && perfil?.segmento?.id) return { segmento_id: perfil.segmento.id };
-    if (perfil?.area?.id) return { area_id: perfil.area.id };
+    const filtro = {};
+
+    // Incluir area_id y segmento_id si existen — el backend hace OR entre ellos
+    if (perfil?.area?.id)     filtro.area_id     = perfil.area.id;
+    if (perfil?.segmento?.id) filtro.segmento_id = perfil.segmento.id;
+    if (Object.keys(filtro).length) return filtro;
+
+    // Fallback desde sesión
     if (s.segmento_id) return { segmento_id: s.segmento_id };
-    if (s.area_id) return { area_id: s.area_id };
+    if (s.area_id)     return { area_id: s.area_id };
     return {};
+  }
+
+  // Retorna la cédula propia para usuarios sin estructura admin
+  function _getCedulaPropia() {
+    const s = getSession();
+    if (s.isSuperAdmin || hasPerm("admin.ver_todo") || hasPerm("admin.filtro_departamento")) return null;
+    const perfil = perfilUsuario.value;
+    if (perfil?.area?.id || perfil?.segmento?.id) return null; // ya tiene filtro estructural
+    return perfil?.identificacion || s.identificacion || s.cedula || null;
   }
 
   async function _asegurarPerfil() {
@@ -320,13 +342,16 @@ export function useReporteMallas() {
       aprobacionesLocales.value = {};
       await _asegurarPerfil();
       const s = getSession();
+      const filtroEstructura = getAreaSegmento();
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
+        ...filtroEstructura,
       };
-      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
+      // Solo agregar departamento si NO hay filtro de área/segmento (para no interferir)
+      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin
+          && !filtroEstructura.area_id && !filtroEstructura.segmento_id) {
         if (s.department) params.departamento = s.department;
       }
       const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
@@ -390,6 +415,7 @@ export function useReporteMallas() {
       const { data } = await axios.post(`${API_BASE_URL}/horas-extra/guardar-seleccionados`, {
         registros: toSave,
         calculado_por: s.name || "Desconocido",
+        calculado_por_id: s.employee_id || s.id_odoo || null,
       });
       clearSelection();
 
@@ -572,12 +598,17 @@ export function useReporteMallas() {
     try {
       isLoadingHistorial.value = true;
       await _asegurarPerfil();
+      const s = getSession();
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
       };
+      // No-admin: filtra por quien calculó (id) igual que Guardados
+      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")) {
+        const idOdoo = s.employee_id || s.id_odoo;
+        if (idOdoo) params.calculado_por_id = idOdoo;
+      }
       const { data } = await axios.get(
         `${API_BASE_URL}/horas-extra/historial`,
         { params: { ...params, soloNotificados: true, _t: Date.now() } },
@@ -638,10 +669,11 @@ export function useReporteMallas() {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...getAreaSegmento(),
       };
-      if (!hasPerm("admin.filtro_departamento") && !s.isSuperAdmin) {
-        if (s.department) params.departamento = s.department;
+      // No-admin: filtra por quien calculó (su id_odoo) para ver solo lo que creó
+      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")) {
+        const idOdoo = s.employee_id || s.id_odoo;
+        if (idOdoo) params.calculado_por_id = idOdoo;
       }
       // Solo mostrar registros pendientes o rechazados (no aprobados ni notificados)
       const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, {

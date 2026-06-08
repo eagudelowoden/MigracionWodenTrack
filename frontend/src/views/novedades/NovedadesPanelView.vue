@@ -135,6 +135,18 @@
                 </button>
 
             </div>
+
+            <!-- Estado vacío: sin acceso a ningún módulo -->
+            <div v-if="!isSuperAdmin && !hasPerm('admin.novedades.admin') && !hasPerm('admin.novedades.rrhh') && !hasPerm('admin.novedades.user')"
+                class="mt-8 flex flex-col items-center gap-3 text-center">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+                    :class="isDark ? 'bg-white/5' : 'bg-slate-100'">
+                    <i class="fas fa-lock text-lg" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
+                </div>
+                <p class="text-[12px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                    No tienes acceso a ningún módulo de novedades.
+                </p>
+            </div>
         </div>
 
         <!-- ── Botón volver (Vercel ghost) ─────────────────────────────────── -->

@@ -93,6 +93,10 @@ const routes = [
         recordatorios: "super.recordatorios",
         config: "super.configuracion",
         api: "super.api",
+        solicitudes: "super.solicitudes",
+        modulos: "super.modulos",
+        reportes: "super.reportes",
+        offboarding: "super.offboarding",
       };
       const first = Object.keys(TAB_PERMS).find(
         (t) => session?.permisos?.[TAB_PERMS[t]]

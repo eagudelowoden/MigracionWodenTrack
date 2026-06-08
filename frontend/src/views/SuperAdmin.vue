@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 // ── Constantes de navegación (agrupadas por categoría) ───────────────────────
@@ -17,7 +17,7 @@ const NAV_GROUPS = [
     label: 'Operación',
     items: {
       mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-      solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
       sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     },
@@ -35,6 +35,7 @@ const NAV_GROUPS = [
     items: {
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
+      sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -52,6 +53,7 @@ const MODULE_LABELS = {
   analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
+  offboarding: 'Checklist Offboarding', sync: 'Sync Automático',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -62,10 +64,12 @@ import GestionApk from '../components/admin/SuperAdmin/GestionApk.vue';
 import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vue';
 import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
 import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
+import GestionSyncCron from '../components/admin/SuperAdmin/GestionSyncCron.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
 import GestionChecklistOffboarding from '../components/admin/SuperAdmin/GestionChecklistOffboarding.vue';
+import GestionOffboardingCron from '../components/admin/SuperAdmin/GestionOffboardingCron.vue';
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
 import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
 import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue';
@@ -81,7 +85,6 @@ import '../assets/css/SuperAdmin.css';
 // --- 1. CONFIGURACIÓN ---
 const API_URL = import.meta.env.VITE_API_URL;
 
-const props = defineProps({ isDark: Boolean });
 const router = useRouter();
 const route = useRoute();
 const { logout, isDark, toggleTheme, employee } = useAttendance();
@@ -105,6 +108,7 @@ const TAB_PERMS = {
   solicitudes: 'super.solicitudes',
   reportes: 'super.reportes',
   offboarding: 'super.offboarding',
+  sync: 'super.superadmin',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -193,8 +197,19 @@ const selectedUserPerms = ref(null);
 
 // --- 2. FUNCIONES DE INTERFAZ (Nivel principal) ---
 const openPerms = (user) => {
-  console.log("Abriendo permisos para:", user.nombre); // Para debugear
   selectedUserPerms.value = user;
+};
+
+const showLogoutModal = ref(false);
+
+const confirmarLogout = () => {
+  showUserMenu.value = false;
+  showLogoutModal.value = true;
+};
+
+const doLogout = () => {
+  showLogoutModal.value = false;
+  logout();
 };
 const hasPerm = (user, slug) => {
   if (!user || !user.permisos) return false;
@@ -275,13 +290,34 @@ const updateUserStructure = async (user, field) => {
   }
 };
 
+// Cierra el dropdown de usuario al hacer click fuera o presionar Escape
+const userMenuRef = ref(null);
+const handleClickOutside = (e) => {
+  if (showUserMenu.value && userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+    showUserMenu.value = false;
+  }
+};
+const handleEscape = (e) => {
+  if (e.key === 'Escape') {
+    showUserMenu.value = false;
+    showLogoutModal.value = false;
+  }
+};
+
 // --- Carga Inicial ---
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside, true);
+  document.addEventListener('keydown', handleEscape);
   await Promise.all([
     fetchDbUsuarios(),
     fetchOrganizacion(),
     fetchOdooUsuarios(),
   ]);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside, true);
+  document.removeEventListener('keydown', handleEscape);
 });
 </script>
 <template>
@@ -406,7 +442,7 @@ onMounted(async () => {
           </button>
 
           <!-- 3. Usuario con dropdown -->
-          <div class="relative" v-if="employee?.name">
+          <div class="relative" v-if="employee?.name" ref="userMenuRef">
             <button @click="showUserMenu = !showUserMenu" class="sa-user-chip"
               :class="isDark ? 'sa-user-dark' : 'sa-user-light'">
               <div class="sa-user-avatar">
@@ -434,7 +470,7 @@ onMounted(async () => {
                     displayName
                     }}</p>
                 </div>
-                <button @click="logout(); showUserMenu = false"
+                <button @click="confirmarLogout"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
                   <i class="fas fa-arrow-right-from-bracket text-[10px]"></i>
                   Cerrar sesión
@@ -449,7 +485,7 @@ onMounted(async () => {
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'config', 'api', 'modulos']"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'config', 'api', 'modulos', 'sync']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -472,6 +508,7 @@ onMounted(async () => {
               @error="showNotification($event, 'error')" />
             <GestionModulos v-if="tab === 'modulos'" :isDark="isDark" :apiUrl="API_URL"
               @success="showNotification($event)" @error="showNotification($event, 'error')" />
+            <GestionSyncCron v-if="tab === 'sync'" :isDark="isDark" />
           </div>
         </template>
 
@@ -500,6 +537,50 @@ onMounted(async () => {
 
       </div>
     </main>
+
+    <!-- ── Modal confirmación logout (AWS Console style) ──────────────────── -->
+    <Transition name="logout-fade">
+      <div v-if="showLogoutModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        style="background: rgba(0,0,0,0.7)"
+        @click.self="showLogoutModal = false">
+
+        <Transition name="logout-pop" appear>
+          <div v-if="showLogoutModal" class="aws-modal" :class="isDark ? 'aws-dark' : 'aws-light'">
+
+            <!-- Header AWS style -->
+            <div class="aws-modal-header">
+              <span class="aws-modal-title">Cerrar sesión</span>
+              <button @click="showLogoutModal = false" class="aws-modal-close" aria-label="Cerrar">
+                <i class="fas fa-times" style="font-size:12px"></i>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="aws-modal-body">
+              <div class="aws-alert-row">
+                <i class="fas fa-circle-exclamation aws-alert-icon"></i>
+                <p class="aws-alert-text">
+                  ¿Está seguro de que desea cerrar la sesión?<br>
+                  <span class="aws-alert-sub">Se perderá el acceso a la consola hasta que inicie sesión de nuevo.</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="aws-modal-footer">
+              <button @click="showLogoutModal = false" class="aws-btn-secondary">
+                Cancelar
+              </button>
+              <button @click="doLogout" class="aws-btn-danger">
+                Cerrar sesión
+              </button>
+            </div>
+
+          </div>
+        </Transition>
+      </div>
+    </Transition>
 
     <!-- Panel de permisos -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
@@ -1052,7 +1133,7 @@ onMounted(async () => {
   padding: 5px 12px;
   border-radius: 12px;
   border: 1px solid;
-  cursor: default;
+  cursor: pointer;
 }
 
 .sa-user-dark {
@@ -1135,5 +1216,185 @@ onMounted(async () => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-6px) scale(0.97);
+}
+
+/* Modal logout — overlay */
+.logout-fade-enter-active,
+.logout-fade-leave-active {
+  transition: opacity .2s ease;
+}
+.logout-fade-enter-from,
+.logout-fade-leave-to {
+  opacity: 0;
+}
+
+/* Modal logout — tarjeta */
+.logout-pop-enter-active {
+  transition: all .18s ease-out;
+}
+.logout-pop-leave-active {
+  transition: all .12s ease-in;
+}
+.logout-pop-enter-from,
+.logout-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ── AWS Console Modal ───────────────────────────────────────────────────── */
+.aws-modal {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  font-family: "Amazon Ember", "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Light mode (AWS default) */
+.aws-light {
+  background: #ffffff;
+  border: 1px solid #aab7b8;
+}
+.aws-light .aws-modal-header {
+  background: #232f3e;
+  color: #ffffff;
+}
+.aws-light .aws-modal-body {
+  background: #ffffff;
+  border-bottom: 1px solid #eaeded;
+}
+.aws-light .aws-alert-text {
+  color: #16191f;
+}
+.aws-light .aws-alert-sub {
+  color: #687078;
+}
+.aws-light .aws-modal-footer {
+  background: #f2f3f3;
+  border-top: 1px solid #eaeded;
+}
+.aws-light .aws-btn-secondary {
+  background: #ffffff;
+  border: 1px solid #aab7b8;
+  color: #16191f;
+}
+.aws-light .aws-btn-secondary:hover {
+  background: #f2f3f3;
+  border-color: #879596;
+}
+.aws-light .aws-btn-danger {
+  background: #d13212;
+  border: 1px solid #a82d0e;
+  color: #ffffff;
+}
+.aws-light .aws-btn-danger:hover {
+  background: #ba2d0e;
+}
+
+/* Dark mode adaptation */
+.aws-dark {
+  background: #1a2332;
+  border: 1px solid #3d4e61;
+}
+.aws-dark .aws-modal-header {
+  background: #0f1923;
+  color: #ffffff;
+}
+.aws-dark .aws-modal-body {
+  background: #1a2332;
+  border-bottom: 1px solid #3d4e61;
+}
+.aws-dark .aws-alert-text {
+  color: #d5dbdb;
+}
+.aws-dark .aws-alert-sub {
+  color: #8d9a9a;
+}
+.aws-dark .aws-modal-footer {
+  background: #111e2b;
+  border-top: 1px solid #3d4e61;
+}
+.aws-dark .aws-btn-secondary {
+  background: transparent;
+  border: 1px solid #3d4e61;
+  color: #d5dbdb;
+}
+.aws-dark .aws-btn-secondary:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: #6a8194;
+}
+.aws-dark .aws-btn-danger {
+  background: #d13212;
+  border: 1px solid #a82d0e;
+  color: #ffffff;
+}
+.aws-dark .aws-btn-danger:hover {
+  background: #ba2d0e;
+}
+
+.aws-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+.aws-modal-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.aws-modal-close {
+  background: none;
+  border: none;
+  color: #aab7b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color .15s;
+}
+.aws-modal-close:hover {
+  color: #ffffff;
+}
+.aws-modal-body {
+  padding: 18px 16px;
+}
+.aws-alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.aws-alert-icon {
+  color: #FF9900;
+  font-size: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.aws-alert-text {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+.aws-alert-sub {
+  font-size: 12px;
+  display: block;
+  margin-top: 4px;
+}
+.aws-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+.aws-btn-secondary,
+.aws-btn-danger {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  letter-spacing: 0.02em;
 }
 </style>

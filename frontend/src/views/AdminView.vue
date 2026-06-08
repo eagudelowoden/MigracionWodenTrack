@@ -125,24 +125,6 @@
         </button>
       </div>
 
-      <!-- Acciones footer -->
-      <div class="p-2 space-y-1 mt-auto border-t" :class="isDark ? 'border-white/5' : 'border-slate-100'">
-        <button @click="toggleTheme"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-blue-500 transition-all">
-          <div class="flex items-center justify-center shrink-0 w-5">
-            <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="text-xs"></i>
-          </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">{{ isDark ? 'Luz' :
-            'Oscuro' }}</span>
-        </button>
-        <button @click="logout"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all">
-          <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-power-off text-xs"></i>
-          </div>
-          <span v-if="isSidebarOpen" class="text-[9px] font-black uppercase tracking-widest">Salir</span>
-        </button>
-      </div>
     </aside>
 
     <!-- ── Main ────────────────────────────────────────────────────────────── -->
@@ -183,41 +165,75 @@
 
           <!-- Botones Entrada/Salida -->
           <div class="flex items-center gap-1.5">
-            <button @click="handleAttendance" :disabled="loading || employee?.is_inside || employee?.day_completed"
+            <button @click="handleAttendance('in')" :disabled="loading || employee?.is_inside || employee?.day_completed"
               class="btn-header-smart in group">
               <div class="icon-box-smart"><i class="fas fa-arrow-right-to-bracket"></i></div>
               <span class="hidden md:inline">Entrada</span>
             </button>
-            <button @click="handleAttendance" :disabled="loading || !employee?.is_inside || employee?.day_completed"
+            <button @click="handleAttendance('out')" :disabled="loading || !employee?.is_inside || employee?.day_completed"
               class="btn-header-smart out group">
               <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
               <span class="hidden md:inline">Salida</span>
             </button>
           </div>
-          <div
-            class="hidden md:flex items-center gap-3 h-9 pl-2 pr-3 rounded-md border transition-all duration-150 cursor-default select-none font-sans"
-            :class="isDark
-              ? 'bg-[#161B26] border-[#222938] hover:border-[#2A344A]'
-              : 'bg-white border-[#EAEAEA] hover:border-[#D1D1D1]'">
-
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium tracking-wider uppercase border transition-colors duration-150"
+          <!-- Chip usuario con dropdown -->
+          <div class="relative hidden md:block" ref="userChipRef">
+            <button
+              @click="showUserMenu = !showUserMenu"
+              class="flex items-center gap-3 h-9 pl-2 pr-3 rounded-md border transition-all duration-150 select-none font-sans"
               :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
-                : 'bg-[#FAFAFA] border-[#EAEAEA] text-[#444444]'">
-              {{ initial }}
-            </div>
+                ? 'bg-[#161B26] border-[#222938] hover:border-[#2A344A]'
+                : 'bg-white border-[#EAEAEA] hover:border-[#D1D1D1]'">
 
-            <div class="flex flex-col justify-center">
-              <span class="text-[10px] tracking-wider uppercase font-medium leading-none"
-                :class="isDark ? 'text-[#888888]' : 'text-[#666666]'">
-                Hola,
-              </span>
-              <span class="text-[13px] font-semibold tracking-tight mt-0.5 leading-none"
-                :class="isDark ? 'text-white' : 'text-[#111111]'">
-                {{ displayName }}
-              </span>
-            </div>
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium tracking-wider uppercase border transition-colors duration-150"
+                :class="isDark
+                  ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
+                  : 'bg-[#FAFAFA] border-[#EAEAEA] text-[#444444]'">
+                {{ initial }}
+              </div>
+
+              <div class="flex flex-col justify-center text-left">
+                <span class="text-[10px] tracking-wider uppercase font-medium leading-none"
+                  :class="isDark ? 'text-[#888888]' : 'text-[#666666]'">
+                  Hola,
+                </span>
+                <span class="text-[13px] font-semibold tracking-tight mt-0.5 leading-none"
+                  :class="isDark ? 'text-white' : 'text-[#111111]'">
+                  {{ displayName }}
+                </span>
+              </div>
+
+              <i class="fas fa-chevron-down text-[8px] ml-1 transition-transform duration-150"
+                :class="[isDark ? 'text-[#888888]' : 'text-slate-400', showUserMenu ? 'rotate-180' : '']"></i>
+            </button>
+
+            <!-- Dropdown -->
+            <Transition name="chip-drop">
+              <div v-if="showUserMenu"
+                class="absolute right-0 top-full mt-1.5 w-44 rounded-lg border shadow-lg overflow-hidden z-50"
+                :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+                <button @click="toggleTheme; showUserMenu = false"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-medium transition-colors"
+                  :class="isDark
+                    ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'">
+                  <i :class="isDark ? 'fas fa-sun' : 'fas fa-moon'" class="w-4 text-center text-[11px]"></i>
+                  {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
+                </button>
+
+                <div class="h-px mx-2" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'"></div>
+
+                <button @click="logout(); showUserMenu = false"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-medium transition-colors text-rose-500 hover:bg-rose-500/5"
+                  :class="isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'">
+                  <i class="fas fa-arrow-right-from-bracket w-4 text-center text-[11px]"></i>
+                  Cerrar sesión
+                </button>
+
+              </div>
+            </Transition>
           </div>
         </div>
       </header>
@@ -311,9 +327,19 @@ const {
 // Expone employee a las vistas hijas (NovedadesPanelView lo inyecta)
 provide('adminEmployee', employee);
 
+// ── Chip usuario dropdown ─────────────────────────────────────────────────────
+const showUserMenu = ref(false);
+const userChipRef = ref(null);
+
+const handleClickOutsideChip = (e) => {
+  if (showUserMenu.value && userChipRef.value && !userChipRef.value.contains(e.target))
+    showUserMenu.value = false;
+};
+
 // ── Display helpers para el saludo ───────────────────────────────────────────
 const displayName = computed(() => {
-  const raw = employee.value?.name?.split(' ')[2]?.toLowerCase();
+  const parts = employee.value?.name?.trim().split(/\s+/) ?? [];
+  const raw = (parts[2] || parts[1] || parts[0] || '').toLowerCase();
   if (!raw) return 'Usuario';
   return raw.replace(/^\w/, c => c.toUpperCase());
 });
@@ -390,6 +416,7 @@ const conectarInterno = () => {
 watch(() => employee.value?.id_odoo, (id) => { if (id) conectarInterno(); }, { immediate: true });
 
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutsideChip);
   // Fallback: si el watcher no alcanzó a disparar antes del mount
   setTimeout(() => conectarInterno(), 1500);
 
@@ -400,6 +427,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideChip);
   internoSocket?.disconnect();
   clearTimeout(toastTimer);
 });
@@ -407,6 +435,18 @@ onUnmounted(() => {
 
 
 <style scoped>
+.chip-drop-enter-active {
+  transition: opacity .15s ease, transform .15s ease;
+}
+.chip-drop-leave-active {
+  transition: opacity .1s ease, transform .1s ease;
+}
+.chip-drop-enter-from,
+.chip-drop-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity .2s, transform .2s;
