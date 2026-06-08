@@ -28,15 +28,16 @@ jobs:
             Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest';
             git fetch --all 2>&1 | Add-Content $log;
             git reset --hard origin/test 2>&1 | Add-Content $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\backend';
             npm install 2>&1 | Add-Content $log;
-            npm run build 2>&1 | Add-Content $log;
+            npm run start:qa 2>&1 | Add-Content $log;
             $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
             if ($p) { pm2 restart WodenTrackTest --update-env 2>&1 | Add-Content $log }
             else { pm2 start dist/main.js --name WodenTrackTest 2>&1 | Add-Content $log };
             pm2 save 2>&1 | Add-Content $log;
             Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\frontend';
             npm install 2>&1 | Add-Content $log;
-            npm run build 2>&1 | Add-Content $log;
+            npm run build:qa 2>&1 | Add-Content $log;
             Remove-Item 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist\\*' -Recurse -Force -Exclude 'web.config' -ErrorAction SilentlyContinue;
             Copy-Item -Path 'dist\\*' -Destination 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist' -Recurse -Force 2>&1 | Add-Content $log;
             '=== FIN OK ' + (Get-Date) | Add-Content $log"
@@ -62,8 +63,9 @@ jobs:
             Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2';
             git fetch --all 2>&1 | Add-Content $log;
             git reset --hard origin/main 2>&1 | Add-Content $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\backend';
             npm install 2>&1 | Add-Content $log;
-            npm run build 2>&1 | Add-Content $log;
+            npm run start:prod 2>&1 | Add-Content $log;
             $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrack';
             if ($p) { pm2 restart WodenTrack --update-env 2>&1 | Add-Content $log }
             else { pm2 start dist/main.js --name WodenTrack 2>&1 | Add-Content $log };
