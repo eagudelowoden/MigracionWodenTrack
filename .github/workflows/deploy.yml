@@ -111,7 +111,7 @@ jobs:
                 }
                 pm2 save 2>&1 | Add-Content $log
 
-                # --- FRONTEND ---
+                # --- FRONTEND -----
                 '--- FRONTEND ---' | Add-Content $log
                 Set-Location (Join-Path $backendPath 'frontend')
                 npm install 2>&1 | Add-Content $log
