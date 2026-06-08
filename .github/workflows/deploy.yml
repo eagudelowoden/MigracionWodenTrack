@@ -13,7 +13,6 @@ jobs:
   deploy-test:
     if: github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
-    environment: test
     steps:
       - name: Deploy TEST - Backend + Frontend
         uses: appleboy/ssh-action@master
@@ -22,52 +21,25 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
-          script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
-              $ErrorActionPreference = 'Stop'
-              $log = 'C:\deploy_test_log.txt'
-              $backendPath = 'C:\Users\Administrator\Documents\WodenTrackTest'
-              $iisPath     = 'C:\inetpub\wwwroot\WodenTrackTest\dist'
-              $pm2Name     = 'woden-track-test'
-
-              try {
-                '=== INICIO DEPLOY TEST ' + (Get-Date) + ' ===' | Out-File $log
-
-                # --- BACKEND ---
-                '--- BACKEND ---' | Add-Content $log
-                Set-Location $backendPath
-                git fetch --all 2>&1 | Add-Content $log
-                git reset --hard origin/test 2>&1 | Add-Content $log
-                npm install 2>&1 | Add-Content $log
-                npm run build 2>&1 | Add-Content $log
-
-                $proc = pm2 list --no-color | Select-String $pm2Name
-                if ($proc) {
-                  pm2 restart $pm2Name --update-env 2>&1 | Add-Content $log
-                } else {
-                  pm2 start dist/main.js --name $pm2Name 2>&1 | Add-Content $log
-                }
-                pm2 save 2>&1 | Add-Content $log
-
-                # --- FRONTEND ---
-                '--- FRONTEND ---' | Add-Content $log
-                Set-Location (Join-Path $backendPath 'frontend')
-                npm install 2>&1 | Add-Content $log
-                npm run build 2>&1 | Add-Content $log
-
-                # --- IIS ---
-                '--- IIS ---' | Add-Content $log
-                if (-not (Test-Path $iisPath)) { New-Item -ItemType Directory -Force $iisPath | Out-Null }
-                Get-ChildItem $iisPath -Exclude 'web.config' | Remove-Item -Recurse -Force
-                Copy-Item -Path 'dist\*' -Destination $iisPath -Recurse -Force
-                iisreset /noforce 2>&1 | Add-Content $log
-
-                '=== FIN OK ' + (Get-Date) + ' ===' | Add-Content $log
-              } catch {
-                ('ERROR: ' + \$_) | Add-Content $log
-                exit 1
-              }
-            "
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "$log='C:\\deploy_test_log.txt';
+            '=== INICIO TEST ' + (Get-Date) | Out-File $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest';
+            git fetch --all 2>&1 | Add-Content $log;
+            git reset --hard origin/test 2>&1 | Add-Content $log;
+            npm install 2>&1 | Add-Content $log;
+            npm run build 2>&1 | Add-Content $log;
+            $p = pm2 list --no-color 2>&1 | Select-String 'woden-track-test';
+            if ($p) { pm2 restart woden-track-test --update-env 2>&1 | Add-Content $log }
+            else { pm2 start dist/main.js --name woden-track-test 2>&1 | Add-Content $log };
+            pm2 save 2>&1 | Add-Content $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\frontend';
+            npm install 2>&1 | Add-Content $log;
+            npm run build 2>&1 | Add-Content $log;
+            Remove-Item 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist\\*' -Recurse -Force -Exclude 'web.config' -ErrorAction SilentlyContinue;
+            Copy-Item -Path 'dist\\*' -Destination 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist' -Recurse -Force 2>&1 | Add-Content $log;
+            '=== FIN OK ' + (Get-Date) | Add-Content $log"
 
   # ─────────────────────────────────────────────
   # DESPLIEGUE A PRODUCCION  (rama: main)
@@ -75,7 +47,6 @@ jobs:
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Deploy PROD - Backend + Frontend
         uses: appleboy/ssh-action@master
@@ -84,49 +55,22 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
-          script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
-              $ErrorActionPreference = 'Stop'
-              $log = 'C:\deploy_prod_log.txt'
-              $backendPath = 'C:\Users\Administrator\Documents\WodenTrackV2'
-              $iisPath     = 'C:\inetpub\wwwroot\WodenTrack\dist'
-              $pm2Name     = 'woden-track-backend'
-
-              try {
-                '=== INICIO DEPLOY PROD ' + (Get-Date) + ' ===' | Out-File $log
-
-                # --- BACKEND ---
-                '--- BACKEND ---' | Add-Content $log
-                Set-Location $backendPath
-                git fetch --all 2>&1 | Add-Content $log
-                git reset --hard origin/main 2>&1 | Add-Content $log
-                npm install 2>&1 | Add-Content $log
-                npm run build 2>&1 | Add-Content $log
-
-                $proc = pm2 list --no-color | Select-String $pm2Name
-                if ($proc) {
-                  pm2 restart $pm2Name --update-env 2>&1 | Add-Content $log
-                } else {
-                  pm2 start dist/main.js --name $pm2Name 2>&1 | Add-Content $log
-                }
-                pm2 save 2>&1 | Add-Content $log
-
-                # --- FRONTEND -------
-                '--- FRONTEND ---' | Add-Content $log
-                Set-Location (Join-Path $backendPath 'frontend')
-                npm install 2>&1 | Add-Content $log
-                npm run build 2>&1 | Add-Content $log
-
-                # --- IIS ---
-                '--- IIS ---' | Add-Content $log
-                if (-not (Test-Path $iisPath)) { New-Item -ItemType Directory -Force $iisPath | Out-Null }
-                Get-ChildItem $iisPath -Exclude 'web.config' | Remove-Item -Recurse -Force
-                Copy-Item -Path 'dist\*' -Destination $iisPath -Recurse -Force
-                iisreset /noforce 2>&1 | Add-Content $log
-
-                '=== FIN OK ' + (Get-Date) + ' ===' | Add-Content $log
-              } catch {
-                ('ERROR: ' + \$_) | Add-Content $log
-                exit 1
-              }
-            "
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "$log='C:\\deploy_prod_log.txt';
+            '=== INICIO PROD ' + (Get-Date) | Out-File $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2';
+            git fetch --all 2>&1 | Add-Content $log;
+            git reset --hard origin/main 2>&1 | Add-Content $log;
+            npm install 2>&1 | Add-Content $log;
+            npm run build 2>&1 | Add-Content $log;
+            $p = pm2 list --no-color 2>&1 | Select-String 'woden-track-backend';
+            if ($p) { pm2 restart woden-track-backend --update-env 2>&1 | Add-Content $log }
+            else { pm2 start dist/main.js --name woden-track-backend 2>&1 | Add-Content $log };
+            pm2 save 2>&1 | Add-Content $log;
+            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\frontend';
+            npm install 2>&1 | Add-Content $log;
+            npm run build 2>&1 | Add-Content $log;
+            Remove-Item 'C:\\inetpub\\wwwroot\\WodenTrack\\dist\\*' -Recurse -Force -Exclude 'web.config' -ErrorAction SilentlyContinue;
+            Copy-Item -Path 'dist\\*' -Destination 'C:\\inetpub\\wwwroot\\WodenTrack\\dist' -Recurse -Force 2>&1 | Add-Content $log;
+            '=== FIN OK ' + (Get-Date) | Add-Content $log"
