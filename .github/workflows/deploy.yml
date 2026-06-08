@@ -14,35 +14,66 @@ jobs:
     if: github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy TEST - Backend + Frontend
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. Compilar backend QA
+      - name: Compilar Backend QA
+        run: |
+          cd backend
+          npm install
+          npm run build:qa
+
+      # 2. Compilar frontend QA
+      - name: Compilar Frontend QA
+        run: |
+          cd frontend
+          npm install
+          npm run build:qa
+
+      # 3. Copiar backend compilado al servidor
+      - name: Copiar Backend dist a servidor TEST
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/dist/*"
+          target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
+          strip_components: 2
+          overwrite: true
+
+      # 4. Copiar frontend compilado al IIS
+      - name: Copiar Frontend dist a IIS TEST
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "frontend/dist/*"
+          target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
+          strip_components: 2
+          overwrite: true
+
+      # 5. Reiniciar PM2 en el servidor
+      - name: Reiniciar PM2 TEST
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 20m
+          command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$log='C:\\deploy_test_log.txt';
-            '=== INICIO TEST ' + (Get-Date) | Out-File $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest';
-            git fetch --all 2>&1 | Add-Content $log;
-            git reset --hard origin/test 2>&1 | Add-Content $log;
-            '--- BACKEND ---' | Add-Content $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\backend';
-            npm install 2>&1 | Add-Content $log;
-            npm run build:qa 2>&1 | Add-Content $log;
-            $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
-            if ($p) { pm2 restart WodenTrackTest --update-env 2>&1 | Add-Content $log }
-            else { pm2 start dist/main.js --name WodenTrackTest 2>&1 | Add-Content $log };
-            pm2 save 2>&1 | Add-Content $log;
-            '--- FRONTEND ---' | Add-Content $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\frontend';
-            npm install 2>&1 | Add-Content $log;
-            npm run build:qa 2>&1 | Add-Content $log;
-            Remove-Item 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist\\*' -Recurse -Force -Exclude 'web.config' -ErrorAction SilentlyContinue;
-            Copy-Item -Path 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\frontend\\dist\\*' -Destination 'C:\\inetpub\\wwwroot\\WodenTrackTest\\dist' -Recurse -Force 2>&1 | Add-Content $log;
-            '=== FIN OK ' + (Get-Date) | Add-Content $log"
+            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
+            if ($p) { pm2 restart WodenTrackTest --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            pm2 save"
 
   # ─────────────────────────────────────────────
   # DESPLIEGUE A PRODUCCION  (rama: main)
@@ -51,32 +82,63 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy PROD - Backend + Frontend
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. Compilar backend PROD
+      - name: Compilar Backend PROD
+        run: |
+          cd backend
+          npm install
+          npm run build:prod
+
+      # 2. Compilar frontend PROD
+      - name: Compilar Frontend PROD
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      # 3. Copiar backend compilado al servidor
+      - name: Copiar Backend dist a servidor PROD
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/dist/*"
+          target: "C:/Users/Administrator/Documents/WodenTrackV2/dist"
+          strip_components: 2
+          overwrite: true
+
+      # 4. Copiar frontend compilado al IIS
+      - name: Copiar Frontend dist a IIS PROD
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "frontend/dist/*"
+          target: "C:/inetpub/wwwroot/WodenTrack/dist"
+          strip_components: 2
+          overwrite: true
+
+      # 5. Reiniciar PM2 en el servidor
+      - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
           host: 18.217.246.39
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 20m
+          command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$log='C:\\deploy_prod_log.txt';
-            '=== INICIO PROD ' + (Get-Date) | Out-File $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2';
-            git fetch --all 2>&1 | Add-Content $log;
-            git reset --hard origin/main 2>&1 | Add-Content $log;
-            '--- BACKEND ---' | Add-Content $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\backend';
-            npm install 2>&1 | Add-Content $log;
-            npm run build:prod 2>&1 | Add-Content $log;
-            $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrack';
-            if ($p) { pm2 restart WodenTrack --update-env 2>&1 | Add-Content $log }
-            else { pm2 start dist/main.js --name WodenTrack 2>&1 | Add-Content $log };
-            pm2 save 2>&1 | Add-Content $log;
-            '--- FRONTEND ---' | Add-Content $log;
-            Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\frontend';
-            npm install 2>&1 | Add-Content $log;
-            npm run build 2>&1 | Add-Content $log;
-            Remove-Item 'C:\\inetpub\\wwwroot\\WodenTrack\\dist\\*' -Recurse -Force -Exclude 'web.config' -ErrorAction SilentlyContinue;
-            Copy-Item -Path 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\frontend\\dist\\*' -Destination 'C:\\inetpub\\wwwroot\\WodenTrack\\dist' -Recurse -Force 2>&1 | Add-Content $log;
-            '=== FIN OK ' + (Get-Date) | Add-Content $log"
+            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrack';
+            if ($p) { pm2 restart WodenTrack --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackV2\\dist\\main.js --name WodenTrack };
+            pm2 save"
