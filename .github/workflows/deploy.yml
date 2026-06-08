@@ -30,9 +30,9 @@ jobs:
             git reset --hard origin/test 2>&1 | Add-Content $log;
             npm install 2>&1 | Add-Content $log;
             npm run build 2>&1 | Add-Content $log;
-            $p = pm2 list --no-color 2>&1 | Select-String 'woden-track-test';
-            if ($p) { pm2 restart woden-track-test --update-env 2>&1 | Add-Content $log }
-            else { pm2 start dist/main.js --name woden-track-test 2>&1 | Add-Content $log };
+            $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
+            if ($p) { pm2 restart WodenTrackTest --update-env 2>&1 | Add-Content $log }
+            else { pm2 start dist/main.js --name WodenTrackTest 2>&1 | Add-Content $log };
             pm2 save 2>&1 | Add-Content $log;
             Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackTest\\frontend';
             npm install 2>&1 | Add-Content $log;
@@ -64,9 +64,9 @@ jobs:
             git reset --hard origin/main 2>&1 | Add-Content $log;
             npm install 2>&1 | Add-Content $log;
             npm run build 2>&1 | Add-Content $log;
-            $p = pm2 list --no-color 2>&1 | Select-String 'woden-track-backend';
-            if ($p) { pm2 restart woden-track-backend --update-env 2>&1 | Add-Content $log }
-            else { pm2 start dist/main.js --name woden-track-backend 2>&1 | Add-Content $log };
+            $p = pm2 list --no-color 2>&1 | Select-String 'WodenTrack';
+            if ($p) { pm2 restart WodenTrack --update-env 2>&1 | Add-Content $log }
+            else { pm2 start dist/main.js --name WodenTrack 2>&1 | Add-Content $log };
             pm2 save 2>&1 | Add-Content $log;
             Set-Location 'C:\\Users\\Administrator\\Documents\\WodenTrackV2\\frontend';
             npm install 2>&1 | Add-Content $log;
