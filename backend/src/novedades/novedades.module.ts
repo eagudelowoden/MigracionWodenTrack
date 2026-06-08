@@ -12,6 +12,7 @@ import { PazSalvoController } from './paz-salvo.controller';
 import { PazSalvoService } from './paz-salvo.service';
 import { PazSalvoChecklist } from './entities/paz-salvo-checklist.entity';
 import { PazSalvoChecklistController } from './paz-salvo-checklist.controller';
+import { PazSalvoChecklistService } from './paz-salvo-checklist.service';
 import { OffboardingCronConfig } from './entities/offboarding-cron-config.entity';
 import { OffboardingCronLog } from './entities/offboarding-cron-log.entity';
 import { OffboardingCronService } from './offboarding-cron.service';
@@ -34,6 +35,6 @@ import { UsuariosModule } from '../usuarios/usuarios.module';
     NovedadesController, PazSalvoController, PazSalvoChecklistController,
     OffboardingCronController,
   ],
-  providers: [NovedadesService, PazSalvoService, OffboardingCronService],
+  providers: [NovedadesService, PazSalvoService, PazSalvoChecklistService, OffboardingCronService],
 })
 export class NovedadesModule {}
