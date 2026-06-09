@@ -55,6 +55,7 @@ const selectedKeys = ref(new Set());
 const novedadesAprobadas = ref([]);
 const isLoadingNovedades = ref(false);
 const isNotifying = ref(false);
+const calculadoPor = ref('');
 // Checkboxes en novedades aprobadas
 const selectedNovedades = ref(new Set()); // Set de ids seleccionados
 
@@ -558,6 +559,7 @@ export function useReporteMallas() {
         : novedadesAprobadas.value;
       await axios.post(`${API_BASE_URL}/horas-extra/notificar-aprobados`, {
         registros: aNotificar,
+        calculado_por: calculadoPor.value,
       });
       // Quitar del listado los que ya se notificaron
       const notificadosIds = new Set(aNotificar.map(n => n.id));
@@ -575,6 +577,10 @@ export function useReporteMallas() {
     try {
       isLoadingNovedades.value = true;
       await _asegurarPerfil();
+      if (!calculadoPor.value) {
+        const s = getSession();
+        calculadoPor.value = s.nombre || s.name || s.username || s.email || '';
+      }
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
@@ -790,6 +796,7 @@ export function useReporteMallas() {
     cargarNovedadesHX,
     isNotifying,
     notificarAprobados,
+    calculadoPor,
 
     // Historial (aprobadas + notificadas)
     historial,

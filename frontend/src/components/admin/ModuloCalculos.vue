@@ -851,7 +851,7 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
           <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ registrosGuardados.length
-            }}</span>
+          }}</span>
           registro(s) guardado(s) en el rango
           <span v-if="selectedGuardados.size" class="ml-2 font-semibold text-[#3B82F6]">
             · {{ selectedGuardados.size }} seleccionado(s)
@@ -1598,6 +1598,15 @@
                   novedades_hx_aprobadas_{{ fechaHoyISO }}.xlsx
                 </span>
               </div>
+              <div class="flex items-center gap-2 text-[11px]">
+                <span class="w-14 text-right flex-shrink-0 font-medium"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Calculado por:</span>
+                <input v-model="calculadoPor" type="text" placeholder="Nombre de quien calcula…"
+                  class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-64 transition-all"
+                  :class="isDark
+                    ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
+                    : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+              </div>
             </div>
 
             <!-- Cuerpo del correo simulado -->
@@ -1610,6 +1619,10 @@
                 </p>
                 <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   {{ registrosANotificar.length }} registro(s) aprobado(s). Ver detalle en el archivo adjunto.
+                </p>
+                <p v-if="calculadoPor" class="text-[11px] mt-1.5 font-medium"
+                  :class="isDark ? 'text-emerald-400' : 'text-emerald-700'">
+                  <i class="fas fa-user-check mr-1 text-[10px]"></i>Enviado por: {{ calculadoPor }}
                 </p>
               </div>
 
@@ -1969,10 +1982,8 @@
 
   <!-- ══ TOAST NOTIFICACIÓN ══════════════════════════════════════════════════ -->
   <Teleport to="body">
-    <Transition
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-95"
-      leave-active-class="transition-all duration-200 ease-in"
+    <Transition enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-95" leave-active-class="transition-all duration-200 ease-in"
       leave-to-class="opacity-0 translate-y-2 scale-95">
       <div v-if="saveSuccessMsg"
         class="fixed bottom-5 right-5 z-[9999] flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border max-w-sm w-full pointer-events-auto"
@@ -1985,7 +1996,8 @@
         <!-- Ícono -->
         <div class="shrink-0 mt-0.5">
           <i v-if="saveSuccessMsg.startsWith('❌')" class="fas fa-circle-xmark text-base text-red-500"></i>
-          <i v-else-if="saveSuccessMsg.startsWith('⚠')" class="fas fa-triangle-exclamation text-base text-amber-500"></i>
+          <i v-else-if="saveSuccessMsg.startsWith('⚠')"
+            class="fas fa-triangle-exclamation text-base text-amber-500"></i>
           <i v-else class="fas fa-circle-check text-base text-emerald-500"></i>
         </div>
 
@@ -2086,6 +2098,7 @@ const {
   deshacerAprobacion,
   isNotifying,
   notificarAprobados,
+  calculadoPor,
   selectedRecords,
   isSelected,
   toggleSelected,
@@ -2507,7 +2520,7 @@ async function handleGuardar() {
     clearTimeout(_saveSuccessTimer);
     _saveSuccessTimer = setTimeout(() => { saveSuccessMsg.value = ''; }, 6000);
 
-    if (guardados > 0) cargarGuardados(props.company).catch(() => {});
+    if (guardados > 0) cargarGuardados(props.company).catch(() => { });
   } catch (e) {
     saveSuccessMsg.value = `❌ Error al guardar: ${e?.response?.data?.message || e?.message || 'intente de nuevo'}`;
     clearTimeout(_saveSuccessTimer);
