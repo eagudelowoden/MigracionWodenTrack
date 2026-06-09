@@ -47,7 +47,9 @@ export class MailService {
 
     try {
       const { registro, excelBuffer } = datos;
-      const fecha = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+      const fecha = new Date().toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+      });
 
       const filaHoras = (label: string, val: number) =>
         val > 0
@@ -96,7 +98,10 @@ export class MailService {
 
       console.log(`📧 Aprobación HX enviada → ${process.env.MAIL_ALERT_TO}`);
     } catch (error) {
-      console.error('📧 Error enviando correo de aprobación HX:', error.message);
+      console.error(
+        '📧 Error enviando correo de aprobación HX:',
+        error.message,
+      );
     }
   }
 
@@ -115,7 +120,9 @@ export class MailService {
     if (!to) return;
     try {
       const { registros, excelBuffer, calculado_por } = datos;
-      const fecha = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+      const fecha = new Date().toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+      });
       const filas = registros
         .map(
           (r) =>
@@ -156,7 +163,7 @@ export class MailService {
       await this.transporter.sendMail({
         from: `"Sistema Asistencias" <${process.env.MAIL_USER}>`,
         to,
-        subject: `✅ Novedades HX aprobadas (${registros.length} registros) — ${fechaArchivo}`,
+        subject: `Horas Extras aprobadas Por:${calculado_por}  — ${fechaArchivo}`,
         html,
         attachments: [
           {

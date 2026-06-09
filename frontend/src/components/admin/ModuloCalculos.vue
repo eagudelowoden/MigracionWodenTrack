@@ -1615,7 +1615,7 @@
               <div class="rounded-lg border-l-4 border-emerald-500 px-4 py-3 mb-4"
                 :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-slate-50'">
                 <p class="text-[12px] font-semibold mb-1" :class="isDark ? 'text-white' : 'text-slate-900'">
-                  ✅ Novedades de horas extra aprobadas
+                  Novedades de horas extra aprobadas
                 </p>
                 <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   {{ registrosANotificar.length }} registro(s) aprobado(s). Ver detalle en el archivo adjunto.
