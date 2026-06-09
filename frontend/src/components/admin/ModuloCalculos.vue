@@ -907,8 +907,24 @@
         </div>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <!-- Overlay procesando aprobación -->
+        <Transition name="fade">
+          <div v-if="bulkGuardandoAprobacion || modalAprobar.loading"
+            class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/80' : 'bg-white/80'" style="backdrop-filter:blur(2px)">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+              :class="isDark ? 'bg-[#3B82F6]/15' : 'bg-blue-50'">
+              <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
+            </div>
+            <p class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">Procesando…</p>
+            <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ bulkGuardandoAprobacion ? 'Aplicando aprobación a los registros seleccionados' : 'Guardando cambios' }}
+            </p>
+          </div>
+        </Transition>
 
         <div v-if="isLoadingGuardados" class="flex-1 flex items-center justify-center">
           <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
@@ -1228,8 +1244,23 @@
         </div>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <!-- Overlay enviando correo -->
+        <Transition name="fade">
+          <div v-if="isNotifying"
+            class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/85' : 'bg-white/85'" style="backdrop-filter:blur(2px)">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500/10">
+              <i class="fas fa-spinner fa-spin text-emerald-500 text-xl"></i>
+            </div>
+            <p class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">Enviando correo…</p>
+            <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              Notificando a Capital Humano, por favor espera
+            </p>
+          </div>
+        </Transition>
 
         <div v-if="isLoadingNovedades" class="flex-1 flex items-center justify-center">
           <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
@@ -1455,7 +1486,7 @@
                 Observación / Justificación grupal
               </p>
               <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Se aplicará a todos los registros de la fecha seleccionada
+                Selecciona fechas y personas, escribe la justificación y aplica
               </p>
             </div>
             <button @click="modalObsGrupal.visible = false"
@@ -1468,40 +1499,80 @@
           <!-- Body -->
           <div class="px-5 py-4 flex flex-col gap-4">
 
-            <!-- Selector de fecha -->
+            <!-- Selector de fechas (multi-select) -->
             <div>
-              <label class="block text-[10px] font-semibold uppercase mb-1.5"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha</label>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[10px] font-semibold uppercase"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  Fechas
+                  <span class="ml-1 font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                    ({{ modalObsGrupal.fechas.size }} seleccionada{{ modalObsGrupal.fechas.size !== 1 ? 's' : '' }})
+                  </span>
+                </label>
+                <button @click="toggleTodasFechasObs"
+                  class="text-[10px] font-medium transition-all"
+                  :class="isDark ? 'text-[#3B82F6] hover:text-blue-300' : 'text-[#3B82F6] hover:text-blue-700'">
+                  {{ modalObsGrupal.fechas.size === fechasUnicasGuardados.length ? 'Deseleccionar todas' : 'Seleccionar todas' }}
+                </button>
+              </div>
               <div class="flex flex-wrap gap-1.5">
-                <button v-for="f in fechasUnicasGuardados" :key="f" @click="modalObsGrupal.fecha = f"
+                <button v-for="f in fechasUnicasGuardados" :key="f" @click="toggleFechaObs(f)"
                   class="px-3 py-1 rounded-[5px] border text-[11px] font-medium transition-all"
-                  :class="modalObsGrupal.fecha === f
+                  :class="modalObsGrupal.fechas.has(f)
                     ? 'bg-[#3B82F6] border-[#3B82F6] text-white'
                     : (isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300 hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300')">
                   {{ formatFecha(f) }}
-                  <span class="ml-1 opacity-60 text-[9px]">
-                    ({{soloFilasGuardados.filter(r => r.fecha === f).length}})
+                  <span class="ml-1 opacity-70 text-[9px]">
+                    ({{ soloFilasGuardados.filter(r => r.fecha === f).length }})
                   </span>
                 </button>
               </div>
             </div>
 
-            <!-- Registros afectados -->
-            <div v-if="modalObsGrupal.fecha">
-              <label class="block text-[10px] font-semibold uppercase mb-1.5"
-                :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                Registros afectados ({{soloFilasGuardados.filter(r => r.fecha === modalObsGrupal.fecha).length}})
-              </label>
-              <div class="rounded-lg border overflow-hidden" :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
-                <div v-for="r in soloFilasGuardados.filter(rr => rr.fecha === modalObsGrupal.fecha)" :key="r.id"
-                  class="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 text-[11px]"
-                  :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <i class="fas fa-user text-[9px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
-                  <span class="font-semibold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">{{
-                    r.nombre }}</span>
-                  <span class="ml-auto text-[9px] shrink-0" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
-                    r.departamento || '—' }}</span>
-                </div>
+            <!-- Registros de las fechas seleccionadas — con checkboxes -->
+            <div v-if="modalObsGrupal.fechas.size">
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[10px] font-semibold uppercase"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  Personas a aplicar
+                  <span class="ml-1 font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                    ({{ modalObsGrupal.seleccionados.size }} / {{ registrosDesFechasObs.length }})
+                  </span>
+                </label>
+                <button @click="toggleTodosObsGrupal"
+                  class="text-[10px] font-medium transition-all"
+                  :class="isDark ? 'text-[#3B82F6] hover:text-blue-300' : 'text-[#3B82F6] hover:text-blue-700'">
+                  {{ modalObsGrupal.seleccionados.size === registrosDesFechasObs.length ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+                </button>
+              </div>
+              <div class="rounded-lg border overflow-hidden max-h-52 overflow-y-auto custom-scrollbar"
+                :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+                <!-- Agrupados por fecha -->
+                <template v-for="f in [...modalObsGrupal.fechas].sort()" :key="f">
+                  <!-- Cabecera de fecha -->
+                  <div class="px-3 py-1 text-[9px] font-semibold uppercase tracking-wide border-b"
+                    :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400'">
+                    {{ formatFecha(f) }}
+                  </div>
+                  <label v-for="r in soloFilasGuardados.filter(rr => rr.fecha === f)" :key="r.id"
+                    class="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 text-[11px] cursor-pointer transition-all"
+                    :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
+                      modalObsGrupal.seleccionados.has(r.id)
+                        ? (isDark ? 'bg-[#3B82F6]/[0.07]' : 'bg-blue-50/70')
+                        : (isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50')]">
+                    <input type="checkbox" :checked="modalObsGrupal.seleccionados.has(r.id)"
+                      @change="toggleObsPersona(r.id)"
+                      class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer flex-shrink-0" />
+                    <span class="font-semibold uppercase truncate" :class="isDark ? 'text-white' : 'text-slate-800'">
+                      {{ r.nombre }}
+                    </span>
+                    <span v-if="r.actividad" class="ml-auto text-[9px] shrink-0 text-emerald-500 font-medium">
+                      <i class="fas fa-check text-[8px]"></i> ya tiene obs.
+                    </span>
+                    <span class="text-[9px] shrink-0"
+                      :class="[isDark ? 'text-slate-500' : 'text-slate-400', r.actividad ? 'ml-1' : 'ml-auto']">{{ r.departamento || '—' }}</span>
+                  </label>
+                </template>
               </div>
             </div>
 
@@ -1527,7 +1598,7 @@
               Cancelar
             </button>
             <button @click="guardarObsGrupal"
-              :disabled="!modalObsGrupal.fecha || !modalObsGrupal.observacion.trim() || modalObsGrupal.loading"
+              :disabled="!modalObsGrupal.fechas.size || !modalObsGrupal.observacion.trim() || modalObsGrupal.loading || !modalObsGrupal.seleccionados.size"
               class="h-8 px-4 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white">
               <i :class="modalObsGrupal.loading ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'"
                 class="text-[10px]"></i>
@@ -2324,9 +2395,10 @@ async function eliminarSeleccionadosGuardados() {
 // ── Modal observación grupal por fecha ───────────────────────────────────────
 const modalObsGrupal = reactive({
   visible: false,
-  fecha: '',           // YYYY-MM-DD
+  fechas: new Set(),      // Set de YYYY-MM-DD seleccionadas
   observacion: '',
   loading: false,
+  seleccionados: new Set(),
 });
 
 /** Fechas únicas presentes en los registros guardados */
@@ -2335,11 +2407,63 @@ const fechasUnicasGuardados = computed(() => {
   return [...set].sort();
 });
 
-function abrirObsGrupal(fecha = '') {
-  modalObsGrupal.fecha = fecha || (fechasUnicasGuardados.value[0] ?? '');
+/** Registros que pertenecen a las fechas seleccionadas en el modal */
+const registrosDesFechasObs = computed(() =>
+  soloFilasGuardados.value.filter(r => modalObsGrupal.fechas.has(r.fecha))
+);
+
+function abrirObsGrupal() {
+  // Pre-seleccionar todas las fechas disponibles
+  modalObsGrupal.fechas = new Set(fechasUnicasGuardados.value);
   modalObsGrupal.observacion = '';
   modalObsGrupal.loading = false;
+  modalObsGrupal.seleccionados = new Set(
+    soloFilasGuardados.value.map(r => r.id)
+  );
   modalObsGrupal.visible = true;
+}
+
+function toggleFechaObs(f) {
+  const s = new Set(modalObsGrupal.fechas);
+  if (s.has(f)) {
+    s.delete(f);
+    // Deseleccionar registros de esa fecha
+    const nuevos = new Set(modalObsGrupal.seleccionados);
+    soloFilasGuardados.value.filter(r => r.fecha === f).forEach(r => nuevos.delete(r.id));
+    modalObsGrupal.seleccionados = nuevos;
+  } else {
+    s.add(f);
+    // Seleccionar todos los registros de esa fecha
+    const nuevos = new Set(modalObsGrupal.seleccionados);
+    soloFilasGuardados.value.filter(r => r.fecha === f).forEach(r => nuevos.add(r.id));
+    modalObsGrupal.seleccionados = nuevos;
+  }
+  modalObsGrupal.fechas = s;
+}
+
+function toggleTodasFechasObs() {
+  if (modalObsGrupal.fechas.size === fechasUnicasGuardados.value.length) {
+    modalObsGrupal.fechas = new Set();
+    modalObsGrupal.seleccionados = new Set();
+  } else {
+    modalObsGrupal.fechas = new Set(fechasUnicasGuardados.value);
+    modalObsGrupal.seleccionados = new Set(soloFilasGuardados.value.map(r => r.id));
+  }
+}
+
+function toggleObsPersona(id) {
+  const s = new Set(modalObsGrupal.seleccionados);
+  s.has(id) ? s.delete(id) : s.add(id);
+  modalObsGrupal.seleccionados = s;
+}
+
+function toggleTodosObsGrupal() {
+  const todos = registrosDesFechasObs.value.map(r => r.id);
+  if (modalObsGrupal.seleccionados.size === todos.length) {
+    modalObsGrupal.seleccionados = new Set();
+  } else {
+    modalObsGrupal.seleccionados = new Set(todos);
+  }
 }
 
 /** Registros que recibirán la observación grupal:
@@ -2356,7 +2480,7 @@ const registrosObsGrupal = computed(() => {
 const haySeleccionActiva = computed(() => selectedGuardados.value.size > 0);
 
 async function guardarObsGrupal() {
-  const ids = registrosObsGrupal.value.map(r => r.id);
+  const ids = [...modalObsGrupal.seleccionados];
   if (!ids.length) return;
   modalObsGrupal.loading = true;
   try {
@@ -2575,4 +2699,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleCargueMenuOutsideClick);
 });
 </script>
-<style></style>
+<style>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
