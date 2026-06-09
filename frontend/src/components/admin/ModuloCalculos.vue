@@ -1587,7 +1587,7 @@
                 <span class="w-14 text-right flex-shrink-0 font-medium"
                   :class="isDark ? 'text-slate-500' : 'text-slate-400'">Asunto:</span>
                 <span class="font-semibold" :class="isDark ? 'text-slate-200' : 'text-slate-700'">
-                  ✅ Novedades HX aprobadas ({{ registrosANotificar.length }} registros) — {{ fechaHoyISO }}
+                  Novedades HX aprobadas {{ calculadoPor }} — {{ fechaHoyISO }}
                 </span>
               </div>
               <div class="flex items-center gap-2 text-[11px]">
