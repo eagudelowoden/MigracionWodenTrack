@@ -1167,7 +1167,7 @@ export class HorasExtraService {
     return this.horaExtraRepo.findOne({ where: { id } });
   }
 
-  async notificarAprobados(registros: any[]): Promise<{ enviado: boolean }> {
+  async notificarAprobados(registros: any[], calculado_por?: string): Promise<{ enviado: boolean }> {
     if (!registros.length) return { enviado: false };
 
     const departamentos = [
@@ -1175,7 +1175,7 @@ export class HorasExtraService {
     ];
     const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
     const excelBuffer   = await this._generarExcelDesdeRegistros(registros);
-    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios });
+    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios, calculado_por });
 
     // Marcar como notificados → pasan al Historial
     const ids = registros.map(r => r.id).filter(Boolean) as number[];

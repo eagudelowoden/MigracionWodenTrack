@@ -158,8 +158,8 @@ export class HorasExtraController {
   }
 
   @Post('notificar-aprobados')
-  notificarAprobados(@Body() body: { registros: any[] }) {
-    return this.service.notificarAprobados(body.registros ?? []);
+  notificarAprobados(@Body() body: { registros: any[]; calculado_por?: string }) {
+    return this.service.notificarAprobados(body.registros ?? [], body.calculado_por);
   }
 
   @Post('guardar-seleccionados')

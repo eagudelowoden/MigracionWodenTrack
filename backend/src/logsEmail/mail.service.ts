@@ -104,6 +104,7 @@ export class MailService {
     registros: any[];
     excelBuffer: Buffer;
     destinatarios?: string[];
+    calculado_por?: string;
   }) {
     // Usar SOLO los destinatarios configurados en la BD.
     // El fallback MAIL_ALERT_TO ya no aplica — si no hay destinatarios configurados
@@ -113,7 +114,7 @@ export class MailService {
       : null;
     if (!to) return;
     try {
-      const { registros, excelBuffer } = datos;
+      const { registros, excelBuffer, calculado_por } = datos;
       const fecha = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
       const filas = registros
         .map(
@@ -145,7 +146,8 @@ export class MailService {
               </thead>
               <tbody>${filas}</tbody>
             </table>
-            <p style="margin:12px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
+            ${calculado_por ? `<p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por}</p>` : ''}
+            <p style="margin:6px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
           </div>
         </div>
       `;
