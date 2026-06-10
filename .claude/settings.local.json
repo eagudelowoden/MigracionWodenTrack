@@ -81,7 +81,15 @@
       "Bash(grep -E \"\\\\.\\(vue|ts|js\\)$\")",
       "Bash(xargs grep -l \"horas-extra\\\\|horasExtra\")",
       "Bash(xargs grep -l \"historial\")",
-      "Bash(xargs grep -l \"horas-extra\\\\|historial\")"
+      "Bash(xargs grep -l \"horas-extra\\\\|historial\")",
+      "Read(//c/Users/Daniel/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/2985e380-e47b-4918-8ed0-bf4370e0ab8f/ed58175c-70b8-4f3c-ac5c-b521cded0265/skills/xlsx/**)",
+      "Bash(python -c ' *)",
+      "Bash(xargs grep -l \"malla\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue)",
+      "PowerShell(Start-Sleep -Seconds 8; $be = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue; $fe = Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue; \"Backend: $\\($be.Count -gt 0\\), Frontend: $\\($fe.Count -gt 0\\)\")",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet64, @{N='WS_MB';E={[math]::Round\\($_.WorkingSet64/1MB,1\\)}}, @{N='CmdSnippet';E={try{\\(Get-CimInstance Win32_Process -Filter \"ProcessId=$\\($_.Id\\)\"\\).CommandLine.Substring\\(0,120\\)}catch{'?'}}} | Format-Table -AutoSize)",
+      "Bash(curl -s http://localhost:3000)"
     ]
   }
 }

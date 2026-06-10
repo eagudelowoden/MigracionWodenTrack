@@ -47,6 +47,27 @@ export class MallasCrudController {
     return this.mallasCrudService.procesarExcelCreacion(file.buffer);
   }
 
+  @Post('upload-excel-crear-asignar')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadExcelCrearAsignar(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: {
+      asignar?: string;
+      asignado_por?: string;
+      fecha_inicio_override?: string;
+      fecha_fin?: string;
+    },
+  ) {
+    if (!file) throw new BadRequestException('No se recibió archivo');
+    return this.mallasCrudService.procesarExcelCreacionYAsignacion(
+      file.buffer,
+      body.asignar === 'true',
+      body.asignado_por,
+      body.fecha_inicio_override || null,
+      body.fecha_fin || null,
+    );
+  }
+
   @Get('reporte-departamento')
   getReporteDepartamento(@Query('departamento') departamento?: string) {
     return this.mallasCrudService.getMallasPorDepartamento(departamento || undefined);

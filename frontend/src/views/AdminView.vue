@@ -214,7 +214,7 @@
                 class="absolute right-0 top-full mt-1.5 w-44 rounded-lg border shadow-lg overflow-hidden z-50"
                 :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-                <button @click="toggleTheme; showUserMenu = false"
+                <button @click="toggleTheme(); showUserMenu = false"
                   class="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-medium transition-colors"
                   :class="isDark
                     ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]'

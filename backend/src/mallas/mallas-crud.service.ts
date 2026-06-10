@@ -438,6 +438,202 @@ export class MallasCrudService {
     return workbook;
   }
 
+  async procesarExcelCreacionYAsignacion(
+    buffer: Buffer,
+    asignar: boolean,
+    asignado_por?: string,
+    fecha_inicio_override?: string | null,
+    fecha_fin?: string | null,
+  ) {
+    const DIA_MAP: Record<string, number> = {
+      lunes: 0, martes: 1, miercoles: 2, miércoles: 2,
+      jueves: 3, viernes: 4, sabado: 5, sábado: 5, domingo: 6,
+    };
+
+    const parseHora = (val: string | undefined): number => {
+      if (!val) return NaN;
+      const clean = val.trim();
+      if (!clean) return NaN;
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        const h = Number(parts[0]);
+        const m = Number(parts[1]) || 0;
+        const suffix = (parts[1] || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
+        if (isNaN(h)) return NaN;
+        if (suffix === 'PM' && h < 12) return h + 12 + m / 60;
+        if (suffix === 'AM' && h === 12) return m / 60;
+        return h + m / 60;
+      }
+      return parseFloat(clean.replace(',', '.'));
+    };
+
+    const parseRango = (rango: string): { horaInicio: number; horaFin: number } | null => {
+      if (!rango || rango === '-') return null;
+      const partes = rango.split(/\s+[-aA]\s+/);
+      if (partes.length < 2) return null;
+      const horaInicio = parseHora(partes[0].trim());
+      const horaFin = parseHora(partes[1].trim());
+      if (isNaN(horaInicio) || isNaN(horaFin)) return null;
+      return { horaInicio, horaFin };
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as any);
+    const ws = workbook.worksheets[0];
+    if (!ws) throw new Error('No se encontró hoja de trabajo');
+
+    const dateToHHMM = (d: Date): string =>
+      `${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+
+    const getCellString = (cell: ExcelJS.Cell): string => {
+      const text = cell.text?.trim();
+      if (text) return text;
+      const val = cell.value;
+      if (typeof val === 'string') return val.trim();
+      if (typeof val === 'number') return String(val);
+      if (val instanceof Date) return dateToHHMM(val);
+      return '';
+    };
+
+    const headerRow = ws.getRow(1);
+    const maxCols = Math.max(ws.columnCount || 0, 10);
+    const headerTexts = new Map<number, string>();
+    for (let c = 1; c <= maxCols; c++) {
+      headerTexts.set(c, getCellString(headerRow.getCell(c)).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim());
+    }
+
+    // Detectar columna de cedula (col 1 si header es "cedula")
+    const cedulaCol = headerTexts.get(1) === 'cedula' ? 1 : null;
+    const turnoCol = cedulaCol ? 2 : 1;
+
+    // Mapear columnas de días
+    const dayColumns = new Map<number, number>();
+    let periodoCol: number | null = null;
+    for (const [c, t] of headerTexts.entries()) {
+      if (c <= turnoCol) continue;
+      const norm = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (norm === 'periodo' || norm === 'period') { periodoCol = c; continue; }
+      if (t in DIA_MAP) dayColumns.set(c, DIA_MAP[t]);
+    }
+
+    const PERIODO_MAP: Record<string, string> = {
+      manana: 'morning', morning: 'morning',
+      tarde: 'afternoon', afternoon: 'afternoon',
+      noche: 'night', night: 'night',
+    };
+
+    const mallasCreadas: string[] = [];
+    const mallasOmitidas: string[] = [];
+    const asignados: { fila: number; cedula: string; nombre: string; malla: string; fecha: string }[] = [];
+    const errores: { fila: number; cedula?: string; error: string }[] = [];
+
+    const fechaInicio = fecha_inicio_override ||
+      new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 10);
+
+    const rows: { row: ExcelJS.Row; rowNumber: number }[] = [];
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      rows.push({ row, rowNumber });
+    });
+
+    for (const { row, rowNumber } of rows) {
+      try {
+        const cedula = cedulaCol ? getCellString(row.getCell(cedulaCol)).trim() : '';
+        const nombre = getCellString(row.getCell(turnoCol)).trim();
+        if (!nombre) continue;
+
+        const periodoFila = periodoCol
+          ? (PERIODO_MAP[getCellString(row.getCell(periodoCol)).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()] || '')
+          : '';
+
+        const detalles: any[] = [];
+        for (const [colIdx, diaSemana] of dayColumns.entries()) {
+          const rangoRaw = getCellString(row.getCell(colIdx)).trim();
+          const descanso = rangoRaw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+          if (!rangoRaw || descanso === 'descanso' || descanso === '-') continue;
+          const parsed = parseRango(rangoRaw);
+          if (!parsed) continue;
+          const periodo = periodoFila ||
+            (parsed.horaInicio < 12 ? 'morning' : parsed.horaInicio < 18 ? 'afternoon' : 'night');
+          detalles.push({ dia_semana: diaSemana, hora_inicio: parsed.horaInicio, hora_fin: parsed.horaFin, periodo });
+        }
+
+        if (!detalles.length) {
+          errores.push({ fila: rowNumber, cedula: cedula || undefined, error: `Fila ${rowNumber} ("${nombre}"): ningún horario válido` });
+          continue;
+        }
+
+        // Crear malla si no existe
+        let malla = await this.mallaRepo.findOne({ where: { nombre }, relations: ['detalles'] });
+        if (!malla) {
+          const created = await this.crear({ nombre, compania: '', detalles });
+          if (!created) {
+            errores.push({ fila: rowNumber, error: `No se pudo crear la malla "${nombre}"` });
+            continue;
+          }
+          malla = created;
+          mallasCreadas.push(nombre);
+        } else {
+          mallasOmitidas.push(nombre);
+        }
+
+        // Asignar si corresponde
+        if (asignar && cedula) {
+          const usuario = await this.usuarioRepo.findOne({
+            where: { identificacion: cedula },
+            select: ['id_odoo', 'nombre'],
+          });
+          if (!usuario) {
+            errores.push({ fila: rowNumber, cedula, error: `Cédula ${cedula} no encontrada en el sistema` });
+            continue;
+          }
+
+          if (fecha_fin) {
+            const temporal = this.asignacionRepo.create({
+              usuario_id_odoo: usuario.id_odoo,
+              malla_id: malla.id,
+              fecha_inicio: fechaInicio,
+              fecha_fin,
+              actual: false,
+              asignado_por: asignado_por || undefined,
+            });
+            await this.asignacionRepo.save(temporal);
+          } else {
+            await this.asignacionRepo
+              .createQueryBuilder()
+              .update()
+              .set({ actual: false, fecha_fin: fechaInicio } as any)
+              .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
+              .execute();
+
+            const nueva = this.asignacionRepo.create({
+              usuario_id_odoo: usuario.id_odoo,
+              malla_id: malla.id,
+              fecha_inicio: fechaInicio,
+              fecha_fin: null,
+              actual: true,
+              asignado_por: asignado_por || undefined,
+            });
+            await this.asignacionRepo.save(nueva);
+          }
+          asignados.push({ fila: rowNumber, cedula, nombre: usuario.nombre, malla: malla.nombre, fecha: fechaInicio });
+        }
+      } catch (e) {
+        errores.push({ fila: rowNumber, error: e.message });
+      }
+    }
+
+    return {
+      success: errores.length === 0,
+      mallasCreadas: mallasCreadas.length,
+      mallasOmitidas: mallasOmitidas.length,
+      asignados: asignados.length,
+      detalleMallas: { creadas: mallasCreadas, omitidas: mallasOmitidas },
+      detalleAsignados: asignados,
+      errors: errores,
+    };
+  }
+
   generarPlantillaExcel() {
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Mallas');
