@@ -308,7 +308,7 @@ const form = ref({
 const TIPIFICACIONES = [
   'Renuncia', 'No remunerado', 'Días compensatorios', 'Horas extra',
   'Día familia', 'Día cumpleaños', 'Incapacidades', 'Citas médicas',
-  'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto',
+  'Calamidad doméstica', 'Licencia maternidad', 'Licencia luto', 'Otros'
 ];
 
 // ─── Multi-file ───────────────────────────────────────────────────────────────
