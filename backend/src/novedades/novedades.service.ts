@@ -1,5 +1,9 @@
 // src/novedades/novedades.service.ts
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -67,9 +71,17 @@ export class NovedadesService {
   }
 
   // ─── Construir subcarpeta por usuario ────────────────────────────────────
-  private buildSubFolder(nombre?: string, cedula?: string, idOdoo?: number): string {
+  private buildSubFolder(
+    nombre?: string,
+    cedula?: string,
+    idOdoo?: number,
+  ): string {
     const sanitize = (s: string) =>
-      s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      s
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .toUpperCase();
     const nombreClean = nombre ? sanitize(nombre) : '';
     if (nombreClean && cedula) return `${nombreClean}${cedula}`;
     if (nombreClean && idOdoo) return `${nombreClean}${idOdoo}`;
@@ -79,7 +91,11 @@ export class NovedadesService {
   }
 
   // ─── Guardar archivo ───────────────────────────────────────────────────────
-  private async saveFile(file: Express.Multer.File, modo: string, subFolder: string) {
+  private async saveFile(
+    file: Express.Multer.File,
+    modo: string,
+    subFolder: string,
+  ) {
     const ext = path.extname(file.originalname);
     const uniqueName = `${uuidv4()}${ext}`;
 
@@ -105,7 +121,8 @@ export class NovedadesService {
 
     // Local: crear subcarpeta si no existe
     const localSubDir = path.join(this.localDir, subFolder);
-    if (!fs.existsSync(localSubDir)) fs.mkdirSync(localSubDir, { recursive: true });
+    if (!fs.existsSync(localSubDir))
+      fs.mkdirSync(localSubDir, { recursive: true });
     fs.writeFileSync(path.join(localSubDir, uniqueName), file.buffer);
     return { storageKey: `${subFolder}/${uniqueName}`, storageMode: 'local' };
   }
@@ -155,7 +172,9 @@ export class NovedadesService {
       renunciaComisiones: dto.renunciaComisiones || null,
       renunciaHorasExtra: dto.renunciaHorasExtra || null,
       renunciaTransporte: dto.renunciaTransporte || null,
-      responsableIdOdoo: dto.responsableIdOdoo ? Number(dto.responsableIdOdoo) : null,
+      responsableIdOdoo: dto.responsableIdOdoo
+        ? Number(dto.responsableIdOdoo)
+        : null,
       responsableNombre: dto.responsableNombre || null,
       responsableCargo: dto.responsableCargo || null,
       creadoPor: dto.creadoPor ? Number(dto.creadoPor) : undefined,
@@ -165,7 +184,11 @@ export class NovedadesService {
 
     // Guardar archivos adjuntos en novedad_archivos
     if (files.length) {
-      const subFolder = this.buildSubFolder(dto.nombre, dto.cedula, dto.creadoPor ? Number(dto.creadoPor) : undefined);
+      const subFolder = this.buildSubFolder(
+        dto.nombre,
+        dto.cedula,
+        dto.creadoPor ? Number(dto.creadoPor) : undefined,
+      );
       await this.saveArchivos(saved.id, files, modoEfectivo, subFolder);
     }
 
@@ -184,8 +207,17 @@ export class NovedadesService {
     for (const f of files) this.validateFileType(f);
 
     const storageFromDb = await this.sistemaConfig.get('storage_mode', 'local');
-    const subFolder = this.buildSubFolder(novedad.nombre, novedad.cedula, novedad.creadoPor ?? undefined);
-    const archivos = await this.saveArchivos(novedadId, files, storageFromDb, subFolder);
+    const subFolder = this.buildSubFolder(
+      novedad.nombre,
+      novedad.cedula,
+      novedad.creadoPor ?? undefined,
+    );
+    const archivos = await this.saveArchivos(
+      novedadId,
+      files,
+      storageFromDb,
+      subFolder,
+    );
     return { success: true, archivos };
   }
 
@@ -197,7 +229,11 @@ export class NovedadesService {
   ): Promise<NovedadArchivo[]> {
     const result: NovedadArchivo[] = [];
     for (const file of files) {
-      const { storageKey, storageMode } = await this.saveFile(file, modo, subFolder);
+      const { storageKey, storageMode } = await this.saveFile(
+        file,
+        modo,
+        subFolder,
+      );
       const archivo = this.archivoRepo.create({
         novedadId,
         nombreOriginal: file.originalname,
@@ -268,7 +304,10 @@ export class NovedadesService {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } else if (this.bucket) {
       await this.s3.send(
-        new DeleteObjectCommand({ Bucket: this.bucket, Key: archivo.storageKey }),
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: archivo.storageKey,
+        }),
       );
     }
 
@@ -278,19 +317,26 @@ export class NovedadesService {
 
   // ─── FIND ALL ──────────────────────────────────────────────────────────────
   async findAll() {
-    const novedades = await this.novedadRepo.find({ order: { createdAt: 'DESC' } });
+    const novedades = await this.novedadRepo.find({
+      order: { createdAt: 'DESC' },
+    });
     if (!novedades.length) return [];
 
     // Enriquecer con departamento y cargo desde usuarios_registrados
-    const nombres = [...new Set(novedades.map((n) => n.nombre).filter(Boolean))];
+    const nombres = [
+      ...new Set(novedades.map((n) => n.nombre).filter(Boolean)),
+    ];
     const escapedNames = nombres
       .map((n) => `'${n.replace(/'/g, "''")}'`)
       .join(', ');
 
-    const usuarios: Array<{ nombre: string; departamento: string; cargo: string }> =
-      await this.dataSource.query(
-        `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
-      );
+    const usuarios: Array<{
+      nombre: string;
+      departamento: string;
+      cargo: string;
+    }> = await this.dataSource.query(
+      `SELECT nombre, departamento, cargo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
+    );
 
     const usuarioMap = new Map(usuarios.map((u) => [u.nombre, u]));
 
@@ -316,8 +362,10 @@ export class NovedadesService {
         departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
         cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
         soporteMime: n.soporteMime || primerArchivo?.mime || null,
-        soporteNombreOriginal: n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
-        tieneArchivos: primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
+        soporteNombreOriginal:
+          n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
+        tieneArchivos:
+          primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
       };
     });
   }
@@ -327,13 +375,21 @@ export class NovedadesService {
   // Así el jefe ve TODAS las novedades de su equipo sin importar cómo
   // se registró la cédula.
   private async novedadesPorCedulas(
-    empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }>,
+    empleados: Array<{
+      cedula: string;
+      nombre: string;
+      departamento: string;
+      cargo: string;
+      idOdoo?: number;
+    }>,
   ) {
     if (!empleados.length) return [];
 
     // Obtener id_odoo y cédulas únicas (filtrando nulos)
     const idOdoos = [
-      ...new Set(empleados.map((e) => e.idOdoo).filter((x): x is number => !!x)),
+      ...new Set(
+        empleados.map((e) => e.idOdoo).filter((x): x is number => !!x),
+      ),
     ];
     const cedulas = [
       ...new Set(empleados.map((e) => e.cedula).filter(Boolean)),
@@ -389,16 +445,23 @@ export class NovedadesService {
         departamento: emp?.departamento ?? null,
         cargo: emp?.cargo ?? null,
         soporteMime: n.soporteMime || primerArchivo?.mime || null,
-        soporteNombreOriginal: n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
-        tieneArchivos: primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
+        soporteNombreOriginal:
+          n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,
+        tieneArchivos:
+          primerArchivoPorNovedad.has(n.id) || !!n.soporteStorageKey,
       };
     });
   }
 
   // ─── ÁREA: solo empleados cuyo area_id pertenece a este responsable ───────
   async findPorAreaResponsable(idOdoo: number) {
-    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
-      await this.dataSource.query(`
+    const empleados: Array<{
+      cedula: string;
+      nombre: string;
+      departamento: string;
+      cargo: string;
+      idOdoo?: number;
+    }> = await this.dataSource.query(`
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
         INNER  JOIN maestro_areas a    ON u.area_id = a.id
@@ -416,8 +479,13 @@ export class NovedadesService {
 
   // ─── SEGMENTO: TODOS los empleados del segmento, sin importar area_id ────
   async findPorSegmentoResponsable(idOdoo: number) {
-    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
-      await this.dataSource.query(`
+    const empleados: Array<{
+      cedula: string;
+      nombre: string;
+      departamento: string;
+      cargo: string;
+      idOdoo?: number;
+    }> = await this.dataSource.query(`
         -- Rama 1: empleados con segmento_id directo en el segmento del responsable
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
@@ -464,13 +532,18 @@ export class NovedadesService {
   // Diferencia vs findPorSegmentoResponsable: NO requiere ser responsable.
   // Solo necesita que el usuario tenga un segmento_id asignado.
   async findPorMiSegmento(idOdoo: number) {
-    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
-      await this.dataSource.query(`
+    const empleados: Array<{
+      cedula: string;
+      nombre: string;
+      departamento: string;
+      cargo: string;
+      idOdoo?: number;
+    }> = await this.dataSource.query(`
         -- Rama 1: empleados con segmento_id igual al segmento del usuario actual
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
         WHERE  u.segmento_id = (
-                 SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo} LIMIT 1
+                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo}
                )
           AND  u.identificacion IS NOT NULL
         UNION
@@ -480,7 +553,7 @@ export class NovedadesService {
         INNER  JOIN maestro_areas a ON u.area_id = a.id
         INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
         WHERE  jefe.segmento_id = (
-                 SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo} LIMIT 1
+                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo}
                )
           AND  u.identificacion IS NOT NULL
         UNION
@@ -501,8 +574,13 @@ export class NovedadesService {
       .map((d) => `'${d.replace(/'/g, "''")}'`)
       .join(', ');
 
-    const empleados: Array<{ cedula: string; nombre: string; departamento: string; cargo: string; idOdoo?: number }> =
-      await this.dataSource.query(`
+    const empleados: Array<{
+      cedula: string;
+      nombre: string;
+      departamento: string;
+      cargo: string;
+      idOdoo?: number;
+    }> = await this.dataSource.query(`
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
         WHERE  departamento IN (${escapedDeptos})
@@ -575,15 +653,25 @@ export class NovedadesService {
     // Mantener fileUrl legacy (por compatibilidad con vistas antiguas)
     let fileUrl: string | null = null;
     if (novedad.soporteStorageKey) {
-      fileUrl = await this.resolveUrl(novedad.soporteStorageKey, novedad.soporteStorageMode);
+      fileUrl = await this.resolveUrl(
+        novedad.soporteStorageKey,
+        novedad.soporteStorageMode,
+      );
     }
 
     // Rellenar mime desde primer archivo si la entidad no tiene (nuevo sistema)
     const primerArchivo = archivos[0] as any;
     const soporteMime = novedad.soporteMime || primerArchivo?.mime || null;
-    const soporteNombreOriginal = novedad.soporteNombreOriginal || primerArchivo?.nombreOriginal || null;
+    const soporteNombreOriginal =
+      novedad.soporteNombreOriginal || primerArchivo?.nombreOriginal || null;
 
-    return { ...novedad, soporteMime, soporteNombreOriginal, fileUrl, archivos };
+    return {
+      ...novedad,
+      soporteMime,
+      soporteNombreOriginal,
+      fileUrl,
+      archivos,
+    };
   }
 
   // ─── STREAM FILE ──────────────────────────────────────────────────────────
@@ -614,7 +702,10 @@ export class NovedadesService {
         throw new NotFoundException('Archivo no encontrado en disco.');
 
       res.setHeader('Content-Type', archivo.mime || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(archivo.nombreOriginal)}"`);
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${encodeURIComponent(archivo.nombreOriginal)}"`,
+      );
       return fs.createReadStream(filePath).pipe(res);
     }
 
@@ -628,17 +719,19 @@ export class NovedadesService {
     if (!fs.existsSync(filePath))
       throw new NotFoundException('Archivo no encontrado en disco.');
 
-    res.setHeader('Content-Type', novedad.soporteMime || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(novedad.soporteNombreOriginal)}"`);
+    res.setHeader(
+      'Content-Type',
+      novedad.soporteMime || 'application/octet-stream',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(novedad.soporteNombreOriginal)}"`,
+    );
     fs.createReadStream(filePath).pipe(res);
   }
 
   // ─── DELETE (soft delete + auditoría) ────────────────────────────────────
-  async remove(
-    id: number,
-    eliminadoPor?: number,
-    eliminadoPorNombre?: string,
-  ) {
+  async remove(id: number, eliminadoPor?: number, eliminadoPorNombre?: string) {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
 
@@ -664,7 +757,12 @@ export class NovedadesService {
         const fp = path.join(this.localDir, archivo.storageKey);
         if (fs.existsSync(fp)) fs.unlinkSync(fp);
       } else if (archivo.storageMode === 's3' && this.bucket) {
-        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: archivo.storageKey }));
+        await this.s3.send(
+          new DeleteObjectCommand({
+            Bucket: this.bucket,
+            Key: archivo.storageKey,
+          }),
+        );
       }
       await this.archivoRepo.delete(archivo.id);
     }
@@ -678,7 +776,13 @@ export class NovedadesService {
     await this.novedadRepo.softDelete(id);
     return { success: true, message: 'Novedad eliminada.' };
   }
-  async aprobarJefe(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string, notificar: boolean = true) {
+  async aprobarJefe(
+    id: number,
+    aprobado: number,
+    motivo: string,
+    aprobadoPorNombre?: string,
+    notificar: boolean = true,
+  ) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
@@ -689,10 +793,19 @@ export class NovedadesService {
     const saved = await this.novedadRepo.save(novedad);
 
     // Enviar correo solo si el usuario lo solicitó
-    let correo = { ok: false, mensaje: 'Notificación no enviada (desactivada)' };
+    let correo = {
+      ok: false,
+      mensaje: 'Notificación no enviada (desactivada)',
+    };
     if (notificar) {
       try {
-        const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Coordinador', aprobado, motivo, 'jefe');
+        const payload = await this.buildCorreoPayload(
+          novedad,
+          aprobadoPorNombre || 'Coordinador',
+          aprobado,
+          motivo,
+          'jefe',
+        );
         correo = await this.correoService.enviarAprobacionNovedad(payload);
       } catch (e) {
         correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
@@ -702,7 +815,12 @@ export class NovedadesService {
     return { ...saved, correo };
   }
 
-  async aprobarRrhh(id: number, aprobado: number, motivo: string, aprobadoPorNombre?: string) {
+  async aprobarRrhh(
+    id: number,
+    aprobado: number,
+    motivo: string,
+    aprobadoPorNombre?: string,
+  ) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
@@ -715,7 +833,13 @@ export class NovedadesService {
     // Enviar correo y devolver resultado
     let correo = { ok: false, mensaje: 'Correo no enviado' };
     try {
-      const payload = await this.buildCorreoPayload(novedad, aprobadoPorNombre || 'Capital Humano', aprobado, motivo, 'rrhh');
+      const payload = await this.buildCorreoPayload(
+        novedad,
+        aprobadoPorNombre || 'Capital Humano',
+        aprobado,
+        motivo,
+        'rrhh',
+      );
       correo = await this.correoService.enviarAprobacionNovedad(payload);
     } catch (e) {
       correo = { ok: false, mensaje: e?.message || 'Error al enviar correo' };
@@ -724,18 +848,29 @@ export class NovedadesService {
     return { ...saved, correo };
   }
 
-  async reenviarCorreo(id: number, rol: 'jefe' | 'rrhh', reenviadoPorNombre?: string) {
+  async reenviarCorreo(
+    id: number,
+    rol: 'jefe' | 'rrhh',
+    reenviadoPorNombre?: string,
+  ) {
     const novedad = await this.novedadRepo.findOne({ where: { id } });
     if (!novedad) throw new Error('Novedad no encontrada');
 
-    const aprobado = rol === 'jefe' ? novedad.aprobadoJefe : novedad.aprobadoRrhh;
-    const motivo   = rol === 'jefe' ? novedad.motivoJefe   : novedad.motivoRrhh;
+    const aprobado =
+      rol === 'jefe' ? novedad.aprobadoJefe : novedad.aprobadoRrhh;
+    const motivo = rol === 'jefe' ? novedad.motivoJefe : novedad.motivoRrhh;
     if (aprobado === null || aprobado === undefined) {
       return { ok: false, mensaje: 'La novedad aún no ha sido procesada' };
     }
 
     try {
-      const payload = await this.buildCorreoPayload(novedad, reenviadoPorNombre || 'Sistema', aprobado, motivo || '', rol);
+      const payload = await this.buildCorreoPayload(
+        novedad,
+        reenviadoPorNombre || 'Sistema',
+        aprobado,
+        motivo || '',
+        rol,
+      );
       return await this.correoService.enviarAprobacionNovedad(payload);
     } catch (e) {
       return { ok: false, mensaje: e?.message || 'Error al reenviar correo' };
@@ -750,10 +885,16 @@ export class NovedadesService {
     rol: 'jefe' | 'rrhh',
   ) {
     // Buscar primer archivo adjunto
-    const archivos = await this.archivoRepo.find({ where: { novedadId: novedad.id }, order: { id: 'ASC' }, take: 1 });
+    const archivos = await this.archivoRepo.find({
+      where: { novedadId: novedad.id },
+      order: { id: 'ASC' },
+      take: 1,
+    });
     const archivo = archivos[0];
 
-    let attachment: { filename: string; content: Buffer; contentType: string } | undefined;
+    let attachment:
+      | { filename: string; content: Buffer; contentType: string }
+      | undefined;
     if (archivo && archivo.storageMode === 'local') {
       const filePath = path.join(this.localDir, archivo.storageKey);
       if (fs.existsSync(filePath)) {
@@ -773,7 +914,9 @@ export class NovedadesService {
       fechaInicio: novedad.fechaInicio || undefined,
       fechaFin: novedad.fechaFin || undefined,
       aprobadoPor,
-      decision: (aprobado === 1 ? 'aprobado' : 'rechazado') as 'aprobado' | 'rechazado',
+      decision: (aprobado === 1 ? 'aprobado' : 'rechazado') as
+        | 'aprobado'
+        | 'rechazado',
       motivo: motivo || undefined,
       rol,
       attachment,
@@ -781,18 +924,25 @@ export class NovedadesService {
   }
 
   // ─── PATCH campos liquidación Renuncia ───────────────────────────
-  async actualizarRenuncia(id: number, data: {
-    renunciaDescuento?: string | null;
-    renunciaComisiones?: string | null;
-    renunciaHorasExtra?: string | null;
-    renunciaTransporte?: string | null;
-  }) {
+  async actualizarRenuncia(
+    id: number,
+    data: {
+      renunciaDescuento?: string | null;
+      renunciaComisiones?: string | null;
+      renunciaHorasExtra?: string | null;
+      renunciaTransporte?: string | null;
+    },
+  ) {
     const novedad = await this.novedadRepo.findOneBy({ id });
     if (!novedad) throw new NotFoundException('Novedad no encontrada.');
-    if (data.renunciaDescuento !== undefined) novedad.renunciaDescuento = data.renunciaDescuento ?? null;
-    if (data.renunciaComisiones !== undefined) novedad.renunciaComisiones = data.renunciaComisiones ?? null;
-    if (data.renunciaHorasExtra !== undefined) novedad.renunciaHorasExtra = data.renunciaHorasExtra ?? null;
-    if (data.renunciaTransporte !== undefined) novedad.renunciaTransporte = data.renunciaTransporte ?? null;
+    if (data.renunciaDescuento !== undefined)
+      novedad.renunciaDescuento = data.renunciaDescuento ?? null;
+    if (data.renunciaComisiones !== undefined)
+      novedad.renunciaComisiones = data.renunciaComisiones ?? null;
+    if (data.renunciaHorasExtra !== undefined)
+      novedad.renunciaHorasExtra = data.renunciaHorasExtra ?? null;
+    if (data.renunciaTransporte !== undefined)
+      novedad.renunciaTransporte = data.renunciaTransporte ?? null;
     await this.novedadRepo.save(novedad);
     return { success: true };
   }
@@ -830,7 +980,10 @@ export class NovedadesService {
   ): Promise<NovedadEstadoCh> {
     // Unicidad dentro del mismo tipo
     const existe = await this.estadoChRepo.findOneBy({ nombre, tipo });
-    if (existe) throw new ConflictException(`La carpeta "${nombre}" ya existe en este módulo.`);
+    if (existe)
+      throw new ConflictException(
+        `La carpeta "${nombre}" ya existe en este módulo.`,
+      );
     const totalActual = await this.estadoChRepo.count({ where: { tipo } });
     const estado = this.estadoChRepo.create({
       nombre,
@@ -856,25 +1009,35 @@ export class NovedadesService {
 
     // Verificar que el nuevo nombre no choque con otro del mismo tipo
     if (nombre !== oldNombre) {
-      const choque = await this.estadoChRepo.findOneBy({ nombre, tipo: estado.tipo });
-      if (choque) throw new ConflictException(`La carpeta "${nombre}" ya existe en este módulo.`);
+      const choque = await this.estadoChRepo.findOneBy({
+        nombre,
+        tipo: estado.tipo,
+      });
+      if (choque)
+        throw new ConflictException(
+          `La carpeta "${nombre}" ya existe en este módulo.`,
+        );
     }
 
     estado.nombre = nombre;
-    estado.icono  = icono  || 'fas fa-folder';
-    estado.color  = color  || '#6b7280';
+    estado.icono = icono || 'fas fa-folder';
+    estado.color = color || '#6b7280';
     const saved = await this.estadoChRepo.save(estado);
 
     // Si cambió el nombre, propagar a las novedades que tenían el nombre viejo
     if (oldNombre !== nombre) {
       if (estado.tipo === 'coordinador') {
-        await this.novedadRepo.createQueryBuilder()
-          .update(Novedad).set({ estadoChCoord: nombre })
+        await this.novedadRepo
+          .createQueryBuilder()
+          .update(Novedad)
+          .set({ estadoChCoord: nombre })
           .where('estado_ch_coord = :old', { old: oldNombre })
           .execute();
       } else {
-        await this.novedadRepo.createQueryBuilder()
-          .update(Novedad).set({ estadoCh: nombre })
+        await this.novedadRepo
+          .createQueryBuilder()
+          .update(Novedad)
+          .set({ estadoCh: nombre })
           .where('estado_ch = :old', { old: oldNombre })
           .execute();
       }
@@ -889,13 +1052,17 @@ export class NovedadesService {
     if (!estado) throw new NotFoundException('Carpeta no encontrada.');
 
     if (estado.tipo === 'coordinador') {
-      await this.novedadRepo.createQueryBuilder()
-        .update(Novedad).set({ estadoChCoord: null })
+      await this.novedadRepo
+        .createQueryBuilder()
+        .update(Novedad)
+        .set({ estadoChCoord: null })
         .where('estado_ch_coord = :nombre', { nombre: estado.nombre })
         .execute();
     } else {
-      await this.novedadRepo.createQueryBuilder()
-        .update(Novedad).set({ estadoCh: null })
+      await this.novedadRepo
+        .createQueryBuilder()
+        .update(Novedad)
+        .set({ estadoCh: null })
         .where('estado_ch = :nombre', { nombre: estado.nombre })
         .execute();
     }
