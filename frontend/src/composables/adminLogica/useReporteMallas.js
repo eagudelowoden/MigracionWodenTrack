@@ -700,6 +700,13 @@ export function useReporteMallas() {
     novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => n.id !== id);
   }
 
+  async function eliminarRegistros(ids) {
+    await Promise.all(ids.map(id => axios.delete(`${API_BASE_URL}/horas-extra/${id}`)));
+    const set = new Set(ids);
+    registrosGuardados.value = registrosGuardados.value.filter((r) => !set.has(r.id));
+    novedadesAprobadas.value = novedadesAprobadas.value.filter((n) => !set.has(n.id));
+  }
+
   async function deshacerAprobacion(id) {
     await axios.patch(`${API_BASE_URL}/horas-extra/aprobar/${id}`, {
       aprobado: null,
@@ -812,6 +819,7 @@ export function useReporteMallas() {
     filasPaginadasGuardados,
     cargarGuardados,
     eliminarRegistro,
+    eliminarRegistros,
     deshacerAprobacion,
 
     // Acciones

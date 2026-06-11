@@ -240,16 +240,43 @@
 
         <!-- Overlay de carga centrado -->
         <Transition name="fade-chip">
-          <div v-if="isLoading || isCalculating"
-            class="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-md"
-            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter: blur(2px);">
-            <div class="loading-ring">
-              <div></div><div></div><div></div><div></div>
-            </div>
-            <span class="text-[11px] font-medium tracking-wide"
-              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              {{ isCalculating ? 'Calculando…' : 'Cargando registros…' }}
-            </span>
+          <div v-if="isLoading || isCalculating || isSaving || saveSuccessMsg"
+            class="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/80' : 'bg-white/80'" style="backdrop-filter:blur(3px)">
+
+            <!-- Guardando -->
+            <template v-if="isSaving">
+              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+              <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Guardando registros…</span>
+            </template>
+
+            <!-- Resultado guardado -->
+            <template v-else-if="saveSuccessMsg">
+              <div class="flex flex-col items-center gap-2">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full"
+                  :class="saveSuccessMsg.startsWith('❌') ? 'bg-red-500/15' : saveSuccessMsg.startsWith('⚠') ? 'bg-amber-500/15' : 'bg-emerald-500/15'">
+                  <i v-if="saveSuccessMsg.startsWith('❌')" class="fas fa-xmark text-[22px] text-red-500"></i>
+                  <i v-else-if="saveSuccessMsg.startsWith('⚠')" class="fas fa-triangle-exclamation text-[20px] text-amber-500"></i>
+                  <i v-else class="fas fa-check text-[22px] text-emerald-500 save-check-anim"></i>
+                </div>
+                <p class="text-[13px] font-bold"
+                  :class="saveSuccessMsg.startsWith('❌') ? (isDark ? 'text-red-400' : 'text-red-600') : saveSuccessMsg.startsWith('⚠') ? (isDark ? 'text-amber-400' : 'text-amber-600') : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
+                  {{ saveSuccessMsg.startsWith('✅') ? 'Guardado exitosamente' : saveSuccessMsg.startsWith('⚠') ? 'Guardado con advertencias' : 'Error al guardar' }}
+                </p>
+                <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  {{ saveSuccessMsg.replace(/^[✅⚠️❌]\s*/, '') }}
+                </p>
+              </div>
+            </template>
+
+            <!-- Cargando / Calculando -->
+            <template v-else>
+              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+              <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ isCalculating ? 'Calculando…' : 'Cargando registros…' }}
+              </span>
+            </template>
+
           </div>
         </Transition>
 
@@ -916,13 +943,47 @@
 
         <!-- Overlay carga / procesando -->
         <Transition name="fade-chip">
-          <div v-if="isLoadingGuardados || bulkGuardandoAprobacion || modalAprobar.loading"
-            class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
-            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
-            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-            <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              {{ bulkGuardandoAprobacion ? 'Aplicando aprobación…' : modalAprobar.loading ? 'Guardando cambios…' : 'Cargando registros…' }}
-            </span>
+          <div v-if="isLoadingGuardados || bulkGuardandoAprobacion || modalAprobar.loading || bulkEliminandoGuardados || deleteToastMsg"
+            class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/80' : 'bg-white/80'" style="backdrop-filter:blur(3px)">
+
+            <!-- Estado: eliminando -->
+            <template v-if="bulkEliminandoGuardados">
+              <div class="loading-ring">
+                <div style="border-top-color:#ef4444"></div>
+                <div style="border-top-color:#f87171;opacity:.6"></div>
+                <div style="border-top-color:#fca5a5;opacity:.35"></div>
+                <div style="border-top-color:#fecaca;opacity:.15"></div>
+              </div>
+              <span class="text-[12px] font-semibold" :class="isDark ? 'text-red-400' : 'text-red-600'">Eliminando registros…</span>
+            </template>
+
+            <!-- Estado: resultado de eliminación -->
+            <template v-else-if="deleteToastMsg">
+              <div class="flex flex-col items-center gap-2">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full"
+                  :class="deleteToastMsg.startsWith('❌') ? 'bg-red-500/15' : 'bg-emerald-500/15'">
+                  <i v-if="deleteToastMsg.startsWith('❌')" class="fas fa-xmark text-[22px] text-red-500"></i>
+                  <i v-else class="fas fa-trash-can text-[20px] text-emerald-500 save-check-anim"></i>
+                </div>
+                <p class="text-[13px] font-bold"
+                  :class="deleteToastMsg.startsWith('❌') ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
+                  {{ deleteToastMsg.startsWith('❌') ? 'Error al eliminar' : 'Eliminado exitosamente' }}
+                </p>
+                <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  {{ deleteToastMsg.replace(/^[✅❌]\s*/, '') }}
+                </p>
+              </div>
+            </template>
+
+            <!-- Estado: otras operaciones -->
+            <template v-else>
+              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+              <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                {{ bulkGuardandoAprobacion ? 'Aplicando aprobación…' : modalAprobar.loading ? 'Guardando cambios…' : 'Cargando registros…' }}
+              </span>
+            </template>
+
           </div>
         </Transition>
 
@@ -1481,7 +1542,7 @@
     <Teleport to="body">
       <div v-if="modalObsGrupal.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="background:rgba(0,0,0,0.55)" @click.self="modalObsGrupal.visible = false">
-        <div class="w-full max-w-md rounded-xl border shadow-2xl"
+        <div class="w-full max-w-md rounded-xl border shadow-2xl relative overflow-hidden"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
           <!-- Header -->
@@ -1598,6 +1659,37 @@
             </div>
           </div>
 
+          <!-- Overlay resultado dentro del modal -->
+          <Transition name="fade-chip">
+            <div v-if="modalObsGrupal.loading || modalObsGrupal.resultMsg"
+              class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-xl"
+              :class="isDark ? 'bg-[#161B26]/90' : 'bg-white/90'" style="backdrop-filter:blur(3px)">
+
+              <template v-if="modalObsGrupal.loading">
+                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+                <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Aplicando justificación…</span>
+              </template>
+
+              <template v-else-if="modalObsGrupal.resultMsg">
+                <div class="flex flex-col items-center gap-2">
+                  <div class="flex items-center justify-center w-12 h-12 rounded-full"
+                    :class="modalObsGrupal.resultMsg.startsWith('❌') ? 'bg-red-500/15' : 'bg-emerald-500/15'">
+                    <i v-if="modalObsGrupal.resultMsg.startsWith('❌')" class="fas fa-xmark text-[22px] text-red-500"></i>
+                    <i v-else class="fas fa-check text-[22px] text-emerald-500 save-check-anim"></i>
+                  </div>
+                  <p class="text-[13px] font-bold"
+                    :class="modalObsGrupal.resultMsg.startsWith('❌') ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
+                    {{ modalObsGrupal.resultMsg.startsWith('❌') ? 'Error al aplicar' : 'Aplicado exitosamente' }}
+                  </p>
+                  <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                    {{ modalObsGrupal.resultMsg.replace(/^[✅❌]\s*/, '') }}
+                  </p>
+                </div>
+              </template>
+
+            </div>
+          </Transition>
+
           <!-- Footer -->
           <div class="flex items-center justify-end gap-2 px-5 py-4 border-t"
             :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
@@ -1609,9 +1701,8 @@
             <button @click="guardarObsGrupal"
               :disabled="!modalObsGrupal.fechas.size || !modalObsGrupal.observacion.trim() || modalObsGrupal.loading || !modalObsGrupal.seleccionados.size"
               class="h-8 px-4 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white">
-              <i :class="modalObsGrupal.loading ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'"
-                class="text-[10px]"></i>
-              {{ modalObsGrupal.loading ? 'Guardando…' : 'Aplicar a todos' }}
+              <i class="fas fa-floppy-disk text-[10px]"></i>
+              Aplicar a todos
             </button>
           </div>
 
@@ -1992,6 +2083,7 @@
     />
     <!-- ══ FIN MODAL COMPARATIVO CARGUE ══════════════════════════════════════ -->
 
+
     <!-- ══ TOAST JUSTIFICACIÓN REQUERIDA ════════════════════════════════════ -->
     <Transition name="toast-slide">
       <div v-if="toastJustificacion.visible"
@@ -2104,42 +2196,6 @@
 
   </div>
 
-  <!-- ══ TOAST NOTIFICACIÓN ══════════════════════════════════════════════════ -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-95" leave-active-class="transition-all duration-200 ease-in"
-      leave-to-class="opacity-0 translate-y-2 scale-95">
-      <div v-if="saveSuccessMsg"
-        class="fixed bottom-5 right-5 z-[9999] flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border max-w-sm w-full pointer-events-auto"
-        :class="saveSuccessMsg.startsWith('❌')
-          ? (isDark ? 'bg-[#1a0a0a] border-red-500/30 text-red-400' : 'bg-white border-red-200 text-red-700')
-          : saveSuccessMsg.startsWith('⚠')
-            ? (isDark ? 'bg-[#1a1500] border-amber-500/30 text-amber-400' : 'bg-white border-amber-200 text-amber-700')
-            : (isDark ? 'bg-[#0a1a0a] border-emerald-500/30 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-700')">
-
-        <!-- Ícono -->
-        <div class="shrink-0 mt-0.5">
-          <i v-if="saveSuccessMsg.startsWith('❌')" class="fas fa-circle-xmark text-base text-red-500"></i>
-          <i v-else-if="saveSuccessMsg.startsWith('⚠')"
-            class="fas fa-triangle-exclamation text-base text-amber-500"></i>
-          <i v-else class="fas fa-circle-check text-base text-emerald-500"></i>
-        </div>
-
-        <!-- Texto -->
-        <div class="flex-1 min-w-0">
-          <p class="text-[11px] font-semibold leading-snug">
-            {{ saveSuccessMsg.replace(/^[✅⚠️❌]\s*/, '') }}
-          </p>
-        </div>
-
-        <!-- Cerrar -->
-        <button @click="saveSuccessMsg = ''" class="shrink-0 opacity-40 hover:opacity-100 transition-opacity ml-1">
-          <i class="fas fa-xmark text-[10px]"></i>
-        </button>
-
-      </div>
-    </Transition>
-  </Teleport>
 
 </template>
 
@@ -2221,6 +2277,7 @@ const {
   filasPaginadasGuardados,
   cargarGuardados,
   eliminarRegistro,
+  eliminarRegistros,
   deshacerAprobacion,
   isNotifying,
   notificarAprobados,
@@ -2508,9 +2565,7 @@ async function aprobarSeleccionadosGuardados(aprobado) {
 
   bulkGuardandoAprobacion.value = true;
   try {
-    for (const id of ids) {
-      await aprobarRegistro(id, aprobado, '');
-    }
+    await Promise.all(ids.map(id => aprobarRegistro(id, aprobado, '')));
     clearSeleccionGuardados();
     await cargarGuardados(props.company);
   } catch { /* silencioso */ } finally {
@@ -2520,28 +2575,37 @@ async function aprobarSeleccionadosGuardados(aprobado) {
 
 // Eliminar todos los seleccionados
 const bulkEliminandoGuardados = ref(false);
+const deleteToastMsg = ref('');
+let _deleteToastTimer = null;
+
 async function eliminarSeleccionadosGuardados() {
   const ids = [...selectedGuardados.value];
   if (!ids.length) return;
   bulkEliminandoGuardados.value = true;
+  deleteToastMsg.value = '';
   try {
-    for (const id of ids) {
-      await eliminarRegistro(id);
-    }
+    await eliminarRegistros(ids);
     clearSeleccionGuardados();
-  } catch { /* silencioso */ } finally {
+    deleteToastMsg.value = `✅ ${ids.length} registro(s) eliminado(s) correctamente`;
+  } catch {
+    deleteToastMsg.value = `❌ Error al eliminar los registros`;
+  } finally {
     bulkEliminandoGuardados.value = false;
+    clearTimeout(_deleteToastTimer);
+    _deleteToastTimer = setTimeout(() => { deleteToastMsg.value = ''; }, 5000);
   }
 }
 
 // ── Modal observación grupal por fecha ───────────────────────────────────────
 const modalObsGrupal = reactive({
   visible: false,
-  fechas: new Set(),      // Set de YYYY-MM-DD seleccionadas
+  fechas: new Set(),
   observacion: '',
   loading: false,
   seleccionados: new Set(),
+  resultMsg: '',
 });
+let _obsGrupalTimer = null;
 
 /** Fechas únicas presentes en los registros guardados */
 const fechasUnicasGuardados = computed(() => {
@@ -2625,13 +2689,17 @@ async function guardarObsGrupal() {
   const ids = [...modalObsGrupal.seleccionados];
   if (!ids.length) return;
   modalObsGrupal.loading = true;
+  modalObsGrupal.resultMsg = '';
+  clearTimeout(_obsGrupalTimer);
   try {
-    for (const id of ids) {
-      await actualizarActividad(id, modalObsGrupal.observacion);
-    }
-    modalObsGrupal.visible = false;
+    await Promise.all(ids.map(id => actualizarActividad(id, modalObsGrupal.observacion)));
     await cargarGuardados(props.company);
-  } catch { /* silencioso */ } finally {
+    modalObsGrupal.resultMsg = `✅ ${ids.length} registro(s) actualizados correctamente`;
+    _obsGrupalTimer = setTimeout(() => { modalObsGrupal.visible = false; modalObsGrupal.resultMsg = ''; }, 2000);
+  } catch {
+    modalObsGrupal.resultMsg = `❌ Error al aplicar la justificación`;
+    _obsGrupalTimer = setTimeout(() => { modalObsGrupal.resultMsg = ''; }, 4000);
+  } finally {
     modalObsGrupal.loading = false;
   }
 }
@@ -2893,6 +2961,20 @@ onUnmounted(() => {
 .fade-chip-enter-active { transition: opacity 0.15s ease; }
 .fade-chip-leave-active { transition: opacity 0.2s ease; }
 .fade-chip-enter-from, .fade-chip-leave-to { opacity: 0; }
+
+/* Toast guardar — cae desde arriba */
+.save-toast-enter-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.save-toast-leave-active { transition: all 0.2s ease; }
+.save-toast-enter-from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.95); }
+.save-toast-leave-to   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.97); }
+
+/* Check animado al guardar */
+@keyframes check-pop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.save-check-anim { animation: check-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Spinner ring */
 .loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }

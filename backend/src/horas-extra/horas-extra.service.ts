@@ -1125,17 +1125,18 @@ export class HorasExtraService {
     id: number,
     aprobado: boolean | null,
     observacion?: string,
-  ): Promise<HoraExtra | null> {
-    // Bloquear aprobación si hay horas extra sin justificación (actividad)
+  ): Promise<void> {
     if (aprobado === true) {
-      const reg = await this.horaExtraRepo.findOne({ where: { id } });
+      const reg = await this.horaExtraRepo
+        .createQueryBuilder('h')
+        .select(['h.hedo', 'h.heno', 'h.hefd', 'h.hefn', 'h.actividad'])
+        .where('h.id = :id', { id })
+        .getOne();
       if (reg) {
-        // Solo exigir justificación cuando los extras suman >= 0.5h (30 min)
         const totalExtras =
           Number(reg.hedo) + Number(reg.heno) +
           Number(reg.hefd) + Number(reg.hefn);
-        const tieneExtras = totalExtras >= 0.5;
-        if (tieneExtras && !reg.actividad?.trim()) {
+        if (totalExtras >= 0.5 && !reg.actividad?.trim()) {
           throw new Error(
             'ACTIVIDAD_REQUERIDA: Este registro tiene horas extra sin justificación. Agrega una actividad antes de aprobar.',
           );
@@ -1143,7 +1144,6 @@ export class HorasExtraService {
       }
     }
     await this.horaExtraRepo.update(id, { aprobado, observacion: observacion ?? null });
-    return this.horaExtraRepo.findOne({ where: { id } });
   }
 
   async actualizarActividad(id: number, actividad: string): Promise<HoraExtra | null> {
