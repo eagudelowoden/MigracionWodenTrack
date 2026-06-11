@@ -82,6 +82,7 @@
         <button @click="handleLogin" :disabled="loading"
           class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed shadow-md shadow-blue-600/10 dark:shadow-none">
           <template v-if="!loading">
+            <i class="fas fa-arrow-right-to-bracket text-[12px]"></i>
             <span>Continuar</span>
           </template>
           <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

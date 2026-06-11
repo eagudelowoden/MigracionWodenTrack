@@ -22,17 +22,28 @@
               : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
             <i class="fas fa-layer-group mr-1 text-[9px]"></i>Por lote
           </button>
-          <button @click="vista = 'detalle'"
+          <button @click="vista = 'historial'"
             class="px-2.5 h-6 rounded-[4px] text-[10px] font-medium transition-all"
-            :class="vista === 'detalle'
+            :class="vista === 'historial'
               ? (isDark ? 'bg-[#161B26] text-white' : 'bg-white text-slate-900 shadow-sm')
               : (isDark ? 'text-[#888888] hover:text-white' : 'text-slate-500 hover:text-slate-800')">
-            <i class="fas fa-list mr-1 text-[9px]"></i>Detalle
+            <i class="fas fa-history mr-1 text-[9px]"></i>Historial
           </button>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
+        <!-- Notificar seleccionados (solo si hay lotes seleccionados) -->
+        <button v-if="lotesSeleccionados.size > 0"
+          @click="handleNotificarSeleccionados"
+          :disabled="notificandoMasivo"
+          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[10px] font-medium transition-all disabled:opacity-40"
+          :class="isDark
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'">
+          <i :class="notificandoMasivo ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
+          {{ notificandoMasivo ? 'Enviando…' : `Notificar (${lotesSeleccionados.size})` }}
+        </button>
         <!-- Rango fechas -->
         <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border"
           :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'">
@@ -74,6 +85,13 @@
         <table class="w-full border-separate border-spacing-0 text-[11px]">
           <thead class="sticky top-0 z-10">
             <tr class="bg-[#1e2538]">
+              <!-- Checkbox seleccionar todos -->
+              <th class="w-9 px-3 py-2.5 border-b border-[#2a3245]">
+                <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
+                  :checked="lotes.length > 0 && lotesSeleccionados.size === lotes.length"
+                  :indeterminate="lotesSeleccionados.size > 0 && lotesSeleccionados.size < lotes.length"
+                  @change="toggleSelectAll" />
+              </th>
               <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Período</th>
               <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Origen</th>
               <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Registros</th>
@@ -84,8 +102,19 @@
           </thead>
           <tbody>
             <tr v-for="(lote, idx) in lotes" :key="lote.lote_id"
-              class="transition-colors"
-              :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : ''">
+              class="transition-colors cursor-pointer"
+              :class="[
+                lotesSeleccionados.has(lote.lote_id) ? (isDark ? 'bg-blue-500/[0.07]' : 'bg-blue-50/60') : (idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : ''),
+              ]"
+              @click.exact="toggleLote(lote.lote_id)">
+
+              <!-- Checkbox -->
+              <td class="w-9 px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
+                  :checked="lotesSeleccionados.has(lote.lote_id)"
+                  @click.stop
+                  @change="toggleLote(lote.lote_id)" />
+              </td>
 
               <!-- Período -->
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -127,7 +156,7 @@
               </td>
 
               <!-- Acciones -->
-              <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                 <div class="flex items-center justify-center gap-1.5">
                   <!-- Ver vs Sistema (solo si origen = gerente) -->
                   <button v-if="lote.origen === 'gerente'"
@@ -156,7 +185,7 @@
       </div>
     </div>
 
-    <!-- ══ VISTA: DETALLE (tabla original) ════════════════════════════════════ -->
+    <!-- ══ VISTA: HISTORIAL (tabla original) ════════════════════════════════════ -->
     <div v-else class="flex-1 overflow-hidden rounded-md border flex flex-col"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
@@ -320,6 +349,39 @@ const vista = ref('lotes');
 const startDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
 const endDate = ref(new Date().toISOString().slice(0, 10));
 
+// ── Selección masiva ──────────────────────────────────────────────────────────
+const lotesSeleccionados = ref(new Set());
+
+function toggleLote(loteId) {
+  const s = new Set(lotesSeleccionados.value);
+  s.has(loteId) ? s.delete(loteId) : s.add(loteId);
+  lotesSeleccionados.value = s;
+}
+
+function toggleSelectAll() {
+  if (lotesSeleccionados.value.size === lotes.value.length) {
+    lotesSeleccionados.value = new Set();
+  } else {
+    lotesSeleccionados.value = new Set(lotes.value.map(l => l.lote_id));
+  }
+}
+
+// ── Notificar masivo ──────────────────────────────────────────────────────────
+const notificandoMasivo = ref(false);
+
+async function handleNotificarSeleccionados() {
+  notificandoMasivo.value = true;
+  try {
+    const ids = Array.from(lotesSeleccionados.value);
+    for (const id of ids) {
+      await notificarLote(id);
+    }
+    lotesSeleccionados.value = new Set();
+  } catch { /* silencioso */ } finally {
+    notificandoMasivo.value = false;
+  }
+}
+
 // ── Comparativo modal ─────────────────────────────────────────────────────────
 const showComparativo = ref(false);
 const loteSeleccionado = ref(null);
@@ -330,7 +392,7 @@ async function abrirComparativo(lote) {
   await cargarComparativo(lote.lote_id);
 }
 
-// ── Notificar lote ────────────────────────────────────────────────────────────
+// ── Notificar lote individual ─────────────────────────────────────────────────
 const notificandoLoteId = ref(null);
 
 async function handleNotificarLote(lote) {
@@ -355,6 +417,7 @@ function fmtDatetime(dt) {
 
 // ── Carga ─────────────────────────────────────────────────────────────────────
 async function recargar() {
+  lotesSeleccionados.value = new Set();
   const params = { startDate: startDate.value, endDate: endDate.value, company: props.company };
   await Promise.all([
     cargarLotes(params),

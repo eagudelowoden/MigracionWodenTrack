@@ -78,8 +78,17 @@
     </div>
 
     <!-- Tabla asignaciones -->
-    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col"
+    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+      <Transition name="fade-chip">
+        <div v-if="isLoadingMallas"
+          class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
+          :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
+          <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+          <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando mallas…</span>
+        </div>
+      </Transition>
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
         <table class="w-full border-separate border-spacing-0">
@@ -118,13 +127,7 @@
           </thead>
 
           <tbody class="divide-y-0">
-            <tr v-if="isLoadingMallas" v-for="n in 8" :key="'loader-' + n">
-              <td colspan="7" class="px-4 py-4">
-                <div class="h-4 w-full rounded animate-pulse bg-slate-500/10"></div>
-              </td>
-            </tr>
-
-            <tr v-else v-for="(persona, index) in paginatedMallas" :key="index"
+            <tr v-for="(persona, index) in paginatedMallas" :key="index"
               class="group transition-all duration-150"
               :class="[index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent', isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]']">
 
@@ -306,4 +309,25 @@ watch(
   { immediate: true },
 );
 </script>
-<style></style>
+<style>
+.fade-chip-enter-active { transition: opacity 0.15s ease; }
+.fade-chip-leave-active { transition: opacity 0.2s ease; }
+.fade-chip-enter-from, .fade-chip-leave-to { opacity: 0; }
+
+.loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }
+.loading-ring div {
+  box-sizing: border-box; display: block; position: absolute;
+  width: 36px; height: 36px;
+  border: 3px solid transparent; border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: ring-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+.loading-ring div:nth-child(1) { animation-delay: -0.3s; }
+.loading-ring div:nth-child(2) { animation-delay: -0.2s; border-top-color: #60A5FA; opacity: .6; }
+.loading-ring div:nth-child(3) { animation-delay: -0.1s; border-top-color: #93C5FD; opacity: .35; }
+.loading-ring div:nth-child(4) { border-top-color: #BFDBFE; opacity: .15; }
+@keyframes ring-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>

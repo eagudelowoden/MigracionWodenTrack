@@ -1773,21 +1773,31 @@ export class HorasExtraService {
     };
 
     ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // encabezado
+      // Saltar las primeras 2 filas (cabecera doble del reporte del sistema)
+      if (rowNumber <= 2) return;
 
       const nombre = parseText(row.getCell(2).value);
-      const fecha = parseText(row.getCell(3).value);
+      const fechaRaw = parseText(row.getCell(3).value);
 
-      if (!nombre || !fecha) {
-        errores.push(`Fila ${rowNumber}: Nombre y Fecha son obligatorios`);
-        return;
+      // Saltar filas sin nombre o fecha (filas de empresa, subtotales, etc.)
+      if (!nombre || !fechaRaw) return;
+
+      // Saltar filas de cabecera o empresa (texto no numérico en columna fecha)
+      // Detectar si es una fila de agrupación: columnas 4-14 todas vacías o no numéricas
+      const esFilaAgrupacion = ['Fecha', 'FECHA', 'fecha'].includes(fechaRaw) ||
+        row.getCell(1).isMerged ||
+        (row.cellCount <= 3 && !parseText(row.getCell(1).value));
+      if (esFilaAgrupacion) return;
+
+      // Normalizar fecha: acepta dd/MM/yyyy y yyyy-MM-dd
+      let fecha = fechaRaw;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+        const [d, m, y] = fecha.split('/');
+        fecha = `${y}-${m}-${d}`;
       }
 
-      // Validar formato de fecha
       if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-        errores.push(
-          `Fila ${rowNumber}: Fecha "${fecha}" no tiene formato YYYY-MM-DD`,
-        );
+        // Si después de normalizar sigue sin ser fecha válida, es fila de agrupación — silenciosamente omitir
         return;
       }
 

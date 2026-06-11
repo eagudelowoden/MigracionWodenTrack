@@ -235,8 +235,23 @@
     </div> -->
 
       <!-- ── Tabla (Vercel) ─────────────────────────────────────────────────── -->
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+        <!-- Overlay de carga centrado -->
+        <Transition name="fade-chip">
+          <div v-if="isLoading || isCalculating"
+            class="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter: blur(2px);">
+            <div class="loading-ring">
+              <div></div><div></div><div></div><div></div>
+            </div>
+            <span class="text-[11px] font-medium tracking-wide"
+              :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ isCalculating ? 'Calculando…' : 'Cargando registros…' }}
+            </span>
+          </div>
+        </Transition>
 
         <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table class="w-full border-separate border-spacing-0 text-[11px]">
@@ -304,12 +319,94 @@
             </thead>
 
             <tbody>
-              <!-- Loading skeleton -->
-              <tr v-if="isLoading || isCalculating" v-for="n in 8" :key="'sk-' + n">
-                <td colspan="16" class="px-3 py-3">
-                  <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
-                </td>
-              </tr>
+              <!-- Loading skeleton estilo Vercel -->
+              <template v-if="isLoading || isCalculating">
+                <!-- Fila cabecera empresa skeleton -->
+                <tr>
+                  <td colspan="16" class="px-4 py-2 border-b"
+                    :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-50 border-slate-100'">
+                    <div class="h-2.5 w-40 rounded-full animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                </tr>
+                <!-- Filas de datos skeleton -->
+                <tr v-for="n in 7" :key="'sk-' + n"
+                  :class="n % 2 === 0 ? (isDark ? 'bg-white/[0.015]' : 'bg-slate-50/40') : ''">
+                  <!-- checkbox -->
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <!-- cédula -->
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 rounded-full animate-pulse" :style="{ width: (60 + (n * 7) % 30) + 'px' }"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <!-- nombre -->
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2.5 rounded-full animate-pulse mb-1.5" :style="{ width: (120 + (n * 13) % 60) + 'px' }"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-1.5 rounded-full animate-pulse" :style="{ width: (60 + (n * 9) % 40) + 'px' }"
+                      :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                  </td>
+                  <!-- fecha -->
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <!-- inicio / fin turno -->
+                  <td v-for="_ in 2" :key="'j' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <!-- entrada / salida -->
+                  <td v-for="_ in 2" :key="'t' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#222938]' : 'bg-emerald-100/60'"></div>
+                  </td>
+                  <!-- 7 columnas hrs -->
+                  <td v-for="c in 7" :key="'h' + c" class="px-2 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-5 rounded-full animate-pulse mx-auto"
+                      :class="c === 4 ? (isDark ? 'bg-blue-500/20' : 'bg-blue-100') : (isDark ? 'bg-[#161B26]' : 'bg-slate-100')"></div>
+                  </td>
+                  <!-- aprobar -->
+                  <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="flex justify-center gap-1">
+                      <div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Segunda empresa skeleton -->
+                <tr>
+                  <td colspan="16" class="px-4 py-2 border-b"
+                    :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-50 border-slate-100'">
+                    <div class="h-2.5 w-52 rounded-full animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                </tr>
+                <tr v-for="n in 4" :key="'sk2-' + n"
+                  :class="n % 2 === 0 ? (isDark ? 'bg-white/[0.015]' : 'bg-slate-50/40') : ''">
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 rounded-full animate-pulse" :style="{ width: (55 + (n * 11) % 25) + 'px' }"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2.5 rounded-full animate-pulse mb-1.5" :style="{ width: (100 + (n * 17) % 80) + 'px' }"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-1.5 rounded-full animate-pulse" :style="{ width: (50 + (n * 7) % 30) + 'px' }"
+                      :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                  </td>
+                  <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <td v-for="_ in 4" :key="'j2' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  </td>
+                  <td v-for="c in 7" :key="'h2' + c" class="px-2 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-5 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                  </td>
+                  <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="flex justify-center"><div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div></div>
+                  </td>
+                </tr>
+              </template>
 
               <!-- Sin datos -->
               <tr v-else-if="!filasPaginadas.length">
@@ -600,10 +697,10 @@
         </template>
         <!-- ── Fin Vista: Cargue de horas ──────────────────────────────────── -->
 
-        <!-- ── Vista: Historial de horas cargadas ──────────────────────────── -->
+        <!-- ── Vista: Horas cargadas (por lote) ───────────────────────────────── -->
         <template v-else-if="activeCargueView === 'historial'">
 
-          <!-- Toolbar filtros -->
+          <!-- Toolbar -->
           <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
@@ -611,234 +708,141 @@
               <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Desde</label>
               <input type="date" v-model="cargueStartDate"
                 class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-                :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+                :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6]'" />
             </div>
-
             <div class="flex flex-col gap-1">
               <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Hasta</label>
               <input type="date" v-model="cargueEndDate"
                 class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-                :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+                :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6]'" />
             </div>
-
-            <!-- Buscar -->
-            <button @click="handleCargarCargueHistorial" :disabled="cargueIsLoading"
-              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 border"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-              <i :class="cargueIsLoading ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'" class="text-[10px]"></i>
+            <button @click="handleCargarLotes" :disabled="cargueIsLoadingLotes"
+              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
+              :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
+              <i :class="cargueIsLoadingLotes ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'" class="text-[10px]"></i>
               Buscar
             </button>
 
+            <!-- Notificar seleccionados -->
+            <button v-if="lotesSeleccionadosCargue.size > 0"
+              @click="handleNotificarLotesSeleccionados"
+              :disabled="notificandoLotesMasivo"
+              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
+              :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'">
+              <i :class="notificandoLotesMasivo ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
+              {{ notificandoLotesMasivo ? 'Enviando…' : `Notificar (${lotesSeleccionadosCargue.size})` }}
+            </button>
+
             <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueTotalRegistros
-              }}</span>
-              registro(s) encontrado(s)
+              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueGruposLotes.length }}</span> lote(s)
             </span>
           </div>
 
-          <!-- Tabla historial -->
-          <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+          <!-- Tabla de lotes -->
+          <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-            <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
-              <table class="w-full border-separate border-spacing-0 text-[11px]">
+            <Transition name="fade-chip">
+              <div v-if="cargueIsLoadingLotes"
+                class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
+                :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
+                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+                <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando lotes…</span>
+              </div>
+            </Transition>
 
-                <thead class="sticky top-0 z-30">
+            <div v-if="cargueIsLoadingLotes" class="flex-1"></div>
+
+            <div v-else-if="!cargueGruposLotes.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+              <i class="fas fa-layer-group text-2xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                Selecciona un rango de fechas y presiona Buscar
+              </p>
+            </div>
+
+            <div v-else class="flex-1 overflow-y-auto">
+              <table class="w-full border-separate border-spacing-0 text-[11px]">
+                <thead class="sticky top-0 z-10">
                   <tr class="bg-[#1e2538]">
-                    <th
-                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                      Cédula</th>
-                    <th
-                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                      Nombre</th>
-                    <th
-                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                      Fecha</th>
-                    <th
-                      class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                      Departamento</th>
-                    <th v-for="col in COLS_HX" :key="col"
-                      class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
-                      {{ col.toUpperCase() }}
+                    <th class="w-9 px-3 py-2.5 border-b border-[#2a3245]">
+                      <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
+                        :checked="cargueGruposLotes.length > 0 && lotesSeleccionadosCargue.size === cargueGruposLotes.length"
+                        @change="toggleSelectAllLotes" />
                     </th>
-                    <th
-                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
-                      Estado</th>
-                    <th
-                      class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
-                      Aprobar</th>
+                    <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Período</th>
+                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Origen</th>
+                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Registros</th>
+                    <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Cargado por</th>
+                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Fecha cargue</th>
+                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Acciones</th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  <!-- Loading -->
-                  <tr v-if="cargueIsLoading" v-for="n in 8" :key="'csk-' + n">
-                    <td colspan="13" class="px-3 py-3">
-                      <div class="h-3 w-full rounded animate-pulse" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
+                  <tr v-for="(lote, idx) in cargueGruposLotes" :key="lote.lote_id"
+                    class="transition-colors cursor-pointer"
+                    :class="lotesSeleccionadosCargue.has(lote.lote_id) ? (isDark ? 'bg-blue-500/[0.07]' : 'bg-blue-50/60') : (idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : '')"
+                    @click.exact="toggleLoteCargue(lote.lote_id)">
+
+                    <td class="w-9 px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                      <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
+                        :checked="lotesSeleccionadosCargue.has(lote.lote_id)"
+                        @change="toggleLoteCargue(lote.lote_id)" />
+                    </td>
+
+                    <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                      <div class="font-mono text-[11px]" :class="isDark ? 'text-white' : 'text-slate-900'">
+                        {{ fmtFechaLote(lote.fecha_desde) }} — {{ fmtFechaLote(lote.fecha_hasta) }}
+                      </div>
+                      <div class="text-[9px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ lote.company || '—' }}</div>
+                    </td>
+
+                    <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                      <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-semibold"
+                        :class="lote.origen === 'gerente' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'">
+                        <i :class="lote.origen === 'gerente' ? 'fas fa-user-tie' : 'fas fa-robot'" class="text-[8px]"></i>
+                        {{ lote.origen === 'gerente' ? 'Gerente' : 'Sistema' }}
+                      </span>
+                    </td>
+
+                    <td class="px-3 py-3 border-b text-center font-mono text-[12px] font-semibold"
+                      :class="isDark ? 'border-[#222938] text-slate-200' : 'border-slate-100 text-slate-700'">
+                      {{ lote.registros }}
+                    </td>
+
+                    <td class="px-3 py-3 border-b text-[10px]"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                      {{ lote.cargado_por || '—' }}
+                    </td>
+
+                    <td class="px-3 py-3 border-b text-center text-[10px] font-mono"
+                      :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
+                      {{ fmtDatetimeLote(lote.created_at) }}
+                    </td>
+
+                    <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                      <div class="flex items-center justify-center gap-1.5">
+                        <button v-if="lote.origen === 'gerente'"
+                          @click="abrirComparativoCargue(lote)"
+                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
+                          :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
+                          <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
+                        </button>
+                        <button @click="handleNotificarLoteIndividual(lote)"
+                          :disabled="notificandoLoteIdCargue === lote.lote_id"
+                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all disabled:opacity-40"
+                          :class="isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'">
+                          <i :class="notificandoLoteIdCargue === lote.lote_id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[9px]"></i>
+                          {{ notificandoLoteIdCargue === lote.lote_id ? 'Enviando…' : 'Notificar' }}
+                        </button>
                       </div>
                     </td>
                   </tr>
-
-                  <!-- Sin datos -->
-                  <tr v-else-if="!cargueFilasPaginadas.length">
-                    <td colspan="13" class="px-4 py-14 text-center">
-                      <div class="flex flex-col items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center"
-                          :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'">
-                          <i class="fas fa-table-list text-xl text-[#3B82F6]"></i>
-                        </div>
-                        <p class="text-[11px] font-bold uppercase"
-                          :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                          Selecciona un rango y presiona Buscar
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <!-- Filas agrupadas -->
-                  <template v-else v-for="(item, idx) in cargueFilasPaginadas" :key="idx">
-
-                    <!-- Cabecera empresa -->
-                    <tr v-if="item.tipo === 'empresa'">
-                      <td colspan="13" class="px-4 py-2 text-[10px] font-medium border-b"
-                        :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
-                        <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
-                      </td>
-                    </tr>
-
-                    <!-- Fila normal -->
-                    <tr v-else-if="item.tipo === 'fila'" class="group transition-all duration-100"
-                      :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
-
-                      <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
-                        {{ item.data.cedula }}
-                      </td>
-
-                      <td class="px-3 py-2 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <div class="font-bold uppercase" :class="isDark ? 'text-white' : 'text-slate-900'">{{
-                          item.data.nombre }}</div>
-                        <div class="text-[8px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
-                          item.data.cargo || '—' }}</div>
-                      </td>
-
-                      <td class="px-3 py-2 border-b border-r text-center"
-                        :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">
-                        {{ formatFecha(item.data.fecha) }}
-                      </td>
-
-                      <td class="px-3 py-2 border-b border-r"
-                        :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
-                        {{ item.data.departamento || '—' }}
-                      </td>
-
-                      <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center" :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                      Number(item.data[col]) > 0
-                        ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold')
-                        : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                        {{ fmtCalculo(item.data[col]) }}
-                      </td>
-
-                      <!-- Estado chip -->
-                      <td class="px-2 py-2 border-b border-r text-center"
-                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold" :class="item.data.aprobado === true
-                          ? 'bg-[#16a34a]/15 text-[#4ade80]'
-                          : item.data.aprobado === false
-                            ? 'bg-[#dc2626]/15 text-[#f87171]'
-                            : (isDark ? 'bg-[#222938] text-[#888888]' : 'bg-slate-100 text-slate-500')">
-                          <i class="mr-1 text-[8px]"
-                            :class="item.data.aprobado === true ? 'fas fa-check' : item.data.aprobado === false ? 'fas fa-times' : 'fas fa-clock'"></i>
-                          {{ item.data.aprobado === true ? 'Aprobado' : item.data.aprobado === false ? 'Rechazado' :
-                            'Pendiente' }}
-                        </span>
-                      </td>
-
-                      <!-- Botones aprobar/rechazar -->
-                      <td class="px-2 py-2 border-b text-center"
-                        :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                        <div class="flex items-center justify-center gap-1">
-                          <button @click="abrirModalAprobar(item.data, true)" :disabled="!item.data.id"
-                            class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
-                            :class="item.data.aprobado === true
-                              ? 'bg-[#16a34a] border-[#16a34a] text-white'
-                              : (isDark
-                                ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40'
-                                : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
-                            <i class="fas fa-check text-[9px]"></i>
-                          </button>
-                          <button @click="abrirModalAprobar(item.data, false)" :disabled="!item.data.id"
-                            class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
-                            :class="item.data.aprobado === false
-                              ? 'bg-[#dc2626] border-[#dc2626] text-white'
-                              : (isDark
-                                ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
-                                : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')">
-                            <i class="fas fa-times text-[9px]"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <!-- Subtotal colaborador -->
-                    <tr v-else-if="item.tipo === 'subtotal'">
-                      <td colspan="4" class="px-3 py-2 border-b border-r text-[10px] font-medium"
-                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                        Subtotal — {{ item.data.nombre }}
-                      </td>
-                      <td v-for="col in COLS_HX" :key="col"
-                        class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
-                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                        {{ fmtCalculo(item.data.subtotales[col]) }}
-                      </td>
-                      <td colspan="2" class="border-b"
-                        :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
-                      </td>
-                    </tr>
-
-                  </template>
                 </tbody>
               </table>
             </div>
-
-            <!-- Paginación -->
-            <div v-if="cargueFilasAplanadas.length > 0" class="px-3 py-2 border-t flex items-center justify-between"
-              :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
-              <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                <span class="font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ cargueTotalRegistros
-                }}</span>
-                {{ cargueTotalRegistros === 1 ? 'registro' : 'registros' }}
-              </span>
-              <div class="flex items-center gap-1.5">
-                <button @click="cargueCurrentPage--" :disabled="cargueCurrentPage === 1"
-                  class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-                  :class="isDark
-                    ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-                  <i class="fas fa-chevron-left text-[9px]"></i>
-                </button>
-                <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
-                  :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
-                  {{ cargueCurrentPage }} / {{ cargueTotalPages }}
-                </div>
-                <button @click="cargueCurrentPage++" :disabled="cargueCurrentPage >= cargueTotalPages"
-                  class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-                  :class="isDark
-                    ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-                  <i class="fas fa-chevron-right text-[9px]"></i>
-                </button>
-              </div>
-            </div>
           </div>
         </template>
-        <!-- ── Fin Vista: Historial ─────────────────────────────────────────── -->
+        <!-- ── Fin Vista: Horas cargadas ─────────────────────────────────────── -->
 
       </div>
     </template>
@@ -910,25 +914,19 @@
       <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-        <!-- Overlay procesando aprobación -->
-        <Transition name="fade">
-          <div v-if="bulkGuardandoAprobacion || modalAprobar.loading"
+        <!-- Overlay carga / procesando -->
+        <Transition name="fade-chip">
+          <div v-if="isLoadingGuardados || bulkGuardandoAprobacion || modalAprobar.loading"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
-            :class="isDark ? 'bg-[#161B26]/80' : 'bg-white/80'" style="backdrop-filter:blur(2px)">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
-              :class="isDark ? 'bg-[#3B82F6]/15' : 'bg-blue-50'">
-              <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-            </div>
-            <p class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">Procesando…</p>
-            <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              {{ bulkGuardandoAprobacion ? 'Aplicando aprobación a los registros seleccionados' : 'Guardando cambios' }}
-            </p>
+            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
+            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+            <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ bulkGuardandoAprobacion ? 'Aplicando aprobación…' : modalAprobar.loading ? 'Guardando cambios…' : 'Cargando registros…' }}
+            </span>
           </div>
         </Transition>
 
-        <div v-if="isLoadingGuardados" class="flex-1 flex items-center justify-center">
-          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-        </div>
+        <div v-if="isLoadingGuardados" class="flex-1"></div>
 
         <div v-else-if="!filasPaginadasGuardados.length"
           class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
@@ -1256,24 +1254,19 @@
       <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-        <!-- Overlay enviando correo -->
-        <Transition name="fade">
-          <div v-if="isNotifying"
+        <!-- Overlay carga / notificando -->
+        <Transition name="fade-chip">
+          <div v-if="isLoadingNovedades || isNotifying"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
-            :class="isDark ? 'bg-[#161B26]/85' : 'bg-white/85'" style="backdrop-filter:blur(2px)">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500/10">
-              <i class="fas fa-spinner fa-spin text-emerald-500 text-xl"></i>
-            </div>
-            <p class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">Enviando correo…</p>
-            <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-              Notificando a Capital Humano, por favor espera
-            </p>
+            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
+            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+            <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              {{ isNotifying ? 'Notificando a Capital Humano…' : 'Cargando novedades…' }}
+            </span>
           </div>
         </Transition>
 
-        <div v-if="isLoadingNovedades" class="flex-1 flex items-center justify-center">
-          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-        </div>
+        <div v-if="isLoadingNovedades" class="flex-1"></div>
 
         <div v-else-if="!novedadesAprobadas.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center"
@@ -1394,12 +1387,19 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col"
+      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-        <div v-if="isLoadingHistorial" class="flex-1 flex items-center justify-center">
-          <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-        </div>
+        <Transition name="fade-chip">
+          <div v-if="isLoadingHistorial"
+            class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
+            :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
+            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+            <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando historial…</span>
+          </div>
+        </Transition>
+
+        <div v-if="isLoadingHistorial" class="flex-1"></div>
 
         <div v-else-if="!historial.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center"
@@ -1982,6 +1982,16 @@
     </Teleport>
     <!-- ══ FIN MODAL ACTIVIDAD ═══════════════════════════════════════════════ -->
 
+    <!-- ══ MODAL COMPARATIVO CARGUE ═════════════════════════════════════════ -->
+    <ComparativoHorasModal
+      v-model="showComparativoCargue"
+      :isDark="isDark"
+      :lote="loteSeleccionadoCargue"
+      :comparativo="cargueComparativo"
+      :isLoading="cargueIsLoadingComparativo"
+    />
+    <!-- ══ FIN MODAL COMPARATIVO CARGUE ══════════════════════════════════════ -->
+
     <!-- ══ TOAST JUSTIFICACIÓN REQUERIDA ════════════════════════════════════ -->
     <Transition name="toast-slide">
       <div v-if="toastJustificacion.visible"
@@ -2138,6 +2148,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
+import ComparativoHorasModal from './ComparativoHorasModal.vue';
 
 const props = defineProps({
   isDark: Boolean,
@@ -2239,6 +2250,16 @@ const {
   totalPages: cargueTotalPages,
   totalRegistros: cargueTotalRegistros,
   cargarHistorial: cargarCargueHistorial,
+  // Lotes
+  lotes: cargueGruposLotes,
+  isLoadingLotes: cargueIsLoadingLotes,
+  cargarLotes: cargarCargueGruposLotes,
+  // Comparativo
+  comparativo: cargueComparativo,
+  isLoadingComparativo: cargueIsLoadingComparativo,
+  cargarComparativo: cargarCargueComparativo,
+  // Notificar
+  notificarLote: notificarCargueGrupo,
 } = useCargueHoras();
 
 const archivoSeleccionado = ref(null);
@@ -2354,7 +2375,7 @@ function selectCargueView(view) {
   activeCargueView.value = view;
   showCargueMenu.value = false;
   if (view === 'historial') {
-    handleCargarCargueHistorial();
+    handleCargarLotes();
   }
 }
 
@@ -2364,6 +2385,71 @@ async function handleCargarCargueHistorial() {
     endDate: cargueEndDate.value || undefined,
     company: props.company,
   });
+}
+
+// ── Vista Por lote ────────────────────────────────────────────────────────────
+const lotesSeleccionadosCargue = ref(new Set());
+const notificandoLoteIdCargue = ref(null);
+const notificandoLotesMasivo = ref(false);
+const showComparativoCargue = ref(false);
+const loteSeleccionadoCargue = ref(null);
+
+async function handleCargarLotes() {
+  lotesSeleccionadosCargue.value = new Set();
+  await cargarCargueGruposLotes({
+    startDate: cargueStartDate.value || undefined,
+    endDate: cargueEndDate.value || undefined,
+    company: props.company,
+  });
+}
+
+function toggleLoteCargue(id) {
+  const s = new Set(lotesSeleccionadosCargue.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  lotesSeleccionadosCargue.value = s;
+}
+
+function toggleSelectAllLotes() {
+  if (lotesSeleccionadosCargue.value.size === cargueGruposLotes.value.length) {
+    lotesSeleccionadosCargue.value = new Set();
+  } else {
+    lotesSeleccionadosCargue.value = new Set(cargueGruposLotes.value.map(l => l.lote_id));
+  }
+}
+
+async function handleNotificarLoteIndividual(lote) {
+  notificandoLoteIdCargue.value = lote.lote_id;
+  try { await notificarCargueGrupo(lote.lote_id); } catch { } finally {
+    notificandoLoteIdCargue.value = null;
+  }
+}
+
+async function handleNotificarLotesSeleccionados() {
+  notificandoLotesMasivo.value = true;
+  try {
+    for (const id of Array.from(lotesSeleccionadosCargue.value)) {
+      await notificarCargueGrupo(id);
+    }
+    lotesSeleccionadosCargue.value = new Set();
+  } catch { } finally {
+    notificandoLotesMasivo.value = false;
+  }
+}
+
+async function abrirComparativoCargue(lote) {
+  loteSeleccionadoCargue.value = lote;
+  showComparativoCargue.value = true;
+  await cargarCargueComparativo(lote.lote_id);
+}
+
+function fmtFechaLote(f) {
+  if (!f) return '—';
+  const [y, m, d] = f.split('-');
+  return `${d}/${m}/${y}`;
+}
+function fmtDatetimeLote(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function handleCargueMenuOutsideClick(e) {
@@ -2605,7 +2691,7 @@ async function confirmarAprobar() {
     if (activeTab.value === 'guardados') {
       await cargarGuardados(props.company);
     } else if (activeTab.value === 'cargue' && activeCargueView.value === 'historial') {
-      await handleCargarCargueHistorial();
+      await handleCargarLotes();
     }
   } catch { /* silencioso */ } finally {
     modalAprobar.loading = false;
@@ -2802,4 +2888,30 @@ onUnmounted(() => {
 .toast-slide-leave-active { transition: all 0.18s ease; }
 .toast-slide-enter-from { opacity: 0; transform: translateX(-50%) translateY(16px); }
 .toast-slide-leave-to   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+/* Overlay fade */
+.fade-chip-enter-active { transition: opacity 0.15s ease; }
+.fade-chip-leave-active { transition: opacity 0.2s ease; }
+.fade-chip-enter-from, .fade-chip-leave-to { opacity: 0; }
+
+/* Spinner ring */
+.loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }
+.loading-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 36px; height: 36px;
+  border: 3px solid transparent;
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: ring-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+.loading-ring div:nth-child(1) { animation-delay: -0.3s; }
+.loading-ring div:nth-child(2) { animation-delay: -0.2s; border-top-color: #60A5FA; opacity: .6; }
+.loading-ring div:nth-child(3) { animation-delay: -0.1s; border-top-color: #93C5FD; opacity: .35; }
+.loading-ring div:nth-child(4) { border-top-color: #BFDBFE; opacity: .15; }
+@keyframes ring-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>
