@@ -258,18 +258,27 @@ const totalAsignados = computed(() =>
     SECTIONS.value.reduce((acc, s) => acc + s.slugs.filter(slug => hasPerm(slug)).length, 0)
 );
 
+let lastUserId = null;
+
 watch(() => props.modelValue, async (user) => {
-    if (!user) return;
-    // Reabrir solo la primera sección al cambiar de usuario
-    const init = {};
-    SECTIONS.value.forEach((s, i) => { init[s.key] = i === 0; });
-    openSections.value = init;
-    try {
-        const res = await fetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
-        const data = await res.json();
-        deptosSeleccionados.value = Array.isArray(data) ? data : [];
-    } catch {
-        deptosSeleccionados.value = [];
+    if (!user) { lastUserId = null; return; }
+
+    const userChanged = user.id_odoo !== lastUserId;
+    lastUserId = user.id_odoo;
+
+    if (userChanged) {
+        // Solo resetear secciones al abrir un usuario diferente
+        const init = {};
+        SECTIONS.value.forEach((s, i) => { init[s.key] = i === 0; });
+        openSections.value = init;
+
+        try {
+            const res = await fetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
+            const data = await res.json();
+            deptosSeleccionados.value = Array.isArray(data) ? data : [];
+        } catch {
+            deptosSeleccionados.value = [];
+        }
     }
 }, { immediate: true });
 

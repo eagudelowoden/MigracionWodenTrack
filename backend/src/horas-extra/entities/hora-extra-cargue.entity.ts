@@ -69,6 +69,14 @@ export class HoraExtraCargue {
   @Column({ type: 'bit', nullable: true })
   aprobado: boolean | null;
 
+  // Agrupa todas las filas de un mismo cargue
+  @Column({ type: 'nvarchar', length: 36, nullable: true })
+  lote_id: string | null;
+
+  // 'sistema' = calculado automáticamente | 'gerente' = subido manualmente por gerente
+  @Column({ type: 'nvarchar', length: 20, nullable: true, default: 'gerente' })
+  origen: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

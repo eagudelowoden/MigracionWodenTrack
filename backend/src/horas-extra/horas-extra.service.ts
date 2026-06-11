@@ -1661,6 +1661,88 @@ export class HorasExtraService {
     return Buffer.from(buf);
   }
 
+  async getLotesCargue(filters: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    departamento?: string;
+    area_id?: number;
+    segmento_id?: number;
+  }): Promise<any[]> {
+    const qb = this.cargueRepo.createQueryBuilder('c');
+    if (filters.startDate) qb.andWhere('c.fecha >= :s', { s: filters.startDate });
+    if (filters.endDate) qb.andWhere('c.fecha <= :e', { e: filters.endDate });
+    if (filters.company) qb.andWhere('c.company = :co', { co: filters.company });
+    if (filters.departamento) qb.andWhere('c.departamento LIKE :d', { d: `%${filters.departamento}%` });
+    if (filters.area_id) qb.andWhere('c.area_id = :a', { a: filters.area_id });
+    if (filters.segmento_id) qb.andWhere('c.segmento_id = :sg', { sg: filters.segmento_id });
+
+    const rows = await qb.orderBy('c.created_at', 'DESC').getMany();
+
+    // Agrupar por lote_id
+    const mapa = new Map<string, any>();
+    for (const r of rows) {
+      const key = r.lote_id ?? r.created_at.toISOString().slice(0, 19);
+      if (!mapa.has(key)) {
+        mapa.set(key, {
+          lote_id: key,
+          origen: r.origen ?? 'gerente',
+          cargado_por: r.cargado_por,
+          company: r.company,
+          departamento: r.departamento,
+          fecha_desde: r.fecha,
+          fecha_hasta: r.fecha,
+          created_at: r.created_at,
+          registros: 0,
+        });
+      }
+      const lote = mapa.get(key);
+      lote.registros++;
+      if (r.fecha < lote.fecha_desde) lote.fecha_desde = r.fecha;
+      if (r.fecha > lote.fecha_hasta) lote.fecha_hasta = r.fecha;
+    }
+
+    return Array.from(mapa.values());
+  }
+
+  async getComparativoCargue(loteId: string): Promise<{ gerente: any[]; sistema: any[] }> {
+    // Filas del gerente para este lote
+    const gerente = await this.cargueRepo.find({ where: { lote_id: loteId } });
+    if (!gerente.length) return { gerente: [], sistema: [] };
+
+    // Buscar registros del sistema para los mismos empleados y fechas
+    const pares = gerente.map(r => ({ cedula: r.cedula, fecha: r.fecha }));
+    const cedulasUnicas = [...new Set(pares.map(p => p.cedula).filter(Boolean) as string[])];
+    const fechaMin = gerente.reduce((m, r) => r.fecha < m ? r.fecha : m, gerente[0].fecha);
+    const fechaMax = gerente.reduce((m, r) => r.fecha > m ? r.fecha : m, gerente[0].fecha);
+
+    let sistema: any[] = [];
+    if (cedulasUnicas.length) {
+      sistema = await this.horaExtraRepo
+        .createQueryBuilder('h')
+        .where('h.cedula IN (:...cedulas)', { cedulas: cedulasUnicas })
+        .andWhere('h.fecha >= :min', { min: fechaMin })
+        .andWhere('h.fecha <= :max', { max: fechaMax })
+        .orderBy('h.nombre', 'ASC')
+        .addOrderBy('h.fecha', 'ASC')
+        .getMany();
+    }
+
+    return { gerente, sistema };
+  }
+
+  async notificarDesdeCargue(loteId: string, cargado_por?: string): Promise<{ enviado: boolean }> {
+    const registros = await this.cargueRepo.find({ where: { lote_id: loteId } });
+    if (!registros.length) return { enviado: false };
+
+    const departamentos = [...new Set(registros.map(r => r.departamento).filter(Boolean) as string[])];
+    const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
+    const excelBuffer = await this._generarExcelDesdeRegistros(registros);
+    await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios, calculado_por: cargado_por });
+
+    return { enviado: true };
+  }
+
   async procesarCargueExcel(
     fileBuffer: any,
     meta: {
@@ -1669,8 +1751,10 @@ export class HorasExtraService {
       area_id?: number;
       segmento_id?: number;
       cargado_por?: string;
+      origen?: string;
     },
-  ): Promise<{ guardados: number; errores: string[] }> {
+  ): Promise<{ guardados: number; errores: string[]; lote_id: string }> {
+    const loteId = crypto.randomUUID();
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(fileBuffer);
     const ws = wb.worksheets[0];
@@ -1728,19 +1812,20 @@ export class HorasExtraService {
         segmento_id: meta.segmento_id ?? null,
         cargado_por: meta.cargado_por ?? null,
         aprobado: null,
+        lote_id: loteId,
+        origen: meta.origen ?? 'gerente',
       });
 
       registros.push(reg);
     });
 
     if (registros.length > 0) {
-      // Guardar en lotes de 100
       for (let i = 0; i < registros.length; i += 100) {
         await this.cargueRepo.save(registros.slice(i, i + 100));
       }
     }
 
-    return { guardados: registros.length, errores };
+    return { guardados: registros.length, errores, lote_id: loteId };
   }
 
   async getHistorialCargue(filters: {

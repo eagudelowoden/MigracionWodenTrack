@@ -1124,7 +1124,7 @@
                     <!-- Modo normal: aprobar / rechazar / editar / eliminar -->
                     <div v-else class="flex items-center justify-center gap-1">
                       <button
-                        @click="tieneExtras(item.data) && !item.data.actividad ? abrirModalActividad(item.data) : abrirModalAprobar(item.data, true)"
+                        @click="tieneExtras(item.data) && !item.data.actividad ? mostrarToastJustificacion(item.data) : abrirModalAprobar(item.data, true)"
                         class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
                         :class="item.data.aprobado === true
                           ? 'bg-[#16a34a] border-[#16a34a] text-white'
@@ -1228,6 +1228,15 @@
             class="h-7 px-2 rounded-[5px] border text-[11px] font-medium transition-all"
             :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
             <i class="fas fa-xmark text-[9px]"></i> Limpiar
+          </button>
+          <!-- Descargar Excel -->
+          <button @click="handleDescargarNovedades" :disabled="isExportingNovedades || !novedadesAprobadas.length"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
+            :class="isDark
+              ? 'bg-[#161B26] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/[0.06] hover:border-emerald-500/60'
+              : 'bg-white border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-500'">
+            <i :class="isExportingNovedades ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            {{ isExportingNovedades ? 'Descargando…' : 'Descargar Excel' }}
           </button>
           <!-- Notificar -->
           <button @click="abrirVistaPrevia" :disabled="isNotifying || !novedadesAprobadas.length"
@@ -1973,6 +1982,40 @@
     </Teleport>
     <!-- ══ FIN MODAL ACTIVIDAD ═══════════════════════════════════════════════ -->
 
+    <!-- ══ TOAST JUSTIFICACIÓN REQUERIDA ════════════════════════════════════ -->
+    <Transition name="toast-slide">
+      <div v-if="toastJustificacion.visible"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border max-w-sm w-full"
+        :class="isDark
+          ? 'bg-[#1e1a0e] border-amber-500/40 text-amber-300'
+          : 'bg-amber-50 border-amber-300 text-amber-800'">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+          :class="isDark ? 'bg-amber-500/20' : 'bg-amber-100'">
+          <i class="fas fa-triangle-exclamation text-amber-500 text-[13px]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-semibold leading-snug">Justificación requerida</p>
+          <p class="text-[11px] mt-0.5 opacity-80 leading-snug">
+            <template v-if="toastJustificacion.total > 1">
+              {{ toastJustificacion.total }} registro(s) tienen horas extras sin justificación. Debes agregarla antes de aprobar.
+            </template>
+            <template v-else>
+              Este registro tiene horas extras. Debes agregar la actividad o motivo antes de aprobar.
+            </template>
+          </p>
+          <button @click="abrirModalActividad(toastJustificacion.registro); toastJustificacion.visible = false"
+            class="mt-2 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-70">
+            Agregar justificación →
+          </button>
+        </div>
+        <button @click="toastJustificacion.visible = false"
+          class="shrink-0 opacity-50 hover:opacity-100 transition-opacity mt-0.5">
+          <i class="fas fa-times text-[11px]"></i>
+        </button>
+      </div>
+    </Transition>
+    <!-- ══ FIN TOAST ══════════════════════════════════════════════════════════ -->
+
     <!-- ══ MODAL OBSERVACIÓN ════════════════════════════════════════════════ -->
     <Teleport to="body">
       <div v-if="modalAprobar.visible" class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -2092,6 +2135,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+import axios from 'axios';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 
@@ -2364,6 +2408,18 @@ const bulkGuardandoAprobacion = ref(false);
 async function aprobarSeleccionadosGuardados(aprobado) {
   const ids = [...selectedGuardados.value];
   if (!ids.length) return;
+
+  // Si es aprobación, verificar que ningún seleccionado le falte justificación
+  if (aprobado) {
+    const sinJustificacion = registrosGuardados.value.filter(r =>
+      ids.includes(r.id) && tieneExtras(r) && !r.actividad
+    );
+    if (sinJustificacion.length) {
+      mostrarToastJustificacion(sinJustificacion[0], sinJustificacion.length);
+      return;
+    }
+  }
+
   bulkGuardandoAprobacion.value = true;
   try {
     for (const id of ids) {
@@ -2658,6 +2714,45 @@ async function handleExportar() {
   } catch { /* silencioso */ }
 }
 
+// ── Toast justificación requerida ─────────────────────────────────────────────
+const toastJustificacion = reactive({ visible: false, registro: null, total: 1 });
+let toastTimer = null;
+
+function mostrarToastJustificacion(registro, total = 1) {
+  clearTimeout(toastTimer);
+  toastJustificacion.registro = registro;
+  toastJustificacion.total = total;
+  toastJustificacion.visible = true;
+  toastTimer = setTimeout(() => { toastJustificacion.visible = false; }, 6000);
+}
+
+// ── Descargar Excel desde Novedades Aprobadas ────────────────────────────────
+const isExportingNovedades = ref(false);
+async function handleDescargarNovedades() {
+  const lista = selectedNovedades.value.size
+    ? novedadesAprobadas.value.filter(n => selectedNovedades.value.has(n.id))
+    : novedadesAprobadas.value;
+  if (!lista.length) return;
+  isExportingNovedades.value = true;
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/horas-extra/exportar-calculado`,
+      { registros: lista },
+      { responseType: 'blob' },
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `novedades_aprobadas_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch { /* silencioso */ } finally {
+    isExportingNovedades.value = false;
+  }
+}
+
 async function handleNotificar() {
   try {
     await notificarAprobados();
@@ -2702,4 +2797,9 @@ onUnmounted(() => {
 <style>
 .fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.toast-slide-enter-active { transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.toast-slide-leave-active { transition: all 0.18s ease; }
+.toast-slide-enter-from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+.toast-slide-leave-to   { opacity: 0; transform: translateX(-50%) translateY(8px); }
 </style>

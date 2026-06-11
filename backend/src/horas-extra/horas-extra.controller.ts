@@ -254,6 +254,7 @@ export class HorasExtraController {
       area_id?: string;
       segmento_id?: string;
       cargado_por?: string;
+      origen?: string;
     },
   ) {
     if (!file) {
@@ -265,6 +266,7 @@ export class HorasExtraController {
       area_id: body.area_id ? Number(body.area_id) : undefined,
       segmento_id: body.segmento_id ? Number(body.segmento_id) : undefined,
       cargado_por: body.cargado_por,
+      origen: body.origen ?? 'gerente',
     });
   }
 
@@ -285,6 +287,38 @@ export class HorasExtraController {
       area_id: area_id ? Number(area_id) : undefined,
       segmento_id: segmento_id ? Number(segmento_id) : undefined,
     });
+  }
+
+  @Get('cargue/lotes')
+  lotesCargue(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
+  ) {
+    return this.service.getLotesCargue({
+      startDate,
+      endDate,
+      company,
+      departamento,
+      area_id: area_id ? Number(area_id) : undefined,
+      segmento_id: segmento_id ? Number(segmento_id) : undefined,
+    });
+  }
+
+  @Get('cargue/comparar/:loteId')
+  compararCargue(@Param('loteId') loteId: string) {
+    return this.service.getComparativoCargue(loteId);
+  }
+
+  @Post('cargue/notificar/:loteId')
+  notificarCargue(
+    @Param('loteId') loteId: string,
+    @Body() body: { cargado_por?: string },
+  ) {
+    return this.service.notificarDesdeCargue(loteId, body.cargado_por);
   }
 
   @Patch('cargue/aprobar/:id')

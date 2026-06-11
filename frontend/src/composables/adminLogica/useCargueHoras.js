@@ -91,7 +91,7 @@ export function useCargueHoras() {
     }
   }
 
-  async function subirExcel(file, { company, departamento } = {}) {
+  async function subirExcel(file, { company, departamento, origen = 'gerente' } = {}) {
     if (!file) return;
     isUploading.value = true;
     errorMsg.value = '';
@@ -103,8 +103,8 @@ export function useCargueHoras() {
       if (company) form.append('company', company);
       if (departamento) form.append('departamento', departamento);
       form.append('cargado_por', s.name || '');
+      form.append('origen', origen);
 
-      // Adjuntar área/segmento del usuario
       const estructura = getAreaSegmento();
       if (estructura.area_id) form.append('area_id', String(estructura.area_id));
       if (estructura.segmento_id) form.append('segmento_id', String(estructura.segmento_id));
@@ -123,6 +123,61 @@ export function useCargueHoras() {
       throw e;
     } finally {
       isUploading.value = false;
+    }
+  }
+
+  // ── Lotes (agrupados por cargue) ─────────────────────────────────────────────
+  const lotes = ref([]);
+  const isLoadingLotes = ref(false);
+
+  async function cargarLotes({ startDate, endDate, company, departamento } = {}) {
+    isLoadingLotes.value = true;
+    try {
+      const s = getSession();
+      const params = { startDate, endDate, company };
+      if (departamento) params.departamento = departamento;
+      if (!s.isSuperAdmin && !hasPerm('admin.filtro_departamento')) {
+        Object.assign(params, getAreaSegmento());
+      }
+      const { data } = await axios.get(`${API}/horas-extra/cargue/lotes`, { params });
+      lotes.value = data;
+    } catch {
+      lotes.value = [];
+    } finally {
+      isLoadingLotes.value = false;
+    }
+  }
+
+  // ── Comparativo sistema vs gerente ───────────────────────────────────────────
+  const comparativo = ref(null);
+  const isLoadingComparativo = ref(false);
+
+  async function cargarComparativo(loteId) {
+    isLoadingComparativo.value = true;
+    comparativo.value = null;
+    try {
+      const { data } = await axios.get(`${API}/horas-extra/cargue/comparar/${loteId}`);
+      comparativo.value = data;
+    } catch {
+      comparativo.value = null;
+    } finally {
+      isLoadingComparativo.value = false;
+    }
+  }
+
+  // ── Notificar desde cargue ───────────────────────────────────────────────────
+  const isNotifyingCargue = ref(false);
+
+  async function notificarLote(loteId) {
+    isNotifyingCargue.value = true;
+    try {
+      const s = getSession();
+      const { data } = await axios.post(`${API}/horas-extra/cargue/notificar/${loteId}`, {
+        cargado_por: s.name || '',
+      });
+      return data;
+    } finally {
+      isNotifyingCargue.value = false;
     }
   }
 
@@ -173,5 +228,16 @@ export function useCargueHoras() {
     formatFecha,
     formatDecimal,
     hasPerm,
+    // Lotes
+    lotes,
+    isLoadingLotes,
+    cargarLotes,
+    // Comparativo
+    comparativo,
+    isLoadingComparativo,
+    cargarComparativo,
+    // Notificar desde cargue
+    isNotifyingCargue,
+    notificarLote,
   };
 }

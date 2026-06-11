@@ -106,7 +106,7 @@
                 </button>
 
                 <!-- Consultas Card -->
-                <button v-if="isSuperAdmin || hasPerm('admin.novedades.admin') || hasPerm('admin.novedades.rrhh')"
+                <button v-if="isSuperAdmin || hasPerm('novedades.offboarding.consultas')"
                     @click="subModule = 'consultas'"
                     class="group flex flex-col items-start gap-3 p-5 rounded-md border transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5 active:scale-[0.99]"
                     :class="isDark
@@ -137,7 +137,7 @@
             </div>
 
             <!-- Estado vacío: sin acceso a ningún módulo -->
-            <div v-if="!isSuperAdmin && !hasPerm('admin.novedades.admin') && !hasPerm('admin.novedades.rrhh') && !hasPerm('admin.novedades.user')"
+            <div v-if="!isSuperAdmin && !hasPerm('admin.novedades.admin') && !hasPerm('admin.novedades.rrhh') && !hasPerm('admin.novedades.user') && !hasPerm('novedades.offboarding.consultas')"
                 class="mt-8 flex flex-col items-center gap-3 text-center">
                 <div class="w-12 h-12 rounded-xl flex items-center justify-center"
                     :class="isDark ? 'bg-white/5' : 'bg-slate-100'">

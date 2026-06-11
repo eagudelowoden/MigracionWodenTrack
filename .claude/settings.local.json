@@ -89,7 +89,11 @@
       "PowerShell(Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue)",
       "PowerShell(Start-Sleep -Seconds 8; $be = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue; $fe = Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue; \"Backend: $\\($be.Count -gt 0\\), Frontend: $\\($fe.Count -gt 0\\)\")",
       "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet64, @{N='WS_MB';E={[math]::Round\\($_.WorkingSet64/1MB,1\\)}}, @{N='CmdSnippet';E={try{\\(Get-CimInstance Win32_Process -Filter \"ProcessId=$\\($_.Id\\)\"\\).CommandLine.Substring\\(0,120\\)}catch{'?'}}} | Format-Table -AutoSize)",
-      "Bash(curl -s http://localhost:3000)"
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Force)",
+      "Bash(xargs grep -l \"offboarding\\\\|paz.*salvo\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" -Recurse | Where-Object { $_.Name -match \"ModuloCalculos|CargueHoras\" } | Select-Object FullName)",
+      "Bash(xargs grep -l \"HorasExtra\\\\|Novedad\")"
     ]
   }
 }
