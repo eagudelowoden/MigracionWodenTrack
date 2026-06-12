@@ -93,7 +93,11 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\" -Force)",
       "Bash(xargs grep -l \"offboarding\\\\|paz.*salvo\")",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" -Recurse | Where-Object { $_.Name -match \"ModuloCalculos|CargueHoras\" } | Select-Object FullName)",
-      "Bash(xargs grep -l \"HorasExtra\\\\|Novedad\")"
+      "Bash(xargs grep -l \"HorasExtra\\\\|Novedad\")",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(awk '{print $NF}')",
+      "Bash(python -c \"import reportlab; print\\('ok'\\)\")",
+      "Bash(python generar_arquitectura.py)"
     ]
   }
 }
