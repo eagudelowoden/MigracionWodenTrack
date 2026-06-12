@@ -165,6 +165,23 @@ export function useCargueHoras() {
     }
   }
 
+  // ── Registros de un lote ─────────────────────────────────────────────────────
+  const registrosLote = ref([]);
+  const isLoadingRegistrosLote = ref(false);
+
+  async function cargarRegistrosLote(loteId) {
+    isLoadingRegistrosLote.value = true;
+    registrosLote.value = [];
+    try {
+      const { data } = await axios.get(`${API}/horas-extra/cargue/registros/${loteId}`);
+      registrosLote.value = data;
+    } catch {
+      registrosLote.value = [];
+    } finally {
+      isLoadingRegistrosLote.value = false;
+    }
+  }
+
   // ── Notificar desde cargue ───────────────────────────────────────────────────
   const isNotifyingCargue = ref(false);
 
@@ -236,6 +253,10 @@ export function useCargueHoras() {
     comparativo,
     isLoadingComparativo,
     cargarComparativo,
+    // Registros de lote
+    registrosLote,
+    isLoadingRegistrosLote,
+    cargarRegistrosLote,
     // Notificar desde cargue
     isNotifyingCargue,
     notificarLote,

@@ -308,6 +308,11 @@ export class HorasExtraController {
     });
   }
 
+  @Get('cargue/registros/:loteId')
+  registrosLote(@Param('loteId') loteId: string) {
+    return this.service.getRegistrosLote(loteId);
+  }
+
   @Get('cargue/comparar/:loteId')
   compararCargue(@Param('loteId') loteId: string) {
     return this.service.getComparativoCargue(loteId);

@@ -123,36 +123,11 @@ export class MailService {
       const fecha = new Date().toLocaleString('es-CO', {
         timeZone: 'America/Bogota',
       });
-      const filas = registros
-        .map(
-          (r) =>
-            `<tr>
-              <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;">${r.cedula}</td>
-              <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-weight:600;">${r.nombre}</td>
-              <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;">${r.fecha}</td>
-              <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;">${r.departamento || '—'}</td>
-              <td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-style:italic;">${r.observacion || '—'}</td>
-            </tr>`,
-        )
-        .join('');
-
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
           <div style="border-left:4px solid #16a34a;padding:16px 20px;background:#f9fafb;border-radius:8px;">
             <h2 style="margin:0 0 12px;font-size:16px;color:#1a1a1a;">✅ Novedades de horas extra aprobadas</h2>
             <p style="font-size:12px;color:#666;margin:0 0 12px;">${registros.length} registro(s) aprobado(s). Ver detalle en el archivo adjunto.</p>
-            <table style="width:100%;font-size:12px;color:#444;border-collapse:collapse;">
-              <thead>
-                <tr style="background:#f0f0f0;">
-                  <th style="padding:6px 8px;text-align:left;">Cédula</th>
-                  <th style="padding:6px 8px;text-align:left;">Nombre</th>
-                  <th style="padding:6px 8px;text-align:left;">Fecha</th>
-                  <th style="padding:6px 8px;text-align:left;">Departamento</th>
-                  <th style="padding:6px 8px;text-align:left;">Observación</th>
-                </tr>
-              </thead>
-              <tbody>${filas}</tbody>
-            </table>
             ${calculado_por ? `<p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por}</p>` : ''}
             <p style="margin:6px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
           </div>

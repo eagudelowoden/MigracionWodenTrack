@@ -1731,6 +1731,13 @@ export class HorasExtraService {
     return { gerente, sistema };
   }
 
+  async getRegistrosLote(loteId: string): Promise<any[]> {
+    return this.cargueRepo.find({
+      where: { lote_id: loteId },
+      order: { nombre: 'ASC', fecha: 'ASC' } as any,
+    });
+  }
+
   async notificarDesdeCargue(loteId: string, cargado_por?: string): Promise<{ enviado: boolean }> {
     const registros = await this.cargueRepo.find({ where: { lote_id: loteId } });
     if (!registros.length) return { enviado: false };

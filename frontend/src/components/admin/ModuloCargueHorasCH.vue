@@ -158,6 +158,14 @@
               <!-- Acciones -->
               <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                 <div class="flex items-center justify-center gap-1.5">
+                  <!-- Ver registros -->
+                  <button @click="abrirRegistros(lote)"
+                    class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
+                    :class="isDark
+                      ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10'
+                      : 'border-blue-300 text-blue-700 hover:bg-blue-50'">
+                    <i class="fas fa-table text-[9px]"></i> Ver registros
+                  </button>
                   <!-- Ver vs Sistema (solo si origen = gerente) -->
                   <button v-if="lote.origen === 'gerente'"
                     @click="abrirComparativo(lote)"
@@ -298,6 +306,15 @@
       </div>
     </div>
 
+    <!-- ══ MODAL REGISTROS LOTE ══════════════════════════════════════════════ -->
+    <RegistrosLoteModal
+      v-model="showRegistros"
+      :isDark="isDark"
+      :lote="loteRegistros"
+      :registros="registrosLote"
+      :isLoading="isLoadingRegistrosLote"
+    />
+
     <!-- ══ MODAL COMPARATIVO ═══════════════════════════════════════════════════ -->
     <ComparativoHorasModal
       v-model="showComparativo"
@@ -314,6 +331,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 import ComparativoHorasModal from './ComparativoHorasModal.vue';
+import RegistrosLoteModal from './RegistrosLoteModal.vue';
 
 const props = defineProps({
   isDark: Boolean,
@@ -340,6 +358,10 @@ const {
   comparativo,
   isLoadingComparativo,
   cargarComparativo,
+  // Registros de lote
+  registrosLote,
+  isLoadingRegistrosLote,
+  cargarRegistrosLote,
   // Notificar
   isNotifyingCargue,
   notificarLote,
@@ -390,6 +412,16 @@ async function abrirComparativo(lote) {
   loteSeleccionado.value = lote;
   showComparativo.value = true;
   await cargarComparativo(lote.lote_id);
+}
+
+// ── Ver registros modal ───────────────────────────────────────────────────────
+const showRegistros = ref(false);
+const loteRegistros = ref(null);
+
+async function abrirRegistros(lote) {
+  loteRegistros.value = lote;
+  showRegistros.value = true;
+  await cargarRegistrosLote(lote.lote_id);
 }
 
 // ── Notificar lote individual ─────────────────────────────────────────────────
