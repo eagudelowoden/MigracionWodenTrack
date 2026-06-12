@@ -110,6 +110,10 @@ export class HoraExtra {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   hefn: number; // Horas Extra Festivas Nocturnas
 
+  /** lote_id del cargue del gerente que originó la notificación */
+  @Column({ type: 'nvarchar', length: 36, nullable: true, default: null })
+  notificacion_lote_id: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

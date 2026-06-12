@@ -97,7 +97,9 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(awk '{print $NF}')",
       "Bash(python -c \"import reportlab; print\\('ok'\\)\")",
-      "Bash(python generar_arquitectura.py)"
+      "Bash(python generar_arquitectura.py)",
+      "Bash(sed -n '50,80p' backend/src/horas-extra/horas-extra.controller.ts)",
+      "Bash(sed -n '270,300p' backend/src/horas-extra/horas-extra.controller.ts)"
     ]
   }
 }

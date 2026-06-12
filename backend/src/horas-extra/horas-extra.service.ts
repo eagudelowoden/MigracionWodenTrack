@@ -1668,6 +1668,8 @@ export class HorasExtraService {
     departamento?: string;
     area_id?: number;
     segmento_id?: number;
+    soloNotificados?: boolean;
+    soloPendientes?: boolean;
   }): Promise<any[]> {
     const qb = this.cargueRepo.createQueryBuilder('c');
     if (filters.startDate) qb.andWhere('c.fecha >= :s', { s: filters.startDate });
@@ -1676,6 +1678,8 @@ export class HorasExtraService {
     if (filters.departamento) qb.andWhere('c.departamento LIKE :d', { d: `%${filters.departamento}%` });
     if (filters.area_id) qb.andWhere('c.area_id = :a', { a: filters.area_id });
     if (filters.segmento_id) qb.andWhere('c.segmento_id = :sg', { sg: filters.segmento_id });
+    if (filters.soloNotificados) qb.andWhere('c.notificado = 1');
+    if (filters.soloPendientes) qb.andWhere('(c.notificado IS NULL OR c.notificado = 0)');
 
     const rows = await qb.orderBy('c.created_at', 'DESC').getMany();
 
@@ -1693,6 +1697,7 @@ export class HorasExtraService {
           fecha_desde: r.fecha,
           fecha_hasta: r.fecha,
           created_at: r.created_at,
+          notificado: !!r.notificado,
           registros: 0,
         });
       }
@@ -1746,6 +1751,31 @@ export class HorasExtraService {
     const destinatarios = await this.correoSvc.resolverDestinatariosHX(departamentos);
     const excelBuffer = await this._generarExcelDesdeRegistros(registros);
     await this.mail.enviarNovedadesAprobadas({ registros, excelBuffer, destinatarios, calculado_por: cargado_por });
+
+    // Marcar lote como notificado
+    await this.cargueRepo
+      .createQueryBuilder()
+      .update()
+      .set({ notificado: true } as any)
+      .where('lote_id = :loteId', { loteId })
+      .execute();
+
+    // Marcar novedades aprobadas coincidentes como notificadas y referenciar el lote
+    const cedulasLote = [...new Set(registros.map(r => r.cedula).filter(Boolean) as string[])];
+    const fechaMin = registros.reduce((m, r) => r.fecha < m ? r.fecha : m, registros[0].fecha);
+    const fechaMax = registros.reduce((m, r) => r.fecha > m ? r.fecha : m, registros[0].fecha);
+
+    if (cedulasLote.length) {
+      await this.horaExtraRepo
+        .createQueryBuilder()
+        .update()
+        .set({ notificado: true, notificacion_lote_id: loteId } as any)
+        .where('cedula IN (:...cedulas)', { cedulas: cedulasLote })
+        .andWhere('fecha >= :min', { min: fechaMin })
+        .andWhere('fecha <= :max', { max: fechaMax })
+        .andWhere('aprobado = 1')
+        .execute();
+    }
 
     return { enviado: true };
   }

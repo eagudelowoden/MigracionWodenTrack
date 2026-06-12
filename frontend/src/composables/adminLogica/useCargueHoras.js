@@ -130,12 +130,14 @@ export function useCargueHoras() {
   const lotes = ref([]);
   const isLoadingLotes = ref(false);
 
-  async function cargarLotes({ startDate, endDate, company, departamento } = {}) {
+  async function cargarLotes({ startDate, endDate, company, departamento, soloPendientes, soloNotificados } = {}) {
     isLoadingLotes.value = true;
     try {
       const s = getSession();
       const params = { startDate, endDate, company };
       if (departamento) params.departamento = departamento;
+      if (soloPendientes) params.soloPendientes = 'true';
+      if (soloNotificados) params.soloNotificados = 'true';
       if (!s.isSuperAdmin && !hasPerm('admin.filtro_departamento')) {
         Object.assign(params, getAreaSegmento());
       }

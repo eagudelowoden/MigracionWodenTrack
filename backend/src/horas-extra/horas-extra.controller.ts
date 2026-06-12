@@ -297,6 +297,8 @@ export class HorasExtraController {
     @Query('departamento') departamento?: string,
     @Query('area_id') area_id?: string,
     @Query('segmento_id') segmento_id?: string,
+    @Query('soloNotificados') soloNotificados?: string,
+    @Query('soloPendientes') soloPendientes?: string,
   ) {
     return this.service.getLotesCargue({
       startDate,
@@ -305,6 +307,8 @@ export class HorasExtraController {
       departamento,
       area_id: area_id ? Number(area_id) : undefined,
       segmento_id: segmento_id ? Number(segmento_id) : undefined,
+      soloNotificados: soloNotificados === 'true',
+      soloPendientes: soloPendientes === 'true',
     });
   }
 

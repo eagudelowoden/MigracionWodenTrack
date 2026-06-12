@@ -77,6 +77,10 @@ export class HoraExtraCargue {
   @Column({ type: 'nvarchar', length: 20, nullable: true, default: 'gerente' })
   origen: string | null;
 
+  /** true = ya fue notificado y archivado en historial */
+  @Column({ type: 'bit', nullable: true, default: null })
+  notificado: boolean | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

@@ -770,6 +770,16 @@
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
             <Transition name="fade-chip">
+              <div v-if="notificandoLotesMasivo || notificandoLoteIdCargue"
+                class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 rounded-md"
+                :class="isDark ? 'bg-[#161B26]/85' : 'bg-white/85'" style="backdrop-filter:blur(3px)">
+                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+                <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                  {{ notificandoLotesMasivo ? 'Notificando lotes…' : 'Enviando notificación…' }}
+                </span>
+              </div>
+            </Transition>
+            <Transition name="fade-chip">
               <div v-if="cargueIsLoadingLotes"
                 class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
                 :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
@@ -853,13 +863,6 @@
                           class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
                           :class="isDark ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10' : 'border-blue-300 text-blue-700 hover:bg-blue-50'">
                           <i class="fas fa-table text-[9px]"></i> Ver registros
-                        </button>
-                        <!-- vs Sistema -->
-                        <button v-if="lote.origen === 'gerente'"
-                          @click="abrirComparativoCargue(lote)"
-                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
-                          :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
-                          <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
                         </button>
                         <button @click="handleNotificarLoteIndividual(lote)"
                           :disabled="notificandoLoteIdCargue === lote.lote_id"
@@ -1479,53 +1482,54 @@
           </p>
         </div>
 
-        <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
+        <div v-else class="flex-1 overflow-y-auto">
           <table class="w-full border-separate border-spacing-0 text-[11px]">
-            <thead class="sticky top-0 z-30">
+            <thead class="sticky top-0 z-10">
               <tr class="bg-[#1e2538]">
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Cédula</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Nombre</th>
-                <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Fecha</th>
-                <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Departamento</th>
-                <th v-for="col in COLS_HX" :key="col"
-                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
-                  {{ col.toUpperCase() }}
-                </th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7]">
-                  Observación</th>
+                <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Período</th>
+                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Registros</th>
+                <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Notificado por</th>
+                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, idx) in historial" :key="r.id" class="transition-all"
-                :class="idx % 2 !== 0 ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60') : ''">
-                <td class="px-3 py-2 border-b border-r font-mono text-[9px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ r.cedula }}
+              <tr v-for="(grupoRows, loteKey) in historialAgrupadoPorLote" :key="loteKey"
+                class="transition-all" :class="isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'">
+                <!-- Período -->
+                <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                      :class="isDark ? 'bg-[#0B0F19]' : 'bg-slate-100'">
+                      <i class="fas fa-clock-rotate-left text-[10px] text-[#3B82F6]"></i>
+                    </div>
+                    <div>
+                      <p class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                        {{ formatFecha(historialFechaMin(grupoRows)) }} — {{ formatFecha(historialFechaMax(grupoRows)) }}
+                      </p>
+                      <p class="text-[10px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        {{ grupoRows[0]?.company || '—' }}
+                      </p>
+                    </div>
+                  </div>
                 </td>
-                <td class="px-3 py-2 border-b border-r font-bold uppercase"
-                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ r.nombre }}
+                <!-- Registros -->
+                <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ grupoRows.length }}</span>
                 </td>
-                <td class="px-3 py-2 border-b border-r text-center"
-                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
-                    formatFecha(r.fecha) }}</td>
-                <td class="px-3 py-2 border-b border-r"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">{{
-                    r.departamento || '—' }}</td>
-                <td v-for="col in COLS_HX" :key="col" class="px-2 py-2 border-b border-r text-center"
-                  :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                  Number(r[col]) > 0 ? (isDark ? 'text-[#3B82F6] font-semibold' : 'text-blue-500 font-semibold') : (isDark ? 'text-slate-600' : 'text-slate-300')]">
-                  {{ formatDecimal(r[col]) }}
+                <!-- Notificado por -->
+                <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                  {{ grupoRows[0]?.calculado_por || '—' }}
                 </td>
-                <td class="px-3 py-2 border-b text-[10px]"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">
-                  {{ r.observacion || '—' }}
+                <!-- Acciones -->
+                <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                  <div class="flex items-center justify-center gap-1.5">
+                    <button v-if="loteKey !== 'sin_lote'"
+                      @click="abrirComparativoHistorial(loteKey, grupoRows)"
+                      class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
+                      :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
+                      <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -2480,6 +2484,7 @@ async function handleCargarLotes() {
     startDate: cargueStartDate.value || undefined,
     endDate: cargueEndDate.value || undefined,
     company: props.company,
+    soloPendientes: true,
   });
 }
 
@@ -2499,7 +2504,10 @@ function toggleSelectAllLotes() {
 
 async function handleNotificarLoteIndividual(lote) {
   notificandoLoteIdCargue.value = lote.lote_id;
-  try { await notificarCargueGrupo(lote.lote_id); } catch { } finally {
+  try {
+    await notificarCargueGrupo(lote.lote_id);
+    await handleCargarLotes();
+  } catch { } finally {
     notificandoLoteIdCargue.value = null;
   }
 }
@@ -2511,6 +2519,7 @@ async function handleNotificarLotesSeleccionados() {
       await notificarCargueGrupo(id);
     }
     lotesSeleccionadosCargue.value = new Set();
+    await handleCargarLotes();
   } catch { } finally {
     notificandoLotesMasivo.value = false;
   }
@@ -2520,6 +2529,37 @@ async function abrirComparativoCargue(lote) {
   loteSeleccionadoCargue.value = lote;
   showComparativoCargue.value = true;
   await cargarCargueComparativo(lote.lote_id);
+}
+
+// ── Historial agrupado por lote ──────────────────────────────────────────────
+const historialAgrupadoPorLote = computed(() => {
+  const m = {};
+  for (const r of historial.value) {
+    const key = r.notificacion_lote_id || 'sin_lote';
+    if (!m[key]) m[key] = [];
+    m[key].push(r);
+  }
+  return m;
+});
+
+function historialFechaMin(rows) {
+  return rows.reduce((m, r) => r.fecha < m ? r.fecha : m, rows[0]?.fecha || '');
+}
+function historialFechaMax(rows) {
+  return rows.reduce((m, r) => r.fecha > m ? r.fecha : m, rows[0]?.fecha || '');
+}
+
+async function abrirComparativoHistorial(loteId, rows) {
+  // Construir un objeto lote mínimo para el modal
+  const fechas = rows.map(r => r.fecha).sort();
+  loteSeleccionadoCargue.value = {
+    lote_id: loteId,
+    fecha_desde: fechas[0],
+    fecha_hasta: fechas[fechas.length - 1],
+    cargado_por: rows[0]?.calculado_por || '—',
+  };
+  showComparativoCargue.value = true;
+  await cargarCargueComparativo(loteId);
 }
 
 async function abrirRegistrosCargue(lote) {
