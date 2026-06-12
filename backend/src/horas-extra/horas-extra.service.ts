@@ -1906,4 +1906,83 @@ export class HorasExtraService {
   async eliminarRegistro(id: number): Promise<void> {
     await this.horaExtraRepo.delete(id);
   }
+
+  async importarDesdeExcel(
+    fileBuffer: any,
+    meta: {
+      company?: string;
+      departamento?: string;
+      area_id?: number;
+      segmento_id?: number;
+      calculado_por?: string;
+      calculado_por_id?: number;
+    },
+  ): Promise<{ guardados: number; omitidos: { nombre: string; fecha: string }[]; errores: string[] }> {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(fileBuffer);
+    const ws = wb.worksheets[0];
+
+    const registros: any[] = [];
+    const errores: string[] = [];
+
+    const parseNum = (val: any): number => {
+      const n = parseFloat(String(val ?? '0').replace(',', '.'));
+      return isNaN(n) ? 0 : n;
+    };
+    const parseText = (val: any): string | null => {
+      const t = String(val ?? '').trim();
+      return t === '' || t === 'null' || t === 'undefined' ? null : t;
+    };
+
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber <= 2) return;
+
+      const nombre = parseText(row.getCell(2).value);
+      const fechaRaw = parseText(row.getCell(3).value);
+      if (!nombre || !fechaRaw) return;
+
+      if (['Fecha', 'FECHA', 'fecha'].includes(fechaRaw)) return;
+
+      let fecha = fechaRaw;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+        const [d, m, y] = fecha.split('/');
+        fecha = `${y}-${m}-${d}`;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return;
+
+      registros.push({
+        cedula: parseText(row.getCell(1).value),
+        nombre,
+        fecha,
+        inicio_turno: parseText(row.getCell(4).value),
+        fin_turno: parseText(row.getCell(5).value),
+        hora_inicio_laborado: parseText(row.getCell(6).value),
+        hora_fin_laborado: parseText(row.getCell(7).value),
+        rn: parseNum(row.getCell(8).value),
+        rndf: parseNum(row.getCell(9).value),
+        rddf: parseNum(row.getCell(10).value),
+        hedo: parseNum(row.getCell(11).value),
+        heno: parseNum(row.getCell(12).value),
+        hefd: parseNum(row.getCell(13).value),
+        hefn: parseNum(row.getCell(14).value),
+        company: meta.company ?? null,
+        departamento: meta.departamento ?? null,
+        area_id: meta.area_id ?? null,
+        segmento_id: meta.segmento_id ?? null,
+        aprobado: true,
+      });
+    });
+
+    if (!registros.length) {
+      return { guardados: 0, omitidos: [], errores: ['No se encontraron filas válidas en el archivo'] };
+    }
+
+    const resultado = await this.guardarSeleccionados(
+      registros,
+      meta.calculado_por ?? 'importación',
+      meta.calculado_por_id,
+    );
+
+    return { ...resultado, errores };
+  }
 }

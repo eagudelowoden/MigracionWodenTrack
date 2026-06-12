@@ -157,6 +157,30 @@ export class HorasExtraController {
     });
   }
 
+  @Post('importar-excel')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async importarDesdeExcel(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: {
+      company?: string;
+      departamento?: string;
+      area_id?: string;
+      segmento_id?: string;
+      calculado_por?: string;
+      calculado_por_id?: string;
+    },
+  ) {
+    if (!file) return { error: 'No se recibió ningún archivo' };
+    return this.service.importarDesdeExcel(file.buffer, {
+      company: body.company,
+      departamento: body.departamento,
+      area_id: body.area_id ? Number(body.area_id) : undefined,
+      segmento_id: body.segmento_id ? Number(body.segmento_id) : undefined,
+      calculado_por: body.calculado_por,
+      calculado_por_id: body.calculado_por_id ? Number(body.calculado_por_id) : undefined,
+    });
+  }
+
   @Post('notificar-aprobados')
   notificarAprobados(@Body() body: { registros: any[]; calculado_por?: string }) {
     return this.service.notificarAprobados(body.registros ?? [], body.calculado_por);

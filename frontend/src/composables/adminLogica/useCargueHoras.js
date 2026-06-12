@@ -217,6 +217,37 @@ export function useCargueHoras() {
     }
   }
 
+  // ── Importar Excel → horas_extra ────────────────────────────────────────────
+  const isImportingExcel = ref(false);
+  const importResultado = ref(null); // { guardados, omitidos, errores }
+
+  async function importarExcel(file, meta = {}) {
+    isImportingExcel.value = true;
+    importResultado.value = null;
+    try {
+      const s = getSession();
+      const scope = getAreaSegmento();
+      const fd = new FormData();
+      fd.append('file', file);
+      if (meta.company) fd.append('company', meta.company);
+      if (meta.departamento) fd.append('departamento', meta.departamento);
+      if (scope.area_id) fd.append('area_id', String(scope.area_id));
+      if (scope.segmento_id) fd.append('segmento_id', String(scope.segmento_id));
+      fd.append('calculado_por', s.nombre || s.email || 'importación');
+      if (s.id) fd.append('calculado_por_id', String(s.id));
+      const { data } = await axios.post(`${API}/horas-extra/importar-excel`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      importResultado.value = data;
+      return data;
+    } catch (e) {
+      importResultado.value = { error: e?.response?.data?.message || 'Error al importar' };
+      return null;
+    } finally {
+      isImportingExcel.value = false;
+    }
+  }
+
   // ── Formatters ───────────────────────────────────────────────────────────────
   function formatFecha(f) {
     if (!f) return '—';
@@ -262,5 +293,9 @@ export function useCargueHoras() {
     // Notificar desde cargue
     isNotifyingCargue,
     notificarLote,
+    // Importar Excel → horas_extra
+    isImportingExcel,
+    importResultado,
+    importarExcel,
   };
 }

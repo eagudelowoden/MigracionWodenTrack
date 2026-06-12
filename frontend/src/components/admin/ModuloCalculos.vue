@@ -1298,6 +1298,15 @@
             :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
             <i class="fas fa-xmark text-[9px]"></i> Limpiar
           </button>
+          <!-- Importar desde Excel -->
+          <button @click="showImportModal = true"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
+            :class="isDark
+              ? 'bg-[#161B26] border-blue-500/30 text-blue-400 hover:bg-blue-500/[0.06] hover:border-blue-500/60'
+              : 'bg-white border-blue-400/40 text-blue-700 hover:bg-blue-50 hover:border-blue-400'">
+            <i class="fas fa-file-import text-[10px]"></i>
+            Importar Excel
+          </button>
           <!-- Descargar Excel -->
           <button @click="handleDescargarNovedades" :disabled="isExportingNovedades || !novedadesAprobadas.length"
             class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
@@ -2103,6 +2112,117 @@
     />
     <!-- ══ FIN MODAL COMPARATIVO CARGUE ══════════════════════════════════════ -->
 
+    <!-- ══ MODAL IMPORTAR EXCEL ══════════════════════════════════════════════ -->
+    <Teleport to="body">
+    <Transition name="fade">
+      <div v-if="showImportModal" class="fixed inset-0 z-[9999] flex items-center justify-content-center p-4"
+        style="background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;"
+        @click.self="cerrarImportModal">
+        <div class="w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center gap-3 px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              :class="isDark ? 'bg-blue-500/15' : 'bg-blue-50'">
+              <i class="fas fa-file-import text-blue-500 text-[14px]"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-[10px] font-medium uppercase tracking-wide"
+                :class="isDark ? 'text-slate-500' : 'text-slate-400'">Novedades Aprobadas</p>
+              <h3 class="text-[15px] font-semibold"
+                :class="isDark ? 'text-white' : 'text-slate-900'">Importar desde Excel</h3>
+            </div>
+            <button @click="cerrarImportModal"
+              class="w-7 h-7 rounded-md flex items-center justify-center border transition-all"
+              :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+              <i class="fas fa-times text-[12px]"></i>
+            </button>
+          </div>
+
+          <!-- Resultado previo -->
+          <div v-if="importResultado" class="px-5 pt-4">
+            <div v-if="importResultado.error" class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
+              :class="isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-700'">
+              <i class="fas fa-triangle-exclamation text-[11px]"></i>
+              <span class="text-[12px]">{{ importResultado.error }}</span>
+            </div>
+            <div v-else class="flex flex-col gap-1.5">
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
+                :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
+                <i class="fas fa-circle-check text-[11px]"></i>
+                <span class="text-[12px] font-medium">{{ importResultado.guardados }} registro(s) importados correctamente</span>
+              </div>
+              <div v-if="importResultado.omitidos?.length" class="px-3 py-2 rounded-lg border text-[11px]"
+                :class="isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'">
+                <i class="fas fa-triangle-exclamation text-[10px] mr-1"></i>
+                {{ importResultado.omitidos.length }} omitido(s) — ya tenían registro aprobado:
+                <span v-for="o in importResultado.omitidos" :key="o.nombre+o.fecha" class="block ml-4 text-[10px] opacity-80">
+                  · {{ o.nombre }} / {{ o.fecha }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drop zone -->
+          <div v-if="!importResultado?.guardados" class="px-5 py-5">
+            <div
+              class="relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all cursor-pointer"
+              :class="[
+                importDragOver
+                  ? (isDark ? 'border-blue-400 bg-blue-500/10' : 'border-blue-400 bg-blue-50')
+                  : (isDark ? 'border-[#2a3245] hover:border-blue-500/50' : 'border-slate-200 hover:border-blue-300'),
+                importFile ? (isDark ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-emerald-400 bg-emerald-50') : ''
+              ]"
+              @dragover.prevent="importDragOver = true"
+              @dragleave="importDragOver = false"
+              @drop="onImportDrop"
+              @click="$refs.importFileInput.click()">
+              <input ref="importFileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="onImportFileChange" />
+              <i v-if="!importFile" class="fas fa-cloud-arrow-up text-2xl"
+                :class="isDark ? 'text-slate-500' : 'text-slate-300'"></i>
+              <i v-else class="fas fa-file-excel text-2xl text-emerald-500"></i>
+              <div class="text-center">
+                <p class="text-[12px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                  {{ importFile ? importFile.name : 'Arrastra el archivo aquí o haz clic para seleccionar' }}
+                </p>
+                <p v-if="!importFile" class="text-[10px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                  Formato: plantilla de horas extra (.xlsx)
+                </p>
+                <p v-else class="text-[10px] mt-1 text-emerald-500">
+                  {{ (importFile.size / 1024).toFixed(1) }} KB · listo para importar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-2 px-5 py-3 border-t"
+            :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-100 bg-slate-50'">
+            <button @click="cerrarImportModal"
+              class="h-8 px-4 rounded-lg text-[12px] font-medium border transition-all"
+              :class="isDark ? 'border-[#222938] text-slate-300 hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'">
+              Cerrar
+            </button>
+            <button v-if="importResultado?.guardados" @click="cerrarImportModal"
+              class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+              <i class="fas fa-check text-[10px] mr-1"></i> Listo
+            </button>
+            <button v-else @click="ejecutarImport"
+              :disabled="!importFile || isImportingExcel"
+              class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40 border-0"
+              :class="isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'">
+              <i :class="isImportingExcel ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'" class="text-[10px] mr-1"></i>
+              {{ isImportingExcel ? 'Importando…' : 'Importar' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+    </Teleport>
+    <!-- ══ FIN MODAL IMPORTAR EXCEL ════════════════════════════════════════ -->
 
     <!-- ══ TOAST JUSTIFICACIÓN REQUERIDA ════════════════════════════════════ -->
     <Transition name="toast-slide">
@@ -2342,6 +2462,10 @@ const {
   cargarRegistrosLote: cargarCargueRegistrosLote,
   // Notificar
   notificarLote: notificarCargueGrupo,
+  // Importar Excel
+  isImportingExcel,
+  importResultado,
+  importarExcel,
 } = useCargueHoras();
 
 const archivoSeleccionado = ref(null);
@@ -2477,6 +2601,36 @@ const showComparativoCargue = ref(false);
 const loteSeleccionadoCargue = ref(null);
 const showRegistrosCargue = ref(false);
 const loteRegistrosCargue = ref(null);
+
+// ── Importar Excel ────────────────────────────────────────────────────────────
+const showImportModal = ref(false);
+const importFile = ref(null);
+const importDragOver = ref(false);
+
+function onImportDrop(e) {
+  e.preventDefault();
+  importDragOver.value = false;
+  const f = e.dataTransfer?.files?.[0];
+  if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) importFile.value = f;
+}
+function onImportFileChange(e) {
+  const f = e.target.files?.[0];
+  if (f) importFile.value = f;
+}
+async function ejecutarImport() {
+  if (!importFile.value) return;
+  const s = JSON.parse(localStorage.getItem('user_session') || '{}');
+  const result = await importarExcel(importFile.value, { company: props.company });
+  if (result && !result.error) {
+    importFile.value = null;
+    await cargarNovedadesAprobadas(props.company);
+  }
+}
+function cerrarImportModal() {
+  showImportModal.value = false;
+  importFile.value = null;
+  importResultado.value = null;
+}
 
 async function handleCargarLotes() {
   lotesSeleccionadosCargue.value = new Set();
