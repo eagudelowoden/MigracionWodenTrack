@@ -364,6 +364,36 @@
           </div>
         </div>
 
+        <!-- Novedades (tipo: novedades) -->
+        <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
+          <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
+            <div>
+              <p class="c-section-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Novedades</p>
+              <p class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Correos que reciben notificaciones generales de novedades aprobadas</p>
+            </div>
+          </div>
+          <div class="c-card-body">
+            <div v-if="correo.destinatarios.length" class="flex flex-wrap gap-1.5 mb-3">
+              <div v-for="email in correo.destinatarios" :key="email" class="c-tag" :class="isDark ? 'c-tag-dark' : 'c-tag-light'">
+                {{ email }}
+                <button @click="quitarDestinatario(email)" class="c-remove-btn ml-1"><i class="fas fa-xmark text-[8px]"></i></button>
+              </div>
+            </div>
+            <p v-else class="c-row-desc mb-3" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">Sin correos configurados</p>
+            <div class="c-input-row">
+              <input v-model="correo.nuevoDestinatario" type="email" placeholder="novedades@empresa.com"
+                @keydown.enter.prevent="agregarDestinatario" class="c-input flex-1" :class="isDark ? 'c-input-dark' : 'c-input-light'" />
+              <button @click="agregarDestinatario" class="c-btn-ghost" :class="isDark ? 'c-ghost-dark' : 'c-ghost-light'">
+                <i class="fas fa-plus text-[9px]"></i>
+              </button>
+              <button @click="guardarDestinatarios" :disabled="correo.guardandoDest" class="c-btn-primary">
+                <i class="fas text-[9px]" :class="correo.guardandoDest ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
+                {{ correo.guardandoDest ? 'Guardando…' : 'Guardar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Capital Humano -->
         <div class="c-card" :class="isDark ? 'c-card-dark' : 'c-card-light'">
           <div class="c-card-head" :class="isDark ? 'c-head-dark' : 'c-head-light'">
@@ -703,12 +733,13 @@ const correo = ref({
 
 const cargarConfigCorreo = async () => {
   try {
-    const [resCfg, resCH, resCord, resSegs, resRen] = await Promise.all([
-      fetch(`${API_URL}/superadmin/correo/config`,             { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/capital-humano`,     { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/coordinadores`,      { cache: 'no-store' }),
-      fetch(`${API_URL}/organizacion/segmentos`,                { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/novedades-renuncia`, { cache: 'no-store' }),
+    const [resCfg, resCH, resCord, resSegs, resRen, resDest] = await Promise.all([
+      fetch(`${API_URL}/superadmin/correo/config`,                  { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/capital-humano`,          { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/coordinadores`,           { cache: 'no-store' }),
+      fetch(`${API_URL}/organizacion/segmentos`,                     { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/novedades-renuncia`,      { cache: 'no-store' }),
+      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, { cache: 'no-store' }),
     ]);
     if (resCfg.ok) {
       const cfg = await resCfg.json();
@@ -718,6 +749,7 @@ const cargarConfigCorreo = async () => {
     if (resCH.ok)   correo.value.capitalHumano  = await resCH.json();
     if (resCord.ok) correo.value.coordinadores   = await resCord.json();
     if (resRen.ok)  correo.value.renunciaEmails  = await resRen.json();
+    if (resDest.ok) correo.value.destinatarios   = await resDest.json();
     if (resSegs.ok) {
       const segs = await resSegs.json();
       correo.value.segmentos = Array.isArray(segs) ? segs.map(s => s.nombre ?? s) : [];

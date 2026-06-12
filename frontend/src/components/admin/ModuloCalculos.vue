@@ -848,6 +848,13 @@
 
                     <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                       <div class="flex items-center justify-center gap-1.5">
+                        <!-- Ver registros -->
+                        <button @click="abrirRegistrosCargue(lote)"
+                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
+                          :class="isDark ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10' : 'border-blue-300 text-blue-700 hover:bg-blue-50'">
+                          <i class="fas fa-table text-[9px]"></i> Ver registros
+                        </button>
+                        <!-- vs Sistema -->
                         <button v-if="lote.origen === 'gerente'"
                           @click="abrirComparativoCargue(lote)"
                           class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
@@ -2073,6 +2080,15 @@
     </Teleport>
     <!-- ══ FIN MODAL ACTIVIDAD ═══════════════════════════════════════════════ -->
 
+    <!-- ══ MODAL REGISTROS CARGUE ════════════════════════════════════════════ -->
+    <RegistrosLoteModal
+      v-model="showRegistrosCargue"
+      :isDark="isDark"
+      :lote="loteRegistrosCargue"
+      :registros="cargueRegistrosLote"
+      :isLoading="cargueIsLoadingRegistrosLote"
+    />
+
     <!-- ══ MODAL COMPARATIVO CARGUE ═════════════════════════════════════════ -->
     <ComparativoHorasModal
       v-model="showComparativoCargue"
@@ -2205,6 +2221,7 @@ import axios from 'axios';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 import ComparativoHorasModal from './ComparativoHorasModal.vue';
+import RegistrosLoteModal from './RegistrosLoteModal.vue';
 
 const props = defineProps({
   isDark: Boolean,
@@ -2315,6 +2332,10 @@ const {
   comparativo: cargueComparativo,
   isLoadingComparativo: cargueIsLoadingComparativo,
   cargarComparativo: cargarCargueComparativo,
+  // Registros de lote
+  registrosLote: cargueRegistrosLote,
+  isLoadingRegistrosLote: cargueIsLoadingRegistrosLote,
+  cargarRegistrosLote: cargarCargueRegistrosLote,
   // Notificar
   notificarLote: notificarCargueGrupo,
 } = useCargueHoras();
@@ -2450,6 +2471,8 @@ const notificandoLoteIdCargue = ref(null);
 const notificandoLotesMasivo = ref(false);
 const showComparativoCargue = ref(false);
 const loteSeleccionadoCargue = ref(null);
+const showRegistrosCargue = ref(false);
+const loteRegistrosCargue = ref(null);
 
 async function handleCargarLotes() {
   lotesSeleccionadosCargue.value = new Set();
@@ -2497,6 +2520,12 @@ async function abrirComparativoCargue(lote) {
   loteSeleccionadoCargue.value = lote;
   showComparativoCargue.value = true;
   await cargarCargueComparativo(lote.lote_id);
+}
+
+async function abrirRegistrosCargue(lote) {
+  loteRegistrosCargue.value = lote;
+  showRegistrosCargue.value = true;
+  await cargarCargueRegistrosLote(lote.lote_id);
 }
 
 function fmtFechaLote(f) {

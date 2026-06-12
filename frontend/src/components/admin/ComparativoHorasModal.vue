@@ -1,98 +1,84 @@
 <template>
+  <Teleport to="body">
   <Transition name="fade">
     <div v-if="modelValue" class="ch-overlay" @click.self="emit('update:modelValue', false)">
       <Transition name="modal" appear>
-        <div v-if="modelValue" class="ch-modal" :class="isDark ? 'ch-dark' : 'ch-light'">
+        <div v-if="modelValue" class="ch-modal">
 
           <!-- Header -->
-          <header class="ch-header">
-            <div class="ch-header-icon">
-              <i class="fas fa-code-compare"></i>
+          <div class="ch-header">
+            <div class="ch-avatar">
+              <i class="fas fa-code-compare" style="font-size:17px;color:#7c3aed;"></i>
             </div>
-            <div class="ch-header-info">
-              <p class="ch-eyebrow">Auditoría de horas</p>
-              <h3 class="ch-title">Sistema vs Gerente</h3>
-              <p class="ch-subtitle" v-if="lote">
-                {{ lote.fecha_desde }} → {{ lote.fecha_hasta }}
-                · <span class="font-medium">{{ lote.cargado_por }}</span>
-              </p>
+            <div style="flex:1;">
+              <div class="ch-eyebrow">Auditoría de horas</div>
+              <div class="ch-title">Sistema vs Gerente</div>
+              <div class="ch-sub" v-if="lote">
+                {{ lote.fecha_desde }} → {{ lote.fecha_hasta }} · <strong>{{ lote.cargado_por }}</strong>
+              </div>
             </div>
-            <button @click="emit('update:modelValue', false)" class="ch-close">
+            <button @click="emit('update:modelValue', false)" class="ch-close-btn">
               <i class="fas fa-times"></i>
             </button>
-          </header>
+          </div>
 
           <!-- Leyenda -->
           <div class="ch-legend">
-            <span class="ch-badge ch-badge-igual"><i class="fas fa-equals text-[8px]"></i> Sin diferencia</span>
-            <span class="ch-badge ch-badge-sube"><i class="fas fa-arrow-up text-[8px]"></i> Gerente subió</span>
-            <span class="ch-badge ch-badge-baja"><i class="fas fa-arrow-down text-[8px]"></i> Gerente bajó</span>
-            <span class="ch-badge ch-badge-solo"><i class="fas fa-question text-[8px]"></i> Solo en sistema</span>
+            <span class="ch-badge ch-igual"><i class="fas fa-equals" style="font-size:8px;"></i> Sin diferencia</span>
+            <span class="ch-badge ch-sube"><i class="fas fa-arrow-up" style="font-size:8px;"></i> Gerente subió</span>
+            <span class="ch-badge ch-baja"><i class="fas fa-arrow-down" style="font-size:8px;"></i> Gerente bajó</span>
+            <span class="ch-badge ch-solo"><i class="fas fa-question" style="font-size:8px;"></i> Solo en sistema</span>
           </div>
 
+          <div class="ch-divider"></div>
+
           <!-- Loading -->
-          <div v-if="isLoading" class="ch-loading">
-            <i class="fas fa-spinner fa-spin text-[#3B82F6] text-xl"></i>
-            <span class="text-[12px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando comparativo…</span>
+          <div v-if="isLoading" class="ch-state">
+            <i class="fas fa-spinner fa-spin" style="font-size:20px;color:#3B82F6;"></i>
+            <span class="ch-state-txt">Cargando comparativo…</span>
           </div>
 
           <!-- Sin datos -->
-          <div v-else-if="!filas.length" class="ch-empty">
-            <i class="fas fa-circle-check text-emerald-500 text-2xl"></i>
-            <p :class="isDark ? 'text-slate-400' : 'text-slate-500'">No hay registros del sistema para comparar en este período.</p>
+          <div v-else-if="!filas.length" class="ch-state">
+            <i class="fas fa-circle-check" style="font-size:22px;color:#16a34a;"></i>
+            <span class="ch-state-txt">No hay registros del sistema para comparar en este período.</span>
           </div>
 
-          <!-- Tabla comparativa -->
-          <div v-else class="ch-body custom-scroll">
+          <!-- Tabla -->
+          <div v-else class="ch-body">
             <table class="ch-table">
-              <thead class="sticky top-0 z-10">
-                <tr class="bg-[#1e2538]">
-                  <th class="ch-th border-r" rowspan="2">Colaborador</th>
-                  <th class="ch-th border-r" rowspan="2">Fecha</th>
-                  <th v-for="col in COLS" :key="col" class="ch-th text-center border-r" colspan="3">
+              <thead>
+                <tr>
+                  <th class="ch-th" rowspan="2" style="min-width:180px;">Colaborador</th>
+                  <th class="ch-th text-center" rowspan="2" style="min-width:90px;">Fecha</th>
+                  <th v-for="col in COLS" :key="col" class="ch-th text-center" colspan="3" style="min-width:90px;">
                     {{ col.toUpperCase() }}
                   </th>
                 </tr>
-                <tr class="bg-[#1e2538]">
+                <tr>
                   <template v-for="col in COLS" :key="col + '_sub'">
-                    <th class="ch-th-sub text-center border-r text-[#60A5FA]">Sis</th>
-                    <th class="ch-th-sub text-center border-r text-emerald-400">Ger</th>
-                    <th class="ch-th-sub text-center border-r">Δ</th>
+                    <th class="ch-th-sub text-center" style="color:#2563eb;">Sis</th>
+                    <th class="ch-th-sub text-center" style="color:#16a34a;">Ger</th>
+                    <th class="ch-th-sub text-center">Δ</th>
                   </template>
                 </tr>
               </thead>
               <tbody>
                 <template v-for="(grupo, nombre) in gruposPorEmpleado" :key="nombre">
-                  <!-- Cabecera empleado -->
                   <tr class="ch-row-emp">
-                    <td :colspan="2 + COLS.length * 3" class="px-3 py-1.5 text-[10px] font-semibold border-b"
-                      :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'">
-                      <i class="fas fa-user mr-1.5 opacity-50"></i>{{ nombre }}
+                    <td :colspan="2 + COLS.length * 3" class="ch-emp-cell">
+                      <i class="fas fa-user" style="opacity:.45;margin-right:6px;font-size:9px;"></i>{{ nombre }}
                     </td>
                   </tr>
-                  <!-- Filas por fecha -->
                   <tr v-for="fila in grupo" :key="nombre + fila.fecha"
-                    class="transition-colors"
-                    :class="[fila.tieneDiff ? (isDark ? 'bg-amber-500/[0.04]' : 'bg-amber-50/60') : '',
-                             isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50']">
-                    <td class="ch-td border-r text-[10px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                      {{ fila.nombre }}
-                    </td>
-                    <td class="ch-td border-r text-center font-mono text-[10px]"
-                      :class="isDark ? 'text-slate-300' : 'text-slate-600'">
-                      {{ fmt(fila.fecha) }}
-                    </td>
+                    class="ch-row"
+                    :class="fila.tieneDiff ? 'ch-row-diff' : ''">
+                    <td class="ch-td" style="font-size:11px;color:#6b7280;">{{ fila.nombre }}</td>
+                    <td class="ch-td text-center ch-mono" style="font-size:11px;color:#374151;">{{ fmt(fila.fecha) }}</td>
                     <template v-for="col in COLS" :key="col">
-                      <td class="ch-td text-center border-r text-[10px]"
-                        :class="isDark ? 'text-[#60A5FA]' : 'text-blue-600'">
-                        {{ fmtN(fila.sis[col]) }}
-                      </td>
-                      <td class="ch-td text-center border-r text-[10px]"
-                        :class="isDark ? 'text-emerald-400' : 'text-emerald-700'">
-                        {{ fmtN(fila.ger[col]) }}
-                      </td>
-                      <td class="ch-td text-center border-r text-[10px] font-semibold"
-                        :class="deltaCls(fila.sis[col], fila.ger[col])">
+                      <td class="ch-td text-center" style="font-size:11px;color:#2563eb;">{{ fmtN(fila.sis[col]) }}</td>
+                      <td class="ch-td text-center" style="font-size:11px;color:#16a34a;">{{ fmtN(fila.ger[col]) }}</td>
+                      <td class="ch-td text-center ch-delta" :class="deltaCls(fila.sis[col], fila.ger[col])">
                         {{ deltaStr(fila.sis[col], fila.ger[col]) }}
                       </td>
                     </template>
@@ -102,29 +88,24 @@
             </table>
           </div>
 
-          <!-- Footer resumen -->
-          <footer v-if="!isLoading && filas.length" class="ch-footer">
-            <div class="flex items-center gap-4 text-[11px]">
-              <span :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ totalConDiff }}</span>
-                registro(s) con diferencia
+          <!-- Footer -->
+          <div v-if="!isLoading && filas.length" class="ch-footer">
+            <div style="display:flex;gap:20px;">
+              <span class="ch-footer-txt">
+                <strong>{{ totalConDiff }}</strong> registro(s) con diferencia
               </span>
-              <span :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ filas.length }}</span>
-                total comparados
+              <span class="ch-footer-txt">
+                <strong>{{ filas.length }}</strong> total comparados
               </span>
             </div>
-            <button @click="emit('update:modelValue', false)"
-              class="h-7 px-4 rounded-md text-[11px] font-medium border transition-all"
-              :class="isDark ? 'border-[#222938] text-slate-300 hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'">
-              Cerrar
-            </button>
-          </footer>
+            <button @click="emit('update:modelValue', false)" class="ch-close-footer">Cerrar</button>
+          </div>
 
         </div>
       </Transition>
     </div>
   </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -161,20 +142,14 @@ function deltaStr(sis, ger) {
 function deltaCls(sis, ger) {
   const d = delta(sis, ger);
   if (Math.abs(d) < 0.005) return '';
-  return d > 0
-    ? 'text-amber-500'
-    : 'text-red-500';
+  return d > 0 ? 'ch-delta-up' : 'ch-delta-down';
 }
 
-// Construir filas combinando sistema y gerente por cedula+fecha
 const filas = computed(() => {
   if (!props.comparativo) return [];
   const { gerente = [], sistema = [] } = props.comparativo;
-
   const sisMapa = new Map();
-  for (const r of sistema) {
-    sisMapa.set(`${r.cedula}__${r.fecha}`, r);
-  }
+  for (const r of sistema) sisMapa.set(`${r.cedula}__${r.fecha}`, r);
 
   const result = [];
   for (const g of gerente) {
@@ -183,7 +158,6 @@ const filas = computed(() => {
     const tieneDiff = COLS.some(c => Math.abs(delta(s[c], g[c])) >= 0.005);
     result.push({ nombre: g.nombre, fecha: g.fecha, cedula: g.cedula, sis: s, ger: g, tieneDiff });
   }
-  // Filas del sistema que el gerente no tocó
   const gerKeys = new Set(gerente.map(g => `${g.cedula}__${g.fecha}`));
   for (const s of sistema) {
     const key = `${s.cedula}__${s.fecha}`;
@@ -191,7 +165,6 @@ const filas = computed(() => {
       result.push({ nombre: s.nombre, fecha: s.fecha, cedula: s.cedula, sis: s, ger: {}, tieneDiff: true });
     }
   }
-
   return result.sort((a, b) => a.nombre.localeCompare(b.nombre) || a.fecha.localeCompare(b.fecha));
 });
 
@@ -209,118 +182,139 @@ const totalConDiff = computed(() => filas.value.filter(f => f.tieneDiff).length)
 
 <style scoped>
 .ch-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.55);
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px;
+  background: rgba(0,0,0,0.45);
 }
 
 .ch-modal {
-  width: 100%;
-  max-width: 820px;
-  max-height: 90vh;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
+  width: 98vw; max-width: 98vw; max-height: 95vh;
+  border-radius: 12px;
+  display: flex; flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.35);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 60px -10px rgba(0,0,0,0.18);
   font-family: 'Inter', system-ui, sans-serif;
+  color: #111827;
 }
 
-.ch-light { background: #ffffff; color: #09090b; border: 1px solid #e4e4e7; }
-.ch-dark  { background: #161B26; color: #fafafa;  border: 1px solid #222938; }
-
+/* Header */
 .ch-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 20px 24px 14px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
   flex-shrink: 0;
-  border-bottom: 1px solid;
 }
-.ch-dark  .ch-header { border-color: #222938; }
-.ch-light .ch-header { border-color: #e4e4e7; }
-
-.ch-header-icon {
-  width: 36px; height: 36px; border-radius: 8px;
-  background: rgba(59,130,246,.12); color: #60A5FA;
+.ch-avatar {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: #f5f3ff; border: 1px solid #ddd6fe;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; flex-shrink: 0;
+  flex-shrink: 0;
 }
-.ch-header-info { flex: 1; }
-.ch-eyebrow { font-size: 10px; font-weight: 500; color: #888; margin-bottom: 2px; }
-.ch-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
-.ch-subtitle { font-size: 11px; color: #888; margin-top: 2px; }
-.ch-close {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: none; background: transparent; cursor: pointer;
-  font-size: 13px; color: #888; transition: color .12s;
+.ch-eyebrow { font-size: 10px; font-weight: 600; color: #9ca3af; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.ch-title   { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #111827; }
+.ch-sub     { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.ch-close-btn {
+  width: 30px; height: 30px; border-radius: 6px;
+  border: 1px solid #e5e7eb; background: #fff; cursor: pointer;
+  font-size: 12px; color: #9ca3af; transition: all .12s;
+  display: flex; align-items: center; justify-content: center;
 }
-.ch-close:hover { color: inherit; }
+.ch-close-btn:hover { background: #f9fafb; color: #374151; }
 
+/* Leyenda */
 .ch-legend {
   display: flex; flex-wrap: wrap; gap: 8px;
-  padding: 10px 24px; flex-shrink: 0;
-  border-bottom: 1px solid;
+  padding: 10px 24px;
+  flex-shrink: 0;
 }
-.ch-dark  .ch-legend { border-color: #222938; }
-.ch-light .ch-legend { border-color: #e4e4e7; }
-
 .ch-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 999px;
 }
-.ch-badge-igual { background: rgba(148,163,184,.12); color: #94a3b8; }
-.ch-badge-sube  { background: rgba(245,158,11,.12);  color: #f59e0b; }
-.ch-badge-baja  { background: rgba(239,68,68,.12);   color: #ef4444; }
-.ch-badge-solo  { background: rgba(99,102,241,.12);  color: #818cf8; }
+.ch-igual { background: #f1f5f9; color: #64748b; }
+.ch-sube  { background: #fffbeb; color: #92400e; }
+.ch-baja  { background: #fef2f2; color: #991b1b; }
+.ch-solo  { background: #eef2ff; color: #3730a3; }
 
-.ch-loading, .ch-empty {
+.ch-divider { height: 1px; background: #f3f4f6; flex-shrink: 0; }
+
+/* States */
+.ch-state {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px; padding: 48px;
 }
+.ch-state-txt { font-size: 13px; color: #6b7280; }
 
-.ch-body {
-  flex: 1; overflow: auto;
-}
+/* Table */
+.ch-body { flex: 1; overflow: auto; }
+.ch-body::-webkit-scrollbar { width: 5px; height: 5px; }
+.ch-body::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 999px; }
 
-.ch-table {
-  width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px;
-}
+.ch-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 
 .ch-th {
-  padding: 8px 10px;
-  text-align: left; font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: .04em;
-  color: #f5f5f7; border-bottom: 1px solid #2a3245;
+  position: sticky; top: 0; z-index: 5;
+  padding: 9px 10px;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap; text-align: left;
 }
 .ch-th-sub {
-  padding: 4px 6px;
-  font-size: 9px; font-weight: 400;
-  color: #8b9ab4; border-bottom: 1px solid #2a3245;
+  position: sticky; top: 33px; z-index: 5;
+  padding: 4px 8px;
+  font-size: 9px; font-weight: 600;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
+
+.ch-row-emp {}
+.ch-emp-cell {
+  padding: 6px 12px;
+  font-size: 11px; font-weight: 600; color: #374151;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
+  border-top: 1px solid #f3f4f6;
+}
+
+.ch-row { transition: background .1s; }
+.ch-row:hover { background: #fafafa; }
+.ch-row-diff { background: #fffbeb !important; }
+.ch-row-diff:hover { background: #fef9e7 !important; }
+
 .ch-td {
-  padding: 7px 8px;
-  border-bottom: 1px solid;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f3f4f6;
   white-space: nowrap;
 }
-.ch-dark  .ch-td { border-color: #222938; }
-.ch-light .ch-td { border-color: #f0f0f0; }
+.ch-mono { font-family: 'JetBrains Mono', monospace; }
+.ch-delta { font-size: 11px; font-weight: 700; }
+.ch-delta-up   { color: #d97706; }
+.ch-delta-down { color: #dc2626; }
 
+/* Footer */
 .ch-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 24px; flex-shrink: 0; border-top: 1px solid;
+  padding: 12px 24px;
+  border-top: 1px solid #f3f4f6;
+  background: #fafafa;
+  flex-shrink: 0;
 }
-.ch-dark  .ch-footer { border-color: #222938; background: #0B0F19; }
-.ch-light .ch-footer { border-color: #e4e4e7; background: #fafafa; }
+.ch-footer-txt { font-size: 12px; color: #6b7280; }
+.ch-footer-txt strong { color: #111827; font-weight: 600; }
+.ch-close-footer {
+  height: 30px; padding: 0 16px; border-radius: 6px;
+  border: 1px solid #e5e7eb; background: #fff;
+  font-size: 12px; font-weight: 500; color: #374151;
+  cursor: pointer; transition: all .12s;
+}
+.ch-close-footer:hover { background: #f3f4f6; }
 
-.custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #2a3245; border-radius: 999px; }
-
+/* Transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .modal-enter-active { transition: all .22s cubic-bezier(.16,1,.3,1); }
