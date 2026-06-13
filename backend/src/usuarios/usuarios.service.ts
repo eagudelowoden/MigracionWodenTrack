@@ -1328,113 +1328,132 @@ export class UsuariosService {
           new Date(b.punching_time).getTime(),
       );
 
-      let i = 0;
-      while (i < punches.length) {
-        const entrada = punches[i];
-        const siguiente = punches[i + 1] ?? null;
+      const tieneMalla = mallasLocalMap.has(empId);
+      const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
 
-        // Doble punch: misma persona marcó dos veces en < 5 min → ignorar este
-        if (
-          siguiente &&
-          new Date(siguiente.punching_time).getTime() -
-            new Date(entrada.punching_time).getTime() <
-            MIN_DIFF_MS
-        ) {
-          i++;
-          continue;
+      if (!tieneMalla) {
+        // Sin malla: mostrar cada punch como registro individual sin intentar emparejar.
+        for (const punch of punches) {
+          const localIn = toLocal(punch.punching_time);
+          const fecha = localIn?.split(' ')[0] ?? 'N/A';
+          const esApp = punch.in_mode === 'app' || punch.x_studio_fuente === 'APP';
+          resultado.push({
+            id: `log_${empId}_${punch.id}`,
+            empleado: nombre,
+            cc: partnerMap[nombre] || 'N/A',
+            department_id: dept,
+            check_in: localIn,
+            check_out: null,
+            c_entrada: 'N/A',
+            c_salida: 'SIN SALIDA',
+            fecha,
+            tipo: 'LOG CRUDO',
+            fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
+            estado: 'Sin malla asignada',
+          });
         }
+      } else {
+        // Con malla: emparejar usando heurística (mismo día o turno nocturno válido).
+        let i = 0;
+        while (i < punches.length) {
+          const entrada = punches[i];
+          const siguiente = punches[i + 1] ?? null;
 
-        // Heurística de emparejamiento inteligente:
-        // 1. Si el siguiente punch es del mismo día calendario → siempre es salida (turno normal).
-        // 2. Si el siguiente punch es del día siguiente Y la entrada fue después de las 17:00
-        //    Y el siguiente es antes de las 12:00 Y la diferencia es < 14h → turno nocturno válido.
-        // 3. Cualquier otro caso → entrada sin salida (punch huérfano).
-        let salida: any | null = null;
-        if (siguiente) {
-          const tIn  = new Date(entrada.punching_time);
-          const tSig = new Date(siguiente.punching_time);
-          const diffMs = tSig.getTime() - tIn.getTime();
-          const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
-
-          const localInTime  = toLocal(entrada.punching_time);
-          const localSigTime = toLocal(siguiente.punching_time);
-          const diaIn  = localInTime?.split(' ')[0]  ?? '';
-          const diaSig = localSigTime?.split(' ')[0] ?? '';
-
-          const mismodia = diaIn === diaSig;
-          const horaIn  = tIn.getUTCHours()  + 5; // Colombia UTC-5 (hora local aproximada)
-          const horaSig = tSig.getUTCHours() + 5;
-
-          const esNocturno =
-            !mismodia &&
-            horaIn  >= 17 &&   // entrada desde las 5pm
-            (horaSig % 24) <= 12 && // salida antes del mediodía
-            diffMs <= MAX_TURNO_MS;
-
-          if (mismodia || esNocturno) {
-            salida = siguiente;
+          // Doble punch: misma persona marcó dos veces en < 5 min → ignorar este
+          if (
+            siguiente &&
+            new Date(siguiente.punching_time).getTime() -
+              new Date(entrada.punching_time).getTime() <
+              MIN_DIFF_MS
+          ) {
+            i++;
+            continue;
           }
-          // else: entrada sin par — salida queda null
+
+          // Heurística:
+          // 1. Mismo día calendario → par normal (turno diurno).
+          // 2. Día siguiente + entrada >= 17:00 + salida <= 12:00 + diff <= 14h → turno nocturno.
+          // 3. Cualquier otro caso → entrada sin par.
+          let salida: any | null = null;
+          if (siguiente) {
+            const tSig   = new Date(siguiente.punching_time);
+            const tIn    = new Date(entrada.punching_time);
+            const diffMs = tSig.getTime() - tIn.getTime();
+
+            const localInTime  = toLocal(entrada.punching_time);
+            const localSigTime = toLocal(siguiente.punching_time);
+            const diaIn  = localInTime?.split(' ')[0]  ?? '';
+            const diaSig = localSigTime?.split(' ')[0] ?? '';
+
+            const horaInLocal  = parseInt(localInTime?.split(' ')[1]?.split(':')[0]  ?? '0', 10);
+            const horaSigLocal = parseInt(localSigTime?.split(' ')[1]?.split(':')[0] ?? '0', 10);
+
+            const mismodia   = diaIn === diaSig;
+            const esNocturno =
+              !mismodia &&
+              horaInLocal >= 17 &&
+              horaSigLocal <= 12 &&
+              diffMs <= MAX_TURNO_MS;
+
+            if (mismodia || esNocturno) salida = siguiente;
+          }
+
+          const localIn  = toLocal(entrada.punching_time);
+          const localOut = salida ? toLocal(salida.punching_time) : null;
+          const fecha    = localIn?.split(' ')[0] ?? 'N/A';
+
+          const [a, m, d] = (fecha !== 'N/A' ? fecha : '2000-01-01').split('-').map(Number);
+          const jsDay = new Date(a, m - 1, d).getDay();
+          const diaSemanaEntrada = jsDay === 0 ? 6 : jsDay - 1;
+
+          const esApp = [entrada, salida]
+            .filter(Boolean)
+            .some((r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP');
+
+          let estadoFinal: string;
+          if (!localOut) {
+            estadoFinal = 'En curso';
+          } else {
+            const duracionMs =
+              new Date(salida!.punching_time).getTime() -
+              new Date(entrada.punching_time).getTime();
+            estadoFinal =
+              duracionMs > MAX_TURNO_MS
+                ? 'Turno sin cerrar (posible punch faltante)'
+                : 'Finalizado';
+          }
+
+          resultado.push({
+            id: `log_${empId}_${entrada.id}`,
+            empleado: nombre,
+            cc: partnerMap[nombre] || 'N/A',
+            department_id: dept,
+            check_in: localIn,
+            check_out: localOut,
+            c_entrada: this.clasificarPorMallaLocal(
+              empId,
+              entrada.punching_time,
+              true,
+              mallasLocalMap,
+              diaSemanaEntrada,
+            ),
+            c_salida: salida
+              ? this.clasificarPorMallaLocal(
+                  empId,
+                  salida.punching_time,
+                  false,
+                  mallasLocalMap,
+                  diaSemanaEntrada,
+                )
+              : 'SIN SALIDA',
+            fecha,
+            tipo: 'LOG CRUDO',
+            fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
+            estado: estadoFinal,
+          });
+
+          i += salida ? 2 : 1;
         }
-
-        const localIn = toLocal(entrada.punching_time);
-        const localOut = salida ? toLocal(salida.punching_time) : null;
-        const fecha = localIn?.split(' ')[0] ?? 'N/A';
-
-        const [a, m, d] = (fecha !== 'N/A' ? fecha : '2000-01-01')
-          .split('-')
-          .map(Number);
-        const jsDay = new Date(a, m - 1, d).getDay();
-        const diaSemanaEntrada = jsDay === 0 ? 6 : jsDay - 1;
-
-        const esApp = [entrada, salida]
-          .filter(Boolean)
-          .some((r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP');
-
-        const MAX_TURNO_MS = 14 * 60 * 60 * 1000; // 14 horas
-        let estadoFinal: string;
-        if (!localOut) {
-          estadoFinal = 'En curso';
-        } else {
-          const duracionMs =
-            new Date(salida!.punching_time).getTime() -
-            new Date(entrada.punching_time).getTime();
-          estadoFinal =
-            duracionMs > MAX_TURNO_MS
-              ? 'Turno sin cerrar (posible punch faltante)'
-              : 'Finalizado';
-        }
-
-        resultado.push({
-          id: `log_${empId}_${entrada.id}`,
-          empleado: nombre,
-          cc: partnerMap[nombre] || 'N/A',
-          department_id: dept,
-          check_in: localIn,
-          check_out: localOut,
-          c_entrada: this.clasificarPorMallaLocal(
-            empId,
-            entrada.punching_time,
-            true,
-            mallasLocalMap,
-            diaSemanaEntrada,
-          ),
-          c_salida: salida
-            ? this.clasificarPorMallaLocal(
-                empId,
-                salida.punching_time,
-                false,
-                mallasLocalMap,
-                diaSemanaEntrada,
-              )
-            : 'SIN SALIDA',
-          fecha,
-          tipo: 'LOG CRUDO',
-          fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
-          estado: estadoFinal,
-        });
-
-        i += salida ? 2 : 1; // consumió entrada + salida, o solo entrada si no hubo par
       }
     }
 
