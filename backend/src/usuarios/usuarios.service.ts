@@ -1150,22 +1150,32 @@ export class UsuariosService {
       const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
 
       // ── CASO INVERTIDO ──────────────────────────────────────────────────
-      // Requiere malla nocturna en prevFecha: evita invertir entradas matutinas
-      // de mallas diurnas (ej. 06:59 AM con malla 07:00-17:00 → no tocar).
+      // Con malla: evita invertir entradas matutinas de mallas diurnas.
+      // Sin malla: heurística — mañana_in + noche_out en un mismo grupo,
+      // y el día anterior tiene noche_in sin salida → turno nocturno cruzado.
       if (fila.localOut) {
         const hOut = horaDecimalDeLocal(fila.localOut);
-        if (hOut >= 18 && nocturnoAnterior) {
-          const { hi, hf } = nocturnoAnterior;
-          if (hIn <= hf + 2) {
-            const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+        if (hOut >= 18) {
+          const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
+          const hPrevIn = prevFila?.localIn
+            ? horaDecimalDeLocal(prevFila.localIn)
+            : -1;
+
+          const aplicaConMalla =
+            nocturnoAnterior !== null && hIn <= nocturnoAnterior.hf + 2;
+          const aplicaHeuristica = !nocturnoAnterior && hPrevIn >= 18;
+
+          if (aplicaConMalla || aplicaHeuristica) {
             if (
               prevFila &&
               !prevFila.eliminado &&
               prevFila.localIn &&
               !prevFila.localOut
             ) {
-              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-              if (hPrevIn >= hi - 1) {
+              const umbralIn = nocturnoAnterior
+                ? nocturnoAnterior.hi - 1
+                : 18;
+              if (hPrevIn >= umbralIn) {
                 prevFila.localOut = fila.localIn;
                 prevFila.checkOutUTC = fila.checkInUTC;
               }
@@ -1285,256 +1295,150 @@ export class UsuariosService {
     agruparLogs: boolean = true,
     mallasLocalMap: Map<number, any[]> = new Map(),
   ): Promise<any[]> {
-    // --- HELPERS INTERNOS ---
-    const horaDecimalDeLocal = (local: string): number => {
-      const t = local.split(' ')[1] || '';
-      const [h, m] = t.split(':').map(Number);
-      return h + (m || 0) / 60;
-    };
+    // PASO 1: agrupar todos los punches por empleado (sin importar el día)
+    const porEmpleado = new Map<
+      number,
+      { nombre: string; dept: string; punches: any[] }
+    >();
 
-    const addOneDayToDate = (fecha: string): string => {
-      const [a, m, d] = fecha.split('-').map(Number);
-      const nd = new Date(a, m - 1, d + 1);
-      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
-    };
+    for (const log of logs) {
+      const empId: number = log.employee_id?.[0];
+      if (!empId) continue;
+      const nombre: string = log.employee_id?.[1] || 'Desconocido';
+      const dept: string =
+        log.x_studio_related_field_j40wn?.[1] ?? 'SIN DEPTO';
 
-    const subOneDayFromDate = (fecha: string): string => {
-      const [a, m, d] = fecha.split('-').map(Number);
-      const nd = new Date(a, m - 1, d - 1);
-      return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
-    };
-
-    const getTurnoNocturno = (
-      empId: number,
-      fecha: string,
-    ): { hi: number; hf: number } | null => {
-      const asignaciones = mallasLocalMap.get(empId);
-      if (!asignaciones?.length) return null;
-      const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
-      const [a, m, d] = fecha.split('-').map(Number);
-      const jsDay = new Date(a, m - 1, d).getDay();
-      const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
-      const turnosDia = detalles
-        .filter((det: any) => Number(det.dia_semana) === diaSemana)
-        .sort(
-          (a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio),
-        );
-      if (!turnosDia.length) return null;
-      const t = turnosDia[0];
-      const hi = Number(t.hora_inicio);
-      const hf = Number(t.hora_fin);
-      return hf < hi ? { hi, hf } : null;
-    };
-
-    // --- PASO 1: AGRUPAR POR EMPLEADO Y DÍA ---
-    const grupos: Record<
-      string,
-      { empId: number; nombre: string; dept: string; registros: any[] }
-    > = {};
-
-    logs.forEach((log) => {
-      const empId = log.employee_id?.[0];
-      const nombre = log.employee_id?.[1] || 'Desconocido';
-      const localTime = toLocal(log.punching_time);
-      const fecha = localTime ? localTime.split(' ')[0] : 'SIN_FECHA';
-      const key = `${empId}_${fecha}`;
-      if (!grupos[key]) {
-        grupos[key] = {
-          empId,
-          nombre,
-          dept: log.x_studio_related_field_j40wn
-            ? log.x_studio_related_field_j40wn[1]
-            : 'SIN DEPTO',
-          registros: [],
-        };
+      if (!porEmpleado.has(empId)) {
+        porEmpleado.set(empId, { nombre, dept, punches: [] });
       }
-      grupos[key].registros.push(log);
-    });
-
-    // --- PASO 2: ESTRUCTURA INICIAL DE FILAS ---
-    type FilaLog = {
-      empId: number;
-      nombre: string;
-      dept: string;
-      fecha: string;
-      localIn: string | null;
-      localOut: string | null;
-      punchInUTC: string | null;
-      punchOutUTC: string | null;
-      fuente: string; // <--- AGREGADO
-      eliminado: boolean;
-    };
-
-    const filas: FilaLog[] = Object.entries(grupos).map(
-      ([, { empId, nombre, dept, registros }]) => {
-        const ordenados = registros.sort(
-          (a, b) =>
-            new Date(a.punching_time).getTime() -
-            new Date(b.punching_time).getTime(),
-        );
-        const primero = ordenados[0];
-        const ultimo = ordenados[ordenados.length - 1];
-        const diffMs =
-          new Date(ultimo.punching_time).getTime() -
-          new Date(primero.punching_time).getTime();
-        const haySalida = ordenados.length > 1 && diffMs >= 60_000;
-
-        // Detectar fuente: Si algún registro del grupo viene de la App, marcamos como App
-        // Odoo suele usar campos como 'in_mode' o 'check_in_mode'.
-        // Ajusta 'log.in_mode' al nombre técnico real de tu campo.
-        const esApp = registros.some(
-          (r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP',
-        );
-
-        return {
-          empId,
-          nombre,
-          dept,
-          fecha: toLocal(primero.punching_time)?.split(' ')[0] || 'N/A',
-          localIn: toLocal(primero.punching_time),
-          localOut: haySalida ? toLocal(ultimo.punching_time) : null,
-          punchInUTC: primero.punching_time,
-          punchOutUTC: haySalida ? ultimo.punching_time : null,
-          fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
-          eliminado: false,
-        };
-      },
-    );
-
-    const filaIdx = new Map<string, FilaLog>();
-    for (const f of filas) filaIdx.set(`${f.empId}_${f.fecha}`, f);
-
-    // Ordenar cronológicamente: garantiza que cuando procesamos el Día N,
-    // el Día N-1 ya fue corregido y prevFila refleja su estado definitivo.
-    filas.sort((a, b) => a.fecha.localeCompare(b.fecha));
-
-    // --- PASO 3: REPARACIÓN DE TURNOS NOCTURNOS (CRUCE DE MEDIANOCHE) ---
-    // Hay dos situaciones para logs biométricos con primer punch matutino (< 08:00):
-    //
-    // CASO INVERTIDO: la fila tiene punch matutino (salida del turno anterior)
-    //   Y punch nocturno (≥ 18h, entrada del turno actual) en el mismo grupo.
-    //   El día anterior puede o no estar en el rango — no importa para la
-    //   corrección de ESTA fila; solo intentamos enlazarlo si está disponible.
-    //
-    // Sub-caso A (orphan): solo punch matutino sin nocturno. El día anterior
-    //   debe estar abierto (sin salida) para asignarle este punch como exit.
-    //
-    // GUARDIA: solo se repara si el empleado tiene turno nocturno en prevFecha.
-    // Esto evita que entradas matutinas de mallas diurnas (ej. 06:59 para malla
-    // 07:00-17:00) sean mal clasificadas como salida del turno anterior.
-    for (const fila of filas) {
-      if (!fila.localIn || fila.eliminado) continue;
-
-      const hIn = horaDecimalDeLocal(fila.localIn);
-      if (hIn >= 8) continue; // solo filas cuyo primer punch sea matutino
-
-      const prevFecha = subOneDayFromDate(fila.fecha);
-
-      const nocturnoAnterior = getTurnoNocturno(fila.empId, prevFecha);
-
-      // ── CASO INVERTIDO ──────────────────────────────────────────────────
-      // Requiere malla nocturna en prevFecha: evita invertir entradas matutinas
-      // de mallas diurnas (ej. 06:59 AM con malla 07:00-17:00 → no tocar).
-      if (fila.localOut) {
-        const hOut = horaDecimalDeLocal(fila.localOut);
-        if (hOut >= 18 && nocturnoAnterior) {
-          const { hi, hf } = nocturnoAnterior;
-          if (hIn <= hf + 2) {
-            const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-            if (
-              prevFila &&
-              !prevFila.eliminado &&
-              prevFila.localIn &&
-              !prevFila.localOut
-            ) {
-              const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-              if (hPrevIn >= hi - 1) {
-                prevFila.localOut = fila.localIn;
-                prevFila.punchOutUTC = fila.punchInUTC;
-              }
-            }
-            fila.localIn = fila.localOut;
-            fila.punchInUTC = fila.punchOutUTC;
-            fila.localOut = null;
-            fila.punchOutUTC = null;
-            const nuevaFecha = fila.localIn?.split(' ')[0] ?? fila.fecha;
-            if (nuevaFecha !== fila.fecha) {
-              filaIdx.delete(`${fila.empId}_${fila.fecha}`);
-              fila.fecha = nuevaFecha;
-              filaIdx.set(`${fila.empId}_${fila.fecha}`, fila);
-            }
-            continue;
-          }
-        }
-      }
-
-      // ── Sub-caso A: punch matutino orphan ────────────────────────────────
-      // Aplica si: (1) malla nocturna con horas compatibles, o (2) prevFila
-      // entró en horario nocturno (≥ 18 h) — cubre empleados sin malla asignada.
-      if (!fila.localOut) {
-        const prevFila = filaIdx.get(`${fila.empId}_${prevFecha}`);
-        if (
-          prevFila &&
-          !prevFila.eliminado &&
-          prevFila.localIn &&
-          !prevFila.localOut
-        ) {
-          const hPrevIn = horaDecimalDeLocal(prevFila.localIn);
-
-          const matchMalla = nocturnoAnterior
-            ? hPrevIn >= nocturnoAnterior.hi - 1 &&
-              hIn <= nocturnoAnterior.hf + 2
-            : false;
-          const matchHeuristica = !nocturnoAnterior && hPrevIn >= 18;
-
-          if (matchMalla || matchHeuristica) {
-            prevFila.localOut = fila.localIn;
-            prevFila.punchOutUTC = fila.punchInUTC;
-            fila.eliminado = true;
-          }
-        }
-      }
+      porEmpleado.get(empId)!.punches.push(log);
     }
 
-    // --- PASO 4: RESULTADO FINAL ---
-    return filas
-      .filter((f) => !f.eliminado && f.localIn && f.punchInUTC)
-      .map((f) => {
-        const [a, m, d] = f.fecha.split('-').map(Number);
-        const diaSemanaEntrada =
-          new Date(a, m - 1, d).getDay() === 0
-            ? 6
-            : new Date(a, m - 1, d).getDay() - 1;
+    // PASO 2: por cada empleado, ordenar cronológicamente y emparejar de 2 en 2.
+    // Punch impar = ENTRADA, punch par = SALIDA.
+    // Si dos punches consecutivos tienen < 5 min de diferencia se descartan
+    // como doble marcación accidental.
+    const MIN_DIFF_MS = 5 * 60 * 1000;
+    const resultado: any[] = [];
 
-        return {
-          id: `log_${f.empId}_${f.fecha}`,
-          empleado: f.nombre,
-          cc: partnerMap[f.nombre] || 'N/A',
-          department_id: f.dept,
-          check_in: f.localIn,
-          check_out: f.localOut,
+    for (const [empId, { nombre, dept, punches }] of porEmpleado) {
+      punches.sort(
+        (a, b) =>
+          new Date(a.punching_time).getTime() -
+          new Date(b.punching_time).getTime(),
+      );
+
+      let i = 0;
+      while (i < punches.length) {
+        const entrada = punches[i];
+        const siguiente = punches[i + 1] ?? null;
+
+        // Doble punch: misma persona marcó dos veces en < 5 min → ignorar este
+        if (
+          siguiente &&
+          new Date(siguiente.punching_time).getTime() -
+            new Date(entrada.punching_time).getTime() <
+            MIN_DIFF_MS
+        ) {
+          i++;
+          continue;
+        }
+
+        // Heurística de emparejamiento inteligente:
+        // 1. Si el siguiente punch es del mismo día calendario → siempre es salida (turno normal).
+        // 2. Si el siguiente punch es del día siguiente Y la entrada fue después de las 17:00
+        //    Y el siguiente es antes de las 12:00 Y la diferencia es < 14h → turno nocturno válido.
+        // 3. Cualquier otro caso → entrada sin salida (punch huérfano).
+        let salida: any | null = null;
+        if (siguiente) {
+          const tIn  = new Date(entrada.punching_time);
+          const tSig = new Date(siguiente.punching_time);
+          const diffMs = tSig.getTime() - tIn.getTime();
+          const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
+
+          const localInTime  = toLocal(entrada.punching_time);
+          const localSigTime = toLocal(siguiente.punching_time);
+          const diaIn  = localInTime?.split(' ')[0]  ?? '';
+          const diaSig = localSigTime?.split(' ')[0] ?? '';
+
+          const mismodia = diaIn === diaSig;
+          const horaIn  = tIn.getUTCHours()  + 5; // Colombia UTC-5 (hora local aproximada)
+          const horaSig = tSig.getUTCHours() + 5;
+
+          const esNocturno =
+            !mismodia &&
+            horaIn  >= 17 &&   // entrada desde las 5pm
+            (horaSig % 24) <= 12 && // salida antes del mediodía
+            diffMs <= MAX_TURNO_MS;
+
+          if (mismodia || esNocturno) {
+            salida = siguiente;
+          }
+          // else: entrada sin par — salida queda null
+        }
+
+        const localIn = toLocal(entrada.punching_time);
+        const localOut = salida ? toLocal(salida.punching_time) : null;
+        const fecha = localIn?.split(' ')[0] ?? 'N/A';
+
+        const [a, m, d] = (fecha !== 'N/A' ? fecha : '2000-01-01')
+          .split('-')
+          .map(Number);
+        const jsDay = new Date(a, m - 1, d).getDay();
+        const diaSemanaEntrada = jsDay === 0 ? 6 : jsDay - 1;
+
+        const esApp = [entrada, salida]
+          .filter(Boolean)
+          .some((r) => r.in_mode === 'app' || r.x_studio_fuente === 'APP');
+
+        const MAX_TURNO_MS = 14 * 60 * 60 * 1000; // 14 horas
+        let estadoFinal: string;
+        if (!localOut) {
+          estadoFinal = 'En curso';
+        } else {
+          const duracionMs =
+            new Date(salida!.punching_time).getTime() -
+            new Date(entrada.punching_time).getTime();
+          estadoFinal =
+            duracionMs > MAX_TURNO_MS
+              ? 'Turno sin cerrar (posible punch faltante)'
+              : 'Finalizado';
+        }
+
+        resultado.push({
+          id: `log_${empId}_${entrada.id}`,
+          empleado: nombre,
+          cc: partnerMap[nombre] || 'N/A',
+          department_id: dept,
+          check_in: localIn,
+          check_out: localOut,
           c_entrada: this.clasificarPorMallaLocal(
-            f.empId,
-            f.punchInUTC!,
+            empId,
+            entrada.punching_time,
             true,
             mallasLocalMap,
             diaSemanaEntrada,
           ),
-          c_salida: f.punchOutUTC
+          c_salida: salida
             ? this.clasificarPorMallaLocal(
-                f.empId,
-                f.punchOutUTC,
+                empId,
+                salida.punching_time,
                 false,
                 mallasLocalMap,
                 diaSemanaEntrada,
               )
             : 'SIN SALIDA',
-          fecha: f.fecha,
+          fecha,
           tipo: 'LOG CRUDO',
-          fuente: f.fuente, // <--- DINÁMICO: APP o BIOMÉTRICO
-          estado: f.localOut ? 'Finalizado' : 'En curso',
-        };
-      });
+          fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
+          estado: estadoFinal,
+        });
+
+        i += salida ? 2 : 1; // consumió entrada + salida, o solo entrada si no hubo par
+      }
+    }
+
+    return resultado;
   }
   // ==========================================
   // MÉTODO PRINCIPAL - Solo orquesta
@@ -1810,17 +1714,15 @@ export class UsuariosService {
       const d = String(fechaFin.getDate()).padStart(2, '0');
       finUTC = `${a}-${m}-${d} 04:59:59`;
 
-      // finUTCLog para attendance.log: extiende 1 día Colombia extra para capturar
-      // las salidas de turno nocturno que ocurren entre las 00:00 y las ~07:00
-      // del día siguiente (ej. 06:00 Colombia = 11:00 UTC)
-      // Cambia esto en calcularRangoUTC para finUTCLog
+      // finUTCLog: extiende 2 días completos para capturar tanto salidas de
+      // turno nocturno (06:00 Colombia = 11:00 UTC) como entradas de turno
+      // diurno (16:00 Colombia = 21:00 UTC) del día siguiente al endDate.
       const fechaFinLog = new Date(anio, mes - 1, dia);
-      fechaFinLog.setDate(fechaFinLog.getDate() + 1); // Solo un día extra
+      fechaFinLog.setDate(fechaFinLog.getDate() + 2);
       const al = fechaFinLog.getFullYear();
       const ml = String(fechaFinLog.getMonth() + 1).padStart(2, '0');
       const dl = String(fechaFinLog.getDate()).padStart(2, '0');
-      // 12:00:00 UTC son las 07:00 AM Colombia. Suficiente para turnos que acaban a las 6 AM.
-      finUTCLog = `${al}-${ml}-${dl} 12:00:00`;
+      finUTCLog = `${al}-${ml}-${dl} 04:59:59`; // medianoche Colombia del día extendido
     }
 
     return { inicioUTC, finUTC, finUTCLog, startDay, endDay };

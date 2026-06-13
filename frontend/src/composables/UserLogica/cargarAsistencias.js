@@ -33,28 +33,6 @@ export function useCargarAsistencias() {
   };
 
   /**
-   * Divide un rango [start, end] (YYYY-MM-DD) en trozos de hasta 7 días.
-   * Retorna array de { start, end }.
-   */
-  const splitEnSemanas = (start, end) => {
-    const chunks = [];
-    let cursor = new Date(start + "T00:00:00");
-    const fechaFin = new Date(end + "T00:00:00");
-
-    while (cursor <= fechaFin) {
-      const chunkStart = cursor.toISOString().slice(0, 10);
-      const limite = new Date(cursor);
-      limite.setDate(limite.getDate() + 6);
-      const chunkEnd = (limite <= fechaFin ? limite : fechaFin)
-        .toISOString()
-        .slice(0, 10);
-      chunks.push({ start: chunkStart, end: chunkEnd });
-      cursor.setDate(cursor.getDate() + 7);
-    }
-    return chunks;
-  };
-
-  /**
    * Valida el rango antes de consultar.
    * Retorna string con el error o "" si es válido.
    */
@@ -134,28 +112,18 @@ export function useCargarAsistencias() {
     chunkProgress.value = { current: 0, total: 0 };
 
     try {
-      if (filterHoy.value) {
-        // ── Modo "Hoy": una sola petición ──────────────────────────────────
-        const res = await fetch(buildUrl(null, null), { signal });
-        if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-        rawData.value = await res.json();
-      } else {
-        // ── Modo rango: dividir en semanas y cargar progresivamente ─────────
-        const chunks = splitEnSemanas(startDate.value, endDate.value);
-        chunkProgress.value = { current: 0, total: chunks.length };
-
-        for (const chunk of chunks) {
-          if (signal.aborted) break;
-
-          const res = await fetch(buildUrl(chunk.start, chunk.end), { signal });
-          if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-
-          const chunkData = await res.json();
-          // Agregar al rawData existente → el usuario ve datos parciales
-          rawData.value = [...rawData.value, ...chunkData];
-          chunkProgress.value.current++;
-        }
-      }
+      // Una sola petición con todo el rango para que el backend pueda
+      // emparejar correctamente los punches de turnos nocturnos que cruzan
+      // la medianoche sin que el corte de chunks rompa los pares.
+      const res = await fetch(
+        buildUrl(
+          filterHoy.value ? null : startDate.value,
+          filterHoy.value ? null : endDate.value,
+        ),
+        { signal },
+      );
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+      rawData.value = await res.json();
 
       initialLoadDone = true;
     } catch (err) {
@@ -223,7 +191,10 @@ export function useCargarAsistencias() {
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
 
   const downloadReport = async () => {
-    const datos = filteredReport.value;
+    const datos = [...filteredReport.value].sort((a, b) =>
+      (b.fecha || "").localeCompare(a.fecha || "") ||
+      (b.check_in || "").localeCompare(a.check_in || "")
+    );
     if (datos.length === 0) {
       alert("No hay datos para exportar");
       return;
@@ -231,30 +202,69 @@ export function useCargarAsistencias() {
 
     loading.value = true;
 
-    const formatHora = (value) => {
+    // Formatea como DD/MM/AAAA HH:MM:SS para que la fecha de salida sea
+    // visible cuando el turno cruza la medianoche (ej: entrada 01/05 21:41 → salida 02/05 05:06)
+    const formatFechaHora = (value) => {
       if (!value || value === "N/A" || value === "null") return "N/A";
       try {
-        const partes = value.split(" ");
-        if (partes.length < 2) return value;
-        const [hh, mm, ss] = partes[1].split(":");
-        return `${hh}:${mm}:${ss}`;
+        const [fecha, hora] = value.split(" ");
+        const [anio, mes, dia] = fecha.split("-");
+        return `${dia}/${mes}/${anio}   ${hora}`;
       } catch {
         return value;
       }
     };
 
+    const fechaDe = (value) =>
+      value && value !== "N/A" ? value.split(" ")[0] : null;
+
+    const formatSoloFecha = (yyyymmdd) => {
+      if (!yyyymmdd) return null;
+      const [anio, mes, dia] = yyyymmdd.split("-");
+      return `${dia}/${mes}/${anio}`;
+    };
+
     try {
-      const dataFiltrada = datos.map((item) => ({
-        Colaborador: item.empleado,
-        Cedula: item.cc || "N/A",
-        Departamento: item.department_id,
-        Fecha: item.fecha,
-        Entrada: formatHora(item.check_in),
-        Salida: formatHora(item.check_out),
-        Estatus_Entrada: item.c_entrada || "N/A",
-        Estatus_Salida: item.c_salida || "N/A",
-        Estado: item.estado,
-      }));
+      const dataFiltrada = [];
+
+      for (const item of datos) {
+        const fechaEntrada = fechaDe(item.check_in);
+        const fechaSalida  = fechaDe(item.check_out);
+
+        // Fila principal — siempre se agrega
+        dataFiltrada.push({
+          Colaborador: item.empleado,
+          Cedula: item.cc || "N/A",
+          Departamento: item.department_id,
+          Entrada: formatFechaHora(item.check_in),
+          Salida: formatFechaHora(item.check_out),
+          Estatus_Entrada: item.c_entrada || "N/A",
+          Estatus_Salida: item.c_salida || "N/A",
+          Estado: item.estado,
+          _sortKey: fechaEntrada || "",
+        });
+
+        // Fila extra: cuando la salida es de un día distinto al de entrada,
+        // se agrega una fila solo con la fecha de ese día para que el día
+        // quede registrado en el reporte.
+        if (fechaEntrada && fechaSalida && fechaEntrada !== fechaSalida) {
+          dataFiltrada.push({
+            Colaborador: item.empleado,
+            Cedula: item.cc || "N/A",
+            Departamento: item.department_id,
+            Entrada: formatSoloFecha(fechaSalida),
+            Salida: "---",
+            Estatus_Entrada: "---",
+            Estatus_Salida: "---",
+            Estado: "Registro de día (salida del turno anterior)",
+            _sortKey: fechaSalida,
+          });
+        }
+      }
+
+      // Re-ordenar descendente por fecha incluyendo las filas extras
+      dataFiltrada.sort((a, b) => b._sortKey.localeCompare(a._sortKey));
+      dataFiltrada.forEach((r) => delete r._sortKey);
 
       const response = await fetch(`${API_BASE_URL}/reports/asistencias/export`, {
         method: "POST",
