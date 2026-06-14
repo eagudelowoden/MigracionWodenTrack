@@ -355,12 +355,26 @@ export class NovedadesService {
       }
     }
 
+    // Enriquecer con nombre del creador desde creadoPor (id_odoo)
+    const idOdooCreadores = [
+      ...new Set(novedades.map((n) => n.creadoPor).filter(Boolean)),
+    ];
+    const creadorMap = new Map<number, string>();
+    if (idOdooCreadores.length) {
+      const creadores: Array<{ id_odoo: number; nombre: string }> =
+        await this.dataSource.query(
+          `SELECT id_odoo, nombre FROM usuarios_registrados WHERE id_odoo IN (${idOdooCreadores.join(',')})`,
+        );
+      for (const c of creadores) creadorMap.set(c.id_odoo, c.nombre);
+    }
+
     return novedades.map((n) => {
       const primerArchivo = primerArchivoPorNovedad.get(n.id);
       return {
         ...n,
         departamento: usuarioMap.get(n.nombre)?.departamento ?? null,
         cargo: usuarioMap.get(n.nombre)?.cargo ?? null,
+        creadoPorNombre: n.creadoPor ? (creadorMap.get(n.creadoPor) ?? null) : null,
         soporteMime: n.soporteMime || primerArchivo?.mime || null,
         soporteNombreOriginal:
           n.soporteNombreOriginal || primerArchivo?.nombreOriginal || null,

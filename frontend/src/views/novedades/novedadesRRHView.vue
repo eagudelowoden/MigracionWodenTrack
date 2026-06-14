@@ -297,6 +297,9 @@
                 <th
                   class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
                   Tipificación</th>
+                <th
+                  class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  Creado por</th>
                 <!-- Estado CH personalizado -->
                 <th
                   class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
@@ -370,6 +373,14 @@
                   <p class="text-[11px] font-medium line-clamp-2 max-w-[140px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ item.tipificacion || '—' }}
+                  </p>
+                </td>
+
+                <!-- Creado por -->
+                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <p class="text-[10px] font-medium line-clamp-2 max-w-[140px]"
+                    :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                    {{ item.creadoPorNombre || '—' }}
                   </p>
                 </td>
 
@@ -797,6 +808,13 @@
                     {{ detalleModal.novedad?.aprobadoJefe === 1 ? 'Aprobado' : detalleModal.novedad?.aprobadoJefe === 0
                       ? 'Rechazado' : 'Pendiente' }}
                   </span>
+                </div>
+                <div v-if="detalleModal.novedad?.creadoPorNombre">
+                  <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
+                    :class="isDark ? 'text-[#475569]' : 'text-[#737373]'">Creado por</p>
+                  <p class="text-[13px] font-medium" :class="isDark ? 'text-[#e2e8f0]' : 'text-[#171717]'">
+                    {{ detalleModal.novedad.creadoPorNombre }}
+                  </p>
                 </div>
                 <div>
                   <p class="text-[10px] font-semibold tracking-[0.08em] uppercase mb-1.5"
