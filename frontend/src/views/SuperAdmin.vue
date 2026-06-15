@@ -1,6 +1,6 @@
 ﻿<script setup>
 import { apiFetch } from '@/utils/apiFetch.js';
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 // ── Constantes de navegación (agrupadas por categoría) ───────────────────────

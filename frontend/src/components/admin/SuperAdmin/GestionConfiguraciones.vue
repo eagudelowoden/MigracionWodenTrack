@@ -668,8 +668,8 @@ const toggleModulo = (key) => { config[key + '_active'] = isActive(key) ? 'false
 const cargarMantenimiento = async () => {
   try {
     const [resM, resV] = await Promise.all([
-      fetch(`${API_BASE}/mantenimiento`),
-      fetch(`${API_BASE}/version?t=${Date.now()}`),
+      apiFetch(`${API_BASE}/mantenimiento`),
+      apiFetch(`${API_BASE}/version?t=${Date.now()}`),
     ]);
     if (resM.ok) { const d = await resM.json(); mantenimiento.enabled = d.enabled; mantenimiento.configured = d.configured; }
     if (resV.ok) { const d = await resV.json(); appVersion.value = d.version ?? '—'; }
@@ -735,12 +735,12 @@ const correo = ref({
 const cargarConfigCorreo = async () => {
   try {
     const [resCfg, resCH, resCord, resSegs, resRen, resDest] = await Promise.all([
-      fetch(`${API_URL}/superadmin/correo/config`,                  { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/capital-humano`,          { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/coordinadores`,           { cache: 'no-store' }),
-      fetch(`${API_URL}/organizacion/segmentos`,                     { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/novedades-renuncia`,      { cache: 'no-store' }),
-      fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, { cache: 'no-store' }),
+      apiFetch(`${API_URL}/superadmin/correo/config`,                  { cache: 'no-store' }),
+      apiFetch(`${API_URL}/superadmin/correo/capital-humano`,          { cache: 'no-store' }),
+      apiFetch(`${API_URL}/superadmin/correo/coordinadores`,           { cache: 'no-store' }),
+      apiFetch(`${API_URL}/organizacion/segmentos`,                     { cache: 'no-store' }),
+      apiFetch(`${API_URL}/superadmin/correo/novedades-renuncia`,      { cache: 'no-store' }),
+      apiFetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, { cache: 'no-store' }),
     ]);
     if (resCfg.ok) {
       const cfg = await resCfg.json();

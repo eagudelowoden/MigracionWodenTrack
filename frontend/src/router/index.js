@@ -147,8 +147,11 @@ router.beforeEach((to, from, next) => {
   // ── Rutas públicas ─────────────────────────────────────────────────────────
   if (to.meta.isPublic) return next();
 
-  // ── Sin sesión → solo al Login ─────────────────────────────────────────────
-  if (!session && to.path !== "/login") return next("/login");
+  // ── Sin sesión o sesión sin token JWT (sesión antigua) → limpiar y al Login ──
+  if ((!session || !session.token) && to.path !== "/login") {
+    localStorage.removeItem("user_session");
+    return next("/login");
+  }
 
   // ── Con sesión intentando ir al Login → redirigir según rol ───────────────
   if (session && to.path === "/login") {

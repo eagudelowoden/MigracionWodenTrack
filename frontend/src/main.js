@@ -4,6 +4,10 @@ import './style.css'
 import './assets/css/geist-typography.css' // Vercel-style tipografía global
 import App from './App.vue'
 import router from './router' // <--- Importa el router con seguridad desde el otro archivo
+import { setupAxiosInterceptors } from './utils/axiosSetup.js'
+
+// Registra el token JWT en todas las peticiones axios al backend
+setupAxiosInterceptors()
 
 const app = createApp(App)
 app.use(router) // Usa el router que SI tiene el beforeEach
