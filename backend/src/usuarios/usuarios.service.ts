@@ -1619,17 +1619,45 @@ export class UsuariosService {
     )
       return [];
 
+    // 1b. IDs EFECTIVOS para filtrar Odoo por FK indexada (employee_id in [...]).
+    //     Si no hay filtro de estructura pero sí de empresa/departamento, los
+    //     resolvemos desde la DB local para evitar los filtros relacionales
+    //     lentos (ilike sobre ruta punteada) en hr.attendance.
+    let employeeIdsEfectivos: number[] | null = employeeIdsPorEstructura;
+    let usarFiltroRelacional = true;
+
+    if (employeeIdsEfectivos === null) {
+      const hayFiltroEmpresaODepto =
+        (companyName && companyName !== 'Todas' && companyName !== '') ||
+        (departamentoName &&
+          departamentoName !== 'DEPARTAMENTOS' &&
+          departamentoName !== '');
+
+      if (hayFiltroEmpresaODepto) {
+        const idsLocal = await this.resolverIdsPorCompanyDepto(
+          companyName,
+          departamentoName,
+        );
+        // Solo usamos la vía rápida si local devolvió empleados; si no,
+        // caemos al filtro relacional clásico para no devolver vacío por error.
+        if (idsLocal.length > 0) {
+          employeeIdsEfectivos = idsLocal;
+          usarFiltroRelacional = false;
+        }
+      }
+    }
+
     // 2. Calcular fechas UTC
     const { inicioUTC, finUTC, finUTCLog, startDay, endDay } =
       this.calcularRangoUTC(soloHoy, hoyFechaCorta, startDate, endDate);
 
-    // 3. Construir dominios
+    // 3. Construir dominios (sin filtros relacionales si ya tenemos los IDs)
     const { domainAtt, domainLog } = this.construirDominios(
       inicioUTC,
       finUTC,
-      companyName,
-      departamentoName,
-      employeeIdsPorEstructura,
+      usarFiltroRelacional ? companyName : undefined,
+      usarFiltroRelacional ? departamentoName : undefined,
+      employeeIdsEfectivos,
       finUTCLog,
     );
 
@@ -1640,12 +1668,12 @@ export class UsuariosService {
     let partnerMap: Record<string, string> | undefined;
 
     try {
-      if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      if (employeeIdsEfectivos && employeeIdsEfectivos.length > 0) {
         // Tenemos los IDs → podemos buscar cédulas al mismo tiempo que asistencias
         console.time('⏱ partners (paralelo)');
         const [odooResult, pm] = await Promise.all([
           this.consultarOdoo(domainAtt, domainLog, uid),
-          this.obtenerPartnerMapPorIds(employeeIdsPorEstructura, uid),
+          this.obtenerPartnerMapPorIds(employeeIdsEfectivos, uid),
         ]);
         [attendances, logs] = odooResult;
         partnerMap = pm;
@@ -1841,6 +1869,37 @@ export class UsuariosService {
     }
 
     return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
+  }
+
+  /**
+   * Resuelve los id_odoo de empleados activos por empresa y/o departamento
+   * desde la DB LOCAL. Permite filtrar la consulta de Odoo por
+   * `employee_id in [ids]` (FK indexada y rápida) en lugar de los filtros
+   * relacionales con ruta punteada (`employee_id.department_id.name ilike …`),
+   * que obligan a Odoo a hacer joins/subconsultas sobre hr.attendance.
+   */
+  private async resolverIdsPorCompanyDepto(
+    companyName?: string,
+    departamentoName?: string,
+  ): Promise<number[]> {
+    const qb = this.usuarioRepo
+      .createQueryBuilder('u')
+      .select('u.id_odoo', 'id')
+      .where('u.is_active = :a', { a: true });
+
+    if (companyName && companyName !== 'Todas' && companyName !== '') {
+      qb.andWhere('u.pais = :pais', { pais: companyName });
+    }
+    if (
+      departamentoName &&
+      departamentoName !== 'DEPARTAMENTOS' &&
+      departamentoName !== ''
+    ) {
+      qb.andWhere('u.departamento LIKE :d', { d: `%${departamentoName}%` });
+    }
+
+    const rows = await qb.getRawMany();
+    return rows.map((r) => Number(r.id)).filter(Boolean);
   }
 
   private construirDominios(
