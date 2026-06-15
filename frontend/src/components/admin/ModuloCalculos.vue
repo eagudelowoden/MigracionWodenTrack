@@ -939,11 +939,11 @@
             <i class="fas fa-pen-to-square text-[9px]"></i> Obs. por fecha
           </button>
 
-          <!-- Refresh -->
-          <button @click="handleTabGuardados" :disabled="isLoadingGuardados"
+          <!-- Buscar -->
+          <button @click="handleTabGuardados" :disabled="isLoadingGuardados" title="Buscar"
             class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
             :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-            <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
+            <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
           </button>
         </div>
       </div>

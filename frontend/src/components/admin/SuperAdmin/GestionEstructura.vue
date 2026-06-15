@@ -12,8 +12,8 @@
                     <h2 class="ge-title">Estructura organizacional</h2>
                 </div>
             </div>
-            <button @click="recargar" :disabled="isReloading" class="ge-icon-btn" title="Recargar">
-                <i class="fas fa-rotate" :class="isReloading ? 'fa-spin' : ''"></i>
+            <button @click="recargar" :disabled="isReloading" class="ge-icon-btn" title="Buscar">
+                <i class="fas fa-magnifying-glass" :class="isReloading ? 'fa-spin' : ''"></i>
             </button>
         </header>
 

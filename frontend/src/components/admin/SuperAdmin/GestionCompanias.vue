@@ -14,9 +14,9 @@
             </div>
 
             <div class="gc-header-right">
-                <!-- REFRESH -->
-                <button @click="handleRefresh" :disabled="isRefreshing" class="gc-icon-btn" title="Actualizar datos">
-                    <i class="fas fa-rotate" :class="isRefreshing ? 'fa-spin' : ''"></i>
+                <!-- BUSCAR -->
+                <button @click="handleRefresh" :disabled="isRefreshing" class="gc-icon-btn" title="Buscar">
+                    <i class="fas fa-magnifying-glass" :class="isRefreshing ? 'fa-spin' : ''"></i>
                 </button>
 
                 <!-- SYNC -->

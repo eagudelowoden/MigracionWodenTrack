@@ -20,10 +20,10 @@
                     <input v-model="searchUser" type="text" placeholder="Buscar usuario..." class="gu-search-input" />
                 </div>
 
-                <!-- REFRESH -->
+                <!-- BUSCAR -->
                 <button @click="handleRefresh" :disabled="isRefreshing" class="gu-icon-btn"
-                    title="Actualizar datos">
-                    <i class="fas fa-rotate" :class="isRefreshing ? 'fa-spin' : ''"></i>
+                    title="Buscar">
+                    <i class="fas fa-magnifying-glass" :class="isRefreshing ? 'fa-spin' : ''"></i>
                 </button>
 
                 <!-- SYNC -->

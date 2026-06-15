@@ -25,8 +25,8 @@
           <span>{{ showStats ? 'Ocultar' : 'Indicadores' }}</span>
           <i class="fas fa-chevron-down text-[8px] transition-transform" :class="showStats ? 'rotate-180' : ''"></i>
         </button>
-        <button @click="cargar" class="rf-btn-refresh" :class="isDark ? 'rf-btn-dark' : 'rf-btn-light'">
-          <i class="fas fa-rotate-right text-[10px]" :class="{ 'fa-spin': cargando }"></i>
+        <button @click="cargar" class="rf-btn-refresh" :class="isDark ? 'rf-btn-dark' : 'rf-btn-light'" title="Buscar">
+          <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': cargando }"></i>
         </button>
       </div>
     </div>

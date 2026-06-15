@@ -55,13 +55,13 @@
             class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
             :class="isDark ? 'text-white' : 'text-slate-700'" />
         </div>
-        <!-- Refrescar -->
-        <button @click="recargar" :disabled="isLoading || isLoadingLotes"
+        <!-- Buscar -->
+        <button @click="recargar" :disabled="isLoading || isLoadingLotes" title="Buscar"
           class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
           :class="isDark
             ? 'bg-[#0B0F19] border-[#222938] text-[#888888] hover:text-white'
             : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white'">
-          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoading || isLoadingLotes }"></i>
+          <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': isLoading || isLoadingLotes }"></i>
         </button>
       </div>
     </div>
