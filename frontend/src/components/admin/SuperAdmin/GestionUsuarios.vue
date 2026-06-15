@@ -683,7 +683,7 @@ onMounted(async () => {
     padding: 5px 12px;
     height: 28px;
     border-radius: 5px;
-    background: var(--brand);
+    background: #52525b;
     color: #fff;
     border: none;
     cursor: pointer;
@@ -701,8 +701,19 @@ onMounted(async () => {
 }
 
 .gu-btn-primary:hover {
-    background: var(--brand-text);
-    box-shadow: 0 3px 10px -2px rgba(37, 99, 235, 0.35);
+    background: #3f3f46;
+    box-shadow: 0 3px 10px -2px rgba(0, 0, 0, 0.25);
+}
+
+/* Botón Sincronizar en gris sólido y legible (modo oscuro) */
+.gu-dark .gu-btn-primary {
+    background: #3f3f46;
+    color: #fafafa;
+}
+
+.gu-dark .gu-btn-primary:hover {
+    background: #52525b;
+    box-shadow: 0 3px 10px -2px rgba(0, 0, 0, 0.4);
 }
 
 /* SYNC PROGRESS */

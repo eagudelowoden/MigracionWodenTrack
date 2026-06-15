@@ -337,10 +337,13 @@ const labelEstado = (e) => {
 
 <style scoped>
 .gsc-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 2px 0;
+  padding: 2px 4px 2px 0;
   font-family: system-ui, sans-serif;
 }
 

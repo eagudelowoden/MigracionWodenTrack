@@ -1,13 +1,17 @@
 ﻿<template>
   <div class="c-root" :class="isDark ? 'c-dark' : 'c-light'">
 
-    <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
-    <div class="c-header" :class="isDark ? 'c-header-dark' : 'c-header-light'">
-      <div>
-        <h2 class="c-title" :class="isDark ? 'text-white' : 'text-[#111]'">Configuración del Sistema</h2>
-        <p class="c-subtitle" :class="isDark ? 'text-[#555]' : 'text-[#999]'">v{{ appVersion }}</p>
+    <!-- ══ BARRA SUPERIOR (pestañas estilo analítica + acciones) ════════════ -->
+    <div class="c-topbar">
+      <div class="c-tabs" :class="isDark ? 'c-tabs-dark' : 'c-tabs-light'">
+        <button v-for="t in tabs" :key="t.id" @click="activeTab = t.id"
+          class="c-tab" :class="{ 'is-active': activeTab === t.id }">
+          <i :class="t.icon" class="text-[11px]"></i>
+          <span class="hidden sm:inline">{{ t.label }}</span>
+        </button>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="c-topbar-actions">
+        <span class="c-version">v{{ appVersion }}</span>
         <div class="c-status-row">
           <span class="c-status-dot" :class="mantenimiento.enabled ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'"></span>
           <span class="c-status-label" :class="isDark ? 'text-[#666]' : 'text-[#999]'">
@@ -19,15 +23,6 @@
           {{ saving ? 'Guardando…' : 'Guardar' }}
         </button>
       </div>
-    </div>
-
-    <!-- ══ TABS ═════════════════════════════════════════════════════════════ -->
-    <div class="c-tabs" :class="isDark ? 'c-tabs-dark' : 'c-tabs-light'">
-      <button v-for="t in tabs" :key="t.id" @click="activeTab = t.id"
-        class="c-tab" :class="activeTab === t.id ? (isDark ? 'c-tab-active-dark' : 'c-tab-active-light') : (isDark ? 'c-tab-idle-dark' : 'c-tab-idle-light')">
-        {{ t.label }}
-        <span v-if="activeTab === t.id" class="c-tab-line"></span>
-      </button>
     </div>
 
     <!-- ══ BODY ══════════════════════════════════════════════════════════════ -->
@@ -338,7 +333,7 @@
               </div>
               <div class="c-field">
                 <label class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Envío de correos</label>
-                <div class="c-toggle-row" :class="correo.form.habilitado ? (isDark ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-emerald-200 bg-emerald-50/60') : (isDark ? 'border-[#222]' : 'border-[#eee]')">
+                <div class="c-toggle-row" :class="correo.form.habilitado ? (isDark ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-emerald-200 bg-emerald-50/60') : (isDark ? 'border-[#222938]' : 'border-[#eee]')">
                   <span class="c-row-desc" :class="correo.form.habilitado ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-[#444]' : 'text-[#bbb]')">
                     {{ correo.form.habilitado ? 'Habilitado' : 'Deshabilitado' }}
                   </span>
@@ -445,7 +440,7 @@
             </div>
             <p v-else class="c-row-desc" :class="isDark ? 'text-[#444]' : 'text-[#ccc]'">Sin coordinadores configurados</p>
 
-            <div class="flex flex-col gap-2 pt-3 border-t" :class="isDark ? 'border-[#1a1a1a]' : 'border-[#f0f0f0]'">
+            <div class="flex flex-col gap-2 pt-3 border-t" :class="isDark ? 'border-[#222938]' : 'border-[#f0f0f0]'">
               <p class="c-label" :class="isDark ? 'text-[#555]' : 'text-[#999]'">Agregar coordinador</p>
               <div class="c-field">
                 <label class="c-label" :class="isDark ? 'text-[#444]' : 'text-[#bbb]'">Correo electrónico</label>
@@ -940,7 +935,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 20px 12px; flex-shrink: 0; border-bottom: 1px solid;
 }
-.c-header-dark  { border-color: #1a1a1a; }
+.c-header-dark  { border-color: #222938; }
 .c-header-light { border-color: #ececec; }
 .c-title    { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
 .c-subtitle { font-size: 11px; margin-top: 1px; }
@@ -948,29 +943,36 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .c-status-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .c-status-label { font-size: 11px; }
 
-/* ── TABS ────────────────────────────────────────────────── */
+/* ── BARRA SUPERIOR (estilo analítica) ───────────────────── */
+.c-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; flex-shrink: 0; padding: 4px 10px 8px;
+}
+.c-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.c-version { font-size: 10px; font-weight: 600; opacity: .45; }
+
+/* ── TABS (pill, como analítica) ─────────────────────────── */
 .c-tabs {
-  display: flex; padding: 0 20px; border-bottom: 1px solid; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;
+  max-width: 100%; overflow-x: auto;
+  padding: 3px; border-radius: 8px; border: 1px solid;
 }
-.c-tabs-dark  { border-color: #1a1a1a; }
-.c-tabs-light { border-color: #ececec; }
+.c-tabs-dark  { border-color: #222938; background: #161B26; }
+.c-tabs-light { border-color: #ececec; background: #fff; }
 .c-tab {
-  position: relative; padding: 10px 14px; font-size: 11px; font-weight: 500;
-  cursor: pointer; border: none; background: none; transition: color .15s; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 6px 11px; border-radius: 6px; font-size: 10px; font-weight: 600;
+  cursor: pointer; border: none; background: none; transition: all .15s; letter-spacing: .01em;
 }
-.c-tab-active-dark        { color: #fff; }
-.c-tab-active-light       { color: #111; }
-.c-tab-idle-dark          { color: #444; }
-.c-tab-idle-dark:hover    { color: #888; }
-.c-tab-idle-light         { color: #bbb; }
-.c-tab-idle-light:hover   { color: #666; }
-.c-tab-line {
-  position: absolute; bottom: -1px; left: 14px; right: 14px;
-  height: 1px; background: currentColor; border-radius: 1px;
-}
+.c-dark  .c-tab            { color: #B0B7C3; }
+.c-dark  .c-tab:hover      { color: #fff; background: #1F2533; }
+.c-dark  .c-tab.is-active  { color: #fff; background: #3B82F6; }
+.c-light .c-tab            { color: #71717a; }
+.c-light .c-tab:hover      { color: #111; background: #f4f4f5; }
+.c-light .c-tab.is-active  { color: #fff; background: #3B82F6; }
 
 /* ── BODY ────────────────────────────────────────────────── */
-.c-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px; }
+.c-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 10px 10px; }
 .c-body::-webkit-scrollbar { width: 3px; }
 .c-body::-webkit-scrollbar-track { background: transparent; }
 .c-body::-webkit-scrollbar-thumb { background: rgba(100,116,139,.15); border-radius: 2px; }
@@ -979,18 +981,18 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 
 /* ── CARDS ───────────────────────────────────────────────── */
 .c-card       { border-radius: 8px; border: 1px solid; overflow: hidden; }
-.c-card-dark  { background: #0d0d0d; border-color: #1a1a1a; }
+.c-card-dark  { background: #161B26; border-color: #222938; }
 .c-card-light { background: #fff; border-color: #e8e8e8; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
 
 .c-card-head { padding: 11px 14px; border-bottom: 1px solid; }
-.c-head-dark  { border-color: #1a1a1a; background: #0a0a0a; }
+.c-head-dark  { border-color: #222938; background: #1F2533; }
 .c-head-light { border-color: #f0f0f0; background: #fafafa; }
 
 .c-card-body { padding: 14px; }
 
 /* ── ROWS ────────────────────────────────────────────────── */
 .c-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
-.c-row-sep-dark  { border-top: 1px solid #1a1a1a; }
+.c-row-sep-dark  { border-top: 1px solid #222938; }
 .c-row-sep-light { border-top: 1px solid #f0f0f0; }
 .c-row-label { font-size: 12px; font-weight: 500; letter-spacing: -0.01em; }
 .c-row-desc  { font-size: 11px; margin-top: 1px; line-height: 1.4; }
@@ -1007,7 +1009,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .c-toggle-on-green  { background: #16a34a; }
 .c-toggle-on-rose   { background: #dc2626; }
 .c-toggle-on-indigo { background: #4f46e5; }
-.c-toggle-off-dark  { background: #222; }
+.c-toggle-off-dark  { background: #2A3245; }
 .c-toggle-off-light { background: #d4d4d8; }
 .c-toggle-knob {
   position: absolute; top: 2px;
@@ -1034,7 +1036,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .c-badge-green-light { color: #15803d; background: rgba(21,128,61,.06);  border-color: rgba(21,128,61,.2); }
 .c-badge-red         { color: #f87171; background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.2); }
 .c-badge-blue        { color: #60a5fa; background: rgba(96,165,250,.08); border-color: rgba(96,165,250,.2); }
-.c-badge-neutral-dark  { color: #555; background: #111; border-color: #222; }
+.c-badge-neutral-dark  { color: #B0B7C3; background: #1F2533; border-color: #222938; }
 .c-badge-neutral-light { color: #999; background: #f5f5f5; border-color: #e5e5e5; }
 
 /* ── RADIO LIST (almacenamiento) ─────────────────────────── */
@@ -1045,16 +1047,16 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   cursor: pointer; transition: border-color .15s; background: transparent;
   margin-bottom: 6px;
 }
-.c-radio-row-dark:hover  { border-color: #333; }
+.c-radio-row-dark:hover  { border-color: #2A3245; }
 .c-radio-row-light:hover { border-color: #ccc; }
 .c-radio-indicator {
   width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.c-radio-on       { border-color: #111; }
-.c-radio-off-dark { border-color: #333; }
+.c-radio-on       { border-color: #3B82F6; }
+.c-radio-off-dark { border-color: #2A3245; }
 .c-radio-off-light { border-color: #ccc; }
-.c-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #111; }
+.c-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #3B82F6; }
 .c-radio-label { font-size: 12px; font-weight: 500; }
 
 /* ── ACCORDION ───────────────────────────────────────────── */
@@ -1079,7 +1081,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 /* ── INACTIVE MESSAGE ────────────────────────────────────── */
 .c-msg-wrap  { padding: 0 14px 10px; }
 .c-msg-inner { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; border: 1px solid; }
-.c-msg-dark  { background: #0a0a0a; border-color: #1a1a1a; }
+.c-msg-dark  { background: #0B0F19; border-color: #222938; }
 .c-msg-light { background: #fafafa; border-color: #ececec; }
 .c-msg-input { flex: 1; background: transparent; font-size: 11px; outline: none; border: none; }
 
@@ -1088,9 +1090,9 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid;
   font-size: 12px; outline: none; transition: border-color .15s; font-family: inherit;
 }
-.c-input-dark  { background: #0a0a0a; border-color: #1e1e1e; color: #ddd; }
-.c-input-dark::placeholder  { color: #333; }
-.c-input-dark:focus  { border-color: #333; }
+.c-input-dark  { background: #0B0F19; border-color: #2A3245; color: #fafafa; }
+.c-input-dark::placeholder  { color: #64748b; }
+.c-input-dark:focus  { border-color: #3B82F6; }
 .c-input-light { background: #fff; border-color: #e5e5e5; color: #111; }
 .c-input-light::placeholder { color: #ccc; }
 .c-input-light:focus { border-color: #aaa; }
@@ -1106,10 +1108,10 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 .c-btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; height: 30px; border-radius: 6px; border: none;
-  background: #111; color: #fff; font-size: 11px; font-weight: 500;
+  background: #3B82F6; color: #fff; font-size: 11px; font-weight: 500;
   cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
 }
-.c-dark .c-btn-primary  { background: #fff; color: #111; }
+.c-dark .c-btn-primary  { background: #3B82F6; color: #fff; }
 .c-btn-primary:hover:not(:disabled) { opacity: .85; }
 .c-btn-primary:disabled { opacity: .4; cursor: default; }
 
@@ -1120,8 +1122,8 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   transition: all .15s; background: transparent; font-family: inherit; white-space: nowrap;
 }
 .c-btn-ghost:disabled { opacity: .4; cursor: default; }
-.c-ghost-dark  { border-color: #222; color: #555; }
-.c-ghost-dark:hover:not(:disabled)  { border-color: #333; color: #aaa; }
+.c-ghost-dark  { border-color: #222938; color: #B0B7C3; }
+.c-ghost-dark:hover:not(:disabled)  { border-color: #2A3245; color: #fafafa; }
 .c-ghost-light { border-color: #e5e5e5; color: #888; }
 .c-ghost-light:hover:not(:disabled) { border-color: #ccc; color: #333; }
 
@@ -1131,12 +1133,12 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 
 /* ── EMAIL ROW ───────────────────────────────────────────── */
 .c-email-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid; }
-.c-email-dark  { background: #0a0a0a; border-color: #1a1a1a; }
+.c-email-dark  { background: #0B0F19; border-color: #222938; }
 .c-email-light { background: #fafafa; border-color: #ebebeb; }
 
 /* ── TAGS ────────────────────────────────────────────────── */
 .c-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; border: 1px solid; font-size: 11px; }
-.c-tag-dark  { background: #111; border-color: #222; color: #888; }
+.c-tag-dark  { background: #1F2533; border-color: #222938; color: #B0B7C3; }
 .c-tag-light { background: #f5f5f5; border-color: #e5e5e5; color: #444; }
 
 /* ── REMOVE BTN ──────────────────────────────────────────── */
@@ -1170,8 +1172,8 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
 }
 .c-mode-active-dark  { border-color: #4f46e5; background: rgba(79,70,229,.08); }
 .c-mode-active-light { border-color: #818cf8; background: rgba(99,102,241,.06); }
-.c-mode-idle-dark    { border-color: #1a1a1a; }
-.c-mode-idle-dark:hover  { border-color: #333; }
+.c-mode-idle-dark    { border-color: #222938; }
+.c-mode-idle-dark:hover  { border-color: #2A3245; }
 .c-mode-idle-light   { border-color: #e8e8e8; }
 .c-mode-idle-light:hover { border-color: #ccc; }
 .c-mode-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
@@ -1183,7 +1185,7 @@ watch(activeTab, (tab) => { if (tab === 'correo') cargarConfigCorreo(); });
   width: 24px; height: 24px; border-radius: 5px; border: none;
   display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s; background: transparent;
 }
-.c-cal-btn-dark:hover  { background: #1a1a1a; }
+.c-cal-btn-dark:hover  { background: #1F2533; }
 .c-cal-btn-light:hover { background: #f0f0f0; }
 
 /* ── PROXIMAS ────────────────────────────────────────────── */

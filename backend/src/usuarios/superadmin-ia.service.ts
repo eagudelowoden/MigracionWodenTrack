@@ -49,10 +49,18 @@ export class SuperAdminIAService {
     );
 
     // Agregar por empleado
-    type EmpData = { entradas: number; aTiempo: number; tarde: number; diasSet: Set<string>; lunes: number; totalLunes: number };
+    type EmpData = {
+      entradas: number; aTiempo: number; tarde: number;
+      diasSet: Set<string>;            // todos los días distintos con marcación
+      lunesPresentes: Set<string>;     // lunes distintos con marcación
+      otrosLabPresentes: Set<string>;  // mar-vie distintos con marcación
+    };
     const empMap = new Map<number, EmpData>();
     for (const u of usuarios) {
-      empMap.set(u.id_odoo, { entradas: 0, aTiempo: 0, tarde: 0, diasSet: new Set(), lunes: 0, totalLunes: 0 });
+      empMap.set(u.id_odoo, {
+        entradas: 0, aTiempo: 0, tarde: 0,
+        diasSet: new Set(), lunesPresentes: new Set(), otrosLabPresentes: new Set(),
+      });
     }
 
     for (const rec of records) {
@@ -68,21 +76,33 @@ export class SuperAdminIAService {
       data.diasSet.add(localDate);
       if (rec.x_studio_tipo_entrada === 'A TIEMPO') data.aTiempo++;
       if (rec.x_studio_tipo_entrada === 'ENTRADA TARDE') data.tarde++;
-      if (diaSemana === 1) data.lunes++; // presencia el lunes
+      // Presencia por día (distinta por fecha, no por marcación)
+      if (diaSemana === 1) data.lunesPresentes.add(localDate);
+      else if (diaSemana >= 2 && diaSemana <= 5) data.otrosLabPresentes.add(localDate);
     }
 
-    // Contar cuántos lunes hay en el rango
+    // Días de cada tipo dentro del rango (para comparar al empleado contra sí mismo)
     const lunesEnRango = this.contarDiaSemana(startDate, endDate, 1);
+    const otrosLabEnRango = [2, 3, 4, 5]
+      .reduce((sum, d) => sum + this.contarDiaSemana(startDate, endDate, d), 0);
     const diasLaboralesEnRango = Math.ceil(30 * 5 / 7);
 
     return usuarios.map(u => {
-      const data = empMap.get(u.id_odoo) || { entradas: 0, aTiempo: 0, tarde: 0, diasSet: new Set(), lunes: 0 };
+      const data = empMap.get(u.id_odoo) || {
+        entradas: 0, aTiempo: 0, tarde: 0,
+        diasSet: new Set<string>(), lunesPresentes: new Set<string>(), otrosLabPresentes: new Set<string>(),
+      };
       const tieneMalla   = conMallaSet.has(u.id_odoo);
       const diasPresente = data.diasSet.size;
       const tasaAsist    = diasPresente / diasLaboralesEnRango;
       const tasaPuntual  = data.entradas > 0 ? data.aTiempo / data.entradas : 1;
-      const tasaLunes    = lunesEnRango > 0 ? data.lunes / lunesEnRango : 1;
-      const promedioOtros = diasPresente > 0 ? diasPresente / diasLaboralesEnRango : 0;
+
+      // Patrón de lunes: solo es real si asiste bien el resto de la semana
+      // (mar-vie) pero falla específicamente los lunes. Así no se confunde
+      // con un ausentismo general ni con empleados sin datos.
+      const tasaLunes = lunesEnRango > 0 ? data.lunesPresentes.size / lunesEnRango : 1;
+      const tasaOtros = otrosLabEnRango > 0 ? data.otrosLabPresentes.size / otrosLabEnRango : 0;
+      const faltaLunes = lunesEnRango >= 3 && tasaOtros >= 0.6 && tasaLunes < tasaOtros - 0.25;
 
       // Score de riesgo (0-100, mayor = más riesgo)
       let score = 0;
@@ -91,13 +111,13 @@ export class SuperAdminIAService {
       else if (tasaAsist < 0.8) score += 12;
       if (tasaPuntual < 0.5)   score += 20;
       else if (tasaPuntual < 0.7) score += 10;
-      if (tasaLunes < 0.5 && lunesEnRango >= 3) score += 10;
+      if (faltaLunes)          score += 10;
       if (data.entradas === 0) score = Math.max(score, 50);
 
       const patrones: string[] = [];
       if (!tieneMalla) patrones.push('Sin malla asignada');
       if (tasaPuntual < 0.5 && data.entradas >= 5) patrones.push('Alta tardanza');
-      if (tasaLunes < 0.5 && lunesEnRango >= 3) patrones.push('Ausentismo los lunes');
+      if (faltaLunes) patrones.push('Ausentismo los lunes');
       if (data.entradas === 0) patrones.push('Sin marcaciones en 30 días');
 
       return {

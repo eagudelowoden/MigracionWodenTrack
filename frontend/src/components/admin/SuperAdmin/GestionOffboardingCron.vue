@@ -335,7 +335,7 @@
       <transition name="fade-toast">
         <div v-if="toast.visible"
           class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-2.5 px-4 py-2.5 rounded-lg border shadow-2xl"
-          style="background:#111;border-color:rgba(255,255,255,0.1);min-width:220px;max-width:360px;">
+          style="background:#161B26;border-color:rgba(255,255,255,0.1);min-width:220px;max-width:360px;">
           <span class="w-1.5 h-1.5 rounded-full shrink-0"
             :class="toast.error ? 'bg-red-400' : 'bg-emerald-400'"></span>
           <p class="text-[12px] font-medium text-white flex-1">{{ toast.msg }}</p>
