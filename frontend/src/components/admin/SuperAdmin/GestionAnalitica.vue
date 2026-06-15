@@ -969,15 +969,18 @@ onMounted(async () => {
 <style scoped>
 /* ── Design tokens estilo Vercel / Geist ──────────────────────── */
 .an-root {
-  --an-surface: #ffffff;
-  --an-surface-2: #f4f4f5;
-  --an-border: #e4e4e7;
-  --an-border-strong: #d4d4d8;
-  --an-text: #18181b;
-  --an-text-muted: #71717a;
-  --an-text-faint: #a1a1aa;
+  --an-surface: #fbfcfe;
+  --an-surface-2: #eef2f6;
+  --an-border: #dbe3ec;
+  --an-border-strong: #c4d0dd;
+  --an-text: #1e293b;
+  --an-text-muted: #64748b;
+  --an-text-faint: #94a3b8;
   --an-accent: #3B82F6;
   --an-accent-fg: #ffffff;
+  --an-thead-bg: #1e293b;
+  --an-thead-fg: #cbd5e1;
+  --an-zebra: #f6f9fc;
   color: var(--an-text);
 }
 .an-root.an-dark {
@@ -990,6 +993,9 @@ onMounted(async () => {
   --an-text-faint: #888888;
   --an-accent: #3B82F6;
   --an-accent-fg: #ffffff;
+  --an-thead-bg: #1F2533;
+  --an-thead-fg: #888888;
+  --an-zebra: transparent;
 }
 
 .animate-fade-in,
@@ -1107,11 +1113,12 @@ textarea.an-input { height: auto; padding: 7px 10px; line-height: 1.4; }
   position: sticky; top: 0; z-index: 10;
   padding: 9px 16px; text-align: left;
   font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--an-text-faint); background: var(--an-surface-2);
+  color: var(--an-thead-fg); background: var(--an-thead-bg);
   border-bottom: 1px solid var(--an-border);
 }
 .an-table tbody td { padding: 10px 16px; border-top: 1px solid var(--an-border); color: var(--an-text); }
 .an-table tbody tr { transition: background 0.12s ease; }
+.an-table tbody tr:nth-child(even) { background: var(--an-zebra); }
 .an-table tbody tr:hover { background: var(--an-surface-2); }
 .an-strong { font-weight: 600; color: var(--an-text); }
 .an-muted { color: var(--an-text-muted); }

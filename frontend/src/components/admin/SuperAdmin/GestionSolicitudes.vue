@@ -1,19 +1,19 @@
 ﻿<template>
-  <div class="w-full h-full flex flex-col font-sans select-none relative transition-colors duration-200"
-    :class="isDark ? 'bg-[#1A1F35] text-[#EDEDED]' : 'bg-[#FAFAFA] text-[#111111]'" @click="closePopover">
+  <div class="sol-anchor w-full h-full flex flex-col font-sans select-none relative transition-colors duration-200 p-3"
+    :class="isDark ? 'text-[#EDEDED]' : 'text-[#1e293b]'" @click="closePopover">
 
-    <header class="flex items-center justify-between pb-5 border-b shrink-0 text-left"
+    <header class="flex items-center justify-between pb-3 border-b shrink-0 text-left"
       :class="isDark ? 'border-slate-800/80' : 'border-[#EAEAEA]'">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 flex items-center justify-center rounded-lg border text-sm transition-colors"
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 flex items-center justify-center rounded-lg border text-xs transition-colors"
           :class="isDark ? 'bg-[#222942] border-slate-700/60 text-white' : 'bg-white border-[#EAEAEA] text-[#111111] shadow-sm'">
           <i class="fas fa-inbox"></i>
         </div>
         <div class="space-y-0.5">
-          <h2 class="text-base font-semibold tracking-tight">
+          <h2 class="text-sm font-semibold tracking-tight">
             Solicitudes de apertura
           </h2>
-          <p class="text-xs flex items-center gap-2" :class="isDark ? 'text-slate-400' : 'text-[#666666]'">
+          <p class="text-[11px] flex items-center gap-2" :class="isDark ? 'text-slate-400' : 'text-[#666666]'">
             <span>Cargue de mallas</span>
             <span class="opacity-40">·</span>
             <span :class="pendientes > 0 ? 'text-[#e88710] font-medium' : ''">
@@ -25,7 +25,7 @@
 
       <div class="flex items-center gap-2">
         <button @click="showStats = !showStats"
-          class="h-8 px-3 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-all"
+          class="h-7 px-2.5 rounded-md border text-[11px] font-medium flex items-center gap-1.5 transition-all"
           :class="isDark ? 'bg-[#222942] border-slate-700/60 hover:bg-[#2b3352] text-zinc-300' : 'bg-white border-[#EAEAEA] text-zinc-600 shadow-sm'">
           <i class="fas fa-chart-bar opacity-60 text-[10px]"></i>
           <span>{{ showStats ? 'Ocultar' : 'Indicadores' }}</span>
@@ -34,36 +34,36 @@
         </button>
 
         <button @click="cargar" :disabled="cargando"
-          class="w-8 h-8 rounded-md border flex items-center justify-center transition-all disabled:opacity-40"
+          class="w-7 h-7 rounded-md border flex items-center justify-center transition-all disabled:opacity-40"
           :class="isDark ? 'bg-[#222942] border-slate-700/60 hover:bg-[#2b3352]' : 'bg-white border-[#EAEAEA] hover:bg-slate-50 shadow-sm'">
-          <i class="fas fa-rotate text-xs" :class="cargando ? 'fa-spin' : ''"></i>
+          <i class="fas fa-rotate text-[11px]" :class="cargando ? 'fa-spin' : ''"></i>
         </button>
       </div>
     </header>
 
     <Transition name="fade">
-      <div v-if="showStats" class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 shrink-0 text-left">
+      <div v-if="showStats" class="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-3 shrink-0 text-left">
         <div v-for="stat in [
           { label: 'Total', count: lista.length, icon: 'fa-inbox', color: 'text-slate-400' },
           { label: 'Pendientes', count: pendientes, icon: 'fa-hourglass-half', color: 'text-[#e88710]' },
           { label: 'Aprobadas', count: aprobadas, icon: 'fa-circle-check', color: 'text-emerald-400' },
           { label: 'Rechazadas', count: rechazadas, icon: 'fa-circle-xmark', color: 'text-rose-400' }
-        ]" :key="stat.label" class="p-4 rounded-xl border flex flex-col space-y-1.5"
+        ]" :key="stat.label" class="p-3 rounded-lg border flex flex-col space-y-1"
           :class="isDark ? 'bg-[#161B26]/60 border-slate-800/80' : 'bg-white border-[#EAEAEA] shadow-sm'">
-          <div class="flex items-center justify-between text-xs opacity-60">
+          <div class="flex items-center justify-between text-[11px] opacity-60">
             <span>{{ stat.label }}</span>
             <i :class="['fas text-[10px]', stat.icon, stat.color]"></i>
           </div>
-          <p class="text-xl font-bold tracking-tight">{{ stat.count }}</p>
+          <p class="text-lg font-bold tracking-tight">{{ stat.count }}</p>
         </div>
       </div>
     </Transition>
 
-    <div class="flex items-center pt-5 pb-3 border-b shrink-0 text-left"
+    <div class="flex items-center pt-3 pb-2.5 border-b shrink-0 text-left"
       :class="isDark ? 'border-slate-800/80' : 'border-[#EAEAEA]'">
       <div class="flex gap-1">
         <button v-for="f in FILTROS" :key="f.value" @click="filtro = f.value"
-          class="h-7 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 relative"
+          class="h-6 px-2.5 rounded-md text-[11px] font-medium transition-all flex items-center gap-1.5 relative"
           :class="filtro === f.value
             ? (isDark ? 'bg-[#222942] border border-slate-700/40 text-white' : 'bg-[#111111] text-white')
             : (isDark ? 'text-slate-400 hover:text-white hover:bg-[#222942]/50' : 'text-[#666666] hover:text-[#111111] hover:bg-zinc-100')">
@@ -76,28 +76,27 @@
       </div>
     </div>
 
-    <div class="flex-1 flex flex-col items-center justify-center min-h-[250px]">
+    <div class="flex-1 flex flex-col min-h-0 pt-3">
 
-      <div v-if="cargando" class="flex items-center gap-2 text-xs font-medium opacity-60">
+      <div v-if="cargando" class="flex-1 flex items-center justify-center gap-2 text-xs font-medium opacity-60">
         <i class="fas fa-circle-notch fa-spin text-[#e88710]"></i>
         <span>Cargando solicitudes…</span>
       </div>
 
-      <div v-else-if="!listaFiltrada.length" class="text-center space-y-2 max-w-xs animate-fade-in">
-        <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl border opacity-30"
+      <div v-else-if="!listaFiltrada.length" class="flex-1 flex flex-col items-center justify-center text-center gap-2 mx-auto max-w-xs animate-fade-in">
+        <div class="w-9 h-9 mx-auto flex items-center justify-center rounded-lg border opacity-30"
           :class="isDark ? 'bg-[#222942] border-slate-700/60' : 'bg-white border-[#EAEAEA]'">
-          <i class="fas fa-inbox text-sm"></i>
+          <i class="fas fa-inbox text-xs"></i>
         </div>
-        <p class="text-xs font-medium opacity-50">
+        <p class="text-[11px] font-medium opacity-50">
           {{ filtro === 'pendiente' ? 'Sin solicitudes pendientes' : 'Sin resultados en este filtro' }}
         </p>
       </div>
 
-      <div v-else class="w-full flex flex-col overflow-hidden text-left h-full">
+      <div v-else class="flex-1 flex flex-col overflow-hidden text-left min-h-0">
 
         <div
-          class="grid grid-cols-12 gap-4 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider border-b shrink-0"
-          :class="isDark ? 'bg-[#161B26]/40 border-slate-800/80 text-slate-400' : 'bg-zinc-50 border-[#EAEAEA] text-[#666666]'">
+          class="grid grid-cols-12 gap-4 px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg shrink-0 bg-[#1e293b] text-slate-300">
           <span class="col-span-2">Estado</span>
           <span class="col-span-3">Solicitante</span>
           <span class="col-span-4">Mensaje</span>
@@ -108,7 +107,7 @@
         <div class="flex-1 overflow-y-auto divide-y scrollbar-none"
           :class="isDark ? 'divide-slate-800/50' : 'divide-[#EAEAEA]'">
           <div v-for="s in listaFiltrada" :key="s.id"
-            class="grid grid-cols-12 gap-4 px-4 py-3.5 items-center text-xs transition-colors hover:bg-zinc-500/[0.01]">
+            class="grid grid-cols-12 gap-4 px-3 py-2 items-center text-[11px] transition-colors hover:bg-zinc-500/[0.01]">
             <div class="col-span-2">
               <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border"
                 :class="{
@@ -242,7 +241,7 @@ const togglePopover = (s, evt) => {
     return;
   }
   const rect = evt.currentTarget.getBoundingClientRect();
-  const rootRect = evt.currentTarget.closest('.sol-root').getBoundingClientRect();
+  const rootRect = evt.currentTarget.closest('.sol-anchor').getBoundingClientRect();
   popover.value = {
     visible: true,
     data: s,

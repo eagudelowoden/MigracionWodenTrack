@@ -110,7 +110,9 @@
       "PowerShell(Get-Process node | Where-Object { $_.MainWindowTitle -eq \"\" } | Select-Object Id, CPU, WorkingSet | Format-Table)",
       "Bash(Test-Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\dist\\\\main.js\")",
       "Bash(node _odoo_test.js)",
-      "Bash(grep -nE \"apiFetch\\\\\\(|axios|VITE|/[a-z-]+\\\\`|reporte|attendance\" composables/UserLogica/cargarAsistencias.js)"
+      "Bash(grep -nE \"apiFetch\\\\\\(|axios|VITE|/[a-z-]+\\\\`|reporte|attendance\" composables/UserLogica/cargarAsistencias.js)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget"
     ]
   }
 }

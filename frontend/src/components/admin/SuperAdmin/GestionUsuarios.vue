@@ -494,17 +494,21 @@ onMounted(async () => {
    VARIABLES — azul clásico tipo Vercel/GitHub
    ══════════════════════════════════════════════════════════════════ */
 .gu-light {
-    --bg: #ffffff;
-    --bg-soft: #fafafa;
-    --bg-hover: #f4f4f5;
-    --border: #ececec;
-    --border-strong: #e2e2e2;
-    --text: #09090b;
-    --text-muted: #52525b;
-    --text-soft: #a1a1aa;
+    --bg: #fbfcfe;
+    --bg-soft: #eef2f6;
+    --bg-hover: #e7eef6;
+    --border: #dbe3ec;
+    --border-strong: #c4d0dd;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-soft: #94a3b8;
+    /* Encabezado de tabla azul oscuro + filas zebra */
+    --thead-bg: #1e293b;
+    --thead-fg: #cbd5e1;
+    --zebra: #f6f9fc;
     /* Acento ultra-sobrio: gris pizarra (casi neutro) */
     --brand: #52525b;
-    --brand-soft: #f4f4f5;
+    --brand-soft: #eef2f6;
     --brand-text: #27272a;
     /* Verde funcional para estado activo */
     --on: #16a34a;
@@ -523,6 +527,9 @@ onMounted(async () => {
     --text: #fafafa;
     --text-muted: #B0B7C3;
     --text-soft: #888888;
+    --thead-bg: #1F2533;
+    --thead-fg: #888888;
+    --zebra: transparent;
     /* Gris ZINC puro neutro: SIN subtono azul */
     --brand: #d4d4d8;
     --brand-soft: rgba(212, 212, 216, 0.08);
@@ -540,8 +547,9 @@ onMounted(async () => {
 .gu-root {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     height: 100%;
+    padding: 10px 12px;
     color: var(--text);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
@@ -987,6 +995,7 @@ onMounted(async () => {
 .gu-tables {
     display: grid;
     grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
     gap: 10px;
     flex: 1;
     min-height: 0;
@@ -1005,8 +1014,7 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-height: 480px;
-    max-height: calc(100vh - 220px);
+    min-height: 0;
 }
 
 .gu-table-head {
@@ -1080,12 +1088,12 @@ onMounted(async () => {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--bg);
-    padding: 6px 12px;
+    background: var(--thead-bg);
+    padding: 7px 12px;
     text-align: left;
     font-size: 9px;
     font-weight: 600;
-    color: var(--text-soft);
+    color: var(--thead-fg);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     border-bottom: 1px solid var(--border);
@@ -1099,6 +1107,10 @@ onMounted(async () => {
 .gu-tr {
     border-bottom: 1px solid var(--border);
     transition: background 0.1s ease;
+}
+
+.gu-tr:nth-child(even) {
+    background: var(--zebra);
 }
 
 .gu-tr:hover {

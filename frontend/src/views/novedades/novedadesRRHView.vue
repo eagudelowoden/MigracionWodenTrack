@@ -280,36 +280,31 @@
             <thead class="sticky top-0 z-10">
               <tr class="bg-[#334155]">
                 <th
-                  class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-2 py-1.2 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Colaborador</th>
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Inicio</th>
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Fin</th>
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Días</th>
-                <!-- <th
-                  class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
-                  Descripción</th> -->
                 <th
-                  class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Tipificación</th>
                 <th
-                  class="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-left text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Creado por</th>
-                <!-- Estado CH personalizado -->
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Carpeta CH</th>
                 <th
-                  class="px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Est. Jefe</th>
-
                 <th
-                  class="px-4 py-2.5 text-right text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white">
+                  class="px-4 py-1.5 text-right text-[9px] font-semibold uppercase tracking-wide border-b border-[#222938] text-white whitespace-nowrap">
                   Acciones</th>
               </tr>
             </thead>
@@ -321,7 +316,7 @@
                 ]">
 
                 <!-- Colaborador -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <div class="flex items-center gap-2.5">
                     <div
                       class="w-7 h-7 rounded-lg bg-[#3B82F6]/10 flex items-center justify-center text-[10px] font-semibold text-[#3B82F6] shrink-0">
@@ -336,19 +331,19 @@
                 </td>
 
                 <!-- Fechas -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.2 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ formatFecha(item.fechaInicio ?? item.fecha_inicio) }}
                   </span>
                 </td>
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <span class="text-[11px] font-bold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ formatFecha(item.fechaFin ?? item.fecha_fin) }}
                   </span>
                 </td>
 
                 <!-- Días -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <span class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">
                     {{ calcDias(item.fechaInicio ?? item.fecha_inicio, item.fechaFin ?? item.fecha_fin) }}
                   </span>
@@ -369,7 +364,7 @@
                 </td> -->
 
                 <!-- Tipificación -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <p class="text-[11px] font-medium line-clamp-2 max-w-[140px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ item.tipificacion || '—' }}
@@ -377,7 +372,7 @@
                 </td>
 
                 <!-- Creado por -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <p class="text-[10px] font-medium line-clamp-2 max-w-[140px]"
                     :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                     {{ item.creadoPorNombre || '—' }}
@@ -385,7 +380,7 @@
                 </td>
 
                 <!-- Carpeta CH (estado personalizado) -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
+                <td class="px-4 py-1.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
                   @click.stop>
                   <div class="relative flex items-center justify-center gap-1">
                     <!-- Badge del estado CH actual -->
@@ -404,7 +399,7 @@
                 </td>
 
                 <!-- Motivo jefe -->
-                <td class="px-4 py-2.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="px-4 py-1.5 text-center border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <span v-if="item.motivoJefe" @click.stop="verMotivo(item.motivoJefe, 'Motivo Jefe Directo')"
                     class="cursor-pointer text-[12px] font-bold text-[#3B82F6] hover:underline">
                     <i class="fas fa-comment-alt mr-1"></i>Ver
@@ -413,7 +408,7 @@
                 </td>
 
                 <!-- Acciones -->
-                <td class="px-4 py-2.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                <td class="px-4 py-1.5 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                   <div class="flex items-center justify-end gap-2">
                     <!-- Badge estado RRHH -->
                     <span class="px-2 py-0.5 rounded-md text-[8px] uppercase tracking-wide border font-semibold"

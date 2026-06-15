@@ -540,7 +540,7 @@ onUnmounted(() => {
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'users', 'notifications', 'estructura', 'api', 'modulos', 'sync']"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -549,8 +549,6 @@ onUnmounted(() => {
               @error="showNotification($event, 'error')" />
             <GestionCompanias v-if="tab === 'companies'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
-            <GestionUsuarios v-if="tab === 'users'" :isDark="isDark" @success="showNotification($event)"
-              @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
             <Notificaciones v-if="tab === 'notifications'" :isDark="isDark" :apiUrl="API_URL"
               @notification-sent="showNotification('Notificación enviada')" />
             <GestionEstructura v-if="tab === 'estructura'" :key="areas.length" :isDark="isDark" :usuarios="dbUsuarios"
@@ -567,7 +565,7 @@ onUnmounted(() => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'analitica', 'config', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
+          v-for="tab in ['mallas', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -577,6 +575,8 @@ onUnmounted(() => {
               @error="showNotification($event, 'error')" />
             <GestionConfiguraciones v-if="tab === 'config'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
+            <GestionUsuarios v-if="tab === 'users'" :isDark="isDark" @success="showNotification($event)"
+              @error="showNotification($event, 'error')" @open-perms="openPerms($event)" />
             <GestionSesiones v-if="tab === 'sesiones'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
             <GestionMensajes v-if="tab === 'mensajes'" :isDark="isDark" @success="showNotification($event)"
