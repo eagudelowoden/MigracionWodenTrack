@@ -141,15 +141,17 @@ export class ModulosDisponiblesService implements OnApplicationBootstrap {
   }
 
   async getGruposUnicos(): Promise<{ grupo: string; label: string; icon: string }[]> {
-    const modulos = await this.repo
+    const rows = await this.repo
       .createQueryBuilder('m')
-      .select(['m.grupo', 'm.grupo_label', 'm.grupo_icon'])
+      .select('m.grupo', 'grupo')
+      .addSelect('m.grupo_label', 'grupo_label')
+      .addSelect('m.grupo_icon', 'grupo_icon')
       .groupBy('m.grupo')
       .addGroupBy('m.grupo_label')
       .addGroupBy('m.grupo_icon')
       .orderBy('m.grupo', 'ASC')
-      .getMany();
+      .getRawMany<{ grupo: string; grupo_label: string; grupo_icon: string | null }>();
 
-    return modulos.map(m => ({ grupo: m.grupo, label: m.grupo_label, icon: m.grupo_icon ?? '' }));
+    return rows.map(r => ({ grupo: r.grupo, label: r.grupo_label, icon: r.grupo_icon ?? '' }));
   }
 }
