@@ -46,10 +46,16 @@ export class InternoGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   async handleDisconnect(client: Socket) {
     const idOdoo = this.socketUser.get(client.id);
+    console.log(`Cliente desconectado: ${client.id} (idOdoo: ${idOdoo ?? 'sin join'})`);
     if (idOdoo !== undefined) {
       this.socketUser.delete(client.id);
       this.userSocket.delete(idOdoo);
-      await this.sesionRepo.update({ socket_id: client.id }, { activa: false, socket_id: null });
+      try {
+        await this.sesionRepo.update({ socket_id: client.id }, { activa: false, socket_id: null });
+      } catch (err) {
+        // No dejar que un fallo de DB bloquee el gateway; la sesión se limpiará en el próximo join
+        console.error(`[InternoGateway] Error al cerrar sesión de ${client.id}:`, (err as Error).message);
+      }
       this.server.emit('sessions-updated');
     }
   }
@@ -65,7 +71,11 @@ export class InternoGateway implements OnGatewayConnection, OnGatewayDisconnect 
     const deviceType = this.detectDevice(userAgent || '');
 
     // Desactivar sesión anterior si existía
-    await this.sesionRepo.update({ id_odoo: idOdoo }, { activa: false, socket_id: null });
+    try {
+      await this.sesionRepo.update({ id_odoo: idOdoo }, { activa: false, socket_id: null });
+    } catch (err) {
+      console.error(`[InternoGateway] Error al desactivar sesión previa de ${idOdoo}:`, (err as Error).message);
+    }
 
     const sesion = this.sesionRepo.create({
       id_odoo: idOdoo,
@@ -76,7 +86,11 @@ export class InternoGateway implements OnGatewayConnection, OnGatewayDisconnect 
       socket_id: client.id,
       activa: true,
     });
-    await this.sesionRepo.save(sesion);
+    try {
+      await this.sesionRepo.save(sesion);
+    } catch (err) {
+      console.error(`[InternoGateway] Error al guardar sesión de ${idOdoo}:`, (err as Error).message);
+    }
 
     this.socketUser.set(client.id, idOdoo);
     this.userSocket.set(idOdoo, client.id);
