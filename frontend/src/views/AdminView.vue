@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-layout transition-colors duration-500" :class="isDark ? 'theme-dark' : 'theme-light'">
 
     <!-- ── Sidebar (Geist full-bleed) ──────────────────────────────────────── -->
@@ -223,6 +223,15 @@
                   {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
                 </button>
 
+                <button @click="showUserMenu = false; showCambioPassword = true"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 text-[11px] font-medium transition-colors"
+                  :class="isDark
+                    ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'">
+                  <i class="fas fa-key w-4 text-center text-[11px]"></i>
+                  Cambiar contraseña
+                </button>
+
                 <div class="h-px mx-2" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'"></div>
 
                 <button @click="logout(); showUserMenu = false"
@@ -299,10 +308,114 @@
       </div>
     </transition>
 
+  <!-- ── Modal Cambiar Contraseña ───────────────────────────────────────────── -->
+  <teleport to="body">
+    <transition name="fade">
+      <div v-if="showCambioPassword"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        @click.self="cerrarCambioPassword">
+
+        <div class="w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <i class="fas fa-key text-blue-500 text-xs"></i>
+              </div>
+              <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Cambiar contraseña
+              </span>
+            </div>
+            <button @click="cerrarCambioPassword"
+              class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors opacity-40 hover:opacity-100"
+              :class="isDark ? 'text-white hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'">
+              <i class="fas fa-xmark text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="px-5 py-4 space-y-3.5">
+            <p class="text-[11px] leading-relaxed" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+              Al establecer una contraseña personal, deberás usarla para ingresar en lugar de tu cédula.
+            </p>
+
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                Nueva contraseña
+              </label>
+              <div class="relative">
+                <input v-model="pwForm.nueva" :type="pwForm.showNueva ? 'text' : 'password'"
+                  placeholder="Mínimo 6 caracteres"
+                  class="w-full h-10 rounded-xl px-3 pr-10 text-xs border outline-none transition-all"
+                  :class="isDark
+                    ? 'bg-[#0B1120]/60 border-[#222938] text-white focus:border-blue-500'
+                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'" />
+                <button type="button" @click="pwForm.showNueva = !pwForm.showNueva"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 transition-opacity"
+                  :class="isDark ? 'text-white' : 'text-slate-500'">
+                  <i :class="pwForm.showNueva ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                Confirmar contraseña
+              </label>
+              <div class="relative">
+                <input v-model="pwForm.confirmar" :type="pwForm.showConfirmar ? 'text' : 'password'"
+                  placeholder="Repite la contraseña"
+                  class="w-full h-10 rounded-xl px-3 pr-10 text-xs border outline-none transition-all"
+                  :class="isDark
+                    ? 'bg-[#0B1120]/60 border-[#222938] text-white focus:border-blue-500'
+                    : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'" />
+                <button type="button" @click="pwForm.showConfirmar = !pwForm.showConfirmar"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 transition-opacity"
+                  :class="isDark ? 'text-white' : 'text-slate-500'">
+                  <i :class="pwForm.showConfirmar ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <transition name="fade">
+              <p v-if="pwForm.error" class="text-[11px] text-rose-500 flex items-center gap-1.5">
+                <i class="fas fa-circle-exclamation"></i> {{ pwForm.error }}
+              </p>
+              <p v-else-if="pwForm.success" class="text-[11px] text-emerald-500 flex items-center gap-1.5">
+                <i class="fas fa-circle-check"></i> {{ pwForm.success }}
+              </p>
+            </transition>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-5 pb-5 flex gap-2.5">
+            <button @click="cerrarCambioPassword"
+              class="flex-1 h-9 rounded-xl text-xs font-semibold border transition-all"
+              :class="isDark
+                ? 'border-[#222938] text-slate-400 hover:text-white hover:border-slate-500'
+                : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+              Cancelar
+            </button>
+            <button @click="guardarPassword" :disabled="pwForm.loading"
+              class="flex-1 h-9 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+              <div v-if="pwForm.loading" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span v-else><i class="fas fa-check mr-1"></i>Guardar</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </transition>
+  </teleport>
+
   </div>
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, computed, onMounted, onUnmounted, provide, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { adminOdoo } from '../composables/adminLogica/adminOdoo.js';
@@ -330,6 +443,53 @@ provide('adminEmployee', employee);
 // ── Chip usuario dropdown ─────────────────────────────────────────────────────
 const showUserMenu = ref(false);
 const userChipRef = ref(null);
+
+// ── Modal cambio de contraseña ────────────────────────────────────────────────
+const showCambioPassword = ref(false);
+const pwForm = reactive({
+  nueva: '', confirmar: '', loading: false,
+  error: '', success: '', showNueva: false, showConfirmar: false,
+});
+
+const cerrarCambioPassword = () => {
+  showCambioPassword.value = false;
+  pwForm.nueva = ''; pwForm.confirmar = '';
+  pwForm.error = ''; pwForm.success = '';
+  pwForm.showNueva = false; pwForm.showConfirmar = false;
+};
+
+const guardarPassword = async () => {
+  pwForm.error = ''; pwForm.success = '';
+  if (!pwForm.nueva || pwForm.nueva.length < 6) {
+    pwForm.error = 'La contraseña debe tener al menos 6 caracteres'; return;
+  }
+  if (pwForm.nueva !== pwForm.confirmar) {
+    pwForm.error = 'Las contraseñas no coinciden'; return;
+  }
+  pwForm.loading = true;
+  try {
+    const res = await apiFetch(`${API_URL}/cambiar-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_odoo: employee.value?.id_odoo,
+        nueva_password: pwForm.nueva,
+        confirmar_password: pwForm.confirmar,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      pwForm.success = 'Contraseña actualizada correctamente';
+      setTimeout(() => cerrarCambioPassword(), 1500);
+    } else {
+      pwForm.error = data.message || 'Error al cambiar la contraseña';
+    }
+  } catch {
+    pwForm.error = 'Error de conexión';
+  } finally {
+    pwForm.loading = false;
+  }
+};
 
 const handleClickOutsideChip = (e) => {
   if (showUserMenu.value && userChipRef.value && !userChipRef.value.contains(e.target))
@@ -421,7 +581,7 @@ onMounted(async () => {
   setTimeout(() => conectarInterno(), 1500);
 
   try {
-    const res = await fetch(`${API_URL}/sistema-config`);
+    const res = await apiFetch(`${API_URL}/sistema-config`);
     if (res.ok) Object.assign(modulosConfig, await res.json());
   } catch { }
 });

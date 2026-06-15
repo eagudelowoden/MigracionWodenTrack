@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="w-full h-full flex flex-col font-sans select-none relative transition-colors duration-200"
     :class="isDark ? 'bg-[#1A1F35] text-[#EDEDED]' : 'bg-[#FAFAFA] text-[#111111]'" @click="closePopover">
 
@@ -214,6 +214,7 @@
 </style>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -263,7 +264,7 @@ const listaFiltrada = computed(() =>
 const cargar = async () => {
   cargando.value = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/solicitudes`);
+    const r = await apiFetch(`${API_URL}/superadmin/solicitudes`);
     lista.value = await r.json();
   } catch { emit('error', 'Error cargando solicitudes'); }
   finally { cargando.value = false; }
@@ -273,7 +274,7 @@ const atender = async (id, estado) => {
   procesando.value = id;
   const session = JSON.parse(localStorage.getItem('user_session') || '{}');
   try {
-    const r = await fetch(`${API_URL}/superadmin/solicitudes/${id}`, {
+    const r = await apiFetch(`${API_URL}/superadmin/solicitudes/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado, atendido_por: session.name || 'SuperAdmin' }),

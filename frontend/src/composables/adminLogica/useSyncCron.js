@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed } from 'vue';
 
 const API = `${import.meta.env.VITE_API_URL}/sync-cron`;
@@ -15,7 +16,7 @@ export function useSyncCron() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API}/config`);
+      const res = await apiFetch(`${API}/config`);
       config.value = await res.json();
     } catch (e) {
       error.value = e.message;
@@ -29,7 +30,7 @@ export function useSyncCron() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API}/config`, {
+      const res = await apiFetch(`${API}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dto),
@@ -47,7 +48,7 @@ export function useSyncCron() {
     ejecutando.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API}/ejecutar`, { method: 'POST' });
+      const res = await apiFetch(`${API}/ejecutar`, { method: 'POST' });
       const log = await res.json();
       await fetchConfig();
       await fetchHistorial();
@@ -62,7 +63,7 @@ export function useSyncCron() {
   // ── Países disponibles en Odoo ─────────────────────────────────────────────
   const fetchPaises = async () => {
     try {
-      const res = await fetch(`${API}/paises`);
+      const res = await apiFetch(`${API}/paises`);
       paisesDisponibles.value = await res.json();
     } catch (e) {
       console.error('Error cargando países:', e);
@@ -72,7 +73,7 @@ export function useSyncCron() {
   // ── Historial ──────────────────────────────────────────────────────────────
   const fetchHistorial = async () => {
     try {
-      const res = await fetch(`${API}/historial?limit=15`);
+      const res = await apiFetch(`${API}/historial?limit=15`);
       historial.value = await res.json();
     } catch (e) {
       console.error('Error cargando historial:', e);

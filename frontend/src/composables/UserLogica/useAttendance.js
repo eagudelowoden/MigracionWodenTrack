@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 
@@ -50,7 +51,7 @@ export function useAttendance() {
 
     loading.value = true;
     try {
-      const res = await fetch(`${API_BASE_URL}/login`, {
+      const res = await apiFetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -61,7 +62,7 @@ export function useAttendance() {
       if (res.ok && data.status === "success") {
         // 1. SINCRONIZACIÓN DE ESTADO (Asistencia)
         try {
-          const statusRes = await fetch(
+          const statusRes = await apiFetch(
             `${API_BASE_URL}/attendance-status/${data.employee_id}`,
           );
           const statusData = await statusRes.json();
@@ -103,7 +104,7 @@ export function useAttendance() {
 
   const syncEstado = async (empId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/attendance-status/${empId}`);
+      const res = await apiFetch(`${API_BASE_URL}/attendance-status/${empId}`);
       const data = await res.json();
       if (employee.value) {
         employee.value.is_inside     = data.is_inside;
@@ -120,7 +121,7 @@ export function useAttendance() {
   // Carga la malla horaria del día para el empleado actual
   const fetchMalla = async (empId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/malla-hoy/${empId}`);
+      const res = await apiFetch(`${API_BASE_URL}/malla-hoy/${empId}`);
       if (res.ok) {
         malla.value = await res.json();
       }
@@ -134,7 +135,7 @@ export function useAttendance() {
     try {
       // El endpoint de APK está fuera de /usuarios
       const apkBase = API_BASE_URL.replace(/\/usuarios\/?$/, "");
-      const res = await fetch(`${apkBase}/apk/info`, { cache: "no-store" });
+      const res = await apiFetch(`${apkBase}/apk/info`, { cache: "no-store" });
       if (!res.ok) return;
       const info = await res.json();
       if (!info.exists) return;
@@ -170,7 +171,7 @@ export function useAttendance() {
 
     loading.value = true;
     try {
-      const res = await fetch(`${API_BASE_URL}/attendance`, {
+      const res = await apiFetch(`${API_BASE_URL}/attendance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: employee.value.employee_id, action }),

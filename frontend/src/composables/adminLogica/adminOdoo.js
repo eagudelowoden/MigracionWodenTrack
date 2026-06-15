@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, onMounted, computed } from "vue";
 import { useAttendance } from "../UserLogica/useAttendance.js";
 import { useCargarAsistencias } from "../UserLogica/cargarAsistencias.js";
@@ -44,7 +45,7 @@ export function adminOdoo() {
 
   const fetchCompanies = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/companies`);
+      const res = await apiFetch(`${API_BASE_URL}/companies`);
       const data = await res.json();
       const active = data.filter((c) => c.is_active);
 

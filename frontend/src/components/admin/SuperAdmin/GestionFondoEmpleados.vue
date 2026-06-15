@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full flex flex-col gap-0" :class="isDark ? 'text-white' : 'text-slate-900'">
 
     <!-- Header -->
@@ -214,6 +214,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -238,7 +239,7 @@ function mostrarToast(mensaje, error = false) {
 async function cargar() {
   cargando.value = true;
   try {
-    const res = await fetch(`${API_URL}/superadmin/fondos-empleados`, { cache: 'no-store' });
+    const res = await apiFetch(`${API_URL}/superadmin/fondos-empleados`, { cache: 'no-store' });
     if (!res.ok) throw new Error();
     const data = await res.json();
     // asegurar que cada fondo tenga _nuevoCorreo (campo local UI)
@@ -264,13 +265,13 @@ async function guardarFondo() {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     let res;
     if (modal.editando) {
-      res = await fetch(`${API_URL}/superadmin/fondos-empleados/${modal.id}`, {
+      res = await apiFetch(`${API_URL}/superadmin/fondos-empleados/${modal.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: modal.nombre.trim(), updatedBy: session.name || 'superadmin' }),
       });
     } else {
-      res = await fetch(`${API_URL}/superadmin/fondos-empleados`, {
+      res = await apiFetch(`${API_URL}/superadmin/fondos-empleados`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: modal.nombre.trim(), createdBy: session.name || 'superadmin' }),
@@ -292,7 +293,7 @@ function confirmarEliminar(fondo) {
 async function eliminarFondo() {
   if (!confirmDelete.fondo) return;
   try {
-    const res = await fetch(`${API_URL}/superadmin/fondos-empleados/${confirmDelete.fondo.id}`, {
+    const res = await apiFetch(`${API_URL}/superadmin/fondos-empleados/${confirmDelete.fondo.id}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error();
@@ -322,7 +323,7 @@ async function quitarCorreoFondo(fondo, email) {
 async function persistirCorreosFondo(fondo) {
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/fondos-empleados/${fondo.id}`, {
+    const res = await apiFetch(`${API_URL}/superadmin/fondos-empleados/${fondo.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ correos: fondo.correos, updatedBy: session.name || 'superadmin' }),

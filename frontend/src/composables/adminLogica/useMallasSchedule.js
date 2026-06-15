@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed } from 'vue';
 
 function getColombiaDate() {
@@ -40,7 +41,7 @@ export function useMallasSchedule() {
     cargando.value = true;
     try {
       const API_URL = import.meta.env.VITE_API_URL;
-      const r = await fetch(`${API_URL}/sistema-config`);
+      const r = await apiFetch(`${API_URL}/sistema-config`);
       const data = await r.json();
       schedule.value = {
         enabled:        data.mallas_schedule_enabled === 'true',

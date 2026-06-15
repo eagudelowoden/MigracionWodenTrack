@@ -4,17 +4,20 @@ import { diskStorage } from 'multer';
 import { createReadStream } from 'fs';
 import { join } from 'path';
 import { ApkService } from './apk.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('apk')
 export class ApkController {
   constructor(private readonly apkService: ApkService) { }
 
+  @Public()
   @Get('info')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
   getInfo() {
     return this.apkService.getApkInfo();
   }
 
+  @Public()
   @Get('download')
   @Header('Content-Type', 'application/vnd.android.package-archive')
   @Header('Content-Disposition', 'attachment; filename="app-debug.apk"')

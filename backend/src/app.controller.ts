@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AppService } from './app.service';
+import { Public } from './auth/public.decorator';
 import * as fs from 'fs';
 
 const MAINTENANCE_MARKER = 'name="Modo Mantenimiento" enabled=';
@@ -8,17 +9,20 @@ const MAINTENANCE_MARKER = 'name="Modo Mantenimiento" enabled=';
 export class AppController {
   constructor(private readonly appService: AppService) { }
 
+  @Public()
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
 
+  @Public()
   @Get('version')
   getVersion() {
     const v = process.env.APP_VERSION || '1.0.0';
     return { version: v };
   }
 
+  @Public()
   @Get('mantenimiento')
   getMantenimiento() {
     const configPath = process.env.WEBCONFIG_PATH;

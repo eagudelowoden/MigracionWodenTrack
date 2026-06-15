@@ -571,6 +571,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 
 const vClickOutside = {
@@ -656,7 +657,7 @@ onMounted(async () => {
   if (department) await fetchJefeDeArea(department);
 
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/sistema-config`);
+    const res = await apiFetch(`${import.meta.env.VITE_API_URL}/sistema-config`);
     if (res.ok) {
       const cfg = await res.json();
       if (cfg.storage_mode) storageMode.value = cfg.storage_mode;

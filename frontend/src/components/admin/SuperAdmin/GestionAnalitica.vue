@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- ── Sub-navegación ───────────────────────────────────────── -->
@@ -932,6 +932,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted, watch } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -974,7 +975,7 @@ const smFiltrados = computed(() => {
 const cargarSinMalla = async () => {
   sm.value.cargando = true;
   try {
-    const res = await fetch(`${API_URL}/superadmin/analitica/sin-malla`);
+    const res = await apiFetch(`${API_URL}/superadmin/analitica/sin-malla`);
     if (!res.ok) throw new Error();
     sm.value.data = await res.json();
     masivo.value.seleccionados = [];
@@ -1000,7 +1001,7 @@ const toggleSeleccionarTodos = () => {
 
 const cargarMallas = async () => {
   try {
-    const res = await fetch(`${API_URL}/mallas-admin`);
+    const res = await apiFetch(`${API_URL}/mallas-admin`);
     if (!res.ok) throw new Error();
     masivo.value.mallas = (await res.json()).filter(m => m.activa);
   } catch { emit('error', 'Error al cargar mallas'); }
@@ -1015,7 +1016,7 @@ const ejecutarAsignacionMasiva = async () => {
       usuarioIdOdoo: id,
       mallaId: Number(masivo.value.mallaId),
     }));
-    const res = await fetch(`${API_URL}/superadmin/analitica/asignar-masivo`, {
+    const res = await apiFetch(`${API_URL}/superadmin/analitica/asignar-masivo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ asignaciones, asignadoPor: session.name || 'superadmin' }),
@@ -1062,7 +1063,7 @@ const cargarHeatmap = async () => {
   try {
     const params = new URLSearchParams({ startDate: hm.value.startDate, endDate: hm.value.endDate });
     if (hm.value.departamento) params.set('departamento', hm.value.departamento);
-    const res = await fetch(`${API_URL}/superadmin/analitica/heatmap?${params}`);
+    const res = await apiFetch(`${API_URL}/superadmin/analitica/heatmap?${params}`);
     if (!res.ok) throw new Error();
     hm.value.data = await res.json();
   } catch { emit('error', 'Error al cargar heatmap'); }
@@ -1077,7 +1078,7 @@ const cargarComparativa = async () => {
   comp.value.cargando = true;
   try {
     const params = new URLSearchParams({ startDate: comp.value.startDate, endDate: comp.value.endDate });
-    const res = await fetch(`${API_URL}/superadmin/analitica/comparativa-areas?${params}`);
+    const res = await apiFetch(`${API_URL}/superadmin/analitica/comparativa-areas?${params}`);
     if (!res.ok) throw new Error();
     comp.value.data = await res.json();
   } catch { emit('error', 'Error al cargar comparativa'); }
@@ -1101,7 +1102,7 @@ const correo = ref({
 
 const cargarConfigCorreo = async () => {
   try {
-    const res = await fetch(`${API_URL}/superadmin/correo/config`);
+    const res = await apiFetch(`${API_URL}/superadmin/correo/config`);
     if (!res.ok) throw new Error();
     const cfg = await res.json();
     correo.value.config = cfg;
@@ -1121,7 +1122,7 @@ const guardarConfigCorreo = async () => {
   correo.value.testResult = null;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/config`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...correo.value.form, updatedBy: session.name || 'superadmin' }),
@@ -1137,7 +1138,7 @@ const testConexion = async () => {
   correo.value.testeando = true;
   correo.value.testResult = null;
   try {
-    const res = await fetch(`${API_URL}/superadmin/correo/test`, { method: 'POST' });
+    const res = await apiFetch(`${API_URL}/superadmin/correo/test`, { method: 'POST' });
     correo.value.testResult = await res.json();
   } catch { correo.value.testResult = { ok: false, mensaje: 'Error al conectar con el servidor' }; }
   finally { correo.value.testeando = false; }
@@ -1151,7 +1152,7 @@ const enviarAusentismo = async () => {
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
     const destinatarios = e.destinatariosRaw.split(',').map(s => s.trim()).filter(Boolean);
-    const res = await fetch(`${API_URL}/superadmin/correo/ausentismo`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/ausentismo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1187,7 +1188,7 @@ const iaFiltrados = computed(() => {
 const cargarIA = async () => {
   ia.value.cargando = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/ia/scores`);
+    const r = await apiFetch(`${API_URL}/superadmin/ia/scores`);
     const d = await r.json();
     ia.value.data = Array.isArray(d) ? d : [];
   } catch { emit('error', 'Error cargando scores de riesgo'); }
@@ -1223,7 +1224,7 @@ const tendPoints = (field) => tendDataFiltrado.value.map((p, i) => `${tendX(i)},
 const cargarTendencias = async () => {
   tend.value.cargando = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/ia/tendencias`);
+    const r = await apiFetch(`${API_URL}/superadmin/ia/tendencias`);
     const d = await r.json();
     tend.value.data = Array.isArray(d) ? d : [];
   } catch { emit('error', 'Error cargando tendencias'); }
@@ -1235,7 +1236,7 @@ const rank = ref({ cargando: false, mejores: [], peores: [] });
 const cargarRanking = async () => {
   rank.value.cargando = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/ia/ranking`);
+    const r = await apiFetch(`${API_URL}/superadmin/ia/ranking`);
     const d = await r.json();
     rank.value.mejores = Array.isArray(d?.mejores) ? d.mejores : [];
     rank.value.peores = Array.isArray(d?.peores) ? d.peores : [];

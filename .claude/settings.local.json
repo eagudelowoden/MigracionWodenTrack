@@ -99,7 +99,16 @@
       "Bash(python -c \"import reportlab; print\\('ok'\\)\")",
       "Bash(python generar_arquitectura.py)",
       "Bash(sed -n '50,80p' backend/src/horas-extra/horas-extra.controller.ts)",
-      "Bash(sed -n '270,300p' backend/src/horas-extra/horas-extra.controller.ts)"
+      "Bash(sed -n '270,300p' backend/src/horas-extra/horas-extra.controller.ts)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__get_page_text",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "PowerShell(Get-Process node | Where-Object { $_.MainWindowTitle -eq \"\" } | Select-Object Id, CPU, WorkingSet | Format-Table)",
+      "Bash(Test-Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\dist\\\\main.js\")"
     ]
   }
 }

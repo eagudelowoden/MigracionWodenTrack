@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="w-full h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- ── Header ── -->
@@ -350,6 +350,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -435,7 +436,7 @@ function syncForm(cfg) {
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 async function cargarConfig() {
   try {
-    const res = await fetch(`${API}/config`);
+    const res = await apiFetch(`${API}/config`);
     config.value = await res.json();
     syncForm(config.value);
   } catch (e) {
@@ -445,7 +446,7 @@ async function cargarConfig() {
 
 async function cargarHistorial() {
   try {
-    const res = await fetch(`${API}/historial?limit=20`);
+    const res = await apiFetch(`${API}/historial?limit=20`);
     historial.value = await res.json();
   } catch { /* silencioso */ }
 }
@@ -481,7 +482,7 @@ async function guardar() {
 
   guardando.value = true;
   try {
-    const res = await fetch(`${API}/config`, {
+    const res = await apiFetch(`${API}/config`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -510,7 +511,7 @@ async function guardar() {
 async function ejecutarAhora() {
   ejecutando.value = true;
   try {
-    const res = await fetch(`${API}/ejecutar`, { method: 'POST' });
+    const res = await apiFetch(`${API}/ejecutar`, { method: 'POST' });
     const log = await res.json();
     if (!res.ok) throw new Error(log.message || 'Error al ejecutar');
     await cargarConfig();

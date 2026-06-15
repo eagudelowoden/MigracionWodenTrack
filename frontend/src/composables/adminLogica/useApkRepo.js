@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref } from 'vue';
 
 export function useApkRepo() {
@@ -16,7 +17,7 @@ export function useApkRepo() {
       // Agregamos un log para ver qué URL está intentando llamar en la consola (F12)
       console.log("Llamando a:", `${API_URL}/apk/info`);
       
-      const response = await fetch(`${API_URL}/apk/info`);
+      const response = await apiFetch(`${API_URL}/apk/info`);
       
       if (!response.ok) throw new Error('Error al obtener información del servidor');
       
@@ -37,7 +38,7 @@ export function useApkRepo() {
   const subirApk = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${API_URL}/apk/upload`, {
+    const res = await apiFetch(`${API_URL}/apk/upload`, {
       method: 'POST',
       body: formData
     });
@@ -45,7 +46,7 @@ export function useApkRepo() {
   };
 
   const guardarNovedades = async (notes) => {
-    const res = await fetch(`${API_URL}/apk/changelog`, {
+    const res = await apiFetch(`${API_URL}/apk/changelog`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notes })

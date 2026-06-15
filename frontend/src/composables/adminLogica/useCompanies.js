@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref } from "vue";
 
 export function useCompanies() {
@@ -13,7 +14,7 @@ export function useCompanies() {
   // 1. Carga las compañías desde la base de datos local (WodenTrack)
   const fetchDbCompanies = async () => {
     try {
-      const res = await fetch(API_URL);
+      const res = await apiFetch(API_URL);
       const data = await res.json();
       dbCompanies.value = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -26,7 +27,7 @@ export function useCompanies() {
   const fetchOdooRaw = async () => {
     loading.value = true;
     try {
-      const res = await fetch(`${API_URL}/odoo-raw`);
+      const res = await apiFetch(`${API_URL}/odoo-raw`);
       const data = await res.json();
       odooCompanies.value = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -41,7 +42,7 @@ export function useCompanies() {
   const syncCompanies = async () => {
     isSyncing.value = true;
     try {
-      const res = await fetch(`${API_URL}/sync`, { method: "POST" });
+      const res = await apiFetch(`${API_URL}/sync`, { method: "POST" });
       const data = await res.json();
       // Tras sincronizar, refrescamos la lista local
       await fetchDbCompanies();
@@ -57,7 +58,7 @@ export function useCompanies() {
   // 4. Cambia el estado visible/oculto en SQL Server
   const toggleCompanyStatus = async (id, currentStatus) => {
     try {
-      await fetch(`${API_URL}/${id}/status`, {
+      await apiFetch(`${API_URL}/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: !currentStatus }),

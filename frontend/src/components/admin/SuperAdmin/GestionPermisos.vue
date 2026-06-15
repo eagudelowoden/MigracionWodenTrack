@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <Transition name="fade">
         <div v-if="modelValue" class="gp-overlay" :class="isDark ? 'gp-overlay-dark' : 'gp-overlay-light'"
             @click.self="emit('update:modelValue', null)">
@@ -180,6 +180,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -200,7 +201,7 @@ const MODULO_LABELS = ref({});
 const cargarModulos = async () => {
     try {
         const baseUrl = props.apiUrl?.replace('/usuarios', '');
-        const res = await fetch(`${baseUrl}/modulos-disponibles/agrupados`);
+        const res = await apiFetch(`${baseUrl}/modulos-disponibles/agrupados`);
         const agrupados = await res.json();
 
         const labels = {};
@@ -273,7 +274,7 @@ watch(() => props.modelValue, async (user) => {
         openSections.value = init;
 
         try {
-            const res = await fetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
+            const res = await apiFetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
             const data = await res.json();
             deptosSeleccionados.value = Array.isArray(data) ? data : [];
         } catch {
@@ -297,7 +298,7 @@ const guardarDeptos = async () => {
     isSavingDeptos.value = true;
     try {
         const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-        await fetch(`${props.apiUrl}/departamentos-permitidos/${props.modelValue.id_odoo}`, {
+        await apiFetch(`${props.apiUrl}/departamentos-permitidos/${props.modelValue.id_odoo}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

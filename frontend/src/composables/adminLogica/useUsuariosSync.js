@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed } from "vue";
 
 export function useUsuariosSync() {
@@ -18,7 +19,7 @@ export function useUsuariosSync() {
   const fetchDbUsuarios = async () => {
     try {
       // Enviamos el país como parámetro de consulta (Query Param)
-      const res = await fetch(`${API_URL}/lista-local?pais=${selectedCountry.value}`);
+      const res = await apiFetch(`${API_URL}/lista-local?pais=${selectedCountry.value}`);
       const data = await res.json();
       dbUsuarios.value = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -31,7 +32,7 @@ export function useUsuariosSync() {
   const fetchOdooUsuarios = async () => {
     loading.value = true;
     try {
-      const res = await fetch(`${API_URL}/lista-odoo?pais=${selectedCountry.value}`);
+      const res = await apiFetch(`${API_URL}/lista-odoo?pais=${selectedCountry.value}`);
       const data = await res.json();
       odooUsuarios.value = Array.isArray(data) ? data : [];
     } catch (e) {
@@ -62,7 +63,7 @@ const executeSync = async () => {
     // 2. Llamada al backend con filtros de País y Departamento
     const url = `${API_URL}/ejecutar?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
     
-    const res = await fetch(url, { method: "POST" });
+    const res = await apiFetch(url, { method: "POST" });
     const result = await res.json();
 
     if (res.ok) {

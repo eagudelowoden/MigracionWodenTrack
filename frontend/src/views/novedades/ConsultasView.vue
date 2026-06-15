@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- Header con tabs de vista -->
@@ -554,6 +554,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
 import GestionFondoEmpleados from '../../components/admin/SuperAdmin/GestionFondoEmpleados.vue';
@@ -705,7 +706,7 @@ const fondosNotificados = ref({});  // { [fondoId]: boolean }
 async function cargarFondos() {
   fondosCargando.value = true;
   try {
-    const res = await fetch(`${API_URL}/superadmin/fondos-empleados`, { cache: 'no-store' });
+    const res = await apiFetch(`${API_URL}/superadmin/fondos-empleados`, { cache: 'no-store' });
     if (res.ok) fondosList.value = await res.json();
   } catch { /* silencioso */ }
   finally { fondosCargando.value = false; }
@@ -716,7 +717,7 @@ async function notificarFondo(fondo) {
   fondosNotificando.value = { ...fondosNotificando.value, [fondo.id]: true };
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/fondos-empleados/${fondo.id}/notificar`, {
+    const res = await apiFetch(`${API_URL}/superadmin/fondos-empleados/${fondo.id}/notificar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="gm-root">
 
         <!-- Header -->
@@ -250,6 +250,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
@@ -288,7 +289,7 @@ const BASE_URL = computed(() => `${props.apiUrl?.replace('/usuarios', '')}/modul
 const cargar = async () => {
     loading.value = true;
     try {
-        const res = await fetch(BASE_URL.value);
+        const res = await apiFetch(BASE_URL.value);
         modulos.value = await res.json();
     } catch {
         emit('error', 'Error al cargar módulos');
@@ -299,7 +300,7 @@ const cargar = async () => {
 
 const cargarGrupos = async () => {
     try {
-        const res = await fetch(`${BASE_URL.value}/grupos`);
+        const res = await apiFetch(`${BASE_URL.value}/grupos`);
         gruposExistentes.value = await res.json();
     } catch { /* silent */ }
 };
@@ -390,14 +391,14 @@ const guardar = async () => {
         };
 
         if (editando.value) {
-            const res = await fetch(`${BASE_URL.value}/${editando.value.id}`, {
+            const res = await apiFetch(`${BASE_URL.value}/${editando.value.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error(await res.text());
         } else {
-            const res = await fetch(BASE_URL.value, {
+            const res = await apiFetch(BASE_URL.value, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -420,7 +421,7 @@ const guardar = async () => {
 
 const toggleActivo = async (mod) => {
     try {
-        await fetch(`${BASE_URL.value}/${mod.id}/toggle`, { method: 'PATCH' });
+        await apiFetch(`${BASE_URL.value}/${mod.id}/toggle`, { method: 'PATCH' });
         mod.activo = !mod.activo;
         emit('success', `Módulo ${mod.activo ? 'activado' : 'desactivado'}`);
     } catch {
@@ -437,7 +438,7 @@ const eliminar = async () => {
     if (!moduloAEliminar.value) return;
     guardando.value = true;
     try {
-        const res = await fetch(`${BASE_URL.value}/${moduloAEliminar.value.id}`, { method: 'DELETE' });
+        const res = await apiFetch(`${BASE_URL.value}/${moduloAEliminar.value.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(await res.text());
         modulos.value = modulos.value.filter(m => m.id !== moduloAEliminar.value.id);
         showConfirmDel.value = false;

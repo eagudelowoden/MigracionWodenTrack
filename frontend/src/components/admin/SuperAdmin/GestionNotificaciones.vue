@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="gn-root" :class="isDark ? 'gn-dark' : 'gn-light'">
 
         <!-- ─── HEADER ─────────────────────────────────────────────────── -->
@@ -127,6 +127,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
@@ -150,7 +151,7 @@ const getTypeLabel = (t) => TYPES.find(x => x.value === t)?.label || t;
 const fetchNotificationLogs = async () => {
     try {
         loadingHistory.value = true;
-        const res = await fetch(`${props.apiUrl}/notifications/history`);
+        const res = await apiFetch(`${props.apiUrl}/notifications/history`);
         const data = await res.json();
         notificationLogs.value = data.map(n => ({
             ...n,

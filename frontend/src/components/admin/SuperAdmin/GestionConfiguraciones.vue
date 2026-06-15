@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="c-root" :class="isDark ? 'c-dark' : 'c-light'">
 
     <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
@@ -505,6 +505,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -679,7 +680,7 @@ const toggleMantenimiento = async () => {
   mantenimiento.saving = true;
   const nuevo = !mantenimiento.enabled;
   try {
-    const res  = await fetch(`${API_BASE}/mantenimiento`, {
+    const res  = await apiFetch(`${API_BASE}/mantenimiento`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: nuevo }),
     });
@@ -692,7 +693,7 @@ const toggleMantenimiento = async () => {
 
 const cargar = async () => {
   try {
-    const res = await fetch(`${API_URL}/sistema-config`);
+    const res = await apiFetch(`${API_URL}/sistema-config`);
     if (!res.ok) return;
     Object.assign(config, await res.json());
   } catch { /* silencioso */ }
@@ -702,7 +703,7 @@ const guardar = async () => {
   saving.value = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/sistema-config`, {
+    const res = await apiFetch(`${API_URL}/sistema-config`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updates: { ...config }, updatedBy: session.name || 'SuperAdmin' }),
     });
@@ -761,7 +762,7 @@ const guardarConfigCorreo = async () => {
   correo.value.guardando = true; correo.value.testResult = null;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/config`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/config`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...correo.value.form, updatedBy: session.name || 'superadmin' }),
     });
@@ -775,7 +776,7 @@ const guardarConfigCorreo = async () => {
 const testConexion = async () => {
   correo.value.testeando = true; correo.value.testResult = null;
   try {
-    const res = await fetch(`${API_URL}/superadmin/correo/test`, { method: 'POST' });
+    const res = await apiFetch(`${API_URL}/superadmin/correo/test`, { method: 'POST' });
     correo.value.testResult = await res.json();
   } catch { correo.value.testResult = { ok: false, mensaje: 'Error al conectar con el servidor' }; }
   finally { correo.value.testeando = false; }
@@ -802,7 +803,7 @@ const guardarDestinatarios = async () => {
   correo.value.guardandoDest = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/novedades-destinatarios`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ destinatarios: correo.value.destinatarios, updatedBy: session.name || 'superadmin' }),
     });
@@ -830,7 +831,7 @@ const guardarCapitalHumano = async (flushInput = true) => {
   correo.value.guardandoCH = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/capital-humano`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/capital-humano`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emails: correo.value.capitalHumano, updatedBy: session.name || 'superadmin' }),
     });
@@ -859,7 +860,7 @@ const guardarRenunciaEmails = async (flushInput = true) => {
   correo.value.guardandoRenuncia = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/novedades-renuncia`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/novedades-renuncia`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ emails: correo.value.renunciaEmails, updatedBy: session.name || 'superadmin' }),
     });
@@ -891,7 +892,7 @@ const guardarCoordinadores = async (flushInput = true) => {
   correo.value.guardandoCoord = true;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/coordinadores`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/coordinadores`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: correo.value.coordinadores, updatedBy: session.name || 'superadmin' }),
     });
@@ -907,7 +908,7 @@ const enviarCorreoTest = async () => {
   correo.value.enviandoTest = true; correo.value.testEnvioResult = null;
   try {
     const session = JSON.parse(localStorage.getItem('user_session') || '{}');
-    const res = await fetch(`${API_URL}/superadmin/correo/ausentismo`, {
+    const res = await apiFetch(`${API_URL}/superadmin/correo/ausentismo`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         empleado: 'Usuario de Prueba', cedula: '0000000000',

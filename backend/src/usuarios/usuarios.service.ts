@@ -5,6 +5,8 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import { JwtService } from '@nestjs/jwt';
 import { OdooService } from '../odoo/odoo.service';
 import { Usuario } from './entities/usuario.entity';
 import { DataSource } from 'typeorm';
@@ -64,6 +66,7 @@ export class UsuariosService {
     private dataSource: DataSource,
     private configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
 
     @InjectRepository(MallaAsignacion)
     private readonly asignacionRepo: Repository<MallaAsignacion>,
@@ -101,15 +104,29 @@ export class UsuariosService {
 
   async login(usuario: string, password: string) {
     const { inicioDia, ahoraStr } = getFechaColombia();
-    console.log(`\n--- INTENTO DE LOGIN: ${usuario} ---`);
     if (!usuario || !password) {
       throw new BadRequestException('Por favor, ingrese usuario y contraseña');
     }
 
-    if (usuario !== password) {
-      throw new UnauthorizedException(
-        'La contraseña no coincide con el usuario',
-      );
+    // Buscar si el usuario ya tiene contraseña personalizada en nuestra DB
+    const usuarioLocal = await this.usuarioRepo.findOne({
+      where: { identificacion: usuario },
+      select: ['password_hash', 'is_superadmin'],
+    });
+
+    if (usuarioLocal?.password_hash) {
+      // Tiene contraseña personalizada → validar con bcrypt
+      const valida = await bcrypt.compare(password, usuarioLocal.password_hash);
+      if (!valida) {
+        throw new UnauthorizedException('Contraseña incorrecta');
+      }
+    } else {
+      // Sin contraseña personalizada → modo PIN: usuario debe ser igual a contraseña
+      if (usuario !== password) {
+        throw new UnauthorizedException(
+          'La contraseña no coincide con el usuario',
+        );
+      }
     }
 
     const uid = await this.odoo.authenticate();
@@ -138,8 +155,6 @@ export class UsuariosService {
     }
 
     const emp = employees[0];
-    console.log('--- DATOS CRUDOS DE ODOO ---');
-    console.dir(emp, { depth: null });
     const cargoRaw = emp.job_id ? emp.job_id[1] : 'SIN CARGO';
     const departamentoRaw = emp.department_id
       ? emp.department_id[1]
@@ -151,8 +166,6 @@ export class UsuariosService {
       .toUpperCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
-    console.log(`[CARGO]: Original: "${cargoRaw}" | Normalizado: "${cargo}"`);
-    console.log(`[LOGIN]: Usuario: ${emp.name} | Depto: ${departamentoRaw}`);
 
     const status = await this.getAttendanceStatus(emp.id);
 
@@ -164,9 +177,10 @@ export class UsuariosService {
     // 3. LÓGICA DE ROLES
     const palabrasAdmin = ['DESARROLLADOR'];
 
-    const esSuperAdmin = ['DESARROLLADOR'].some((palabra) =>
-      cargo.includes(palabra),
-    );
+    // SuperAdmin: cargo contiene 'DESARROLLADOR' O tiene el flag explícito en DB
+    const esSuperAdmin =
+      ['DESARROLLADOR'].some((palabra) => cargo.includes(palabra)) ||
+      !!usuarioLocal?.is_superadmin;
 
     // TI: Usamos una expresión regular para buscar la palabra exacta "TI"
     const esTI = /\b(IT|TI)\b/i.test(cargo);
@@ -206,18 +220,20 @@ export class UsuariosService {
     // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
     // para que un override manual (nivel_acceso='user') siempre prevalezca.
     const [respSegmento, respArea] = await Promise.all([
-      this.dataSource.query(`
-        SELECT TOP 1 1 AS es
-        FROM   maestro_segmentos s
-        INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-        WHERE  r.id_odoo = ${emp.id}
-      `),
-      this.dataSource.query(`
-        SELECT TOP 1 1 AS es
-        FROM   maestro_areas a
-        INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
-        WHERE  r.id_odoo = ${emp.id}
-      `),
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_segmentos s
+         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [emp.id],
+      ),
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_areas a
+         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [emp.id],
+      ),
     ]);
 
     // Responsable de segmento → puede ver todas las novedades del segmento
@@ -284,8 +300,14 @@ export class UsuariosService {
         dayCompleted = true;
       }
     }
+    const token = this.jwtService.sign(
+      { sub: emp.id, usuario },
+      { secret: process.env.JWT_SECRET || 'woden_secret_2024', expiresIn: '10h' },
+    );
+
     return {
       status: 'success',
+      token,
       id_odoo: emp.id,
       employee_id: emp.id,
       name: emp.name,
@@ -293,7 +315,7 @@ export class UsuariosService {
       role: rolAsignado,
       is_inside: isInside,
       department: departamentoRaw,
-      company: emp.company_id ? emp.company_id[1] : null, // 👈 AGREGAR ESTO
+      company: emp.company_id ? emp.company_id[1] : null,
       isSuperAdmin: esSuperAdmin,
       day_completed: dayCompleted,
       permisos: mapaPermisos,
@@ -2649,5 +2671,32 @@ export class UsuariosService {
       console.error('❌ Error consultando Odoo:', e);
       return null;
     }
+  }
+
+  async cambiarPassword(
+    idOdoo: number,
+    nuevaPassword: string,
+    confirmar: string,
+  ) {
+    if (!nuevaPassword || nuevaPassword.length < 6) {
+      throw new BadRequestException(
+        'La contraseña debe tener al menos 6 caracteres',
+      );
+    }
+    if (nuevaPassword !== confirmar) {
+      throw new BadRequestException('Las contraseñas no coinciden');
+    }
+
+    const usuario = await this.usuarioRepo.findOne({
+      where: { id_odoo: idOdoo },
+    });
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    usuario.password_hash = await bcrypt.hash(nuevaPassword, 12);
+    await this.usuarioRepo.save(usuario);
+
+    return { success: true, message: 'Contraseña actualizada correctamente' };
   }
 }

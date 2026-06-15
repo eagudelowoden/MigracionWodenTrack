@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="gs-root" :class="isDark ? 'gs-dark' : 'gs-light'">
 
         <!-- ─── HEADER ─────────────────────────────────────────────────── -->
@@ -110,6 +110,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { io } from 'socket.io-client';
 
@@ -127,7 +128,7 @@ let socket = null;
 const cargar = async () => {
     cargando.value = true;
     try {
-        const r = await fetch(`${API_URL}/superadmin/sesiones`);
+        const r = await apiFetch(`${API_URL}/superadmin/sesiones`);
         sesiones.value = await r.json();
     } catch {
         emit('error', 'Error cargando sesiones');
@@ -140,7 +141,7 @@ const kickSesion = async (s) => {
     if (!confirm(`¿Cerrar la sesión de ${s.nombre}?`)) return;
     kickingId.value = s.id_odoo;
     try {
-        await fetch(`${API_URL}/superadmin/sesiones/kick/${s.id_odoo}`, { method: 'POST' });
+        await apiFetch(`${API_URL}/superadmin/sesiones/kick/${s.id_odoo}`, { method: 'POST' });
         emit('success', `Sesión de ${s.nombre} cerrada`);
         await cargar();
     } catch {

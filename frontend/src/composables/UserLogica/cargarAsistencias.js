@@ -1,3 +1,4 @@
+﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed } from "vue";
 
 export function useCargarAsistencias() {
@@ -115,7 +116,7 @@ export function useCargarAsistencias() {
       // Una sola petición con todo el rango para que el backend pueda
       // emparejar correctamente los punches de turnos nocturnos que cruzan
       // la medianoche sin que el corte de chunks rompa los pares.
-      const res = await fetch(
+      const res = await apiFetch(
         buildUrl(
           filterHoy.value ? null : startDate.value,
           filterHoy.value ? null : endDate.value,
@@ -266,7 +267,7 @@ export function useCargarAsistencias() {
       dataFiltrada.sort((a, b) => b._sortKey.localeCompare(a._sortKey));
       dataFiltrada.forEach((r) => delete r._sortKey);
 
-      const response = await fetch(`${API_BASE_URL}/reports/asistencias/export`, {
+      const response = await apiFetch(`${API_BASE_URL}/reports/asistencias/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataFiltrada),

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="gm-root h-full flex flex-col gap-3 animate-fade-in overflow-y-auto" :class="isDark ? 'gm-dark' : 'gm-light'">
 
     <!-- HEADER + TABS -->
@@ -668,6 +668,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, watch, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -807,7 +808,7 @@ const toggleReporte = async () => {
 const cargarReporte = async () => {
   reporte.value.cargando = true;
   try {
-    const res = await fetch(`${API_URL}/mallas-admin/reporte-departamento`);
+    const res = await apiFetch(`${API_URL}/mallas-admin/reporte-departamento`);
     if (!res.ok) throw new Error();
     reporte.value.datos = await res.json();
   } catch {
@@ -823,7 +824,7 @@ const exportarPorDepartamento = async () => {
     const params = reporte.value.filtro
       ? `?departamento=${encodeURIComponent(reporte.value.filtro)}`
       : '';
-    const res = await fetch(`${API_URL}/mallas-admin/exportar-departamento${params}`);
+    const res = await apiFetch(`${API_URL}/mallas-admin/exportar-departamento${params}`);
     if (!res.ok) throw new Error();
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -845,7 +846,7 @@ const exportarPorDepartamento = async () => {
 const cargarMallas = async () => {
   cargando.value = true;
   try {
-    const res = await fetch(`${API_URL}/mallas-admin`);
+    const res = await apiFetch(`${API_URL}/mallas-admin`);
     if (!res.ok) throw new Error();
     mallas.value = await res.json();
   } catch {
@@ -874,7 +875,7 @@ const crearMalla = async () => {
       compania: form.value.compania,
       detalles: detallesFinales,
     };
-    const res = await fetch(`${API_URL}/mallas-admin`, {
+    const res = await apiFetch(`${API_URL}/mallas-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -898,7 +899,7 @@ const eliminarMalla = async () => {
   if (!mallaAEliminar.value) return;
   eliminando.value = true;
   try {
-    const res = await fetch(`${API_URL}/mallas-admin/${mallaAEliminar.value.id}`, { method: 'DELETE' });
+    const res = await apiFetch(`${API_URL}/mallas-admin/${mallaAEliminar.value.id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error();
     emit('success', 'Malla eliminada');
     mallaAEliminar.value = null;
@@ -912,7 +913,7 @@ const eliminarMalla = async () => {
 
 const toggleMalla = async (malla) => {
   try {
-    const res = await fetch(`${API_URL}/mallas-admin/${malla.id}/toggle`, {
+    const res = await apiFetch(`${API_URL}/mallas-admin/${malla.id}/toggle`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activa: !malla.activa }),
@@ -937,7 +938,7 @@ const subirExcel = async () => {
   try {
     const fd = new FormData();
     fd.append('file', archivoExcel.value);
-    const res = await fetch(`${API_URL}/mallas-admin/upload-excel`, { method: 'POST', body: fd });
+    const res = await apiFetch(`${API_URL}/mallas-admin/upload-excel`, { method: 'POST', body: fd });
     resultadoUpload.value = await res.json();
     if (resultadoUpload.value.creadas > 0) {
       emit('success', `${resultadoUpload.value.creadas} mallas creadas`);

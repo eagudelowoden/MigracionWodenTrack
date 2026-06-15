@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 overflow-hidden">
@@ -187,6 +187,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
 import { io } from 'socket.io-client';
 
@@ -216,7 +217,7 @@ const buscarPorCedula = async () => {
   resultadoBusqueda.value = null;
   errorBusqueda.value = '';
   try {
-    const r = await fetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaBusqueda.value.trim())}`);
+    const r = await apiFetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaBusqueda.value.trim())}`);
     if (!r.ok) { errorBusqueda.value = 'No se encontró un usuario con esa cédula'; return; }
     resultadoBusqueda.value = await r.json();
   } catch { errorBusqueda.value = 'Error al buscar. Intenta de nuevo.'; }
@@ -262,7 +263,7 @@ const conectarSocket = () => {
 
 const actualizarSesionesActivas = async () => {
   try {
-    const r = await fetch(`${API_URL}/superadmin/sesiones`);
+    const r = await apiFetch(`${API_URL}/superadmin/sesiones`);
     const data = await r.json();
     sesionesActivas.value = new Set(data.map(s => s.id_odoo));
   } catch {}
@@ -273,10 +274,10 @@ const estaConectado = (idOdoo) => sesionesActivas.value.has(idOdoo);
 // ── Destinatarios ─────────────────────────────────────────────
 const cargarDestinatarios = async () => {
   try {
-    const r = await fetch(`${API_URL}/superadmin/mensajes/destinatarios`);
+    const r = await apiFetch(`${API_URL}/superadmin/mensajes/destinatarios`);
     destinatarios.value = await r.json();
     for (const d of destinatarios.value) {
-      const r2 = await fetch(`${API_URL}/superadmin/mensajes/no-leidos/${d.id_odoo}`);
+      const r2 = await apiFetch(`${API_URL}/superadmin/mensajes/no-leidos/${d.id_odoo}`);
       noLeidos[d.id_odoo] = await r2.json();
     }
   } catch { emit('error', 'Error cargando destinatarios'); }
@@ -286,7 +287,7 @@ const agregarDestinatario = async () => {
   if (!resultadoBusqueda.value) return;
   const { id_odoo, nombre, cargo } = resultadoBusqueda.value;
   try {
-    const r = await fetch(`${API_URL}/superadmin/mensajes/destinatarios`, {
+    const r = await apiFetch(`${API_URL}/superadmin/mensajes/destinatarios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_odoo, nombre, cargo: cargo || undefined }),
@@ -300,7 +301,7 @@ const agregarDestinatario = async () => {
 const quitarDestinatario = async (idOdoo) => {
   if (!confirm('¿Eliminar a este jefe de la lista de mensajería?')) return;
   try {
-    const r = await fetch(`${API_URL}/superadmin/mensajes/destinatarios/${idOdoo}`, { method: 'DELETE' });
+    const r = await apiFetch(`${API_URL}/superadmin/mensajes/destinatarios/${idOdoo}`, { method: 'DELETE' });
     destinatarios.value = await r.json();
     if (chatConversacion.value?.id_odoo === idOdoo) chatConversacion.value = null;
     emit('success', 'Destinatario eliminado');
@@ -313,7 +314,7 @@ const abrirChat = async (d) => {
   noLeidos[d.id_odoo] = 0;
   chat.value = { mensajes: [], borrador: '', cargando: true };
   try {
-    const r = await fetch(`${API_URL}/superadmin/mensajes/historial?de=${SA_ID}&para=${d.id_odoo}`);
+    const r = await apiFetch(`${API_URL}/superadmin/mensajes/historial?de=${SA_ID}&para=${d.id_odoo}`);
     chat.value.mensajes = await r.json();
   } catch { emit('error', 'Error cargando historial'); }
   finally {

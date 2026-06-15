@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="api-root" :class="isDark ? 'api-dark' : 'api-light'">
 
     <!-- ── HEADER ─────────────────────────────────────────────────── -->
@@ -354,6 +354,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -432,14 +433,14 @@ for row in data["data"]:
 const ejemploJs = computed(() => `const BASE = "${apiBase.value}";
 
 // 1. Autenticar
-const { token } = await fetch(\`\${BASE}/auth\`, {
+const { token } = await apiFetch(\`\${BASE}/auth\`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ username: "mi_usuario", password: "mi_password" })
 }).then(r => r.json());
 
 // 2. Consultar asistencias
-const result = await fetch(
+const result = await apiFetch(
   \`\${BASE}/asistencias?fechaInicio=2024-01-01&fechaFin=2024-01-31\`,
   { headers: { Authorization: \`Bearer \${token}\` } }
 ).then(r => r.json());
@@ -482,7 +483,7 @@ const copiarTexto  = async (tx) => { await navigator.clipboard.writeText(tx);   
 const fetchCredenciales = async () => {
   loadingList.value = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/api-externa/credenciales`);
+    const r = await apiFetch(`${API_URL}/superadmin/api-externa/credenciales`);
     credenciales.value = await r.json();
   } catch { emit('error', 'Error cargando credenciales'); }
   finally { loadingList.value = false; }
@@ -494,7 +495,7 @@ const crearCredencial = async () => {
   }
   loadingCred.value = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/api-externa/credenciales`, {
+    const r = await apiFetch(`${API_URL}/superadmin/api-externa/credenciales`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(nueva.value),
@@ -513,7 +514,7 @@ const confirmarEliminar  = (c) => { credAEliminar.value = c; };
 const eliminarCredencial = async () => {
   if (!credAEliminar.value) return;
   try {
-    await fetch(`${API_URL}/superadmin/api-externa/credenciales/${credAEliminar.value.id}`, { method: 'DELETE' });
+    await apiFetch(`${API_URL}/superadmin/api-externa/credenciales/${credAEliminar.value.id}`, { method: 'DELETE' });
     credAEliminar.value = null;
     await fetchCredenciales();
     emit('success', 'Credencial eliminada');
@@ -522,7 +523,7 @@ const eliminarCredencial = async () => {
 
 const regenerarToken = async (id) => {
   try {
-    await fetch(`${API_URL}/superadmin/api-externa/credenciales/${id}/regenerar-token`, { method: 'POST' });
+    await apiFetch(`${API_URL}/superadmin/api-externa/credenciales/${id}/regenerar-token`, { method: 'POST' });
     await fetchCredenciales();
     toast('Token regenerado');
     emit('success', 'Token regenerado');
@@ -531,7 +532,7 @@ const regenerarToken = async (id) => {
 
 const toggleActiva = async (c) => {
   try {
-    await fetch(`${API_URL}/superadmin/api-externa/credenciales/${c.id}/toggle`, {
+    await apiFetch(`${API_URL}/superadmin/api-externa/credenciales/${c.id}/toggle`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activa: !c.activa }),
@@ -543,7 +544,7 @@ const toggleActiva = async (c) => {
 const fetchCampos = async () => {
   loadingCampos.value = true;
   try {
-    const r = await fetch(`${API_URL}/superadmin/api-externa/campos`);
+    const r = await apiFetch(`${API_URL}/superadmin/api-externa/campos`);
     campos.value = await r.json();
   } catch { emit('error', 'Error cargando campos'); }
   finally { loadingCampos.value = false; }
@@ -554,7 +555,7 @@ const toggleCampo = (c) => { c.activo = !c.activo; };
 const guardarCampos = async () => {
   savingCampos.value = true;
   try {
-    await fetch(`${API_URL}/superadmin/api-externa/campos`, {
+    await apiFetch(`${API_URL}/superadmin/api-externa/campos`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ campos: campos.value.map((c) => ({ campo: c.campo, activo: c.activo })) }),

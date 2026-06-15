@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- ── Header ───────────────────────────────────────────────── -->
@@ -303,6 +303,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, reactive, onMounted } from 'vue';
 
 const props = defineProps({ isDark: Boolean });
@@ -338,7 +339,7 @@ const buscarDestinatarioRec = async () => {
   resultadoRec.value = null;
   errorRec.value = '';
   try {
-    const r = await fetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaRec.value.trim())}`);
+    const r = await apiFetch(`${API_URL}/buscar-cedula/${encodeURIComponent(cedulaRec.value.trim())}`);
     if (!r.ok) { errorRec.value = 'No se encontró un usuario con esa cédula'; return; }
     const data = await r.json();
     if (form.destsList.some(d => d.id_odoo === data.id_odoo)) {
@@ -379,7 +380,7 @@ const toggleDia = (i) => {
 const cargar = async () => {
   cargando.value = true;
   try {
-    const r = await fetch(`${API_URL}/recordatorios`);
+    const r = await apiFetch(`${API_URL}/recordatorios`);
     const d = await r.json();
     lista.value = Array.isArray(d) ? d : [];
   } catch { emit('error', 'Error cargando recordatorios'); }
@@ -427,7 +428,7 @@ const guardar = async () => {
   try {
     const url    = form.id ? `${API_URL}/recordatorios/${form.id}` : `${API_URL}/recordatorios`;
     const method = form.id ? 'PATCH' : 'POST';
-    const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const r = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error('Error del servidor');
     emit('success', form.id ? 'Recordatorio actualizado' : 'Recordatorio creado');
     form.abierto = false;
@@ -438,14 +439,14 @@ const guardar = async () => {
 
 const toggleActivo = async (rec) => {
   try {
-    await fetch(`${API_URL}/recordatorios/${rec.id}/toggle`, { method: 'PATCH' });
+    await apiFetch(`${API_URL}/recordatorios/${rec.id}/toggle`, { method: 'PATCH' });
     rec.activo = !rec.activo;
   } catch { emit('error', 'Error cambiando estado'); }
 };
 
 const disparar = async (rec) => {
   try {
-    await fetch(`${API_URL}/recordatorios/${rec.id}/disparar`, { method: 'POST' });
+    await apiFetch(`${API_URL}/recordatorios/${rec.id}/disparar`, { method: 'POST' });
     emit('success', `Recordatorio "${rec.nombre}" enviado`);
   } catch { emit('error', 'Error al disparar recordatorio'); }
 };
@@ -453,7 +454,7 @@ const disparar = async (rec) => {
 const eliminar = async (rec) => {
   if (!confirm(`¿Eliminar el recordatorio "${rec.nombre}"?`)) return;
   try {
-    await fetch(`${API_URL}/recordatorios/${rec.id}`, { method: 'DELETE' });
+    await apiFetch(`${API_URL}/recordatorios/${rec.id}`, { method: 'DELETE' });
     emit('success', 'Recordatorio eliminado');
     await cargar();
   } catch { emit('error', 'Error eliminando recordatorio'); }

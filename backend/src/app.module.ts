@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm'; // Importante instalar @nestjs/typeorm
+import { AuthModule } from './auth/auth.module';
 import { OdooModule } from './odoo/odoo.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { AppController } from './app.controller';
@@ -39,7 +40,10 @@ import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponib
         getDatabaseConfig(configService),
     }),
 
-    // 3. Tus módulos funcionales
+    // 3. Auth (guard global JWT)
+    AuthModule,
+
+    // 4. Módulos funcionales
     OdooModule,
     UsuariosModule,
     ReportsModule,

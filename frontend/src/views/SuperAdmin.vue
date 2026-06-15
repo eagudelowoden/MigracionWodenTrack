@@ -1,4 +1,5 @@
-<script setup>
+﻿<script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -219,6 +220,53 @@ const hasPerm = (user, slug) => {
 const isSidebarOpen = ref(true);
 const showUserMenu = ref(false);
 
+// ── Modal cambio de contraseña (SuperAdmin) ───────────────────────────────────
+const showCambioPasswordSA = ref(false);
+const pwFormSA = reactive({
+  nueva: '', confirmar: '', loading: false,
+  error: '', success: '', showNueva: false, showConfirmar: false,
+});
+
+const cerrarCambioPasswordSA = () => {
+  showCambioPasswordSA.value = false;
+  pwFormSA.nueva = ''; pwFormSA.confirmar = '';
+  pwFormSA.error = ''; pwFormSA.success = '';
+  pwFormSA.showNueva = false; pwFormSA.showConfirmar = false;
+};
+
+const guardarPasswordSA = async () => {
+  pwFormSA.error = ''; pwFormSA.success = '';
+  if (!pwFormSA.nueva || pwFormSA.nueva.length < 6) {
+    pwFormSA.error = 'La contraseña debe tener al menos 6 caracteres'; return;
+  }
+  if (pwFormSA.nueva !== pwFormSA.confirmar) {
+    pwFormSA.error = 'Las contraseñas no coinciden'; return;
+  }
+  pwFormSA.loading = true;
+  try {
+    const res = await apiFetch(`${API_URL}/cambiar-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_odoo: employee.value?.id_odoo,
+        nueva_password: pwFormSA.nueva,
+        confirmar_password: pwFormSA.confirmar,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      pwFormSA.success = 'Contraseña actualizada correctamente';
+      setTimeout(() => cerrarCambioPasswordSA(), 1500);
+    } else {
+      pwFormSA.error = data.message || 'Error al cambiar la contraseña';
+    }
+  } catch {
+    pwFormSA.error = 'Error de conexión';
+  } finally {
+    pwFormSA.loading = false;
+  }
+};
+
 // Nombre de pila (formato "Apellido1 Apellido2 Nombre1 Nombre2" → "Nombre1")
 const displayName = computed(() => {
   const name = employee.value?.name?.trim() ?? '';
@@ -244,7 +292,7 @@ const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
   try {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-    const res = await fetch(`${API_URL}/asignar-permiso`, {
+    const res = await apiFetch(`${API_URL}/asignar-permiso`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -273,7 +321,7 @@ const togglePermisoLocal = async (user, slug) => {
 
 const updateUserStructure = async (user, field) => {
   try {
-    const res = await fetch(`${API_URL}/actualizar-estructura`, {
+    const res = await apiFetch(`${API_URL}/actualizar-estructura`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -470,6 +518,13 @@ onUnmounted(() => {
                     displayName
                     }}</p>
                 </div>
+                <button @click="showUserMenu = false; showCambioPasswordSA = true"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-all"
+                  :class="isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'">
+                  <i class="fas fa-key text-[10px]"></i>
+                  Cambiar contraseña
+                </button>
+                <div class="h-px mx-2 my-1" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'"></div>
                 <button @click="confirmarLogout"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
                   <i class="fas fa-arrow-right-from-bracket text-[10px]"></i>
@@ -537,6 +592,86 @@ onUnmounted(() => {
 
       </div>
     </main>
+
+    <!-- ── Modal Cambiar Contraseña (SuperAdmin) ─────────────────────────────── -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showCambioPasswordSA"
+          class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          @click.self="cerrarCambioPasswordSA">
+          <div class="w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <div class="flex items-center justify-between px-5 py-4 border-b"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <i class="fas fa-key text-blue-500 text-xs"></i>
+                </div>
+                <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Cambiar contraseña</span>
+              </div>
+              <button @click="cerrarCambioPasswordSA"
+                class="w-7 h-7 rounded-lg flex items-center justify-center opacity-40 hover:opacity-100 transition-colors"
+                :class="isDark ? 'text-white hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'">
+                <i class="fas fa-xmark text-xs"></i>
+              </button>
+            </div>
+            <div class="px-5 py-4 space-y-3.5">
+              <p class="text-[11px] leading-relaxed" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                Al establecer una contraseña personal, deberás usarla para ingresar en lugar de tu cédula.
+              </p>
+              <div class="space-y-1">
+                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Nueva contraseña</label>
+                <div class="relative">
+                  <input v-model="pwFormSA.nueva" :type="pwFormSA.showNueva ? 'text' : 'password'"
+                    placeholder="Mínimo 6 caracteres"
+                    class="w-full h-10 rounded-xl px-3 pr-10 text-xs border outline-none transition-all"
+                    :class="isDark ? 'bg-[#0B1120]/60 border-[#222938] text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'" />
+                  <button type="button" @click="pwFormSA.showNueva = !pwFormSA.showNueva"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 transition-opacity"
+                    :class="isDark ? 'text-white' : 'text-slate-500'">
+                    <i :class="pwFormSA.showNueva ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Confirmar contraseña</label>
+                <div class="relative">
+                  <input v-model="pwFormSA.confirmar" :type="pwFormSA.showConfirmar ? 'text' : 'password'"
+                    placeholder="Repite la contraseña"
+                    class="w-full h-10 rounded-xl px-3 pr-10 text-xs border outline-none transition-all"
+                    :class="isDark ? 'bg-[#0B1120]/60 border-[#222938] text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'" />
+                  <button type="button" @click="pwFormSA.showConfirmar = !pwFormSA.showConfirmar"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 transition-opacity"
+                    :class="isDark ? 'text-white' : 'text-slate-500'">
+                    <i :class="pwFormSA.showConfirmar ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <transition name="fade">
+                <p v-if="pwFormSA.error" class="text-[11px] text-rose-500 flex items-center gap-1.5">
+                  <i class="fas fa-circle-exclamation"></i> {{ pwFormSA.error }}
+                </p>
+                <p v-else-if="pwFormSA.success" class="text-[11px] text-emerald-500 flex items-center gap-1.5">
+                  <i class="fas fa-circle-check"></i> {{ pwFormSA.success }}
+                </p>
+              </transition>
+            </div>
+            <div class="px-5 pb-5 flex gap-2.5">
+              <button @click="cerrarCambioPasswordSA"
+                class="flex-1 h-9 rounded-xl text-xs font-semibold border transition-all"
+                :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white hover:border-slate-500' : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+                Cancelar
+              </button>
+              <button @click="guardarPasswordSA" :disabled="pwFormSA.loading"
+                class="flex-1 h-9 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+                <div v-if="pwFormSA.loading" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span v-else><i class="fas fa-check mr-1"></i>Guardar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
 
     <!-- ── Modal confirmación logout (AWS Console style) ──────────────────── -->
     <Transition name="logout-fade">

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="gu-root" :class="isDark ? 'gu-dark' : 'gu-light'">
 
         <!-- ─── HEADER ───────────────────────────────────────────────────── -->
@@ -338,6 +338,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useUsuariosSync } from '../../../composables/adminLogica/useUsuariosSync.js';
 import { useCompanies } from '../../../composables/adminLogica/useCompanies.js';
@@ -439,7 +440,7 @@ const handleSync = async () => {
 
     progressTimer = setInterval(async () => {
         try {
-            const res = await fetch(`${API_URL}/sincronizar/progreso`);
+            const res = await apiFetch(`${API_URL}/sincronizar/progreso`);
             const data = await res.json();
             if (data.total > 0) progressPercent.value = Math.round((data.current / data.total) * 100);
             if (['completed', 'error', 'cancelled'].includes(data.status)) clearInterval(progressTimer);
@@ -448,7 +449,7 @@ const handleSync = async () => {
 
     try {
         const url = `${API_URL}/sincronizar/ejecutar?pais=${selectedCountry.value}&depto=${selectedDept.value}`;
-        const res = await fetch(url, { method: 'POST' });
+        const res = await apiFetch(url, { method: 'POST' });
         const result = await res.json();
         if (res.ok) {
             await fetchDbUsuarios();
@@ -467,7 +468,7 @@ const handleSync = async () => {
 };
 
 const handleCancel = async () => {
-    await fetch(`${API_URL}/sincronizar/cancelar`, { method: 'POST' });
+    await apiFetch(`${API_URL}/sincronizar/cancelar`, { method: 'POST' });
     isSyncingUsers.value = false;
     clearInterval(progressTimer);
 };

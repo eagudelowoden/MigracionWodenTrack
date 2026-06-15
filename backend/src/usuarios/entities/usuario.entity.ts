@@ -37,6 +37,12 @@ export class Usuario {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  password_hash: string;
+
+  @Column({ nullable: true, default: false, type: 'bit' })
+  is_superadmin: boolean;
+
   @Column({ nullable: true })
   segmento_id: number;
 

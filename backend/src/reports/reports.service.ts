@@ -151,12 +151,11 @@ export class ReportsService {
     if (!nombresUnicos.length) return resultMap;
 
     // 1. nombre → id_odoo desde usuarios_registrados
-    const escapedNames = nombresUnicos
-      .map((n) => `'${n.replace(/'/g, "''")}'`)
-      .join(', ');
+    const namePlaceholders = nombresUnicos.map((_, i) => `@${i}`).join(', ');
     const usuarios: Array<{ nombre: string; id_odoo: number }> =
       await this.dataSource.query(
-        `SELECT nombre, id_odoo FROM usuarios_registrados WHERE nombre IN (${escapedNames})`,
+        `SELECT nombre, id_odoo FROM usuarios_registrados WHERE nombre IN (${namePlaceholders})`,
+        nombresUnicos,
       );
 
     if (!usuarios.length) return resultMap;
@@ -167,8 +166,9 @@ export class ReportsService {
     const idOdoos = [...new Set(usuarios.map((u) => u.id_odoo))];
 
     // 2. Traer asignaciones + detalles de malla para esos empleados
-    const rows: any[] = await this.dataSource.query(`
-      SELECT
+    const idPlaceholders = idOdoos.map((_, i) => `@${i}`).join(', ');
+    const rows: any[] = await this.dataSource.query(
+      `SELECT
         a.usuario_id_odoo,
         CONVERT(varchar(10), a.fecha_inicio, 23) AS fecha_inicio,
         CONVERT(varchar(10), a.fecha_fin,    23) AS fecha_fin,
@@ -179,9 +179,10 @@ export class ReportsService {
       FROM mallas_asignaciones a
       INNER JOIN mallas_horarias h ON h.id = a.malla_id
       LEFT  JOIN mallas_detalles d ON d.malla_id = a.malla_id
-      WHERE a.usuario_id_odoo IN (${idOdoos.join(',')})
-      ORDER BY a.usuario_id_odoo, a.fecha_inicio DESC
-    `);
+      WHERE a.usuario_id_odoo IN (${idPlaceholders})
+      ORDER BY a.usuario_id_odoo, a.fecha_inicio DESC`,
+      idOdoos,
+    );
 
     // 3. Agrupar filas por empleado → por asignación
     const porEmpleado = new Map<number, Map<string, any>>();

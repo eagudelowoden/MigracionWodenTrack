@@ -11,15 +11,27 @@ import {
   Patch,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
+  @Public()
   @Post('login')
   async login(@Body() body: any) {
-    // NestJS automáticamente convertirá los 'throw' del servicio en respuestas 401, 404, etc.
     return await this.usuariosService.login(body.usuario, body.password);
+  }
+
+  @Post('cambiar-password')
+  async cambiarPassword(
+    @Body() body: { id_odoo: number; nueva_password: string; confirmar_password: string },
+  ) {
+    return await this.usuariosService.cambiarPassword(
+      body.id_odoo,
+      body.nueva_password,
+      body.confirmar_password,
+    );
   }
 
   @Post('attendance')

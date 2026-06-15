@@ -480,14 +480,14 @@ export class NovedadesService {
         FROM   usuarios_registrados u
         INNER  JOIN maestro_areas a    ON u.area_id = a.id
         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
-        WHERE  r.id_odoo = ${idOdoo}
+        WHERE  r.id_odoo = @0
           AND  u.identificacion IS NOT NULL
         UNION
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
-        WHERE  id_odoo = ${idOdoo}
+        WHERE  id_odoo = @0
           AND  identificacion IS NOT NULL
-      `);
+      `, [idOdoo]);
     return this.novedadesPorCedulas(empleados);
   }
 
@@ -505,7 +505,7 @@ export class NovedadesService {
         FROM   usuarios_registrados u
         INNER  JOIN maestro_segmentos s ON u.segmento_id = s.id
         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-        WHERE  r.id_odoo = ${idOdoo}
+        WHERE  r.id_odoo = @0
           AND  u.identificacion IS NOT NULL
         UNION
         -- Rama 2: empleados en áreas cuyos jefes pertenecen al segmento del responsable
@@ -515,14 +515,14 @@ export class NovedadesService {
         INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
         INNER  JOIN maestro_segmentos s ON jefe.segmento_id = s.id
         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-        WHERE  r.id_odoo = ${idOdoo}
+        WHERE  r.id_odoo = @0
           AND  u.identificacion IS NOT NULL
         UNION
         -- Rama 3: fallback — si el usuario tiene segmento_id propio asignado
         --         (cubre permisos manuales donde no está como responsable en maestro_segmentos)
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
-        WHERE  u.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo})
+        WHERE  u.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = @0)
           AND  u.identificacion IS NOT NULL
         UNION
         -- Rama 4: fallback área — empleados en áreas cuyos jefes tienen el mismo segmento_id del usuario
@@ -530,15 +530,15 @@ export class NovedadesService {
         FROM   usuarios_registrados u
         INNER  JOIN maestro_areas a ON u.area_id = a.id
         INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
-        WHERE  jefe.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo})
+        WHERE  jefe.segmento_id = (SELECT segmento_id FROM usuarios_registrados WHERE id_odoo = @0)
           AND  u.identificacion IS NOT NULL
         UNION
         -- El propio usuario
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
-        WHERE  id_odoo = ${idOdoo}
+        WHERE  id_odoo = @0
           AND  identificacion IS NOT NULL
-      `);
+      `, [idOdoo]);
     return this.novedadesPorCedulas(empleados);
   }
 
@@ -557,7 +557,7 @@ export class NovedadesService {
         SELECT u.identificacion AS cedula, u.nombre, u.departamento, u.cargo, u.id_odoo AS idOdoo
         FROM   usuarios_registrados u
         WHERE  u.segmento_id = (
-                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo}
+                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = @0
                )
           AND  u.identificacion IS NOT NULL
         UNION
@@ -567,16 +567,16 @@ export class NovedadesService {
         INNER  JOIN maestro_areas a ON u.area_id = a.id
         INNER  JOIN usuarios_registrados jefe ON a.responsable_id = jefe.id
         WHERE  jefe.segmento_id = (
-                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = ${idOdoo}
+                 SELECT TOP 1 segmento_id FROM usuarios_registrados WHERE id_odoo = @0
                )
           AND  u.identificacion IS NOT NULL
         UNION
         -- El propio usuario
         SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
         FROM   usuarios_registrados
-        WHERE  id_odoo = ${idOdoo}
+        WHERE  id_odoo = @0
           AND  identificacion IS NOT NULL
-      `);
+      `, [idOdoo]);
     return this.novedadesPorCedulas(empleados);
   }
 
@@ -584,9 +584,7 @@ export class NovedadesService {
   async findPorDepartamentos(departamentos: string[]) {
     if (!departamentos.length) return [];
 
-    const escapedDeptos = departamentos
-      .map((d) => `'${d.replace(/'/g, "''")}'`)
-      .join(', ');
+    const placeholders = departamentos.map((_, i) => `@${i}`).join(', ');
 
     const empleados: Array<{
       cedula: string;
@@ -594,12 +592,13 @@ export class NovedadesService {
       departamento: string;
       cargo: string;
       idOdoo?: number;
-    }> = await this.dataSource.query(`
-        SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
-        FROM   usuarios_registrados
-        WHERE  departamento IN (${escapedDeptos})
-          AND  identificacion IS NOT NULL
-      `);
+    }> = await this.dataSource.query(
+      `SELECT identificacion AS cedula, nombre, departamento, cargo, id_odoo AS idOdoo
+       FROM   usuarios_registrados
+       WHERE  departamento IN (${placeholders})
+         AND  identificacion IS NOT NULL`,
+      departamentos,
+    );
 
     return this.novedadesPorCedulas(empleados);
   }

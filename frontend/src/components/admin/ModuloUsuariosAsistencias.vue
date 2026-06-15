@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="novedades-container-main h-full animate-in fade-in duration-500 flex flex-col gap-2">
 
     <!-- Toolbar (Vercel compacto) -->
@@ -277,6 +277,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { onMounted, watch, ref, computed } from 'vue';
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
@@ -342,7 +343,7 @@ onMounted(async () => {
   // 2. Cargar perfil
   if (!session.isSuperAdmin) {
     try {
-      const resp = await fetch(`${baseUrl}/perfil-completo/${idLogueado}`);
+      const resp = await apiFetch(`${baseUrl}/perfil-completo/${idLogueado}`);
       if (resp.ok) {
         const perfil = await resp.json();
         userProfile.value = perfil;

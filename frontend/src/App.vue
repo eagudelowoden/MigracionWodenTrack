@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Transition name="slide-down">
     <div v-if="anuncioSuperior"
       class="fixed top-0 left-0 right-0 z-[10000] h-12 flex items-center justify-center px-6 shadow-2xl border-b backdrop-blur-md"
@@ -59,6 +59,7 @@
 </template>
 
 <script setup>
+import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, onMounted } from 'vue';
 import { io } from 'socket.io-client';
 import { useInactividad } from './composables/useInactividad';
@@ -78,7 +79,7 @@ const socket = io(API_BASE, { transports: ['websocket'], forceNew: true });
 
 const cargarAnuncioActivo = async () => {
   try {
-    const res = await fetch(`${API_BASE}/usuarios/notifications/active`);
+    const res = await apiFetch(`${API_BASE}/usuarios/notifications/active`);
     if (!res.ok) return;
 
     const text = await res.text(); // 👈 primero como texto
@@ -118,7 +119,7 @@ let _retryTimeout = null;
 
 const verificarVersion = async () => {
   try {
-    const res = await fetch(`${API_BASE}/version?t=${Date.now()}`);
+    const res = await apiFetch(`${API_BASE}/version?t=${Date.now()}`);
     if (res.url.includes('mantenimiento.html') || res.status === 503) {
       window.location.reload(true);
       return;
@@ -141,7 +142,7 @@ const verificarVersion = async () => {
 
 const recargarPagina = async () => {
   try {
-    const res = await fetch(`${API_BASE}/version?t=${Date.now()}`);
+    const res = await apiFetch(`${API_BASE}/version?t=${Date.now()}`);
     const data = await res.json();
     localStorage.setItem('app_version', String(data.version).trim());
     localStorage.removeItem('user_session');
