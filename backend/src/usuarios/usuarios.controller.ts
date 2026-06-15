@@ -45,10 +45,29 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId?: string,
     @Query('segmento_id') segmentoId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
     return await this.usuariosService.getAllMallas(
       company,
       departamento,
+      areaId ? Number(areaId) : undefined,
+      segmentoId ? +segmentoId : undefined,
+      page ? Math.max(1, +page) : 1,
+      limit ? Math.min(200, Math.max(1, +limit)) : 15,
+      search?.trim() || undefined,
+    );
+  }
+
+  @Get('mallas/departamentos')
+  async getDepartamentosMalla(
+    @Query('company') company: string,
+    @Query('area_id') areaId?: string,
+    @Query('segmento_id') segmentoId?: string,
+  ) {
+    return await this.usuariosService.getDepartamentosMalla(
+      company,
       areaId ? Number(areaId) : undefined,
       segmentoId ? +segmentoId : undefined,
     );

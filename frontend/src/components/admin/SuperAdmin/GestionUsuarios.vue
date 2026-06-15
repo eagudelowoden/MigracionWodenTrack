@@ -309,11 +309,11 @@
                                     </td>
                                     <td class="gu-td-action">
                                         <button @click="emit('open-perms', user)" class="gu-perm-btn"
-                                            :class="user.permisos?.length > 0 ? 'has-perms' : ''"
-                                            :title="user.permisos?.length > 0 ? `${user.permisos.length} permisos activos` : 'Sin permisos'">
+                                            :class="(user.permisosCount ?? user.permisos?.length) > 0 ? 'has-perms' : ''"
+                                            :title="(user.permisosCount ?? user.permisos?.length) > 0 ? `${user.permisosCount ?? user.permisos.length} permisos activos` : 'Sin permisos'">
                                             <i class="fas fa-key"></i>
-                                            <span v-if="user.permisos?.length > 0" class="gu-perm-badge">
-                                                {{ user.permisos.length }}
+                                            <span v-if="(user.permisosCount ?? user.permisos?.length) > 0" class="gu-perm-badge">
+                                                {{ user.permisosCount ?? user.permisos.length }}
                                             </span>
                                         </button>
                                     </td>

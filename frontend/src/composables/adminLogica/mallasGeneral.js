@@ -27,6 +27,11 @@ export function useMallasGeneral() {
 
   const currentPage = ref(1);
   const itemsPerPage = ref(15);
+  const totalRecords = ref(0); // total real desde el servidor (paginación server-side)
+  const departmentsList = ref([]); // departamentos cargados desde el backend
+  let _suppressPageWatch = false; // evita doble fetch al reiniciar la página
+  let _searchDebounce = null;
+  let _deptCompanyLoaded = null; // empresa para la que ya cargamos departamentos
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -52,17 +57,12 @@ export function useMallasGeneral() {
     showSolicitudModal.value = false;
   };
 
-  const departments = computed(() => {
-    if (!mallasData.value || mallasData.value.length === 0) return [];
-    const allDeps = mallasData.value
-      .map((item) => item.departamento)
-      .filter(Boolean);
-    return [...new Set(allDeps)].sort();
-  });
+  // Departamentos: ahora vienen del backend (no de la página actual)
+  const departments = computed(() => departmentsList.value);
 
+  // Cambiar de departamento → volver a página 1 y recargar
   watch(selectedDepartment, () => {
-    currentPage.value = 1;
-    fetchMallasDesdeOdoo();
+    irAPagina(1);
   });
 
   // Perfil del usuario con su segmento y área
@@ -80,62 +80,110 @@ export function useMallasGeneral() {
     }
   };
 
+  // Arma los parámetros de alcance (empresa, departamento o estructura) según permisos
+  const _buildScopeParams = async (params) => {
+    const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+    const permisos = session.permisos || session.permissions || {};
+    const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+    const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
+    const esCoordSegmento = !esResponsableSegmento && permisos["coord.ver_segmento"] === true;
+
+    if (!tieneFiltroDepto && !perfilUsuario.value) {
+      await _cargarPerfil();
+    }
+
+    if (selectedCompany.value && selectedCompany.value !== "Todas") {
+      params.append("company", selectedCompany.value);
+    }
+
+    if (tieneFiltroDepto) {
+      if (selectedDepartment.value)
+        params.append("departamento", selectedDepartment.value);
+    } else {
+      const perfil = perfilUsuario.value;
+      if (esResponsableSegmento && perfil?.segmento?.id) {
+        params.append("segmento_id", perfil.segmento.id);
+      } else if (esCoordSegmento && perfil?.segmento?.id) {
+        params.append("segmento_id", perfil.segmento.id);
+      } else if (perfil?.area?.id) {
+        params.append("area_id", perfil.area.id);
+      } else {
+        const deptoUsuario = session.department || "";
+        if (deptoUsuario) params.append("departamento", deptoUsuario);
+      }
+    }
+  };
+
+  // Carga la lista de departamentos disponibles (solo para admins con filtro libre)
+  const _cargarDepartamentos = async () => {
+    try {
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const permisos = session.permisos || session.permissions || {};
+      if (permisos["admin.filtro_departamento"] !== true) return;
+
+      const params = new URLSearchParams();
+      if (selectedCompany.value && selectedCompany.value !== "Todas") {
+        params.append("company", selectedCompany.value);
+      }
+      const resp = await axios.get(
+        `${API_BASE_URL}/mallas/departamentos?${params.toString()}`,
+      );
+      departmentsList.value = Array.isArray(resp.data) ? resp.data : [];
+    } catch (e) {
+      console.error("Error cargando departamentos:", e);
+    }
+  };
+
   const fetchMallasDesdeOdoo = async () => {
     try {
       isLoading.value = true;
 
-      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
-      const permisos = session.permisos || session.permissions || {};
-      const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
-      const esResponsableSegmento = permisos["novedades.ver_segmento"] === true;
-      const esCoordSegmento = !esResponsableSegmento && permisos["coord.ver_segmento"] === true;
-
-      // Cargar perfil si aún no se tiene y el usuario no es admin con filtro libre
-      if (!tieneFiltroDepto && !perfilUsuario.value) {
-        await _cargarPerfil();
-      }
-
       const params = new URLSearchParams();
       params.append("t", Date.now().toString());
+      params.append("page", currentPage.value.toString());
+      params.append("limit", itemsPerPage.value.toString());
+      if (searchQuery.value) params.append("search", searchQuery.value.trim());
 
-      if (selectedCompany.value && selectedCompany.value !== "Todas") {
-        params.append("company", selectedCompany.value);
-      }
-
-      if (tieneFiltroDepto) {
-        // Admin con filtro libre
-        if (selectedDepartment.value)
-          params.append("departamento", selectedDepartment.value);
-      } else {
-        // Usuario con permisos de estructura (responsable de segmento o área)
-        const perfil = perfilUsuario.value;
-        if (esResponsableSegmento && perfil?.segmento?.id) {
-          // Responsable de segmento: ve todos en su segmento
-          params.append("segmento_id", perfil.segmento.id);
-        } else if (esCoordSegmento && perfil?.segmento?.id) {
-          // Coordinador con acceso al segmento completo (sin ser responsable)
-          params.append("segmento_id", perfil.segmento.id);
-        } else if (perfil?.area?.id) {
-          // Responsable de área: ve solo su área
-          params.append("area_id", perfil.area.id);
-        } else {
-          // Usuario normal: filtrar por departamento de sesión
-          const deptoUsuario = session.department || "";
-          if (deptoUsuario) params.append("departamento", deptoUsuario);
-        }
-      }
+      await _buildScopeParams(params);
 
       const response = await axios.get(
         `${API_BASE_URL}/mallas?${params.toString()}`,
       );
-      mallasData.value = response.data;
-      currentPage.value = 1;
+
+      // Respuesta paginada del servidor: { data, total, page, limit }
+      const payload = response.data || {};
+      mallasData.value = Array.isArray(payload) ? payload : payload.data || [];
+      totalRecords.value = Array.isArray(payload)
+        ? payload.length
+        : payload.total || 0;
+
+      // Cargar dropdown de departamentos la primera vez o si cambió la empresa
+      if (_deptCompanyLoaded !== selectedCompany.value) {
+        _deptCompanyLoaded = selectedCompany.value;
+        await _cargarDepartamentos();
+      }
     } catch (error) {
       console.error("Error cargando mallas:", error);
     } finally {
       isLoading.value = false;
     }
   };
+
+  // Navega a una página concreta sin disparar doble fetch
+  const irAPagina = (n) => {
+    const destino = Math.max(1, n);
+    if (currentPage.value === destino) {
+      fetchMallasDesdeOdoo();
+    } else {
+      currentPage.value = destino; // el watcher de currentPage hace el fetch
+    }
+  };
+
+  // Recargar al cambiar de página (navegación con los botones ‹ ›)
+  watch(currentPage, () => {
+    if (_suppressPageWatch) return;
+    fetchMallasDesdeOdoo();
+  });
 
   const downloadMallaTemplate = async () => {
     try {
@@ -458,28 +506,20 @@ export function useMallasGeneral() {
 
   // ── Filtro y Paginación ──────────────────────────────────────────────────
 
-  const filteredMallas = computed(() => {
-    if (!searchQuery.value) return mallasData.value;
-    const query = searchQuery.value.toLowerCase();
-    return mallasData.value.filter(
-      (p) =>
-        p.nombre?.toLowerCase().includes(query) ||
-        p.cc?.toString().includes(query) ||
-        p.malla?.toLowerCase().includes(query),
-    );
-  });
-
-  const paginatedMallas = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage.value;
-    return filteredMallas.value.slice(start, start + itemsPerPage.value);
-  });
+  // La paginación y la búsqueda ahora son server-side:
+  // el backend ya devuelve solo la página actual filtrada.
+  const paginatedMallas = computed(() => mallasData.value);
 
   const totalPages = computed(() =>
-    Math.max(1, Math.ceil(filteredMallas.value.length / itemsPerPage.value)),
+    Math.max(1, Math.ceil(totalRecords.value / itemsPerPage.value)),
   );
 
+  // Búsqueda con debounce → vuelve a página 1 y recarga desde el servidor
   watch(searchQuery, () => {
-    currentPage.value = 1;
+    if (_searchDebounce) clearTimeout(_searchDebounce);
+    _searchDebounce = setTimeout(() => {
+      irAPagina(1);
+    }, 400);
   });
 
   return {
@@ -509,7 +549,7 @@ export function useMallasGeneral() {
     paginatedMallas,
     currentPage,
     totalPages,
-    totalRecords: computed(() => filteredMallas.value.length),
+    totalRecords,
     selectedDepartment,
     departments,
     perfilUsuario,

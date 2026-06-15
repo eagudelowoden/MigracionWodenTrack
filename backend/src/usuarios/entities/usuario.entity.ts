@@ -5,6 +5,7 @@ import {
   OneToMany,
   JoinColumn,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { Permiso } from './permiso.entity';
 import { Segmento } from './segmento.entity';
@@ -12,6 +13,8 @@ import { Area } from './area.entity';
 import { PermisoDepartamento } from './permiso-departamento.entity';
 
 @Entity('usuarios_registrados') // <--- Debe ser igual al nombre en SQL Server
+// Acelera el listado de mallas/usuarios filtrado por empresa y estado
+@Index('IDX_usuario_activo_pais', ['is_active', 'pais'])
 export class Usuario {
   @PrimaryColumn()
   id: number;

@@ -6,11 +6,16 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { MallaHoraria } from './malla-horaria.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @Entity('mallas_asignaciones')
+// Acelera la búsqueda de la malla vigente por empleado (WHERE usuario_id_odoo IN (...) AND actual = 1)
+@Index('IDX_asignacion_usuario_actual', ['usuario_id_odoo', 'actual'])
+// Acelera el reporte por departamento (WHERE actual = 1 sobre todo el histórico)
+@Index('IDX_asignacion_actual', ['actual'])
 export class MallaAsignacion {
   @PrimaryGeneratedColumn()
   id: number;

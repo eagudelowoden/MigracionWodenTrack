@@ -624,6 +624,9 @@ export class UsuariosService {
     departamentoName?: string,
     areaId?: number,
     segmentoId?: number,
+    page = 1,
+    limit = 15,
+    search?: string,
   ) {
     // Día de semana en hora Colombia (Lun=0 … Dom=6)
     const nowColombia = new Date(
@@ -643,43 +646,28 @@ export class UsuariosService {
       employeeIdsPorEstructura !== null &&
       employeeIdsPorEstructura.length === 0
     ) {
-      return [];
+      return { data: [], total: 0, page, limit };
     }
 
-    // 1. Traer usuarios activos de DB local con filtros
-    // 3. TRAER USUARIOS CON LOS IDS RESUELTOS
-    const usuarioQuery = this.usuarioRepo
-      .createQueryBuilder('u')
-      .where('u.is_active = :active', { active: true });
+    // 1. Traer usuarios activos de DB local con filtros (PAGINADO)
+    const usuarioQuery = this.construirQueryUsuariosMalla(
+      companyName,
+      departamentoName,
+      areaId,
+      segmentoId,
+      employeeIdsPorEstructura,
+    );
 
-    // Si tenemos IDs específicos por estructura (permisos), filtramos por ellos
-    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
-      usuarioQuery.andWhere('u.id_odoo IN (:...ids)', {
-        ids: employeeIdsPorEstructura,
-      });
-    }
-
-    // Filtros adicionales de búsqueda
-    if (
-      departamentoName &&
-      departamentoName.trim() !== '' &&
-      departamentoName !== 'Todas'
-    ) {
-      usuarioQuery.andWhere('u.departamento LIKE :depto', {
-        depto: `%${departamentoName}%`,
-      });
-    }
-    if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
-      usuarioQuery.andWhere('u.pais = :pais', { pais: companyName });
-    }
-    if (areaId) {
-      usuarioQuery.andWhere('u.area_id = :areaId', { areaId });
-    }
-    if (segmentoId) {
-      usuarioQuery.andWhere('u.segmento_id = :segmentoId', { segmentoId });
+    // Búsqueda server-side por nombre, cédula, cargo o departamento
+    if (search) {
+      usuarioQuery.andWhere(
+        '(u.nombre LIKE :s OR u.identificacion LIKE :s OR u.cargo LIKE :s OR u.departamento LIKE :s)',
+        { s: `%${search}%` },
+      );
     }
 
-    const usuarios = await usuarioQuery
+    // Página actual de usuarios + total (una sola pasada por DB)
+    const [usuarios, total] = await usuarioQuery
       .select([
         'u.id_odoo',
         'u.nombre',
@@ -688,21 +676,19 @@ export class UsuariosService {
         'u.identificacion',
       ])
       .orderBy('u.nombre', 'ASC')
-      .getMany();
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-    if (!usuarios.length) return [];
+    if (!usuarios.length) return { data: [], total, page, limit };
 
     const idOdoos = usuarios.map((u) => u.id_odoo).filter(Boolean);
-    if (!idOdoos.length) return [];
+    if (!idOdoos.length) return { data: [], total, page, limit };
 
-    // 2. Obtener asignaciones vigentes con malla y detalles
-    const asignaciones = await this.asignacionRepo
-      .createQueryBuilder('a')
-      .leftJoinAndSelect('a.malla', 'malla')
-      .leftJoinAndSelect('malla.detalles', 'detalles')
-      .where('a.usuario_id_odoo IN (:...ids)', { ids: idOdoos })
-      .andWhere('a.actual = 1')
-      .getMany();
+    // 2. Obtener asignaciones vigentes solo para los IDs de ESTA página.
+    // Como la página es pequeña (≤ limit), el IN nunca choca con el límite
+    // de 2.100 parámetros de SQL Server. Aun así se cargan por lotes por seguridad.
+    const asignaciones = await this.obtenerAsignacionesVigentes(idOdoos);
 
     // 3. Mapa id_odoo → asignacion vigente
     const mallaLocalPorEmpleado = new Map<number, any>();
@@ -712,8 +698,8 @@ export class UsuariosService {
       }
     }
 
-    // 4. Construir resultado
-    return usuarios.map((u) => {
+    // 4. Construir resultado de la página
+    const data = usuarios.map((u) => {
       const asigLocal = mallaLocalPorEmpleado.get(u.id_odoo);
       let horario = 'No programado';
       let jornada = 'N/A';
@@ -750,6 +736,94 @@ export class UsuariosService {
         horario,
       };
     });
+
+    return { data, total, page, limit };
+  }
+
+  // ── Helper: arma el query de usuarios para mallas con los filtros comunes ──
+  private construirQueryUsuariosMalla(
+    companyName?: string,
+    departamentoName?: string,
+    areaId?: number,
+    segmentoId?: number,
+    employeeIdsPorEstructura?: number[] | null,
+  ) {
+    const q = this.usuarioRepo
+      .createQueryBuilder('u')
+      .where('u.is_active = :active', { active: true });
+
+    if (employeeIdsPorEstructura && employeeIdsPorEstructura.length > 0) {
+      q.andWhere('u.id_odoo IN (:...ids)', { ids: employeeIdsPorEstructura });
+    }
+    if (
+      departamentoName &&
+      departamentoName.trim() !== '' &&
+      departamentoName !== 'Todas'
+    ) {
+      q.andWhere('u.departamento LIKE :depto', {
+        depto: `%${departamentoName}%`,
+      });
+    }
+    if (companyName && companyName.trim() !== '' && companyName !== 'Todas') {
+      q.andWhere('u.pais = :pais', { pais: companyName });
+    }
+    if (areaId) q.andWhere('u.area_id = :areaId', { areaId });
+    if (segmentoId) q.andWhere('u.segmento_id = :segmentoId', { segmentoId });
+
+    return q;
+  }
+
+  // ── Helper: trae asignaciones vigentes por lotes (evita límite de 2.100 params) ──
+  private async obtenerAsignacionesVigentes(idOdoos: number[]) {
+    const CHUNK = 1000;
+    const resultado: any[] = [];
+    for (let i = 0; i < idOdoos.length; i += CHUNK) {
+      const lote = idOdoos.slice(i, i + CHUNK);
+      const parte = await this.asignacionRepo
+        .createQueryBuilder('a')
+        .leftJoinAndSelect('a.malla', 'malla')
+        .leftJoinAndSelect('malla.detalles', 'detalles')
+        .where('a.usuario_id_odoo IN (:...ids)', { ids: lote })
+        .andWhere('a.actual = 1')
+        .getMany();
+      resultado.push(...parte);
+    }
+    return resultado;
+  }
+
+  // ── Lista de departamentos disponibles (para el dropdown del panel de mallas) ──
+  async getDepartamentosMalla(
+    companyName?: string,
+    areaId?: number,
+    segmentoId?: number,
+  ): Promise<string[]> {
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    if (
+      employeeIdsPorEstructura !== null &&
+      employeeIdsPorEstructura.length === 0
+    ) {
+      return [];
+    }
+
+    const q = this.construirQueryUsuariosMalla(
+      companyName,
+      undefined,
+      areaId,
+      segmentoId,
+      employeeIdsPorEstructura,
+    );
+
+    const filas = await q
+      .select('u.departamento', 'departamento')
+      .distinct(true)
+      .andWhere('u.departamento IS NOT NULL')
+      .orderBy('u.departamento', 'ASC')
+      .getRawMany();
+
+    return filas.map((f) => f.departamento).filter(Boolean);
   }
 
   private async getMallasMap(
@@ -2409,16 +2483,19 @@ export class UsuariosService {
   }
 
   async findAllLocal(pais?: string) {
-    const queryOptions: any = {
-      relations: ['permisos'], // Lo ponemos aquí para que SIEMPRE los traiga
-      order: { nombre: 'ASC' },
-    };
+    // En vez de hidratar TODOS los objetos permiso (miles de filas → ~5s),
+    // pedimos solo el CONTEO por usuario con una subconsulta agrupada.
+    // El frontend solo necesita la cantidad para el badge.
+    const qb = this.usuarioRepo
+      .createQueryBuilder('u')
+      .loadRelationCountAndMap('u.permisosCount', 'u.permisos')
+      .orderBy('u.nombre', 'ASC');
 
     if (pais && pais !== 'TODOS') {
-      queryOptions.where = { pais: pais };
+      qb.where('u.pais = :pais', { pais });
     }
 
-    return await this.usuarioRepo.find(queryOptions);
+    return await qb.getMany();
   }
 
   async reportarFalla(data: { empleado_id: number; nombre: string; descripcion: string }) {
