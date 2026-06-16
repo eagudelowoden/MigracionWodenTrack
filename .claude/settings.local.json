@@ -121,7 +121,8 @@
       "Bash(curl -s -i -X OPTIONS http://localhost:8082/usuarios/login -H \"Origin: http://localhost:8100\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
       "Bash(grep -i cors .env .env.development .env.qa .env.production)",
       "Bash(grep -i node_env .env .env.development)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(npx cap *)"
     ]
   }
 }
