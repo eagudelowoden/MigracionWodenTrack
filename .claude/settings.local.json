@@ -112,7 +112,16 @@
       "Bash(node _odoo_test.js)",
       "Bash(grep -nE \"apiFetch\\\\\\(|axios|VITE|/[a-z-]+\\\\`|reporte|attendance\" composables/UserLogica/cargarAsistencias.js)",
       "mcp__visualize__read_me",
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8082)",
+      "Bash(tasklist /FI \"PID eq 1676\")",
+      "Bash(curl -s -o NUL -w \"%{http_code}\\\\n\" http://localhost:8082/version)",
+      "PowerShell(Get-Process -Id 1676)",
+      "Bash(curl -s -i -X OPTIONS http://localhost:8082/usuarios/login -H \"Origin: http://localhost:8100\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
+      "Bash(grep -i cors .env .env.development .env.qa .env.production)",
+      "Bash(grep -i node_env .env .env.development)",
+      "Bash(npm ls *)"
     ]
   }
 }
