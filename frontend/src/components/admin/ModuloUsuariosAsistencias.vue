@@ -110,34 +110,9 @@
       {{ errorMsg }}
     </div>
 
-    <!-- Progreso de carga por chunks -->
-    <div v-if="loading && chunkProgress.total > 1"
-      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-3 border" :class="isDark
-        ? 'bg-[#3B82F6]/[0.08] border-[#3B82F6]/30 text-[#60A5FA]'
-        : 'bg-blue-50 border-blue-200 text-blue-700'">
-      <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
-      <span class="shrink-0">Cargando datos…</span>
-      <div class="flex-1 h-1 rounded-full overflow-hidden" :class="isDark ? 'bg-[#222938]' : 'bg-blue-200'">
-        <div class="h-full bg-[#3B82F6] transition-all duration-500 rounded-full"
-          :style="{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }"></div>
-      </div>
-      <span class="shrink-0 tabular-nums font-semibold">{{ Math.round((chunkProgress.current / chunkProgress.total) *
-        100)
-      }}%</span>
-    </div>
-
     <!-- Tabla -->
     <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-
-      <Transition name="fade-chip">
-        <div v-if="loading"
-          class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
-          :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
-          <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-          <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando asistencias…</span>
-        </div>
-      </Transition>
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
         <table class="w-full border-separate border-spacing-0">
@@ -171,7 +146,43 @@
             </tr>
           </thead>
 
-          <tbody class="divide-y-0">
+          <!-- Progreso de carga (dentro de la tabla) -->
+          <tbody v-if="loading">
+            <tr>
+              <td colspan="6" class="p-0">
+                <!-- Barra de progreso con % real simulado -->
+                <div class="w-full h-1 overflow-hidden" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'">
+                  <div class="h-full bg-[#3B82F6] transition-all duration-300 ease-out rounded-r-full"
+                    :style="{ width: `${loadingProgress}%` }"></div>
+                </div>
+                <!-- Spinner + porcentaje -->
+                <div class="flex flex-col items-center justify-center gap-3 py-20">
+                  <div class="relative">
+                    <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+                    <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums"
+                      :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
+                      {{ Math.min(99, Math.round(loadingProgress)) }}%
+                    </span>
+                  </div>
+                  <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                    Consultando asistencias en Odoo…
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+
+          <!-- Sin datos -->
+          <tbody v-else-if="!paginatedData.length && !loading">
+            <tr>
+              <td colspan="6" class="py-16 text-center">
+                <i class="fas fa-inbox text-2xl mb-2 block" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                <span class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin resultados</span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else class="divide-y-0">
             <tr v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
               :class="[
                 index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
@@ -241,6 +252,7 @@
       </div>
 
       <!-- Paginación (Vercel) -->
+
       <div v-if="paginatedData?.length" class="px-3 py-2 border-t flex items-center justify-between"
         :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
 
@@ -305,6 +317,7 @@ const {
   selectedCompany,
   errorMsg,
   chunkProgress,
+  loadingProgress,
 } = useCargarAsistencias();
 
 const { isDark: isDarkTheme } = useAttendance();
@@ -427,9 +440,6 @@ const getFuenteClass = (fuente) => {
 </script>
 
 <style scoped>
-.fade-chip-enter-active { transition: opacity 0.15s ease; }
-.fade-chip-leave-active { transition: opacity 0.2s ease; }
-.fade-chip-enter-from, .fade-chip-leave-to { opacity: 0; }
 
 .loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }
 .loading-ring div {

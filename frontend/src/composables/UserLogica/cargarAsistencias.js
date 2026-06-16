@@ -1,6 +1,15 @@
 ﻿import { apiFetch } from '@/utils/apiFetch.js';
 import { ref, computed } from "vue";
 
+// Recupera el token de sesión para cabeceras manuales de fetch
+function getToken() {
+  try {
+    const raw = localStorage.getItem('user_session');
+    if (!raw) return null;
+    return JSON.parse(raw)?.token ?? null;
+  } catch { return null; }
+}
+
 export function useCargarAsistencias() {
   const reportData = ref([]);
   const loading = ref(false);
@@ -17,8 +26,9 @@ export function useCargarAsistencias() {
   const filterHoy = ref(true);
   const abortController = ref(null);
   const errorMsg = ref("");
-  // Progreso de carga por chunks: { current: 2, total: 4 }
   const chunkProgress = ref({ current: 0, total: 0 });
+  // Progreso real (0-100) recibido desde el backend vía SSE
+  const loadingProgress = ref(0);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   const MAX_DIAS = 31;
@@ -57,15 +67,14 @@ export function useCargarAsistencias() {
   };
 
   /**
-   * Construye la URL con todos los filtros activos.
-   * chunkStart / chunkEnd sobreescriben las fechas del filtro (para chunking).
+   * Construye la URL base o la URL SSE /stream con todos los filtros activos.
    */
-  const buildUrl = (chunkStart, chunkEnd) => {
+  const buildUrl = (chunkStart, chunkEnd, stream = false) => {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
     const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
 
-    const url = new URL(`${API_BASE_URL}/reporte-novedades`);
+    const url = new URL(`${API_BASE_URL}/reporte-novedades${stream ? '/stream' : ''}`);
     url.searchParams.append("hoy", filterHoy.value.toString());
     if (chunkStart) url.searchParams.append("startDate", chunkStart);
     if (chunkEnd) url.searchParams.append("endDate", chunkEnd);
@@ -110,23 +119,69 @@ export function useCargarAsistencias() {
     errorMsg.value = "";
     loading.value = true;
     rawData.value = [];
+    loadingProgress.value = 0;
     chunkProgress.value = { current: 0, total: 0 };
 
-    try {
-      // Una sola petición con todo el rango para que el backend pueda
-      // emparejar correctamente los punches de turnos nocturnos que cruzan
-      // la medianoche sin que el corte de chunks rompa los pares.
-      const res = await apiFetch(
-        buildUrl(
-          filterHoy.value ? null : startDate.value,
-          filterHoy.value ? null : endDate.value,
-        ),
-        { signal },
-      );
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-      rawData.value = await res.json();
+    const streamUrl = buildUrl(
+      filterHoy.value ? null : startDate.value,
+      filterHoy.value ? null : endDate.value,
+      true, // stream = true → /reporte-novedades/stream
+    );
 
-      initialLoadDone = true;
+    try {
+      const token = getToken();
+      const res = await fetch(streamUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal,
+      });
+
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Cada evento SSE termina con \n\n
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop(); // último fragmento incompleto
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data: ")) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === "progress") {
+            loadingProgress.value = event.percent ?? 0;
+          } else if (event.type === "done") {
+            rawData.value = event.data;
+            initialLoadDone = true;
+            loadingProgress.value = 100;
+            setTimeout(() => { loadingProgress.value = 0; }, 400);
+            loading.value = false;
+          } else if (event.type === "error") {
+            errorMsg.value = event.message || "Error al cargar el reporte. Intenta de nuevo.";
+            rawData.value = [];
+            loading.value = false;
+            loadingProgress.value = 0;
+          }
+        }
+      }
+
+      // Safety net: si el stream cerró sin evento "done" (crash del backend)
+      if (loading.value) {
+        loading.value = false;
+        loadingProgress.value = 0;
+        if (!rawData.value?.length) {
+          errorMsg.value = "La conexión se cerró inesperadamente. Intenta de nuevo.";
+        }
+      }
     } catch (err) {
       if (err.name === "AbortError") {
         console.log("Request cancelado — se lanzó uno más reciente");
@@ -135,11 +190,8 @@ export function useCargarAsistencias() {
       console.error("Error al obtener el reporte:", err);
       errorMsg.value = "Error al cargar el reporte. Intenta de nuevo.";
       rawData.value = [];
-    } finally {
-      if (!abortController.value?.signal.aborted) {
-        loading.value = false;
-        chunkProgress.value = { current: 0, total: 0 };
-      }
+      loading.value = false;
+      loadingProgress.value = 0;
     }
   }, 600);
 
@@ -340,6 +392,7 @@ export function useCargarAsistencias() {
     departments,
     errorMsg,
     chunkProgress,
+    loadingProgress,
     paginatedData,
     totalPages,
     currentPage,

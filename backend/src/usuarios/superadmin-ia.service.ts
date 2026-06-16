@@ -39,12 +39,14 @@ export class SuperAdminIAService {
     const idOdoos = usuarios.map(u => u.id_odoo).filter(Boolean);
 
     const uid = await this.odoo.authenticate();
-    const records = await this.odoo.executeKw<any[]>(
-      'hr.attendance', 'search_read',
-      [[['employee_id', 'in', idOdoos],
+    const records = await this.odoo.searchReadAll<any>(
+      'hr.attendance',
+      [
+        ['employee_id', 'in', idOdoos],
         ['check_in', '>=', `${startDate} 00:00:00`],
-        ['check_in', '<=', `${endDate} 23:59:59`]]],
-      { fields: ['employee_id', 'check_in', 'x_studio_tipo_entrada'], limit: 20000 },
+        ['check_in', '<=', `${endDate} 23:59:59`],
+      ],
+      ['employee_id', 'check_in', 'x_studio_tipo_entrada'],
       uid,
     );
 

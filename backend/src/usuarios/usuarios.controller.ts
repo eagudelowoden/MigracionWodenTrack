@@ -9,7 +9,9 @@ import {
   Param,
   BadRequestException,
   Patch,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UsuariosService } from './usuarios.service';
 import { Public } from '../auth/public.decorator';
 
@@ -71,6 +73,47 @@ export class UsuariosController {
       areaId ? Number(areaId) : undefined,
       segmentoId ? +segmentoId : undefined,
     );
+  }
+
+  @Get('reporte-novedades/stream')
+  async getReporteNovedadesStream(
+    @Query('hoy') hoy: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('area_id') areaId: string,
+    @Query('segmento_id') segmentoId: string,
+    @Query('agrupar') agrupar: string = 'true',
+    @Res() res: Response,
+  ) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const send = (data: object) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const result = await this.usuariosService.getReporteNovedades(
+        hoy === 'true',
+        company,
+        startDate,
+        endDate,
+        departamento,
+        areaId ? +areaId : undefined,
+        segmentoId ? +segmentoId : undefined,
+        agrupar !== 'false',
+        (pct, msg) => send({ type: 'progress', percent: pct, message: msg }),
+      );
+      send({ type: 'done', data: result });
+    } catch (err: any) {
+      send({ type: 'error', message: err?.message || 'Error desconocido' });
+    } finally {
+      res.end();
+    }
   }
 
   // En el controlador

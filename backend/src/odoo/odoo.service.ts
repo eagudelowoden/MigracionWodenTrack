@@ -133,4 +133,71 @@ export class OdooService {
       options,
     ]);
   }
+
+  /**
+   * search_read paginado con progreso real.
+   * Llama a search_count primero y emite onProgress(fetched, total) tras cada página.
+   */
+  public async searchReadAllWithProgress<T>(
+    model: string,
+    domain: any[],
+    fields: string[],
+    uid: number,
+    onProgress: (fetched: number, total: number) => void,
+    pageSize = 5000,
+  ): Promise<T[]> {
+    const total = await this.executeKw<number>(model, 'search_count', [domain], {}, uid);
+    onProgress(0, total);
+
+    const results: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const chunk = await this.executeKw<T[]>(
+        model, 'search_read', [domain],
+        { fields, limit: pageSize, offset },
+        uid,
+      );
+      if (!chunk || chunk.length === 0) break;
+      results.push(...chunk);
+      onProgress(results.length, total);
+      if (chunk.length < pageSize) break;
+      offset += pageSize;
+    }
+    return results;
+  }
+
+  /**
+   * search_read paginado: obtiene TODOS los registros en chunks de `pageSize`.
+   * Evita timeouts y límites artificiales en consultas grandes (1 mes, 400+ empleados).
+   */
+  public async searchReadAll<T>(
+    model: string,
+    domain: any[],
+    fields: string[],
+    uid: number,
+    pageSize = 5000,
+  ): Promise<T[]> {
+    const results: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const chunk = await this.executeKw<T[]>(
+        model,
+        'search_read',
+        [domain],
+        { fields, limit: pageSize, offset },
+        uid,
+      );
+
+      if (!chunk || chunk.length === 0) break;
+      results.push(...chunk);
+
+      // Si devolvió menos que pageSize, ya no hay más páginas
+      if (chunk.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    return results;
+  }
 }

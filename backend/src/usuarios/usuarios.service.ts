@@ -1567,7 +1567,9 @@ export class UsuariosService {
     areaId?: number,
     segmentoId?: number,
     agruparLogs: boolean = true,
+    onProgress?: (pct: number, msg: string) => void,
   ) {
+    const emit = onProgress ?? (() => {});
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
     if (!soloHoy && startDate && endDate) {
       const dias = Math.round(
@@ -1600,6 +1602,7 @@ export class UsuariosService {
 
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
+    emit(2, 'Autenticando con Odoo…');
     const uid = await this.odoo.authenticate();
     const { hoyFechaCorta } = getFechaColombia();
 
@@ -1669,22 +1672,16 @@ export class UsuariosService {
 
     try {
       if (employeeIdsEfectivos && employeeIdsEfectivos.length > 0) {
-        // Tenemos los IDs → podemos buscar cédulas al mismo tiempo que asistencias
         console.time('⏱ partners (paralelo)');
         const [odooResult, pm] = await Promise.all([
-          this.consultarOdoo(domainAtt, domainLog, uid),
+          this.consultarOdoo(domainAtt, domainLog, uid, onProgress),
           this.obtenerPartnerMapPorIds(employeeIdsEfectivos, uid),
         ]);
         [attendances, logs] = odooResult;
         partnerMap = pm;
         console.timeEnd('⏱ partners (paralelo)');
       } else {
-        // Sin filtro de estructura: primero traemos datos, luego cédulas
-        [attendances, logs] = await this.consultarOdoo(
-          domainAtt,
-          domainLog,
-          uid,
-        );
+        [attendances, logs] = await this.consultarOdoo(domainAtt, domainLog, uid, onProgress);
       }
     } catch (error) {
       // Enviar correo si la consulta falla (ej: demasiados registros)
@@ -1702,6 +1699,7 @@ export class UsuariosService {
     console.timeEnd('⏱ query-odoo');
     const total = attendances.length + logs.length;
     console.log(`📊 Attendances: ${attendances.length} | Logs: ${logs.length}`);
+    emit(82, 'Cargando cédulas y mallas…');
 
     // Alerta si la consulta trajo muchos registros
     if (total > 15000) {
@@ -1736,6 +1734,7 @@ export class UsuariosService {
       ]);
     }
     console.timeEnd('⏱ partners+mallas');
+    emit(92, 'Procesando registros…');
 
     const toLocal = this.crearConvertidorLocal();
 
@@ -1785,6 +1784,7 @@ export class UsuariosService {
           })
         : todosSinFiltrar;
 
+    emit(98, 'Preparando resultado…');
     const tiempoTotal = (Date.now() - inicioTotal) / 1000;
     console.timeEnd('⏱ TOTAL reporte');
     console.log(`✅ Total registros devueltos: ${resultado.length}`);
@@ -1957,60 +1957,41 @@ export class UsuariosService {
     domainAtt: any[],
     domainLog: any[],
     uid: number,
+    onProgress?: (pct: number, msg: string) => void,
   ): Promise<[any[], any[]]> {
-    // Timeout de 3 minutos — si Odoo no responde, devuelve error manejable
-    const TIMEOUT_MS = 180_000;
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(
-        () =>
-          reject(
-            new Error(
-              '⏰ Timeout: Odoo tardó más de 3 min. Reduce el rango de fechas.',
-            ),
-          ),
-        TIMEOUT_MS,
-      ),
+    const emit = onProgress ?? (() => {});
+
+    // ── hr.attendance paginado ───────────────────────────────────────────────
+    const attFields = [
+      'employee_id', 'check_in', 'check_out', 'department_id',
+      'x_studio_tipo_entrada', 'x_studio_tipo_salida',
+    ];
+    emit(5, 'Contando registros de asistencia…');
+    const attendances = await this.odoo.searchReadAllWithProgress<any>(
+      'hr.attendance', domainAtt, attFields, uid,
+      (fetched, total) => {
+        // 5% → 60% para hr.attendance
+        const pct = total > 0 ? 5 + Math.round((fetched / total) * 55) : 30;
+        emit(pct, `Asistencias: ${fetched} / ${total}`);
+      },
     );
 
-    const consulta = Promise.all([
-      this.odoo.executeKw<any[]>(
-        'hr.attendance',
-        'search_read',
-        [domainAtt],
-        {
-          fields: [
-            'employee_id',
-            'check_in',
-            'check_out',
-            'department_id',
-            'x_studio_tipo_entrada',
-            'x_studio_tipo_salida',
-          ],
-          order: 'check_in desc',
-          limit: 100000,
-        },
-        uid,
-      ),
-      this.odoo.executeKw<any[]>(
-        'attendance.log',
-        'search_read',
-        [domainLog],
-        {
-          fields: [
-            'employee_id',
-            'punching_time',
-            'status',
-            'x_studio_related_field_j40wn',
-            'device',
-          ],
-          order: 'punching_time desc',
-          limit: 100000,
-        },
-        uid,
-      ),
-    ]);
+    // ── attendance.log paginado ──────────────────────────────────────────────
+    const logFields = [
+      'employee_id', 'punching_time', 'status',
+      'x_studio_related_field_j40wn', 'device',
+    ];
+    emit(62, 'Contando registros biométricos…');
+    const logs = await this.odoo.searchReadAllWithProgress<any>(
+      'attendance.log', domainLog, logFields, uid,
+      (fetched, total) => {
+        // 62% → 80% para attendance.log
+        const pct = total > 0 ? 62 + Math.round((fetched / total) * 18) : 70;
+        emit(pct, `Biométrico: ${fetched} / ${total}`);
+      },
+    );
 
-    return Promise.race([consulta, timeout]);
+    return [attendances, logs];
   }
 
   /**

@@ -105,18 +105,14 @@ export class SuperAdminAnaliticaService {
     const idOdoos = usuarios.map((u) => u.id_odoo).filter(Boolean);
 
     const uid = await this.odoo.authenticate();
-    const records = await this.odoo.executeKw<any[]>(
+    const records = await this.odoo.searchReadAll<any>(
       'hr.attendance',
-      'search_read',
-      [[
+      [
         ['employee_id', 'in', idOdoos],
         ['check_in', '>=', `${startDate} 00:00:00`],
         ['check_in', '<=', `${endDate} 23:59:59`],
-      ]],
-      {
-        fields: ['employee_id', 'check_in', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
-        limit: 10000,
-      },
+      ],
+      ['employee_id', 'check_in', 'x_studio_tipo_entrada', 'x_studio_tipo_salida'],
       uid,
     );
 
@@ -236,15 +232,14 @@ export class SuperAdminAnaliticaService {
     ].sort();
 
     const uid = await this.odoo.authenticate();
-    const records = await this.odoo.executeKw<any[]>(
+    const records = await this.odoo.searchReadAll<any>(
       'hr.attendance',
-      'search_read',
-      [[
+      [
         ['employee_id', 'in', idOdoos],
         ['check_in', '>=', `${startDate} 00:00:00`],
         ['check_in', '<=', `${endDate} 23:59:59`],
-      ]],
-      { fields: ['employee_id', 'check_in'], limit: 15000 },
+      ],
+      ['employee_id', 'check_in'],
       uid,
     );
 
