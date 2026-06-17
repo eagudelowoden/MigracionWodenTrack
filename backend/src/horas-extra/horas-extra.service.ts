@@ -85,7 +85,7 @@ function redondearHoras(horas: number): number {
   if (horas <= 0) return 0;
   const enteras = Math.floor(horas);
   const mins    = Math.round((horas - enteras) * 60);
-  return mins >= 55 ? enteras + 1 : Math.round(horas * 100) / 100;
+  return mins >= 50 ? enteras + 1 : Math.round(horas * 100) / 100;
 }
 
 // ─── Festivos colombianos ─────────────────────────────────────────────────────
