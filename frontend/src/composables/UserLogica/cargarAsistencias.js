@@ -294,6 +294,7 @@ export function useCargarAsistencias() {
           Estatus_Entrada: item.c_entrada || "N/A",
           Estatus_Salida: item.c_salida || "N/A",
           Estado: item.estado,
+          Fecha: fechaEntrada || null,
           _sortKey: fechaEntrada || "",
         });
 
@@ -310,6 +311,7 @@ export function useCargarAsistencias() {
             Estatus_Entrada: "---",
             Estatus_Salida: "---",
             Estado: "Registro de día (salida del turno anterior)",
+            Fecha: fechaSalida,
             _sortKey: fechaSalida,
           });
         }

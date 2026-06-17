@@ -130,7 +130,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\frontend\\\\src\" -Recurse -Filter \"*.vue\")",
       "Bash(Select-String -Pattern \"Decimales|showDecimal|decimal\")",
       "Bash(Select-Object -First 5 Filename, Line)",
-      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\src\\\\horas-extra\\\\horas-extra.service.ts\"\\).LastWriteTime = Get-Date)"
+      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\src\\\\horas-extra\\\\horas-extra.service.ts\"\\).LastWriteTime = Get-Date)",
+      "Read(//c/Users/e.agudelo/Downloads/**)"
     ]
   }
 }

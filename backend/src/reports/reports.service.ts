@@ -150,19 +150,36 @@ export class ReportsService {
     ];
     if (!nombresUnicos.length) return resultMap;
 
-    // 1. nombre → id_odoo desde usuarios_registrados
+    // Cédulas únicas (fallback cuando el nombre no coincide exactamente)
+    const cedulasUnicas = [
+      ...new Set(
+        items
+          .map((i) => (i.Cedula || i.cc) as string)
+          .filter((c) => c && c !== 'N/A'),
+      ),
+    ];
+
+    // 1. nombre → id_odoo desde usuarios_registrados (también por cédula como fallback)
     const namePlaceholders = nombresUnicos.map((_, i) => `@${i}`).join(', ');
-    const usuarios: Array<{ nombre: string; id_odoo: number }> =
+    const cedPlaceholders = cedulasUnicas.map((_, i) => `@${nombresUnicos.length + i}`).join(', ');
+    const whereClause = cedPlaceholders
+      ? `nombre IN (${namePlaceholders}) OR identificacion IN (${cedPlaceholders})`
+      : `nombre IN (${namePlaceholders})`;
+    const usuarios: Array<{ nombre: string; id_odoo: number; identificacion: string }> =
       await this.dataSource.query(
-        `SELECT nombre, id_odoo FROM usuarios_registrados WHERE nombre IN (${namePlaceholders})`,
-        nombresUnicos,
+        `SELECT nombre, id_odoo, identificacion FROM usuarios_registrados WHERE ${whereClause}`,
+        [...nombresUnicos, ...cedulasUnicas],
       );
 
     if (!usuarios.length) return resultMap;
 
-    const idOdooMap = new Map<string, number>(
+    const idOdooByName = new Map<string, number>(
       usuarios.map((u) => [u.nombre, u.id_odoo]),
     );
+    const idOdooByCedula = new Map<string, number>(
+      usuarios.map((u) => [u.identificacion, u.id_odoo]),
+    );
+    const idOdooMap = idOdooByName; // mantener compatibilidad con uso posterior
     const idOdoos = [...new Set(usuarios.map((u) => u.id_odoo))];
 
     // 2. Traer asignaciones + detalles de malla para esos empleados
@@ -217,7 +234,8 @@ export class ReportsService {
       const clave = `${nombre}::${fecha}`;
       if (resultMap.has(clave)) continue;
 
-      const idOdoo = idOdooMap.get(nombre);
+      const cedula: string = item.Cedula || item.cc || '';
+      const idOdoo = idOdooByName.get(nombre) ?? idOdooByCedula.get(cedula);
       if (!idOdoo) continue;
 
       const asigMap = porEmpleado.get(idOdoo);
