@@ -269,6 +269,8 @@ export class HorasExtraService {
         .leftJoinAndSelect('malla.detalles', 'detalles')
         .where('a.usuario_id_odoo IN (:...ids)', { ids: lote })
         .orderBy('a.fecha_inicio', 'DESC')
+        .addOrderBy('a.actual', 'DESC')
+        .addOrderBy('a.id', 'DESC')
         .getMany();
 
       for (const a of asignaciones) {
@@ -495,11 +497,11 @@ export class HorasExtraService {
         result.heno += toHex(minsNocturno(wStart, wEnd));
         return;
       }
-      // Recargo nocturno dentro del turno → RN
+      // Recargo nocturno dentro del turno → RN (19:00-06:00)
       const dentroStart = Math.max(wStart, turnoStart!);
       const dentroEnd   = Math.min(wEnd,   turnoEnd!);
       if (dentroEnd > dentroStart) {
-        result.rn += toHex(minsNocturno(dentroStart, dentroEnd));
+        result.rn += toHex(minsRN(dentroStart, dentroEnd));
       }
       // Extra antes del turno → HEDO + HENO
       if (wStart < turnoStart! - TOLERANCIA) {

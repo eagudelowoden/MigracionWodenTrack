@@ -773,8 +773,13 @@ export class UsuariosService {
     return q;
   }
 
-  // ── Helper: trae asignaciones vigentes por lotes (evita límite de 2.100 params) ──
+  // ── Helper: trae la asignación vigente para HOY por empleado ──
+  // Soporta asignaciones permanentes (actual=1, fecha_fin=null) y
+  // temporales (actual=0, fecha_fin definida) que cubran la fecha actual.
   private async obtenerAsignacionesVigentes(idOdoos: number[]) {
+    const hoy = new Date()
+      .toLocaleString('sv-SE', { timeZone: 'America/Bogota' })
+      .slice(0, 10);
     const CHUNK = 1000;
     const resultado: any[] = [];
     for (let i = 0; i < idOdoos.length; i += CHUNK) {
@@ -784,7 +789,11 @@ export class UsuariosService {
         .leftJoinAndSelect('a.malla', 'malla')
         .leftJoinAndSelect('malla.detalles', 'detalles')
         .where('a.usuario_id_odoo IN (:...ids)', { ids: lote })
-        .andWhere('a.actual = 1')
+        .andWhere('a.fecha_inicio <= :hoy', { hoy })
+        .andWhere('(a.fecha_fin IS NULL OR a.fecha_fin >= :hoy)', { hoy })
+        .orderBy('a.fecha_inicio', 'DESC')
+        .addOrderBy('a.actual', 'DESC')
+        .addOrderBy('a.id', 'DESC')
         .getMany();
       resultado.push(...parte);
     }

@@ -115,11 +115,16 @@ export class MallasUploadService {
           });
           await this.asignacionRepo.save(temporal);
         } else {
-          // Asignación permanente: cerrar anteriores y crear indefinida
+          // Asignación permanente: cerrar anteriores y crear indefinida.
+          // fecha_fin = día anterior a fechaInicio para evitar solapamiento en la fecha límite.
+          const [y, m, d] = fechaInicio.split('-').map(Number);
+          const dt = new Date(y, m - 1, d - 1);
+          const fechaFinAnterior = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+
           await this.asignacionRepo
             .createQueryBuilder()
             .update()
-            .set({ actual: false, fecha_fin: fechaInicio })
+            .set({ actual: false, fecha_fin: fechaFinAnterior })
             .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
             .execute();
 

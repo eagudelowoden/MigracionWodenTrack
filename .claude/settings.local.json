@@ -122,7 +122,11 @@
       "Bash(grep -i cors .env .env.development .env.qa .env.production)",
       "Bash(grep -i node_env .env .env.development)",
       "Bash(npm ls *)",
-      "Bash(npx cap *)"
+      "Bash(npx cap *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(Get-Content package.json)",
+      "Bash(Select-String \"start|dev|build|watch\")",
+      "Read(//c/Users/e.agudelo/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/2985e380-e47b-4918-8ed0-bf4370e0ab8f/ed58175c-70b8-4f3c-ac5c-b521cded0265/skills/xlsx/**)"
     ]
   }
 }
