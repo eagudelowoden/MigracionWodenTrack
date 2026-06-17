@@ -387,7 +387,11 @@ export class HorasExtraService {
           result.hedo = toHex(minsDiurno(inMins, outMins));
           result.heno = toHex(minsNocturno(inMins, outMins));
         } else {
-          result.rn = toHex(minsNocturno(shiftStart, shiftEnd));
+          const dentroStart = Math.max(inMins, shiftStart);
+          const dentroEnd   = Math.min(outMins, shiftEnd);
+          if (dentroEnd > dentroStart) {
+            result.rn = toHex(minsRN(dentroStart, dentroEnd));
+          }
           if (inMins < shiftStart - TOLERANCIA) {
             const extraEnd = Math.min(outMins, shiftStart);
             result.hedo += toHex(minsDiurno(inMins, extraEnd));
