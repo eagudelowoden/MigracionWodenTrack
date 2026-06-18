@@ -290,17 +290,17 @@
                           :class="isDark ? 'text-[#E2E8F0]' : 'text-[#111]'">{{ m }}</span>
                       </div>
                     </div>
-                    <!-- Omitidas -->
+                    <!-- Ya existentes (su horario se actualiza con el del Excel) -->
                     <div v-if="crearResult.detalleMallas?.omitidas?.length" class="px-6 pt-3 pb-1">
                       <p class="text-[10px] font-semibold uppercase tracking-wide mb-1"
                         :class="isDark ? 'text-[#4a5568]' : 'text-[#9ca3af]'">
-                        Ya existentes (omitidas)
+                        Ya existentes (horario actualizado)
                       </p>
                     </div>
                     <div v-for="(m, i) in (crearResult.detalleMallas?.omitidas || [])" :key="'o'+i"
                       class="flex items-center gap-3 px-6 py-2 border-b"
                       :class="isDark ? 'border-[#1e2538]' : 'border-[#f3f4f6]'">
-                      <i class="fas fa-ban text-[8px] text-yellow-500"></i>
+                      <i class="fas fa-sync text-[8px] text-yellow-500"></i>
                       <span class="text-[11px]"
                         :class="isDark ? 'text-[#7a8aa0]' : 'text-[#6b7280]'">{{ m }}</span>
                     </div>

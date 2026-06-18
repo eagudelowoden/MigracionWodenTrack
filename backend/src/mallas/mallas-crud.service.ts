@@ -66,6 +66,25 @@ export class MallasCrudService {
     return this.mallaRepo.findOne({ where: { id: malla.id }, relations: ['detalles'] });
   }
 
+  /** Reemplaza por completo los detalles (horario) de una malla existente. */
+  private async actualizarDetalles(mallaId: number, detalles: any[]) {
+    await this.detalleRepo.delete({ malla_id: mallaId });
+    if (detalles?.length) {
+      const nuevos = detalles
+        .filter((d) => d.activo !== false)
+        .map((d) =>
+          this.detalleRepo.create({
+            malla_id: mallaId,
+            dia_semana: Number(d.dia_semana),
+            hora_inicio: Number(d.hora_inicio),
+            hora_fin: Number(d.hora_fin),
+            periodo: d.periodo || 'morning',
+          }),
+        );
+      await this.detalleRepo.save(nuevos);
+    }
+  }
+
   async eliminar(id: number) {
     await this.asignacionRepo.delete({ malla_id: id });
     await this.detalleRepo.delete({ malla_id: id });
@@ -315,6 +334,9 @@ export class MallasCrudService {
       try {
         const existe = await this.mallaRepo.findOne({ where: { nombre } });
         if (existe) {
+          // La malla ya existe: actualizar su horario en vez de omitirla,
+          // para que correcciones (ej. quitar un día) sí se reflejen.
+          await this.actualizarDetalles(existe.id, data.detalles);
           omitidas.push(nombre);
           continue;
         }
@@ -563,7 +585,7 @@ export class MallasCrudService {
           continue;
         }
 
-        // Crear malla si no existe
+        // Crear malla si no existe; si ya existe, actualizar su horario con el del Excel
         let malla = await this.mallaRepo.findOne({ where: { nombre }, relations: ['detalles'] });
         if (!malla) {
           const created = await this.crear({ nombre, compania: '', detalles });
@@ -574,6 +596,7 @@ export class MallasCrudService {
           malla = created;
           mallasCreadas.push(nombre);
         } else {
+          await this.actualizarDetalles(malla.id, detalles);
           mallasOmitidas.push(nombre);
         }
 

@@ -142,7 +142,11 @@
       "Bash(git checkout *)",
       "Bash(git commit -m ' *)",
       "Bash(xargs grep -l \"asistencia\\\\|reporte\")",
-      "Bash(xargs grep -l \"check.in\\\\|check.out\\\\|attendance\")"
+      "Bash(xargs grep -l \"check.in\\\\|check.out\\\\|attendance\")",
+      "Bash(xargs grep -l \"for.*let.*0.*7\\\\|for.*let.*0.*<=.*6\\\\|[^a-zA-Z]6[^a-zA-Z].*detalles\")",
+      "Bash(xargs wc -l)",
+      "Bash(xargs grep -l \"malla\\\\|seed\\\\|init\")",
+      "Bash(grep -v \"comment\\\\|//\")"
     ]
   }
 }
