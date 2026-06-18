@@ -131,7 +131,11 @@
       "Bash(Select-String -Pattern \"Decimales|showDecimal|decimal\")",
       "Bash(Select-Object -First 5 Filename, Line)",
       "PowerShell(\\(Get-Item \"C:\\\\Users\\\\e.agudelo\\\\Documents\\\\MigracionWodenTrack\\\\backend\\\\src\\\\horas-extra\\\\horas-extra.service.ts\"\\).LastWriteTime = Get-Date)",
-      "Read(//c/Users/e.agudelo/Downloads/**)"
+      "Read(//c/Users/e.agudelo/Downloads/**)",
+      "Bash(sqlcmd -S localhost -U sa -P Woden@2024 -d MigracionWodenTrack -Q \"SELECT TOP 10 usuario_id_odoo, malla_id, fecha_inicio, fecha_fin, actual FROM mallas_asignaciones ORDER BY fecha_inicio DESC\")",
+      "Bash(curl -s http://localhost:8082/health)",
+      "Bash(curl -s \"http://localhost:8082/reporte-novedades?hoy=false&startDate=2026-05-01&endDate=2026-05-31\" -H \"Content-Type: application/json\")",
+      "Bash(curl -s \"http://localhost:8082/reporte-novedades/stream?hoy=true\" -H \"Authorization: Bearer test\")"
     ]
   }
 }

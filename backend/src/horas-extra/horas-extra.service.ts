@@ -918,7 +918,8 @@ export class HorasExtraService {
       }
 
       // Sin salida registrada → no se puede calcular horas extras
-      if (!localOut) continue;
+      // COMENTADO TEMPORALMENTE PARA VER TODOS LOS REGISTROS
+      // if (!localOut) continue;
 
       const cedula = cedulaMap.get(empId) ?? 'N/A';
 
