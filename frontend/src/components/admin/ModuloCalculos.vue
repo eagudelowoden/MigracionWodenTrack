@@ -294,67 +294,51 @@
         </Transition>
 
         <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
-          <table class="w-full border-separate border-spacing-0 text-[11px]">
+          <table class="w-full border-separate border-spacing-0 text-[10px] table-excel-compact">
 
             <!-- Encabezado uniforme -->
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
                 <!-- Checkbox select-all -->
-                <th rowspan="2" class="px-2 py-2 text-center border-b border-r w-8 border-[#f5f5f7]">
+                <th rowspan="2" class="px-2 py-1.5 text-center border-b border-r w-8 border-[#f5f5f7]">
                   <input type="checkbox" :checked="isAllFilteredSelected" :indeterminate="isIndeterminate"
                     @change="toggleAllFiltered" class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
                 </th>
                 <th colspan="2"
-                  class="px-3 py-2 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Colaborador
                 </th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Fecha
                 </th>
                 <th colspan="2"
-                  class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Jornada
                 </th>
                 <th colspan="2"
-                  class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
                   Tiempo laborado
                 </th>
                 <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                  class="px-2 py-2 text-center text-[10px] font-medium tracking-wide border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-2 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
                   {{ col }}
                 </th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium tracking-wide border-b w-20 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b w-20 border-[#f5f5f7] text-[#f5f5f7]">
                   Aprobar
                 </th>
               </tr>
               <tr class="bg-[#1e2538]">
-                <th
-                  class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r w-28 border-[#f5f5f7] text-[#f5f5f7]">
-                  Cédula</th>
-                <th
-                  class="px-3 py-1.5 text-left text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Nombre</th>
-                <th
-                  class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-24 border-[#f5f5f7] text-[#f5f5f7]">
-                </th>
-                <th
-                  class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">
-                  Inicio</th>
-                <th
-                  class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">
-                  Fin</th>
-                <th
-                  class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">
-                  Entrada</th>
-                <th
-                  class="px-3 py-1.5 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">
-                  Salida</th>
-                <th v-for="_ in 7" :key="_"
-                  class="px-2 py-1.5 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  hrs</th>
-                <th class="px-3 py-1.5 border-b" :class="isDark ? 'border-[#f5f5f7]' : 'border-slate-200'"></th>
+                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r w-28 border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-24 border-[#f5f5f7] text-[#f5f5f7]"></th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Inicio</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Fin</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Entrada</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Salida</th>
+                <th v-for="_ in 7" :key="_" class="px-2 py-1 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">hrs</th>
+                <th class="px-3 py-1 border-b" :class="isDark ? 'border-[#f5f5f7]' : 'border-slate-200'"></th>
               </tr>
             </thead>
 
@@ -2466,6 +2450,19 @@ function fmtCalculo(val) {
   return parseFloat(n.toFixed(2)).toString();
 }
 
+function getColorHeaderCol(col) {
+  const colors = {
+    'RN': 'bg-red-900/40',
+    'RNDF': 'bg-red-900/30',
+    'RDDF': 'bg-red-900/30',
+    'HEDO': 'bg-blue-900/40',
+    'HENO': 'bg-blue-900/30',
+    'HEFD': 'bg-amber-900/40',
+    'HEFN': 'bg-amber-900/30',
+  };
+  return colors[col] || '';
+}
+
 // ── Composable Cálculos ──────────────────────────────────────────────────────
 const {
   registros,
@@ -3402,5 +3399,16 @@ onUnmounted(() => {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Tabla compacta - solo reducir altura de filas */
+.table-excel-compact tbody td {
+  padding: 2px 6px !important;
+  height: 22px;
+  line-height: 18px;
+}
+
+.table-excel-compact tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.03) !important;
 }
 </style>
