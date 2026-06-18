@@ -85,6 +85,11 @@ export function useAttendance() {
         ) {
           router.push("/selector-perfil");
         } else if (
+          data.permisos && data.permisos["admin.marcacion"]
+        ) {
+          // Si tiene permiso de marcación, muestra selector para elegir
+          router.push("/selector-perfil");
+        } else if (
           data.role === "admin" ||
           (data.permisos && data.permisos["admin.admin"])
         ) {
