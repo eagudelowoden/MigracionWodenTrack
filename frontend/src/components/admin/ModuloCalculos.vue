@@ -85,7 +85,7 @@
             : (isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')"
           :title="mostrarDecimales ? 'Mostrando medias horas (0.5). Clic para ver horas cerradas' : 'Mostrando horas cerradas (7). Clic para ver medias horas'">
           <i class="fas fa-toggle-on text-[11px]" :class="mostrarDecimales ? '' : 'opacity-40 rotate-180'"></i>
-          <span>{{ mostrarDecimales ? 'Decimales' : 'Decimales' }}</span>
+          <span>{{ mostrarDecimales ? 'Minutos' : 'Horas' }}</span>
         </button>
 
         <!-- Exportar -->
@@ -246,8 +246,14 @@
 
             <!-- Guardando -->
             <template v-if="isSaving">
-              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-              <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Guardando registros…</span>
+              <div class="loading-ring">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
+              <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Guardando
+                registros…</span>
             </template>
 
             <!-- Resultado guardado -->
@@ -256,12 +262,14 @@
                 <div class="flex items-center justify-center w-12 h-12 rounded-full"
                   :class="saveSuccessMsg.startsWith('❌') ? 'bg-red-500/15' : saveSuccessMsg.startsWith('⚠') ? 'bg-amber-500/15' : 'bg-emerald-500/15'">
                   <i v-if="saveSuccessMsg.startsWith('❌')" class="fas fa-xmark text-[22px] text-red-500"></i>
-                  <i v-else-if="saveSuccessMsg.startsWith('⚠')" class="fas fa-triangle-exclamation text-[20px] text-amber-500"></i>
+                  <i v-else-if="saveSuccessMsg.startsWith('⚠')"
+                    class="fas fa-triangle-exclamation text-[20px] text-amber-500"></i>
                   <i v-else class="fas fa-check text-[22px] text-emerald-500 save-check-anim"></i>
                 </div>
                 <p class="text-[13px] font-bold"
                   :class="saveSuccessMsg.startsWith('❌') ? (isDark ? 'text-red-400' : 'text-red-600') : saveSuccessMsg.startsWith('⚠') ? (isDark ? 'text-amber-400' : 'text-amber-600') : (isDark ? 'text-emerald-400' : 'text-emerald-600')">
-                  {{ saveSuccessMsg.startsWith('✅') ? 'Guardado exitosamente' : saveSuccessMsg.startsWith('⚠') ? 'Guardado con advertencias' : 'Error al guardar' }}
+                  {{ saveSuccessMsg.startsWith('✅') ? 'Guardado exitosamente' : saveSuccessMsg.startsWith('⚠') ?
+                    'Guardado con advertencias' : 'Error al guardar' }}
                 </p>
                 <p class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                   {{ saveSuccessMsg.replace(/^[✅⚠️❌]\s*/, '') }}
@@ -271,7 +279,12 @@
 
             <!-- Cargando / Calculando -->
             <template v-else>
-              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+              <div class="loading-ring">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
               <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ isCalculating ? 'Calculando…' : 'Cargando registros…' }}
               </span>
@@ -352,7 +365,8 @@
                 <tr>
                   <td colspan="16" class="px-4 py-2 border-b"
                     :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-50 border-slate-100'">
-                    <div class="h-2.5 w-40 rounded-full animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-2.5 w-40 rounded-full animate-pulse"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
                 </tr>
                 <!-- Filas de datos skeleton -->
@@ -360,7 +374,8 @@
                   :class="n % 2 === 0 ? (isDark ? 'bg-white/[0.015]' : 'bg-slate-50/40') : ''">
                   <!-- checkbox -->
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'">
+                    </div>
                   </td>
                   <!-- cédula -->
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
@@ -369,32 +384,41 @@
                   </td>
                   <!-- nombre -->
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2.5 rounded-full animate-pulse mb-1.5" :style="{ width: (120 + (n * 13) % 60) + 'px' }"
+                    <div class="h-2.5 rounded-full animate-pulse mb-1.5"
+                      :style="{ width: (120 + (n * 13) % 60) + 'px' }"
                       :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                     <div class="h-1.5 rounded-full animate-pulse" :style="{ width: (60 + (n * 9) % 40) + 'px' }"
                       :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
                   </td>
                   <!-- fecha -->
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
                   <!-- inicio / fin turno -->
-                  <td v-for="_ in 2" :key="'j' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  <td v-for="_ in 2" :key="'j' + _" class="px-3 py-3 border-b border-r"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
                   <!-- entrada / salida -->
-                  <td v-for="_ in 2" :key="'t' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#222938]' : 'bg-emerald-100/60'"></div>
+                  <td v-for="_ in 2" :key="'t' + _" class="px-3 py-3 border-b border-r"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#222938]' : 'bg-emerald-100/60'"></div>
                   </td>
                   <!-- 7 columnas hrs -->
-                  <td v-for="c in 7" :key="'h' + c" class="px-2 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <td v-for="c in 7" :key="'h' + c" class="px-2 py-3 border-b border-r"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="h-2 w-5 rounded-full animate-pulse mx-auto"
-                      :class="c === 4 ? (isDark ? 'bg-blue-500/20' : 'bg-blue-100') : (isDark ? 'bg-[#161B26]' : 'bg-slate-100')"></div>
+                      :class="c === 4 ? (isDark ? 'bg-blue-500/20' : 'bg-blue-100') : (isDark ? 'bg-[#161B26]' : 'bg-slate-100')">
+                    </div>
                   </td>
                   <!-- aprobar -->
                   <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="flex justify-center gap-1">
-                      <div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                      <div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'">
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -402,35 +426,46 @@
                 <tr>
                   <td colspan="16" class="px-4 py-2 border-b"
                     :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-50 border-slate-100'">
-                    <div class="h-2.5 w-52 rounded-full animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-2.5 w-52 rounded-full animate-pulse"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
                 </tr>
                 <tr v-for="n in 4" :key="'sk2-' + n"
                   :class="n % 2 === 0 ? (isDark ? 'bg-white/[0.015]' : 'bg-slate-50/40') : ''">
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="w-3.5 h-3.5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'">
+                    </div>
                   </td>
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <div class="h-2 rounded-full animate-pulse" :style="{ width: (55 + (n * 11) % 25) + 'px' }"
                       :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2.5 rounded-full animate-pulse mb-1.5" :style="{ width: (100 + (n * 17) % 80) + 'px' }"
+                    <div class="h-2.5 rounded-full animate-pulse mb-1.5"
+                      :style="{ width: (100 + (n * 17) % 80) + 'px' }"
                       :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                     <div class="h-1.5 rounded-full animate-pulse" :style="{ width: (50 + (n * 7) % 30) + 'px' }"
                       :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
                   </td>
                   <td class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                    <div class="h-2 w-16 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
-                  <td v-for="_ in 4" :key="'j2' + _" class="px-3 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
+                  <td v-for="_ in 4" :key="'j2' + _" class="px-3 py-3 border-b border-r"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-10 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div>
                   </td>
-                  <td v-for="c in 7" :key="'h2' + c" class="px-2 py-3 border-b border-r" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="h-2 w-5 rounded-full animate-pulse mx-auto" :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
+                  <td v-for="c in 7" :key="'h2' + c" class="px-2 py-3 border-b border-r"
+                    :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="h-2 w-5 rounded-full animate-pulse mx-auto"
+                      :class="isDark ? 'bg-[#161B26]' : 'bg-slate-100'"></div>
                   </td>
                   <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <div class="flex justify-center"><div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'"></div></div>
+                    <div class="flex justify-center">
+                      <div class="w-5 h-5 rounded animate-pulse" :class="isDark ? 'bg-[#1e2538]' : 'bg-slate-200'">
+                      </div>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -746,22 +781,24 @@
             <button @click="handleCargarLotes" :disabled="cargueIsLoadingLotes"
               class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
               :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
-              <i :class="cargueIsLoadingLotes ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'" class="text-[10px]"></i>
+              <i :class="cargueIsLoadingLotes ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'"
+                class="text-[10px]"></i>
               Buscar
             </button>
 
             <!-- Notificar seleccionados -->
-            <button v-if="lotesSeleccionadosCargue.size > 0"
-              @click="handleNotificarLotesSeleccionados"
+            <button v-if="lotesSeleccionadosCargue.size > 0" @click="handleNotificarLotesSeleccionados"
               :disabled="notificandoLotesMasivo"
               class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
               :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'">
-              <i :class="notificandoLotesMasivo ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'" class="text-[9px]"></i>
+              <i :class="notificandoLotesMasivo ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'"
+                class="text-[9px]"></i>
               {{ notificandoLotesMasivo ? 'Enviando…' : `Notificar (${lotesSeleccionadosCargue.size})` }}
             </button>
 
             <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueGruposLotes.length }}</span> lote(s)
+              <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueGruposLotes.length
+              }}</span> lote(s)
             </span>
           </div>
 
@@ -773,8 +810,14 @@
               <div v-if="notificandoLotesMasivo || notificandoLoteIdCargue"
                 class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 rounded-md"
                 :class="isDark ? 'bg-[#161B26]/85' : 'bg-white/85'" style="backdrop-filter:blur(3px)">
-                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-                <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                <div class="loading-ring">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span class="text-[11px] font-medium tracking-wide"
+                  :class="isDark ? 'text-slate-300' : 'text-slate-600'">
                   {{ notificandoLotesMasivo ? 'Notificando lotes…' : 'Enviando notificación…' }}
                 </span>
               </div>
@@ -783,14 +826,21 @@
               <div v-if="cargueIsLoadingLotes"
                 class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
                 :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
-                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-                <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando lotes…</span>
+                <div class="loading-ring">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span class="text-[11px] font-medium tracking-wide"
+                  :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando lotes…</span>
               </div>
             </Transition>
 
             <div v-if="cargueIsLoadingLotes" class="flex-1"></div>
 
-            <div v-else-if="!cargueGruposLotes.length" class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
+            <div v-else-if="!cargueGruposLotes.length"
+              class="flex-1 flex flex-col items-center justify-center gap-3 p-12">
               <i class="fas fa-layer-group text-2xl" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
               <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                 Selecciona un rango de fechas y presiona Buscar
@@ -806,12 +856,24 @@
                         :checked="cargueGruposLotes.length > 0 && lotesSeleccionadosCargue.size === cargueGruposLotes.length"
                         @change="toggleSelectAllLotes" />
                     </th>
-                    <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Período</th>
-                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Origen</th>
-                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Registros</th>
-                    <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Cargado por</th>
-                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Fecha cargue</th>
-                    <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Acciones</th>
+                    <th
+                      class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Período</th>
+                    <th
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Origen</th>
+                    <th
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Registros</th>
+                    <th
+                      class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Cargado por</th>
+                    <th
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Fecha cargue</th>
+                    <th
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -820,7 +882,8 @@
                     :class="lotesSeleccionadosCargue.has(lote.lote_id) ? (isDark ? 'bg-blue-500/[0.07]' : 'bg-blue-50/60') : (idx % 2 !== 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/60') : '')"
                     @click.exact="toggleLoteCargue(lote.lote_id)">
 
-                    <td class="w-9 px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                    <td class="w-9 px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
+                      @click.stop>
                       <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
                         :checked="lotesSeleccionadosCargue.has(lote.lote_id)"
                         @change="toggleLoteCargue(lote.lote_id)" />
@@ -830,13 +893,16 @@
                       <div class="font-mono text-[11px]" :class="isDark ? 'text-white' : 'text-slate-900'">
                         {{ fmtFechaLote(lote.fecha_desde) }} — {{ fmtFechaLote(lote.fecha_hasta) }}
                       </div>
-                      <div class="text-[9px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ lote.company || '—' }}</div>
+                      <div class="text-[9px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{
+                        lote.company || '—' }}</div>
                     </td>
 
-                    <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <td class="px-3 py-3 border-b text-center"
+                      :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                       <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-semibold"
                         :class="lote.origen === 'gerente' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'">
-                        <i :class="lote.origen === 'gerente' ? 'fas fa-user-tie' : 'fas fa-robot'" class="text-[8px]"></i>
+                        <i :class="lote.origen === 'gerente' ? 'fas fa-user-tie' : 'fas fa-robot'"
+                          class="text-[8px]"></i>
                         {{ lote.origen === 'gerente' ? 'Gerente' : 'Sistema' }}
                       </span>
                     </td>
@@ -856,7 +922,8 @@
                       {{ fmtDatetimeLote(lote.created_at) }}
                     </td>
 
-                    <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                    <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
+                      @click.stop>
                       <div class="flex items-center justify-center gap-1.5">
                         <!-- Ver registros -->
                         <button @click="abrirRegistrosCargue(lote)"
@@ -868,7 +935,8 @@
                           :disabled="notificandoLoteIdCargue === lote.lote_id"
                           class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all disabled:opacity-40"
                           :class="isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'">
-                          <i :class="notificandoLoteIdCargue === lote.lote_id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[9px]"></i>
+                          <i :class="notificandoLoteIdCargue === lote.lote_id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"
+                            class="text-[9px]"></i>
                           {{ notificandoLoteIdCargue === lote.lote_id ? 'Enviando…' : 'Notificar' }}
                         </button>
                       </div>
@@ -953,7 +1021,8 @@
 
         <!-- Overlay carga / procesando -->
         <Transition name="fade-chip">
-          <div v-if="isLoadingGuardados || bulkGuardandoAprobacion || modalAprobar.loading || bulkEliminandoGuardados || deleteToastMsg"
+          <div
+            v-if="isLoadingGuardados || bulkGuardandoAprobacion || modalAprobar.loading || bulkEliminandoGuardados || deleteToastMsg"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-md"
             :class="isDark ? 'bg-[#161B26]/80' : 'bg-white/80'" style="backdrop-filter:blur(3px)">
 
@@ -965,7 +1034,8 @@
                 <div style="border-top-color:#fca5a5;opacity:.35"></div>
                 <div style="border-top-color:#fecaca;opacity:.15"></div>
               </div>
-              <span class="text-[12px] font-semibold" :class="isDark ? 'text-red-400' : 'text-red-600'">Eliminando registros…</span>
+              <span class="text-[12px] font-semibold" :class="isDark ? 'text-red-400' : 'text-red-600'">Eliminando
+                registros…</span>
             </template>
 
             <!-- Estado: resultado de eliminación -->
@@ -988,9 +1058,15 @@
 
             <!-- Estado: otras operaciones -->
             <template v-else>
-              <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+              <div class="loading-ring">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
               <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                {{ bulkGuardandoAprobacion ? 'Aplicando aprobación…' : modalAprobar.loading ? 'Guardando cambios…' : 'Cargando registros…' }}
+                {{ bulkGuardandoAprobacion ? 'Aplicando aprobación…' : modalAprobar.loading ? 'Guardando cambios…' :
+                  'Cargando registros…' }}
               </span>
             </template>
 
@@ -1339,7 +1415,12 @@
           <div v-if="isLoadingNovedades || isNotifying"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
             :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
-            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+            <div class="loading-ring">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
             <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
               {{ isNotifying ? 'Notificando a Capital Humano…' : 'Cargando novedades…' }}
             </span>
@@ -1474,8 +1555,14 @@
           <div v-if="isLoadingHistorial"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-md"
             :class="isDark ? 'bg-[#161B26]/75' : 'bg-white/75'" style="backdrop-filter:blur(2px)">
-            <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-            <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando historial…</span>
+            <div class="loading-ring">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <span class="text-[11px] font-medium tracking-wide"
+              :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cargando historial…</span>
           </div>
         </Transition>
 
@@ -1495,15 +1582,23 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-10">
               <tr class="bg-[#1e2538]">
-                <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Período</th>
-                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Registros</th>
-                <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Notificado por</th>
-                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">Acciones</th>
+                <th
+                  class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                  Período</th>
+                <th
+                  class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                  Registros</th>
+                <th
+                  class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                  Notificado por</th>
+                <th
+                  class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                  Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(grupoRows, loteKey) in historialAgrupadoPorLote" :key="loteKey"
-                class="transition-all" :class="isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'">
+              <tr v-for="(grupoRows, loteKey) in historialAgrupadoPorLote" :key="loteKey" class="transition-all"
+                :class="isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'">
                 <!-- Período -->
                 <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                   <div class="flex items-center gap-2">
@@ -1513,7 +1608,8 @@
                     </div>
                     <div>
                       <p class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
-                        {{ formatFecha(historialFechaMin(grupoRows)) }} — {{ formatFecha(historialFechaMax(grupoRows)) }}
+                        {{ formatFecha(historialFechaMin(grupoRows)) }} — {{ formatFecha(historialFechaMax(grupoRows))
+                        }}
                       </p>
                       <p class="text-[10px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                         {{ grupoRows[0]?.company || '—' }}
@@ -1523,17 +1619,18 @@
                 </td>
                 <!-- Registros -->
                 <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ grupoRows.length }}</span>
+                  <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ grupoRows.length
+                  }}</span>
                 </td>
                 <!-- Notificado por -->
-                <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                <td class="px-3 py-3 border-b"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
                   {{ grupoRows[0]?.calculado_por || '—' }}
                 </td>
                 <!-- Acciones -->
                 <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
                   <div class="flex items-center justify-center gap-1.5">
-                    <button v-if="loteKey !== 'sin_lote'"
-                      @click="abrirComparativoHistorial(loteKey, grupoRows)"
+                    <button v-if="loteKey !== 'sin_lote'" @click="abrirComparativoHistorial(loteKey, grupoRows)"
                       class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
                       :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
                       <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
@@ -1599,10 +1696,11 @@
                     ({{ modalObsGrupal.fechas.size }} seleccionada{{ modalObsGrupal.fechas.size !== 1 ? 's' : '' }})
                   </span>
                 </label>
-                <button @click="toggleTodasFechasObs"
-                  class="text-[10px] font-medium transition-all"
+                <button @click="toggleTodasFechasObs" class="text-[10px] font-medium transition-all"
                   :class="isDark ? 'text-[#3B82F6] hover:text-blue-300' : 'text-[#3B82F6] hover:text-blue-700'">
-                  {{ modalObsGrupal.fechas.size === fechasUnicasGuardados.length ? 'Deseleccionar todas' : 'Seleccionar todas' }}
+                  {{ modalObsGrupal.fechas.size === fechasUnicasGuardados.length ? 'Deseleccionar todas' : 'Seleccionar'
+                  +
+                  'todas' }}
                 </button>
               </div>
               <div class="flex flex-wrap gap-1.5">
@@ -1613,7 +1711,7 @@
                     : (isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300 hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300')">
                   {{ formatFecha(f) }}
                   <span class="ml-1 opacity-70 text-[9px]">
-                    ({{ soloFilasGuardados.filter(r => r.fecha === f).length }})
+                    ({{soloFilasGuardados.filter(r => r.fecha === f).length}})
                   </span>
                 </button>
               </div>
@@ -1629,10 +1727,10 @@
                     ({{ modalObsGrupal.seleccionados.size }} / {{ registrosDesFechasObs.length }})
                   </span>
                 </label>
-                <button @click="toggleTodosObsGrupal"
-                  class="text-[10px] font-medium transition-all"
+                <button @click="toggleTodosObsGrupal" class="text-[10px] font-medium transition-all"
                   :class="isDark ? 'text-[#3B82F6] hover:text-blue-300' : 'text-[#3B82F6] hover:text-blue-700'">
-                  {{ modalObsGrupal.seleccionados.size === registrosDesFechasObs.length ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+                  {{ modalObsGrupal.seleccionados.size === registrosDesFechasObs.length ? 'Deseleccionar todos' :
+                    'Seleccionar todos' }}
                 </button>
               </div>
               <div class="rounded-lg border overflow-hidden max-h-52 overflow-y-auto custom-scrollbar"
@@ -1647,9 +1745,9 @@
                   <label v-for="r in soloFilasGuardados.filter(rr => rr.fecha === f)" :key="r.id"
                     class="flex items-center gap-3 px-3 py-2 border-b last:border-b-0 text-[11px] cursor-pointer transition-all"
                     :class="[isDark ? 'border-[#222938]' : 'border-slate-100',
-                      modalObsGrupal.seleccionados.has(r.id)
-                        ? (isDark ? 'bg-[#3B82F6]/[0.07]' : 'bg-blue-50/70')
-                        : (isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50')]">
+                    modalObsGrupal.seleccionados.has(r.id)
+                      ? (isDark ? 'bg-[#3B82F6]/[0.07]' : 'bg-blue-50/70')
+                      : (isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50')]">
                     <input type="checkbox" :checked="modalObsGrupal.seleccionados.has(r.id)"
                       @change="toggleObsPersona(r.id)"
                       class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer flex-shrink-0" />
@@ -1660,7 +1758,8 @@
                       <i class="fas fa-check text-[8px]"></i> ya tiene obs.
                     </span>
                     <span class="text-[9px] shrink-0"
-                      :class="[isDark ? 'text-slate-500' : 'text-slate-400', r.actividad ? 'ml-1' : 'ml-auto']">{{ r.departamento || '—' }}</span>
+                      :class="[isDark ? 'text-slate-500' : 'text-slate-400', r.actividad ? 'ml-1' : 'ml-auto']">{{
+                        r.departamento || '—' }}</span>
                   </label>
                 </template>
               </div>
@@ -1686,15 +1785,22 @@
               :class="isDark ? 'bg-[#161B26]/90' : 'bg-white/90'" style="backdrop-filter:blur(3px)">
 
               <template v-if="modalObsGrupal.loading">
-                <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
-                <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Aplicando justificación…</span>
+                <div class="loading-ring">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span class="text-[12px] font-semibold" :class="isDark ? 'text-blue-400' : 'text-blue-600'">Aplicando
+                  justificación…</span>
               </template>
 
               <template v-else-if="modalObsGrupal.resultMsg">
                 <div class="flex flex-col items-center gap-2">
                   <div class="flex items-center justify-center w-12 h-12 rounded-full"
                     :class="modalObsGrupal.resultMsg.startsWith('❌') ? 'bg-red-500/15' : 'bg-emerald-500/15'">
-                    <i v-if="modalObsGrupal.resultMsg.startsWith('❌')" class="fas fa-xmark text-[22px] text-red-500"></i>
+                    <i v-if="modalObsGrupal.resultMsg.startsWith('❌')"
+                      class="fas fa-xmark text-[22px] text-red-500"></i>
                     <i v-else class="fas fa-check text-[22px] text-emerald-500 save-check-anim"></i>
                   </div>
                   <p class="text-[13px] font-bold"
@@ -2094,133 +2200,124 @@
     <!-- ══ FIN MODAL ACTIVIDAD ═══════════════════════════════════════════════ -->
 
     <!-- ══ MODAL REGISTROS CARGUE ════════════════════════════════════════════ -->
-    <RegistrosLoteModal
-      v-model="showRegistrosCargue"
-      :isDark="isDark"
-      :lote="loteRegistrosCargue"
-      :registros="cargueRegistrosLote"
-      :isLoading="cargueIsLoadingRegistrosLote"
-    />
+    <RegistrosLoteModal v-model="showRegistrosCargue" :isDark="isDark" :lote="loteRegistrosCargue"
+      :registros="cargueRegistrosLote" :isLoading="cargueIsLoadingRegistrosLote" />
 
     <!-- ══ MODAL COMPARATIVO CARGUE ═════════════════════════════════════════ -->
-    <ComparativoHorasModal
-      v-model="showComparativoCargue"
-      :isDark="isDark"
-      :lote="loteSeleccionadoCargue"
-      :comparativo="cargueComparativo"
-      :isLoading="cargueIsLoadingComparativo"
-    />
+    <ComparativoHorasModal v-model="showComparativoCargue" :isDark="isDark" :lote="loteSeleccionadoCargue"
+      :comparativo="cargueComparativo" :isLoading="cargueIsLoadingComparativo" />
     <!-- ══ FIN MODAL COMPARATIVO CARGUE ══════════════════════════════════════ -->
 
     <!-- ══ MODAL IMPORTAR EXCEL ══════════════════════════════════════════════ -->
     <Teleport to="body">
-    <Transition name="fade">
-      <div v-if="showImportModal" class="fixed inset-0 z-[9999] flex items-center justify-content-center p-4"
-        style="background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;"
-        @click.self="cerrarImportModal">
-        <div class="w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden"
-          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+      <Transition name="fade">
+        <div v-if="showImportModal" class="fixed inset-0 z-[9999] flex items-center justify-content-center p-4"
+          style="background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;"
+          @click.self="cerrarImportModal">
+          <div class="w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-          <!-- Header -->
-          <div class="flex items-center gap-3 px-5 py-4 border-b"
-            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              :class="isDark ? 'bg-blue-500/15' : 'bg-blue-50'">
-              <i class="fas fa-file-import text-blue-500 text-[14px]"></i>
-            </div>
-            <div class="flex-1">
-              <p class="text-[10px] font-medium uppercase tracking-wide"
-                :class="isDark ? 'text-slate-500' : 'text-slate-400'">Novedades Aprobadas</p>
-              <h3 class="text-[15px] font-semibold"
-                :class="isDark ? 'text-white' : 'text-slate-900'">Importar desde Excel</h3>
-            </div>
-            <button @click="cerrarImportModal"
-              class="w-7 h-7 rounded-md flex items-center justify-center border transition-all"
-              :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
-              <i class="fas fa-times text-[12px]"></i>
-            </button>
-          </div>
-
-          <!-- Resultado previo -->
-          <div v-if="importResultado" class="px-5 pt-4">
-            <div v-if="importResultado.error" class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
-              :class="isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-700'">
-              <i class="fas fa-triangle-exclamation text-[11px]"></i>
-              <span class="text-[12px]">{{ importResultado.error }}</span>
-            </div>
-            <div v-else class="flex flex-col gap-1.5">
-              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
-                :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
-                <i class="fas fa-circle-check text-[11px]"></i>
-                <span class="text-[12px] font-medium">{{ importResultado.guardados }} registro(s) importados correctamente</span>
+            <!-- Header -->
+            <div class="flex items-center gap-3 px-5 py-4 border-b"
+              :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                :class="isDark ? 'bg-blue-500/15' : 'bg-blue-50'">
+                <i class="fas fa-file-import text-blue-500 text-[14px]"></i>
               </div>
-              <div v-if="importResultado.omitidos?.length" class="px-3 py-2 rounded-lg border text-[11px]"
-                :class="isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'">
-                <i class="fas fa-triangle-exclamation text-[10px] mr-1"></i>
-                {{ importResultado.omitidos.length }} omitido(s) — ya tenían registro aprobado:
-                <span v-for="o in importResultado.omitidos" :key="o.nombre+o.fecha" class="block ml-4 text-[10px] opacity-80">
-                  · {{ o.nombre }} / {{ o.fecha }}
-                </span>
+              <div class="flex-1">
+                <p class="text-[10px] font-medium uppercase tracking-wide"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-400'">Novedades Aprobadas</p>
+                <h3 class="text-[15px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">Importar desde
+                  Excel
+                </h3>
               </div>
+              <button @click="cerrarImportModal"
+                class="w-7 h-7 rounded-md flex items-center justify-center border transition-all"
+                :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
+                <i class="fas fa-times text-[12px]"></i>
+              </button>
             </div>
-          </div>
 
-          <!-- Drop zone -->
-          <div v-if="!importResultado?.guardados" class="px-5 py-5">
-            <div
-              class="relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all cursor-pointer"
-              :class="[
-                importDragOver
-                  ? (isDark ? 'border-blue-400 bg-blue-500/10' : 'border-blue-400 bg-blue-50')
-                  : (isDark ? 'border-[#2a3245] hover:border-blue-500/50' : 'border-slate-200 hover:border-blue-300'),
-                importFile ? (isDark ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-emerald-400 bg-emerald-50') : ''
-              ]"
-              @dragover.prevent="importDragOver = true"
-              @dragleave="importDragOver = false"
-              @drop="onImportDrop"
-              @click="$refs.importFileInput.click()">
-              <input ref="importFileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="onImportFileChange" />
-              <i v-if="!importFile" class="fas fa-cloud-arrow-up text-2xl"
-                :class="isDark ? 'text-slate-500' : 'text-slate-300'"></i>
-              <i v-else class="fas fa-file-excel text-2xl text-emerald-500"></i>
-              <div class="text-center">
-                <p class="text-[12px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
-                  {{ importFile ? importFile.name : 'Arrastra el archivo aquí o haz clic para seleccionar' }}
-                </p>
-                <p v-if="!importFile" class="text-[10px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                  Formato: plantilla de horas extra (.xlsx)
-                </p>
-                <p v-else class="text-[10px] mt-1 text-emerald-500">
-                  {{ (importFile.size / 1024).toFixed(1) }} KB · listo para importar
-                </p>
+            <!-- Resultado previo -->
+            <div v-if="importResultado" class="px-5 pt-4">
+              <div v-if="importResultado.error" class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
+                :class="isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-700'">
+                <i class="fas fa-triangle-exclamation text-[11px]"></i>
+                <span class="text-[12px]">{{ importResultado.error }}</span>
+              </div>
+              <div v-else class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border"
+                  :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'">
+                  <i class="fas fa-circle-check text-[11px]"></i>
+                  <span class="text-[12px] font-medium">{{ importResultado.guardados }} registro(s) importados
+                    correctamente</span>
+                </div>
+                <div v-if="importResultado.omitidos?.length" class="px-3 py-2 rounded-lg border text-[11px]"
+                  :class="isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'">
+                  <i class="fas fa-triangle-exclamation text-[10px] mr-1"></i>
+                  {{ importResultado.omitidos.length }} omitido(s) — ya tenían registro aprobado:
+                  <span v-for="o in importResultado.omitidos" :key="o.nombre + o.fecha"
+                    class="block ml-4 text-[10px] opacity-80">
+                    · {{ o.nombre }} / {{ o.fecha }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Footer -->
-          <div class="flex items-center justify-end gap-2 px-5 py-3 border-t"
-            :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-100 bg-slate-50'">
-            <button @click="cerrarImportModal"
-              class="h-8 px-4 rounded-lg text-[12px] font-medium border transition-all"
-              :class="isDark ? 'border-[#222938] text-slate-300 hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'">
-              Cerrar
-            </button>
-            <button v-if="importResultado?.guardados" @click="cerrarImportModal"
-              class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all bg-emerald-600 hover:bg-emerald-700 text-white border-0">
-              <i class="fas fa-check text-[10px] mr-1"></i> Listo
-            </button>
-            <button v-else @click="ejecutarImport"
-              :disabled="!importFile || isImportingExcel"
-              class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40 border-0"
-              :class="isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'">
-              <i :class="isImportingExcel ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'" class="text-[10px] mr-1"></i>
-              {{ isImportingExcel ? 'Importando…' : 'Importar' }}
-            </button>
-          </div>
+            <!-- Drop zone -->
+            <div v-if="!importResultado?.guardados" class="px-5 py-5">
+              <div
+                class="relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all cursor-pointer"
+                :class="[
+                  importDragOver
+                    ? (isDark ? 'border-blue-400 bg-blue-500/10' : 'border-blue-400 bg-blue-50')
+                    : (isDark ? 'border-[#2a3245] hover:border-blue-500/50' : 'border-slate-200 hover:border-blue-300'),
+                  importFile ? (isDark ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-emerald-400 bg-emerald-50') : ''
+                ]" @dragover.prevent="importDragOver = true" @dragleave="importDragOver = false" @drop="onImportDrop"
+                @click="$refs.importFileInput.click()">
+                <input ref="importFileInput" type="file" accept=".xlsx,.xls" class="hidden"
+                  @change="onImportFileChange" />
+                <i v-if="!importFile" class="fas fa-cloud-arrow-up text-2xl"
+                  :class="isDark ? 'text-slate-500' : 'text-slate-300'"></i>
+                <i v-else class="fas fa-file-excel text-2xl text-emerald-500"></i>
+                <div class="text-center">
+                  <p class="text-[12px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                    {{ importFile ? importFile.name : 'Arrastra el archivo aquí o haz clic para seleccionar' }}
+                  </p>
+                  <p v-if="!importFile" class="text-[10px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                    Formato: plantilla de horas extra (.xlsx)
+                  </p>
+                  <p v-else class="text-[10px] mt-1 text-emerald-500">
+                    {{ (importFile.size / 1024).toFixed(1) }} KB · listo para importar
+                  </p>
+                </div>
+              </div>
+            </div>
 
+            <!-- Footer -->
+            <div class="flex items-center justify-end gap-2 px-5 py-3 border-t"
+              :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-100 bg-slate-50'">
+              <button @click="cerrarImportModal"
+                class="h-8 px-4 rounded-lg text-[12px] font-medium border transition-all"
+                :class="isDark ? 'border-[#222938] text-slate-300 hover:text-white' : 'border-slate-200 text-slate-600 hover:text-slate-900'">
+                Cerrar
+              </button>
+              <button v-if="importResultado?.guardados" @click="cerrarImportModal"
+                class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+                <i class="fas fa-check text-[10px] mr-1"></i> Listo
+              </button>
+              <button v-else @click="ejecutarImport" :disabled="!importFile || isImportingExcel"
+                class="h-8 px-4 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40 border-0"
+                :class="isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'">
+                <i :class="isImportingExcel ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'"
+                  class="text-[10px] mr-1"></i>
+                {{ isImportingExcel ? 'Importando…' : 'Importar' }}
+              </button>
+            </div>
+
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
     </Teleport>
     <!-- ══ FIN MODAL IMPORTAR EXCEL ════════════════════════════════════════ -->
 
@@ -2239,7 +2336,8 @@
           <p class="text-[12px] font-semibold leading-snug">Justificación requerida</p>
           <p class="text-[11px] mt-0.5 opacity-80 leading-snug">
             <template v-if="toastJustificacion.total > 1">
-              {{ toastJustificacion.total }} registro(s) tienen horas extras sin justificación. Debes agregarla antes de aprobar.
+              {{ toastJustificacion.total }} registro(s) tienen horas extras sin justificación. Debes agregarla antes de
+              aprobar.
             </template>
             <template v-else>
               Este registro tiene horas extras. Debes agregar la actividad o motivo antes de aprobar.
@@ -3172,51 +3270,137 @@ onUnmounted(() => {
 });
 </script>
 <style>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
 
-.toast-slide-enter-active { transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-.toast-slide-leave-active { transition: all 0.18s ease; }
-.toast-slide-enter-from { opacity: 0; transform: translateX(-50%) translateY(16px); }
-.toast-slide-leave-to   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.toast-slide-enter-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-slide-leave-active {
+  transition: all 0.18s ease;
+}
+
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px);
+}
+
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
 
 /* Overlay fade */
-.fade-chip-enter-active { transition: opacity 0.15s ease; }
-.fade-chip-leave-active { transition: opacity 0.2s ease; }
-.fade-chip-enter-from, .fade-chip-leave-to { opacity: 0; }
+.fade-chip-enter-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-chip-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-chip-enter-from,
+.fade-chip-leave-to {
+  opacity: 0;
+}
 
 /* Toast guardar — cae desde arriba */
-.save-toast-enter-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-.save-toast-leave-active { transition: all 0.2s ease; }
-.save-toast-enter-from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.95); }
-.save-toast-leave-to   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.97); }
+.save-toast-enter-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.save-toast-leave-active {
+  transition: all 0.2s ease;
+}
+
+.save-toast-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-16px) scale(0.95);
+}
+
+.save-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px) scale(0.97);
+}
 
 /* Check animado al guardar */
 @keyframes check-pop {
-  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
-  60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.25) rotate(5deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
-.save-check-anim { animation: check-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.save-check-anim {
+  animation: check-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* Spinner ring */
-.loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }
+.loading-ring {
+  display: inline-block;
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
+
 .loading-ring div {
   box-sizing: border-box;
   display: block;
   position: absolute;
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border: 3px solid transparent;
   border-top-color: #3B82F6;
   border-radius: 50%;
   animation: ring-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
-.loading-ring div:nth-child(1) { animation-delay: -0.3s; }
-.loading-ring div:nth-child(2) { animation-delay: -0.2s; border-top-color: #60A5FA; opacity: .6; }
-.loading-ring div:nth-child(3) { animation-delay: -0.1s; border-top-color: #93C5FD; opacity: .35; }
-.loading-ring div:nth-child(4) { border-top-color: #BFDBFE; opacity: .15; }
+
+.loading-ring div:nth-child(1) {
+  animation-delay: -0.3s;
+}
+
+.loading-ring div:nth-child(2) {
+  animation-delay: -0.2s;
+  border-top-color: #60A5FA;
+  opacity: .6;
+}
+
+.loading-ring div:nth-child(3) {
+  animation-delay: -0.1s;
+  border-top-color: #93C5FD;
+  opacity: .35;
+}
+
+.loading-ring div:nth-child(4) {
+  border-top-color: #BFDBFE;
+  opacity: .15;
+}
+
 @keyframes ring-spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>
