@@ -60,7 +60,12 @@ export function useAttendance() {
       const data = await res.json();
 
       if (res.ok && data.status === "success") {
-        // 1. SINCRONIZACIÓN DE ESTADO (Asistencia)
+        // 1. GUARDAR SESIÓN PRIMERO (para que apiFetch tenga el token)
+        data.last_login_date = new Date().toLocaleDateString();
+        employee.value = data;
+        localStorage.setItem("user_session", JSON.stringify(data));
+
+        // 2. SINCRONIZACIÓN DE ESTADO (Asistencia)
         try {
           const statusRes = await apiFetch(
             `${API_BASE_URL}/attendance-status/${data.employee_id}`,
@@ -70,11 +75,6 @@ export function useAttendance() {
         } catch (statusErr) {
           console.warn("Error sincronizando estado inicial.");
         }
-
-        // 2. GUARDAR SESIÓN
-        data.last_login_date = new Date().toLocaleDateString();
-        employee.value = data;
-        localStorage.setItem("user_session", JSON.stringify(data));
 
         showToast(`Bienvenido ${data.name}`, "success");
 
