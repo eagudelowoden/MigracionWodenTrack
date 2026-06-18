@@ -828,6 +828,9 @@ export class HorasExtraService {
       const diaSemana = this.getDiaSemana(fecha);
       const esDominical = diaSemana === 6;
       const esFestivo   = esDominical || festivosSet.has(fecha);
+      // Festivo de lunes a sábado (no domingo): legalmente estos días no tienen
+      // malla — el turno definido para ese día de la semana no debe aplicar.
+      const esFestivoEntreSemana = !esDominical && festivosSet.has(fecha);
 
       // Tipo del día siguiente (para partir correctamente los turnos nocturnos
       // que cruzan medianoche: las horas del día N+1 usan el tipo de ese día)
@@ -848,6 +851,14 @@ export class HorasExtraService {
       }
       // NOTA: ya no se hace `continue` por falta de malla ni por día sin turno.
       // El registro siempre se incluye; las horas extra se calculan solo cuando corresponde.
+
+      // `turno` se conserva tal cual para la corrección biométrica de turnos
+      // nocturnos (más abajo), que solo necesita ubicar la punch real cercana
+      // a la hora de la malla. Para clasificación de horas y para mostrar la
+      // "Jornada" en el reporte, en cambio, un festivo entre semana invalida
+      // el turno: todo el tiempo trabajado pasa a ser extra (HEDO/HENO u
+      // HEFD/HEFN según corresponda), no recargo dentro de turno (RN/RNDF/RDDF).
+      const turnoParaClasificar = esFestivoEntreSemana ? null : turno;
 
       // ── Entrada / salida desde hr.attendance (o biométrico sintético) ────────
       let localIn = this.toLocal(primero.check_in);
@@ -936,8 +947,8 @@ export class HorasExtraService {
       // Tolerancia = 6 min (llegar hasta 6 min tarde se acepta sin reposición).
       const TOLERANCIA_REPOS = HorasExtraService.TOLERANCIA_MINS;
       let retrasoMins = 0;
-      if (turno && localIn) {
-        const shiftStartMins = Number(turno.hora_inicio) * 60;
+      if (turnoParaClasificar && localIn) {
+        const shiftStartMins = Number(turnoParaClasificar.hora_inicio) * 60;
         const inMinsLocal    = this.parseMinutos(localIn);
         if (inMinsLocal > shiftStartMins + TOLERANCIA_REPOS) {
           retrasoMins = inMinsLocal - shiftStartMins;
@@ -946,7 +957,7 @@ export class HorasExtraService {
 
       const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
-        ? this.calcularCategorias(localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins)
+        ? this.calcularCategorias(localIn, localOut, turnoParaClasificar, esFestivo, esFestivoSiguiente, retrasoMins)
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
 
       // Compatibilidad con campos legacy (minutos)
@@ -969,10 +980,12 @@ export class HorasExtraService {
         calculado_por: dto.calculado_por ?? null,
         es_dominical: esFestivo,
         aprobado: null,
-        inicio_turno: turno
-          ? this.decimalToHora(Number(turno.hora_inicio))
+        inicio_turno: turnoParaClasificar
+          ? this.decimalToHora(Number(turnoParaClasificar.hora_inicio))
           : null,
-        fin_turno: turno ? this.decimalToHora(Number(turno.hora_fin)) : null,
+        fin_turno: turnoParaClasificar
+          ? this.decimalToHora(Number(turnoParaClasificar.hora_fin))
+          : null,
         // Legacy (entrada anticipada: solo si hay hedo puro antes del turno)
         inicio_extra_entrada: null,
         fin_extra_entrada: null,
