@@ -326,11 +326,15 @@ export class ReportsService {
       }
     }
 
-    // Malla horaria desde la BD local según la fecha del registro
-    try {
-      mallasLocales = await this.obtenerMallasLocalesParaReporte(data);
-    } catch (localErr) {
-      console.error('Error consultando mallas locales:', localErr.message);
+    // Malla horaria: si los registros ya traen nombre_malla pre-resuelto (desde
+    // getReporteNovedades) se usa directamente. Si no, se hace el lookup por nombre.
+    const allHaveMalla = data.length > 0 && data.every((i) => i.NombreMalla);
+    if (!allHaveMalla) {
+      try {
+        mallasLocales = await this.obtenerMallasLocalesParaReporte(data);
+      } catch (localErr) {
+        console.error('Error consultando mallas locales:', localErr.message);
+      }
     }
 
     // Columnas
@@ -356,17 +360,21 @@ export class ReportsService {
       const claveMalla = `${nombre}::${fecha}`;
       const mallaLocal = mallasLocales.get(claveMalla);
 
+      // Preferir datos pre-resueltos del reporte; fallback al lookup por nombre
+      const nombreMalla = item.NombreMalla || mallaLocal?.nombreMalla || 'N/A';
+      const mallaHoraria = item.MallaHoraria || mallaLocal?.detallesMalla || 'N/A';
+
       worksheet.addRow({
         colaborador: nombre || 'N/A',
-        cedula: item.doc_number || cedulaMap.get(nombre) || 'N/A',
+        cedula: item.doc_number || item.Cedula || cedulaMap.get(nombre) || 'N/A',
         cargo: cargoMap.get(nombre) || 'N/A',
         depto: item.department_id || item.Departamento || 'N/A',
         entrada: item.Entrada || item.check_in || 'N/A',
         salida: item.Salida || item.check_out || 'N/A',
         estatus_entrada: item.Estatus_Entrada || item.c_entrada || 'N/A',
         estatus_salida: item.Estatus_Salida || item.c_salida || 'N/A',
-        nombre_malla: mallaLocal?.nombreMalla || 'N/A',
-        malla: mallaLocal?.detallesMalla || 'N/A',
+        nombre_malla: nombreMalla,
+        malla: mallaHoraria,
       });
     });
 

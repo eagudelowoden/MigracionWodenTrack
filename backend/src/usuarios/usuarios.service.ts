@@ -999,6 +999,46 @@ export class UsuariosService {
     return anterior?.malla?.detalles ?? [];
   }
 
+  /** Igual que resolverDetallesParaFecha pero devuelve la asignación completa */
+  private resolverAsignacionParaFecha(
+    asignaciones: any[],
+    fechaLocal: string,
+  ): any | null {
+    if (!asignaciones?.length) return null;
+    const toDateStr = (v: any): string => {
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).slice(0, 10);
+    };
+    return (
+      asignaciones.find((a) => {
+        const inicio = toDateStr(a.fecha_inicio);
+        const fin = a.fecha_fin ? toDateStr(a.fecha_fin) : null;
+        return inicio <= fechaLocal && (fin === null || fin >= fechaLocal);
+      }) ??
+      asignaciones.find((a) => toDateStr(a.fecha_inicio) <= fechaLocal) ??
+      null
+    );
+  }
+
+  /** Formatea detalles de malla como "Lun 08:00-16:00 | Mar 08:00-16:00 …" */
+  private formatearHorarioLocal(detalles: any[]): string {
+    if (!detalles?.length) return '';
+    const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const dec = (h: number) => {
+      const hh = Math.floor(h).toString().padStart(2, '0');
+      const mm = Math.round((h % 1) * 60).toString().padStart(2, '0');
+      return `${hh}:${mm}`;
+    };
+    return [...detalles]
+      .sort((a, b) => Number(a.dia_semana) - Number(b.dia_semana))
+      .map(
+        (d) =>
+          `${DIAS[Number(d.dia_semana)] ?? `D${d.dia_semana}`} ${dec(Number(d.hora_inicio))}-${dec(Number(d.hora_fin))}`,
+      )
+      .join(' | ');
+  }
+
   private clasificarPorMallaLocal(
     empId: number,
     punchingTime: string,
@@ -1380,6 +1420,11 @@ export class UsuariosService {
               )
             : 'N/A';
 
+          const _asigMalla = this.resolverAsignacionParaFecha(
+            mallasLocalMap.get(empId) ?? [],
+            fecha,
+          );
+
           return {
             id: `att_${primeraId}`,
             empleado: nombre,
@@ -1393,6 +1438,8 @@ export class UsuariosService {
             tipo: 'ASISTENCIA',
             fuente: 'APLICATIVO',
             estado: localOut ? 'Finalizado' : 'En curso',
+            nombre_malla: _asigMalla?.malla?.nombre || 'Sin Malla',
+            detalles_malla: this.formatearHorarioLocal(_asigMalla?.malla?.detalles ?? []),
           };
         },
       );
@@ -1461,6 +1508,8 @@ export class UsuariosService {
             tipo: 'LOG CRUDO',
             fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
             estado: 'Sin malla asignada',
+            nombre_malla: 'Sin Malla',
+            detalles_malla: '',
           });
         }
       } else {
@@ -1534,6 +1583,11 @@ export class UsuariosService {
                 : 'Finalizado';
           }
 
+          const _asigLog = this.resolverAsignacionParaFecha(
+            mallasLocalMap.get(empId) ?? [],
+            fecha,
+          );
+
           resultado.push({
             id: `log_${empId}_${entrada.id}`,
             empleado: nombre,
@@ -1561,6 +1615,8 @@ export class UsuariosService {
             tipo: 'LOG CRUDO',
             fuente: esApp ? 'APP MOBILE' : 'BIOMÉTRICO',
             estado: estadoFinal,
+            nombre_malla: _asigLog?.malla?.nombre || 'Sin Malla',
+            detalles_malla: this.formatearHorarioLocal(_asigLog?.malla?.detalles ?? []),
           });
 
           i += salida ? 2 : 1;

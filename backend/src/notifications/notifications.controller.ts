@@ -1,6 +1,7 @@
 // notifications.controller.ts
 import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('usuarios/notifications')
 export class NotificationsController {
@@ -22,6 +23,7 @@ export class NotificationsController {
   }
 
   // Para la app al arrancar: el anuncio activo
+  @Public()
   @Get('active')
   async getActive() {
     return await this.notificationsService.getActiveAnnouncement();

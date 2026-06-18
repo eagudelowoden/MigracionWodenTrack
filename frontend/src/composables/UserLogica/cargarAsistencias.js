@@ -295,6 +295,8 @@ export function useCargarAsistencias() {
           Estatus_Salida: item.c_salida || "N/A",
           Estado: item.estado,
           Fecha: fechaEntrada || null,
+          NombreMalla: item.nombre_malla || '',
+          MallaHoraria: item.detalles_malla || '',
           _sortKey: fechaEntrada || "",
         });
 
@@ -312,6 +314,8 @@ export function useCargarAsistencias() {
             Estatus_Salida: "---",
             Estado: "Registro de día (salida del turno anterior)",
             Fecha: fechaSalida,
+            NombreMalla: item.nombre_malla || '',
+            MallaHoraria: item.detalles_malla || '',
             _sortKey: fechaSalida,
           });
         }

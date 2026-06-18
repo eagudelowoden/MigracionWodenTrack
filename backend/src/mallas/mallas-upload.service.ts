@@ -103,8 +103,45 @@ export class MallasUploadService {
         const malla =
           mallasResult.find((m) => m.detalles && m.detalles.length > 0) || mallasResult[0];
 
+        // Helpers de fecha locales
+        const sumarDias = (f: string, dias: number): string => {
+          const [y, m, d] = f.split('-').map(Number);
+          const dt = new Date(y, m - 1, d + dias);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
+        const fechaAnterior = sumarDias(fechaInicio, -1); // A-1
+
         if (fechaFin) {
-          // Asignación temporal: no cerrar la actual, solo insertar con rango de fechas
+          // Asignación temporal [A, B]:
+          // 1. Asignaciones que EMPIEZAN dentro de [A,B] y se extienden más allá de B
+          //    → desplazar su fecha_inicio a B+1 para que reanuden después del período temporal.
+          const fechaDespues = sumarDias(fechaFin, 1); // B+1
+          await this.asignacionRepo
+            .createQueryBuilder()
+            .update()
+            .set({ fecha_inicio: fechaDespues, actual: false })
+            .where(
+              `usuario_id_odoo = :id
+               AND fecha_inicio >= :a AND fecha_inicio <= :b
+               AND (fecha_fin IS NULL OR fecha_fin > :b)`,
+              { id: usuario.id_odoo, a: fechaInicio, b: fechaFin },
+            )
+            .execute();
+
+          // 2. Todo lo demás que solapa con [A,B]: recortar para que termine en A-1
+          //    (cubre: permanentes desde antes de A, temporales enteramente dentro de [A,B])
+          await this.asignacionRepo
+            .createQueryBuilder()
+            .update()
+            .set({ actual: false, fecha_fin: fechaAnterior })
+            .where(
+              `usuario_id_odoo = :id
+               AND fecha_inicio <= :b
+               AND (fecha_fin IS NULL OR fecha_fin >= :a)`,
+              { id: usuario.id_odoo, a: fechaInicio, b: fechaFin },
+            )
+            .execute();
+
           const temporal = this.asignacionRepo.create({
             usuario_id_odoo: usuario.id_odoo,
             malla_id: malla.id,
@@ -115,17 +152,17 @@ export class MallasUploadService {
           });
           await this.asignacionRepo.save(temporal);
         } else {
-          // Asignación permanente: cerrar anteriores y crear indefinida.
-          // fecha_fin = día anterior a fechaInicio para evitar solapamiento en la fecha límite.
-          const [y, m, d] = fechaInicio.split('-').map(Number);
-          const dt = new Date(y, m - 1, d - 1);
-          const fechaFinAnterior = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-
+          // Asignación permanente (sin fecha_fin):
+          // Cerrar TODAS las asignaciones que solapan con la nueva fecha de inicio,
+          // incluyendo temporales (actual=false) que antes quedaban sin cerrar.
           await this.asignacionRepo
             .createQueryBuilder()
             .update()
-            .set({ actual: false, fecha_fin: fechaFinAnterior })
-            .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
+            .set({ actual: false, fecha_fin: fechaAnterior })
+            .where(
+              'usuario_id_odoo = :id AND (fecha_fin IS NULL OR fecha_fin >= :fi)',
+              { id: usuario.id_odoo, fi: fechaInicio },
+            )
             .execute();
 
           const nueva = this.asignacionRepo.create({
