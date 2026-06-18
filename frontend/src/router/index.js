@@ -164,16 +164,25 @@ router.beforeEach((to, from, next) => {
 
   const isSuperAdmin = session?.isSuperAdmin;
 
-  // ── Protección de SuperAdmin / Selector Perfil ─────────────────────────────
+  // ── Protección de SuperAdmin ───────────────────────────────────────────────
   const tieneAccesoSuperAdmin =
     isSuperAdmin ||
     session?.permisos?.["super.superadmin"] ||
     Object.keys(session?.permisos || {}).some((k) => k.startsWith("super."));
 
-  if (
-    (to.path.startsWith("/super-admin") || to.path === "/selector-perfil") &&
-    !tieneAccesoSuperAdmin
-  ) {
+  if (to.path.startsWith("/super-admin") && !tieneAccesoSuperAdmin) {
+    const fallback =
+      session?.role === "admin" || session?.permisos?.["admin.admin"]
+        ? getFirstAdminRoute(session)
+        : "/marcacion";
+    return next(fallback);
+  }
+
+  // ── Protección de Selector Perfil ─────────────────────────────────────────
+  const tieneAccesoSelectorPerfil =
+    tieneAccesoSuperAdmin || session?.permisos?.["admin.marcacion"];
+
+  if (to.path === "/selector-perfil" && !tieneAccesoSelectorPerfil) {
     const fallback =
       session?.role === "admin" || session?.permisos?.["admin.admin"]
         ? getFirstAdminRoute(session)
