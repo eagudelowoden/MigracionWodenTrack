@@ -54,7 +54,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
 
         <!-- Card: Marcación -->
-        <button @click="selectRole('/marcacion')"
+        <button v-if="session?.isSuperAdmin || session?.role === 'admin' || session?.permisos?.['admin.marcacion']" @click="selectRole('/marcacion')"
           class="group relative p-6 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between min-h-[170px] backdrop-blur-md"
           :class="isDark
             ? 'bg-[#161B26]/90 border-[#222938] hover:border-[#e88710] hover:bg-[#1c2333]/90'
