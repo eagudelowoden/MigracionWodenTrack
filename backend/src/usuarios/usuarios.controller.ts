@@ -269,6 +269,11 @@ export class UsuariosController {
     return await this.usuariosService.previewSync(pais, depto);
   }
 
+  @Get('permisos/:id_odoo')
+  async getPermisos(@Param('id_odoo') id_odoo: string) {
+    return await this.usuariosService.obtenerPermisosUsuario(Number(id_odoo));
+  }
+
   @Post('asignar-permiso')
   async asignarPermiso(
     @Body()

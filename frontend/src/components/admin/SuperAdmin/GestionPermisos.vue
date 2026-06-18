@@ -274,6 +274,19 @@ watch(() => props.modelValue, async (user) => {
         openSections.value = init;
 
         try {
+            // Cargar permisos del usuario desde el backend
+            const baseUrl = props.apiUrl?.replace('/usuarios', '');
+            const res = await apiFetch(`${baseUrl}/usuarios/permisos/${user.id_odoo}`);
+            const permisos = await res.json();
+            // Actualizar los permisos del usuario en el objeto modelValue
+            if (user && Array.isArray(permisos)) {
+                user.permisos = permisos;
+            }
+        } catch {
+            user.permisos = [];
+        }
+
+        try {
             const res = await apiFetch(`${props.apiUrl}/departamentos-permitidos/${user.id_odoo}`);
             const data = await res.json();
             deptosSeleccionados.value = Array.isArray(data) ? data : [];

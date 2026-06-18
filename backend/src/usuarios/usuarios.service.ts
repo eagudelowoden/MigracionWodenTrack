@@ -350,6 +350,12 @@ export class UsuariosService {
     return await this.permisoRepo.save(nuevoPermiso);
   }
 
+  async obtenerPermisosUsuario(idOdoo: number) {
+    return await this.permisoRepo.find({
+      where: { usuario_id_odoo: idOdoo },
+    });
+  }
+
   // Helper: UTC string de Odoo → hora formateada Colombia "10:35 AM"
   private formatHoraColombia(utcStr: string): string {
     return new Date(utcStr + ' UTC').toLocaleTimeString('es-CO', {
