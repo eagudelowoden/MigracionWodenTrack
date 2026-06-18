@@ -307,11 +307,19 @@ const togglePermisoLocal = async (user, slug) => {
     // Refrescar el usuario en la tabla local
     await fetchDbUsuarios();
 
-    // Actualizar el usuario seleccionado para que el modal refleje el cambio
+    // Cargar los permisos actualizados desde el backend
+    const baseUrl = API_URL?.replace('/usuarios', '');
+    const permRes = await apiFetch(`${baseUrl}/usuarios/permisos/${user.id_odoo}`);
+    const permisos = await permRes.json();
+
+    // Actualizar el usuario seleccionado con permisos reales
     const actualizado = dbUsuarios.value.find(
       (u) => u.id_odoo === user.id_odoo,
     );
-    if (actualizado) selectedUserPerms.value = { ...actualizado };
+    if (actualizado) {
+      actualizado.permisos = Array.isArray(permisos) ? permisos : [];
+      selectedUserPerms.value = { ...actualizado };
+    }
 
     showNotification(`Permiso ${activo ? "asignado" : "removido"}`);
   } catch (e) {
