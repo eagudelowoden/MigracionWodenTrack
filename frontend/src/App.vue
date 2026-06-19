@@ -108,7 +108,12 @@ const cargarAnuncioActivo = async () => {
 
 
 const setupSockets = () => {
-  // Cuando el socket reconecta (backend reinició y está listo) → verificar versión de inmediato
+  // El socket comparte backend con la API: si se cae, lo sabemos casi al
+  // instante (evento nativo de socket.io), sin esperar a que falle un fetch.
+  socket.on('disconnect', () => { backendCaido.value = true; });
+  socket.on('connect_error', () => { backendCaido.value = true; });
+
+  // Cuando el socket (re)conecta (backend reinició y está listo) → verificar versión de inmediato
   socket.on('connect', verificarVersion);
 
   socket.on('onNotification', (data) => {
