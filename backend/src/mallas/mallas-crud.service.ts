@@ -611,7 +611,41 @@ export class MallasCrudService {
             continue;
           }
 
+          // Helper de fecha local (mismo criterio que mallas-upload.service.ts)
+          const sumarDias = (f: string, dias: number): string => {
+            const [y, m, d] = f.split('-').map(Number);
+            const dt = new Date(y, m - 1, d + dias);
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+          };
+          const fechaAnterior = sumarDias(fechaInicio, -1); // A-1
+
           if (fecha_fin) {
+            // Temporal [A,B]: desplazar asignaciones que empiezan dentro del rango
+            // y se extienden más allá de B; recortar todo lo demás que solapa.
+            const fechaDespues = sumarDias(fecha_fin, 1); // B+1
+            await this.asignacionRepo
+              .createQueryBuilder()
+              .update()
+              .set({ fecha_inicio: fechaDespues, actual: false })
+              .where(
+                `usuario_id_odoo = :id
+                 AND fecha_inicio >= :a AND fecha_inicio <= :b
+                 AND (fecha_fin IS NULL OR fecha_fin > :b)`,
+                { id: usuario.id_odoo, a: fechaInicio, b: fecha_fin },
+              )
+              .execute();
+            await this.asignacionRepo
+              .createQueryBuilder()
+              .update()
+              .set({ actual: false, fecha_fin: fechaAnterior })
+              .where(
+                `usuario_id_odoo = :id
+                 AND fecha_inicio <= :b
+                 AND (fecha_fin IS NULL OR fecha_fin >= :a)`,
+                { id: usuario.id_odoo, a: fechaInicio, b: fecha_fin },
+              )
+              .execute();
+
             const temporal = this.asignacionRepo.create({
               usuario_id_odoo: usuario.id_odoo,
               malla_id: malla.id,
@@ -622,11 +656,16 @@ export class MallasCrudService {
             });
             await this.asignacionRepo.save(temporal);
           } else {
+            // Permanente: cerrar TODAS las asignaciones que solapan con la
+            // nueva fecha de inicio (no solo la marcada actual=1).
             await this.asignacionRepo
               .createQueryBuilder()
               .update()
-              .set({ actual: false, fecha_fin: fechaInicio } as any)
-              .where('usuario_id_odoo = :id AND actual = 1', { id: usuario.id_odoo })
+              .set({ actual: false, fecha_fin: fechaAnterior })
+              .where(
+                'usuario_id_odoo = :id AND (fecha_fin IS NULL OR fecha_fin >= :fi)',
+                { id: usuario.id_odoo, fi: fechaInicio },
+              )
               .execute();
 
             const nueva = this.asignacionRepo.create({

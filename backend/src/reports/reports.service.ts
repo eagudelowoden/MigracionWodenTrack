@@ -326,15 +326,15 @@ export class ReportsService {
       }
     }
 
-    // Malla horaria: si los registros ya traen nombre_malla pre-resuelto (desde
-    // getReporteNovedades) se usa directamente. Si no, se hace el lookup por nombre.
-    const allHaveMalla = data.length > 0 && data.every((i) => i.NombreMalla);
-    if (!allHaveMalla) {
-      try {
-        mallasLocales = await this.obtenerMallasLocalesParaReporte(data);
-      } catch (localErr) {
-        console.error('Error consultando mallas locales:', localErr.message);
-      }
+    // Malla horaria: siempre se consulta fresca en la BD (fuente de verdad),
+    // para reflejar mallas cargadas/corregidas después de que la pantalla de
+    // asistencias quedó cargada. El nombre_malla pre-resuelto que ya traen los
+    // registros (desde getReporteNovedades) se usa solo como respaldo cuando
+    // el lookup por nombre/cédula no encuentra al empleado.
+    try {
+      mallasLocales = await this.obtenerMallasLocalesParaReporte(data);
+    } catch (localErr) {
+      console.error('Error consultando mallas locales:', localErr.message);
     }
 
     // Columnas
@@ -360,9 +360,11 @@ export class ReportsService {
       const claveMalla = `${nombre}::${fecha}`;
       const mallaLocal = mallasLocales.get(claveMalla);
 
-      // Preferir datos pre-resueltos del reporte; fallback al lookup por nombre
-      const nombreMalla = item.NombreMalla || mallaLocal?.nombreMalla || 'N/A';
-      const mallaHoraria = item.MallaHoraria || mallaLocal?.detallesMalla || 'N/A';
+      // Preferir el lookup fresco en BD (refleja cargas/correcciones recientes);
+      // si no encontró al empleado por nombre/cédula, usar el dato pre-resuelto
+      // que ya traía el registro desde la pantalla de asistencias.
+      const nombreMalla = mallaLocal?.nombreMalla || item.NombreMalla || 'N/A';
+      const mallaHoraria = mallaLocal?.detallesMalla || item.MallaHoraria || 'N/A';
 
       worksheet.addRow({
         colaborador: nombre || 'N/A',
