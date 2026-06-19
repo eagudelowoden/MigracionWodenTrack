@@ -51,6 +51,24 @@ export async function apiFetch(url, options = {}) {
     !redirectingToLogin &&
     !window.location.pathname.includes('/login')
   ) {
+    // El backend puede estar reiniciando (deploy en producción) y devolver
+    // un 401 transitorio mientras vuelve a estar disponible. Antes de cerrar
+    // la sesión del usuario confirmamos con un reintento corto — solo para
+    // peticiones de lectura (GET), para no duplicar acciones en POST/PUT/DELETE.
+    const esLecturaSegura = !options.method || options.method.toUpperCase() === 'GET';
+
+    if (esLecturaSegura) {
+      await new Promise((r) => setTimeout(r, 1500));
+      try {
+        const retry = await fetch(url, options);
+        if (retry.status !== 401) return retry; // era transitorio, ya respondió bien
+      } catch {
+        // El backend sigue sin responder (aún reiniciando): no forzamos logout,
+        // el caller maneja el error de red como corresponda.
+        return response;
+      }
+    }
+
     redirectingToLogin = true;
     localStorage.removeItem(SESSION_KEY);
     window.location.href = '/login';

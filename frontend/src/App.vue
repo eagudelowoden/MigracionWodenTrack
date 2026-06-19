@@ -1,5 +1,14 @@
 ﻿<template>
   <Transition name="slide-down">
+    <div v-if="backendCaido"
+      class="fixed top-0 left-0 right-0 z-[10001] h-10 flex items-center justify-center gap-2 px-6 shadow-lg text-[12px] font-semibold"
+      :class="isDark ? 'bg-amber-600/95 text-white' : 'bg-amber-500 text-white'">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span>Actualizando el sistema, espera un momento…</span>
+    </div>
+  </Transition>
+
+  <Transition name="slide-down">
     <div v-if="anuncioSuperior"
       class="fixed top-0 left-0 right-0 z-[10000] h-12 flex items-center justify-center px-6 shadow-2xl border-b backdrop-blur-md"
       :class="isDark ? 'bg-red-700/95 border-red-500 text-white' : 'bg-red-600 border-red-700 text-white'">
@@ -53,7 +62,7 @@
     </div>
   </Transition>
 
-  <main :class="{ 'pt-10 transition-all': anuncioSuperior }">
+  <main :class="{ 'pt-10 transition-all': anuncioSuperior || backendCaido }">
     <router-view />
   </main>
 </template>
@@ -71,6 +80,8 @@ useInactividad(10);
 const nuevaActualizacion = ref(false);
 const anuncioInferior = ref(null);
 const anuncioSuperior = ref(null);
+// true mientras el backend no responde (ej. reiniciando por un deploy)
+const backendCaido = ref(false);
 
 const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
 
@@ -124,6 +135,9 @@ const verificarVersion = async () => {
       window.location.reload(true);
       return;
     }
+    // El backend respondió correctamente → ya no está caído
+    backendCaido.value = false;
+
     const data = await res.json();
     const versionServidor = String(data.version).trim();
     const versionGuardada = localStorage.getItem('app_version');
@@ -134,7 +148,8 @@ const verificarVersion = async () => {
       localStorage.setItem('app_version', versionServidor);
     }
   } catch {
-    // Backend posiblemente reiniciando → reintentar en 5 s
+    // Backend posiblemente reiniciando → avisar al usuario y reintentar en 5 s
+    backendCaido.value = true;
     clearTimeout(_retryTimeout);
     _retryTimeout = setTimeout(verificarVersion, 5000);
   }
