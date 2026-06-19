@@ -113,7 +113,9 @@ export class MallasCrudService {
       if (clean.includes(':')) {
         const parts = clean.split(':');
         const h = Number(parts[0]);
-        const m = Number(parts[1]) || 0;
+        // parts[1] puede venir como "30 AM"/"30 PM" — Number() falla con el
+        // sufijo pegado y los minutos quedaban siempre en 0. Extraer solo los dígitos.
+        const m = Number((parts[1] || '').replace(/[^0-9]/g, '')) || 0;
         const suffix = (parts[1] || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
         if (isNaN(h)) return NaN;
         // Corregir formato 12h → 24h
@@ -479,7 +481,9 @@ export class MallasCrudService {
       if (clean.includes(':')) {
         const parts = clean.split(':');
         const h = Number(parts[0]);
-        const m = Number(parts[1]) || 0;
+        // parts[1] puede venir como "30 AM"/"30 PM" — Number() falla con el
+        // sufijo pegado y los minutos quedaban siempre en 0. Extraer solo los dígitos.
+        const m = Number((parts[1] || '').replace(/[^0-9]/g, '')) || 0;
         const suffix = (parts[1] || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
         if (isNaN(h)) return NaN;
         if (suffix === 'PM' && h < 12) return h + 12 + m / 60;
