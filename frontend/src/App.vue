@@ -4,7 +4,7 @@
       class="fixed top-0 left-0 right-0 z-[10001] h-10 flex items-center justify-center gap-2 px-6 shadow-lg text-[12px] font-semibold"
       :class="isDark ? 'bg-amber-600/95 text-white' : 'bg-amber-500 text-white'">
       <i class="fas fa-circle-notch fa-spin"></i>
-      <span>Actualizando el sistema, espera un momento…</span>
+      <span>Nuestros servicios no están disponibles. Espera un momento mientras terminamos…</span>
     </div>
   </Transition>
 
