@@ -683,11 +683,11 @@
                   modalNombre }}</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <a v-if="modalFileUrl" :href="modalFileUrl" target="_blank"
+                <button v-if="modalFileUrl" type="button" @click="abrirEnPestanaNueva"
                   class="px-2 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wide border flex items-center gap-1 transition-all hover:brightness-110"
                   :class="isDark ? 'bg-[#161B26] text-slate-300 border-[#3d4558]' : 'bg-slate-100 text-slate-600 border-slate-200'">
                   <i class="fas fa-external-link-alt text-[#3B82F6]"></i> Abrir
-                </a>
+                </button>
                 <button @click="modalOpen = false" class="w-7 h-7 rounded-lg flex items-center justify-center border"
                   :class="isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
                   <i class="fas fa-xmark text-xs"></i>
@@ -705,8 +705,8 @@
                 style="height: 70vh" />
               <div v-else class="flex flex-col items-center gap-4 opacity-60">
                 <i class="fas fa-file text-5xl" :class="isDark ? 'text-slate-500' : 'text-slate-400'"></i>
-                <a v-if="modalFileUrl" :href="modalFileUrl" target="_blank"
-                  class="text-[#3B82F6] underline font-bold text-xs">Abrir archivo</a>
+                <button v-if="modalFileUrl" type="button" @click="abrirEnPestanaNueva"
+                  class="text-[#3B82F6] underline font-bold text-xs">Abrir archivo</button>
               </div>
             </div>
           </div>
@@ -1309,31 +1309,54 @@ const abrirDetalle = async (item) => {
   }
 };
 
-const abrirArchivoDetalle = (archivo) => {
+// Carga el archivo con axios (lleva el Authorization header vía interceptor)
+// y lo expone como blob: URL — así img/iframe/"Abrir" funcionan sin pegarle
+// una URL cruda al navegador (que no manda el token y revienta con 401).
+const cargarArchivoEnModal = async (url) => {
+  if (modalFileUrl.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(modalFileUrl.value);
+  }
+  modalFileUrl.value = '';
+  const res = await axios.get(url, { responseType: 'blob' });
+  if (!modalMime.value) modalMime.value = res.data.type || '';
+  modalFileUrl.value = URL.createObjectURL(res.data);
+};
+
+const abrirArchivoDetalle = async (archivo) => {
   const url = `${API_URL}/novedades/${detalleModal.value.novedad.id}/archivos/${archivo.id}/file`;
   modalOpen.value = true;
-  modalLoading.value = false;
+  modalLoading.value = true;
   modalNombre.value = archivo.nombreOriginal ?? archivo.nombre_original ?? 'Archivo';
   modalMime.value = archivo.mimetype ?? '';
-  modalFileUrl.value = url;
+  try {
+    await cargarArchivoEnModal(url);
+  } catch (e) {
+    console.error('Error cargando archivo:', e);
+  } finally {
+    modalLoading.value = false;
+  }
 };
 
 // ─── Modal soporte ────────────────────────────────────────────────
 const verSoporte = async (id) => {
   modalOpen.value = true;
   modalLoading.value = true;
-  modalFileUrl.value = '';
   modalMime.value = '';
   try {
     const detalle = await fetchNovedad(id);
     modalNombre.value = detalle.nombre ?? '';
     modalMime.value = detalle.soporteMime ?? detalle.soporte_mime ?? '';
-    modalFileUrl.value = `${import.meta.env.VITE_API_URL}/novedades/${id}/file`;
-  } catch {
-    modalFileUrl.value = `${import.meta.env.VITE_API_URL}/novedades/${id}/file`;
+    await cargarArchivoEnModal(`${import.meta.env.VITE_API_URL}/novedades/${id}/file`);
+  } catch (e) {
+    console.error('Error cargando soporte:', e);
   } finally {
     modalLoading.value = false;
   }
+};
+
+// Abre el blob ya cargado en una pestaña nueva (no requiere token, ya está en memoria)
+const abrirEnPestanaNueva = () => {
+  if (modalFileUrl.value) window.open(modalFileUrl.value, '_blank');
 };
 </script>
 

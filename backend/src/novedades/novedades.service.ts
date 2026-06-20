@@ -143,6 +143,28 @@ export class NovedadesService {
     return `/uploads/novedades/${storageKey}`;
   }
 
+  // ─── Stream de un objeto S3 a través del backend (evita CORS) ───────────────
+  // En vez de redirigir el navegador a la URL firmada de S3 (que falla por CORS
+  // al leerse como blob desde otro origen), el backend descarga el objeto y lo
+  // reenvía. El navegador solo habla con su propio backend (mismo origen).
+  private async streamFromS3(
+    storageKey: string,
+    mime: string,
+    nombreOriginal: string,
+    res: Response,
+  ) {
+    const obj = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: storageKey }),
+    );
+    res.setHeader('Content-Type', mime || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(nombreOriginal || 'archivo')}"`,
+    );
+    // obj.Body es un stream de Node (Readable) en el entorno del servidor
+    (obj.Body as NodeJS.ReadableStream).pipe(res);
+  }
+
   // ─── Validar archivo (solo PDF e imágenes) ────────────────────────────────
   private validateFileType(file: Express.Multer.File): void {
     if (!this.ALLOWED_MIMES.has(file.mimetype)) {
@@ -275,8 +297,12 @@ export class NovedadesService {
     if (!archivo) throw new NotFoundException('Archivo no encontrado.');
 
     if (archivo.storageMode === 's3') {
-      const url = await this.resolveUrl(archivo.storageKey, 's3');
-      return res.redirect(302, url);
+      return this.streamFromS3(
+        archivo.storageKey,
+        archivo.mime,
+        archivo.nombreOriginal,
+        res,
+      );
     }
 
     const filePath = path.join(this.localDir, archivo.storageKey);
@@ -706,8 +732,12 @@ export class NovedadesService {
       const archivo = archivos[0];
 
       if (archivo.storageMode === 's3') {
-        const url = await this.resolveUrl(archivo.storageKey, 's3');
-        return res.redirect(302, url);
+        return this.streamFromS3(
+          archivo.storageKey,
+          archivo.mime,
+          archivo.nombreOriginal,
+          res,
+        );
       }
 
       const filePath = path.join(this.localDir, archivo.storageKey);
@@ -724,8 +754,12 @@ export class NovedadesService {
 
     // ── Sistema legacy: soporteStorageKey en la entidad Novedad ──────────────
     if (novedad.soporteStorageMode === 's3') {
-      const url = await this.resolveUrl(novedad.soporteStorageKey, 's3');
-      return res.redirect(302, url);
+      return this.streamFromS3(
+        novedad.soporteStorageKey,
+        novedad.soporteMime,
+        novedad.soporteNombreOriginal,
+        res,
+      );
     }
 
     const filePath = path.join(this.localDir, novedad.soporteStorageKey);

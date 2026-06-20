@@ -146,7 +146,9 @@
       "Bash(xargs grep -l \"for.*let.*0.*7\\\\|for.*let.*0.*<=.*6\\\\|[^a-zA-Z]6[^a-zA-Z].*detalles\")",
       "Bash(xargs wc -l)",
       "Bash(xargs grep -l \"malla\\\\|seed\\\\|init\")",
-      "Bash(grep -v \"comment\\\\|//\")"
+      "Bash(grep -v \"comment\\\\|//\")",
+      "Bash(grep -n \"file\\\\b\\\\|/file\\\\`\\\\|window.open\\\\|target=\\\\\"_blank\\\\\"\\\\|href=\" \"frontend/src/composables/adminLogica/useNovedades.js\" \"frontend/src/views/novedades/novedadesRRHView.vue\")",
+      "Bash(grep -rn \"novedades/\\\\${.*}/file\\\\|/file\\\\`\\\\|:href\\\\|:src=\\\\\"modal\\\\|window.open\\\\|getFileUrl\\\\|getArchivoUrl\\\\|\\\\.value = .*VITE_API_URL.*file\\\\|= url\\\\b\" frontend/src/views/novedades/novedadesadminView.vue frontend/src/views/novedades/MisAprobacionesView.vue)"
     ]
   }
 }
