@@ -613,12 +613,11 @@
                             <i class="fas fa-eye text-[#3B82F6] mr-2"></i>Soporte
                         </span>
                         <div class="flex items-center gap-2">
-                            <a v-if="soporteModal.isPdf || soporteModal.isImage"
-                                :href="soporteModal.url" target="_blank" rel="noopener noreferrer"
+                            <button v-if="soporteModal.url" type="button" @click="abrirSoporteEnPestana"
                                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[9px] font-semibold uppercase tracking-wide transition-all hover:brightness-110"
                                 :class="isDark ? 'bg-[#161B26] text-[#3B82F6] border-[#3d4558]' : 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/30'">
                                 <i class="fas fa-arrow-up-right-from-square text-[9px]"></i> Abrir
-                            </a>
+                            </button>
                             <button @click="soporteModal.open = false"
                                 class="w-7 h-7 rounded-lg flex items-center justify-center border"
                                 :class="isDark ? 'bg-[#161B26] text-slate-400 border-[#3d4558]' : 'bg-slate-100 text-slate-500 border-slate-200'">
@@ -628,9 +627,12 @@
                     </div>
                     <div class="flex-1 overflow-hidden flex items-center justify-center p-2"
                         :class="isDark ? 'bg-[#151c2c]' : 'bg-slate-50'">
-                        <img v-if="soporteModal.isImage" :src="soporteModal.url"
+                        <div v-if="soporteModal.loading" class="flex flex-col items-center gap-3">
+                            <i class="fas fa-circle-notch fa-spin text-[#3B82F6] text-2xl"></i>
+                        </div>
+                        <img v-else-if="soporteModal.isImage && soporteModal.url" :src="soporteModal.url"
                             class="max-w-full max-h-full object-contain rounded-lg" />
-                        <iframe v-else-if="soporteModal.isPdf" :src="soporteModal.url"
+                        <iframe v-else-if="soporteModal.isPdf && soporteModal.url" :src="soporteModal.url"
                             class="w-full h-full rounded-lg border-0" />
                         <div v-else class="flex flex-col items-center gap-3 opacity-60">
                             <i class="fas fa-file text-4xl text-slate-400"></i>
@@ -1189,12 +1191,34 @@ const formatFecha = (f) => {
 };
 
 // ─── Modal soporte ────────────────────────────────────────────────
-const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false });
-const verSoporte = (novedad) => {
+const soporteModal = ref({ open: false, url: '', isImage: false, isPdf: false, loading: false });
+const verSoporte = async (novedad) => {
     if (!novedad) return;
-    const url = getFileUrl(novedad.id);
     const mime = novedad.soporteMime ?? '';
-    soporteModal.value = { open: true, url, isImage: mime.startsWith('image/'), isPdf: mime === 'application/pdf' };
+    // Liberar blob anterior si existe
+    if (soporteModal.value.url?.startsWith('blob:')) URL.revokeObjectURL(soporteModal.value.url);
+    soporteModal.value = {
+        open: true, url: '', loading: true,
+        isImage: mime.startsWith('image/'), isPdf: mime === 'application/pdf',
+    };
+    try {
+        // Se pide con axios (lleva el token vía interceptor) y se expone como blob:
+        // URL — así el navegador nunca navega directo al backend/S3 sin auth ni CORS.
+        const res = await axios.get(getFileUrl(novedad.id), { responseType: 'blob' });
+        const tipo = res.data.type || mime;
+        soporteModal.value.url = URL.createObjectURL(res.data);
+        soporteModal.value.isImage = tipo.startsWith('image/');
+        soporteModal.value.isPdf = tipo === 'application/pdf';
+    } catch (e) {
+        console.error('Error cargando soporte:', e);
+    } finally {
+        soporteModal.value.loading = false;
+    }
+};
+
+// Abre el blob ya cargado en una pestaña nueva (sin token ni CORS, ya está en memoria)
+const abrirSoporteEnPestana = () => {
+    if (soporteModal.value.url) window.open(soporteModal.value.url, '_blank');
 };
 
 // ─── Modal motivo ─────────────────────────────────────────────────
