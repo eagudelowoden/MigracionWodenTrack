@@ -117,11 +117,34 @@
           <span v-if="isSaving">Guardando…</span>
           <span v-else>Guardar ({{ selectedRecords.length }})</span>
         </button>
+
+        <!-- Maximizar: muestra la tabla en pantalla completa -->
+        <button @click="tablaMaximizada = true" title="Ampliar a pantalla completa"
+          class="flex items-center justify-center h-7 w-7 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
+          :class="isDark
+            ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
+            : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'">
+          <i class="fas fa-expand text-[10px]"></i>
+        </button>
       </div>
     </div>
 
     <!-- ══ TAB CÁLCULOS ════════════════════════════════════════════════════ -->
     <template v-if="activeTab === 'calculos' && (isSuperAdmin || hasPerm('admin.calculos'))">
+    <Teleport to="body" :disabled="!tablaMaximizada">
+    <div :class="tablaMaximizada
+      ? ['fixed inset-0 z-[200] p-4 flex flex-col gap-3 overflow-hidden', isDark ? 'bg-[#0B0F19]' : 'bg-slate-100']
+      : 'flex flex-col gap-3 flex-1 min-h-0'">
+
+      <!-- Botón restaurar (solo visible en modo pantalla completa) -->
+      <button v-if="tablaMaximizada" @click="tablaMaximizada = false" title="Restaurar"
+        class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
+        :class="isDark
+          ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:border-[#3B82F6]/40'
+          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'">
+        <i class="fas fa-compress text-[10px]"></i>
+        <span>Restaurar</span>
+      </button>
 
       <!-- ── Toolbar con filtros (Vercel) ───────────────────────────────── -->
       <div class="rounded-md border" :class="isDark ? 'bg-[#273045] border-[#222938]' : 'bg-white border-slate-200'">
@@ -309,8 +332,68 @@
                   Colaborador
                 </th>
                 <th
-                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
-                  Fecha
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7] relative">
+                  <span class="inline-flex items-center gap-1.5">
+                    Fecha
+                    <button type="button" @click.stop="mostrarFiltroFecha ? cerrarFiltroFecha() : abrirFiltroFecha()"
+                      class="w-5 h-5 inline-flex items-center justify-center rounded border transition-colors"
+                      :class="fechaFiltroActivo
+                        ? 'text-white bg-[#3B82F6] border-[#3B82F6]'
+                        : 'text-white bg-white/10 border-white/20 hover:bg-white/25'"
+                      title="Filtrar por fecha">
+                      <i class="fas fa-filter text-[10px]"></i>
+                    </button>
+                  </span>
+
+                  <!-- Dropdown de filtro estilo Excel -->
+                  <div v-if="mostrarFiltroFecha" v-click-outside="cerrarFiltroFecha"
+                    class="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-56 rounded-md border shadow-2xl z-50 text-left normal-case font-normal tracking-normal"
+                    :class="isDark ? 'bg-[#1e2538] border-[#2d3748]' : 'bg-white border-slate-200'" @click.stop>
+                    <div class="p-2 border-b" :class="isDark ? 'border-[#2d3748]' : 'border-slate-200'">
+                      <input v-model="busquedaFiltroFecha" type="text" placeholder="Buscar (Todos)"
+                        class="w-full h-7 px-2 text-[11px] rounded border outline-none"
+                        :class="isDark ? 'bg-[#0B0F19] border-[#2d3748] text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-700'">
+                    </div>
+                    <div class="max-h-56 overflow-y-auto custom-scrollbar px-2 py-1">
+                      <label class="flex items-center gap-2 py-1 cursor-pointer text-[11px] font-semibold"
+                        :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                        <input type="checkbox" :checked="todasMarcadasEnFiltro" @change="toggleSeleccionarTodoFiltro"
+                          class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]">
+                        (Seleccionar todo)
+                      </label>
+                      <div v-for="[anio, fechas] in fechasFiltroPorAnio" :key="anio" class="mt-0.5">
+                        <label class="flex items-center gap-2 py-1 cursor-pointer text-[11px] font-semibold"
+                          :class="isDark ? 'text-slate-200' : 'text-slate-700'">
+                          <input type="checkbox" :checked="anioMarcadoEnFiltro(fechas)" @change="toggleAnioFiltro(fechas)"
+                            class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]">
+                          {{ anio }}
+                        </label>
+                        <label v-for="f in fechas" :key="f"
+                          class="flex items-center gap-2 py-0.5 pl-5 cursor-pointer text-[11px]"
+                          :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                          <input type="checkbox" :checked="seleccionTemporalFechas.has(f)" @change="toggleFechaFiltro(f)"
+                            class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]">
+                          {{ f }}
+                        </label>
+                      </div>
+                      <div v-if="!fechasFiltroPorAnio.length" class="py-3 text-center text-[10px]"
+                        :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                        Sin coincidencias
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 p-2 border-t"
+                      :class="isDark ? 'border-[#2d3748]' : 'border-slate-200'">
+                      <button @click="aceptarFiltroFecha"
+                        class="flex-1 h-7 rounded text-[11px] font-semibold bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors">
+                        Aceptar
+                      </button>
+                      <button @click="cerrarFiltroFecha"
+                        class="flex-1 h-7 rounded text-[11px] font-semibold border transition-colors"
+                        :class="isDark ? 'border-[#2d3748] text-slate-300 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
                 </th>
                 <th colspan="2"
                   class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
@@ -627,6 +710,8 @@
         </div>
       </div>
 
+    </div>
+    </Teleport>
     </template>
     <!-- ══ FIN TAB CÁLCULOS ══════════════════════════════════════════════════ -->
 
@@ -2423,6 +2508,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+
+const vClickOutside = {
+  mounted(el, binding) {
+    el._clickOutsideHandler = (e) => { if (!el.contains(e.target)) binding.value(e); };
+    document.addEventListener('click', el._clickOutsideHandler);
+  },
+  unmounted(el) { document.removeEventListener('click', el._clickOutsideHandler); },
+};
 import axios from 'axios';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
@@ -2439,6 +2532,9 @@ const isSuperAdmin = session.isSuperAdmin || false;
 
 // Tab activo
 const activeTab = ref('calculos');
+
+// Vista ampliada (pantalla completa) de la tabla de Cálculos
+const tablaMaximizada = ref(false);
 
 // Toggle: mostrar decimales (7.66) o horas cerradas (7) en la tabla de cálculos.
 // OFF → parte entera sin redondear: 7.66 → 7, 10.5 → 10  (Math.floor)
@@ -2477,6 +2573,11 @@ const {
   filterCargo,
   filterDepartamento,
   soloConExtras,
+  fechasSeleccionadas,
+  fechaFiltroActivo,
+  fechasDisponibles,
+  aplicarFiltroFechas,
+  limpiarFiltroFechas,
   opcionesCargos,
   opcionesDepartamentos,
   filasPaginadas,
@@ -2526,6 +2627,71 @@ const {
   toggleAllFiltered,
   clearSelection,
 } = useReporteMallas();
+
+// ── Filtro de fecha tipo Excel (columna Fecha, tabla de Resultados) ─────────
+const mostrarFiltroFecha = ref(false);
+const busquedaFiltroFecha = ref('');
+const seleccionTemporalFechas = ref(new Set());
+
+function abrirFiltroFecha() {
+  // Si no hay filtro activo todavía, partir de "todas seleccionadas"
+  seleccionTemporalFechas.value = fechaFiltroActivo.value
+    ? new Set(fechasSeleccionadas.value)
+    : new Set(fechasDisponibles.value);
+  busquedaFiltroFecha.value = '';
+  mostrarFiltroFecha.value = true;
+}
+function cerrarFiltroFecha() {
+  mostrarFiltroFecha.value = false;
+}
+
+// Fechas visibles (según buscador) agrupadas por año, más reciente primero
+const fechasFiltroPorAnio = computed(() => {
+  const q = busquedaFiltroFecha.value.trim();
+  const fechas = q
+    ? fechasDisponibles.value.filter((f) => f.includes(q))
+    : fechasDisponibles.value;
+  const porAnio = new Map();
+  for (const f of fechas) {
+    const anio = f.slice(0, 4);
+    if (!porAnio.has(anio)) porAnio.set(anio, []);
+    porAnio.get(anio).push(f);
+  }
+  return [...porAnio.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+});
+
+const todasMarcadasEnFiltro = computed(() => {
+  const visibles = fechasFiltroPorAnio.value.flatMap(([, fechas]) => fechas);
+  return visibles.length > 0 && visibles.every((f) => seleccionTemporalFechas.value.has(f));
+});
+
+function toggleSeleccionarTodoFiltro() {
+  const visibles = fechasFiltroPorAnio.value.flatMap(([, fechas]) => fechas);
+  if (todasMarcadasEnFiltro.value) visibles.forEach((f) => seleccionTemporalFechas.value.delete(f));
+  else visibles.forEach((f) => seleccionTemporalFechas.value.add(f));
+  seleccionTemporalFechas.value = new Set(seleccionTemporalFechas.value); // forzar reactividad
+}
+
+function anioMarcadoEnFiltro(fechas) {
+  return fechas.every((f) => seleccionTemporalFechas.value.has(f));
+}
+
+function toggleAnioFiltro(fechas) {
+  if (anioMarcadoEnFiltro(fechas)) fechas.forEach((f) => seleccionTemporalFechas.value.delete(f));
+  else fechas.forEach((f) => seleccionTemporalFechas.value.add(f));
+  seleccionTemporalFechas.value = new Set(seleccionTemporalFechas.value);
+}
+
+function toggleFechaFiltro(f) {
+  if (seleccionTemporalFechas.value.has(f)) seleccionTemporalFechas.value.delete(f);
+  else seleccionTemporalFechas.value.add(f);
+  seleccionTemporalFechas.value = new Set(seleccionTemporalFechas.value);
+}
+
+function aceptarFiltroFecha() {
+  aplicarFiltroFechas(seleccionTemporalFechas.value);
+  mostrarFiltroFecha.value = false;
+}
 
 // ── Composable Cargue ────────────────────────────────────────────────────────
 const {

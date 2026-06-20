@@ -43,6 +43,10 @@ const filterNombre = ref("");
 const filterCargo = ref("");
 const filterDepartamento = ref("");
 const soloConExtras = ref(false);
+// Filtro de fecha estilo Excel: fechasSeleccionadas = fechas a INCLUIR cuando
+// el filtro está activo. Si no está activo, se muestran todas las fechas.
+const fechasSeleccionadas = ref(new Set());
+const fechaFiltroActivo = ref(false);
 const aprobacionesLocales = ref({});
 
 // Paginación cálculos
@@ -86,6 +90,11 @@ const opcionesDepartamentos = computed(() => {
   const set = new Set(registros.value.map((r) => r.departamento).filter(Boolean));
   return [...set].sort();
 });
+// Fechas únicas presentes en los resultados, ordenadas — para el filtro tipo Excel
+const fechasDisponibles = computed(() => {
+  const set = new Set(registros.value.map((r) => r.fecha).filter(Boolean));
+  return [...set].sort();
+});
 
 const registrosFiltrados = computed(() => {
   let list = registros.value;
@@ -107,8 +116,24 @@ const registrosFiltrados = computed(() => {
       (r) => (r.hedo || 0) + (r.heno || 0) + (r.hefd || 0) + (r.hefn || 0) > 0,
     );
   }
+  if (fechaFiltroActivo.value) {
+    list = list.filter((r) => fechasSeleccionadas.value.has(r.fecha));
+  }
   return list;
 });
+
+// Aplica la selección de fechas del dropdown tipo Excel. Si selecciona TODAS
+// las disponibles, equivale a "sin filtro".
+function aplicarFiltroFechas(seleccion) {
+  fechasSeleccionadas.value = new Set(seleccion);
+  fechaFiltroActivo.value = seleccion.size < fechasDisponibles.value.length;
+  currentPage.value = 1;
+}
+function limpiarFiltroFechas() {
+  fechasSeleccionadas.value = new Set();
+  fechaFiltroActivo.value = false;
+  currentPage.value = 1;
+}
 
 const gruposPorEmpresa = computed(() => {
   const empresaMapa = new Map();
@@ -357,7 +382,7 @@ export function useReporteMallas() {
       }
       const { data } = await axios.get(`${API_BASE_URL}/horas-extra/historial`, { params });
       registros.value = data;
-      currentPage.value = 1;
+      limpiarFiltroFechas();
     } catch (err) {
       console.error("Error cargando historial horas extra:", err);
     } finally {
@@ -380,7 +405,7 @@ export function useReporteMallas() {
       };
       const { data } = await axios.post(`${API_BASE_URL}/horas-extra/calcular`, payload);
       registros.value = data;
-      currentPage.value = 1;
+      limpiarFiltroFechas();
       hayResultadosCalculados.value = true;
     } catch (err) {
       console.error("Error calculando horas extra:", err);
@@ -764,6 +789,11 @@ export function useReporteMallas() {
     filterCargo,
     filterDepartamento,
     soloConExtras,
+    fechasSeleccionadas,
+    fechaFiltroActivo,
+    fechasDisponibles,
+    aplicarFiltroFechas,
+    limpiarFiltroFechas,
 
     // Opciones dropdowns
     opcionesNombres,

@@ -736,13 +736,21 @@
     ══════════════════════════════════════════════════════════════════ -->
     <teleport to="body">
       <transition name="fade-panel">
-        <div v-if="detalleModal.open" class="fixed inset-0 z-[85] flex items-center justify-center p-2"
-          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)" @click.self="detalleModal.open = false">
+        <div v-if="detalleModal.open" class="fixed inset-0 z-[85] flex items-center justify-center"
+          :class="detalleModalMaximizado ? '' : 'p-2'"
+          style="background:rgba(0,0,0,0.55);backdrop-filter:blur(4px)"
+          @click.self="!detalleModalMaximizado && (detalleModal.open = false)">
 
-          <div class="w-full max-w-[95vw] h-[92vh] rounded-[10px] border flex flex-col overflow-hidden"
-            style="animation: vcModalIn 0.2s ease-out forwards;" :class="isDark
-              ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
-              : 'bg-white border-[#e5e5e5] shadow-[0_24px_48px_rgba(0,0,0,0.1)]'">
+          <div class="w-full flex flex-col overflow-hidden transition-all duration-200"
+            :class="[
+              detalleModalMaximizado
+                ? 'max-w-none h-screen rounded-none border-0'
+                : 'max-w-[95vw] h-[92vh] rounded-[10px] border',
+              isDark
+                ? 'bg-[#161B26] border-[#222938] shadow-[0_32px_64px_rgba(0,0,0,0.5)]'
+                : 'bg-white border-[#e5e5e5] shadow-[0_24px_48px_rgba(0,0,0,0.1)]'
+            ]"
+            style="animation: vcModalIn 0.2s ease-out forwards;">
 
             <!-- Header -->
             <div class="flex items-start justify-between px-6 pt-5 pb-4 border-b shrink-0"
@@ -764,12 +772,21 @@
                   </p>
                 </div>
               </div>
-              <button @click="detalleModal.open = false"
-                class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors shrink-0" :class="isDark
-                  ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
-                  : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'">
-                <i class="fas fa-xmark text-xs"></i>
-              </button>
+              <div class="flex items-center gap-2 shrink-0">
+                <button @click="detalleModalMaximizado = !detalleModalMaximizado"
+                  class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors" :class="isDark
+                    ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
+                    : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'"
+                  :title="detalleModalMaximizado ? 'Restaurar' : 'Ampliar a pantalla completa'">
+                  <i class="fas text-xs" :class="detalleModalMaximizado ? 'fa-compress' : 'fa-expand'"></i>
+                </button>
+                <button @click="detalleModal.open = false"
+                  class="rounded-[6px] w-8 h-8 flex items-center justify-center border transition-colors" :class="isDark
+                    ? 'border-[#222938] text-[#64748b] hover:text-white hover:bg-[#222938]'
+                    : 'border-[#e5e5e5] text-[#737373] hover:text-[#111] hover:bg-[#f5f5f5]'">
+                  <i class="fas fa-xmark text-xs"></i>
+                </button>
+              </div>
             </div>
 
             <!-- Body scrollable -->
@@ -1277,8 +1294,10 @@ const novedadesEnCarpetaCh = computed(() =>
 
 // ─── Modal detalle (Capital Humano, solo lectura) ─────────────────
 const detalleModal = ref({ open: false, novedad: null, archivos: [], cargandoArchivos: false });
+const detalleModalMaximizado = ref(false);
 
 const abrirDetalle = async (item) => {
+  detalleModalMaximizado.value = false;
   detalleModal.value = { open: true, novedad: item, archivos: [], cargandoArchivos: true };
   try {
     const res = await axios.get(`${API_URL}/novedades/${item.id}/archivos`);

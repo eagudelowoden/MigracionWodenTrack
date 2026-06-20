@@ -96,6 +96,30 @@ export class UsuariosController {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
+    if (hoy !== 'true' && startDate && endDate) {
+      const inicio = new Date(startDate + 'T00:00:00');
+      const fin = new Date(endDate + 'T00:00:00');
+      const diffDias = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDias < 0) {
+        send({ type: 'error', message: 'La fecha de inicio debe ser anterior a la fecha de fin.' });
+        res.end();
+        return;
+      }
+      if (diffDias > 32) {
+        send({
+          type: 'error',
+          message: `El rango máximo permitido es 32 días. Seleccionaste ${Math.round(diffDias)} días.`,
+        });
+        res.end();
+        return;
+      }
+    }
+
+    // Tamaño del lote enviado al cliente por evento SSE: evita serializar
+    // (JSON.stringify) un array gigante de una sola vez y reduce el pico de
+    // memoria retenido mientras se construye la respuesta.
+    const CHUNK_SIZE = 1000;
+
     try {
       const result = await this.usuariosService.getReporteNovedades(
         hoy === 'true',
@@ -108,7 +132,11 @@ export class UsuariosController {
         agrupar !== 'false',
         (pct, msg) => send({ type: 'progress', percent: pct, message: msg }),
       );
-      send({ type: 'done', data: result });
+
+      for (let i = 0; i < result.length; i += CHUNK_SIZE) {
+        send({ type: 'chunk', data: result.slice(i, i + CHUNK_SIZE) });
+      }
+      send({ type: 'done', total: result.length });
     } catch (err: any) {
       send({ type: 'error', message: err?.message || 'Error desconocido' });
     } finally {
@@ -134,9 +162,9 @@ export class UsuariosController {
       const diffDias = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
       if (diffDias < 0)
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin.');
-      if (diffDias > 31)
+      if (diffDias > 32)
         throw new BadRequestException(
-          `El rango máximo permitido es 31 días. Seleccionaste ${Math.round(diffDias)} días.`,
+          `El rango máximo permitido es 32 días. Seleccionaste ${Math.round(diffDias)} días.`,
         );
     }
 

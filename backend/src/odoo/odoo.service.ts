@@ -152,6 +152,12 @@ export class OdooService {
     const results: T[] = [];
     let offset = 0;
 
+    // Heap máximo por defecto de Node (--max-old-space-size) ronda ~2GB en la
+    // mayoría de hosts; abortamos bastante antes de llegar ahí para devolver
+    // un error controlado al cliente en vez de que el proceso completo muera
+    // por out-of-memory (lo que tumba toda la API, no solo este reporte).
+    const HEAP_LIMIT_BYTES = 1.2 * 1024 * 1024 * 1024;
+
     while (true) {
       const chunk = await this.executeKw<T[]>(
         model, 'search_read', [domain],
@@ -161,6 +167,14 @@ export class OdooService {
       if (!chunk || chunk.length === 0) break;
       results.push(...chunk);
       onProgress(results.length, total);
+
+      if (process.memoryUsage().heapUsed > HEAP_LIMIT_BYTES) {
+        throw new InternalServerErrorException(
+          `Consulta abortada: uso de memoria excesivo al cargar ${model} ` +
+            `(${results.length}/${total} registros). Reduce el rango de fechas o agrega filtros.`,
+        );
+      }
+
       if (chunk.length < pageSize) break;
       offset += pageSize;
     }

@@ -159,8 +159,9 @@ export function useCargarAsistencias() {
 
           if (event.type === "progress") {
             loadingProgress.value = event.percent ?? 0;
+          } else if (event.type === "chunk") {
+            rawData.value = rawData.value.concat(event.data);
           } else if (event.type === "done") {
-            rawData.value = event.data;
             initialLoadDone = true;
             loadingProgress.value = 100;
             setTimeout(() => { loadingProgress.value = 0; }, 400);

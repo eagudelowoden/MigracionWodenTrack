@@ -1647,9 +1647,9 @@ export class UsuariosService {
         (new Date(endDate).getTime() - new Date(startDate).getTime()) /
           86400000,
       );
-      if (dias > 62) {
+      if (dias > 32) {
         throw new (require('@nestjs/common').BadRequestException)(
-          `El rango máximo permitido es 62 días. Seleccionaste ${dias} días.`,
+          `El rango máximo permitido es 32 días. Seleccionaste ${dias} días.`,
         );
       }
     }
@@ -2024,6 +2024,11 @@ export class UsuariosService {
     return { domainAtt, domainLog };
   }
 
+  // Tope duro de registros combinados (attendance + log). Por encima de esto
+  // el volumen de objetos mapeados en memoria puede disparar el heap del
+  // proceso y tumbar toda la API, no solo este reporte.
+  private readonly MAX_REGISTROS_REPORTE = 25000;
+
   private async consultarOdoo(
     domainAtt: any[],
     domainLog: any[],
@@ -2031,6 +2036,21 @@ export class UsuariosService {
     onProgress?: (pct: number, msg: string) => void,
   ): Promise<[any[], any[]]> {
     const emit = onProgress ?? (() => {});
+
+    // ── Pre-chequeo: contar antes de descargar nada ──────────────────────────
+    emit(3, 'Estimando volumen…');
+    const [countAtt, countLog] = await Promise.all([
+      this.odoo.executeKw<number>('hr.attendance', 'search_count', [domainAtt], {}, uid),
+      this.odoo.executeKw<number>('attendance.log', 'search_count', [domainLog], {}, uid),
+    ]);
+    const totalEstimado = countAtt + countLog;
+    if (totalEstimado > this.MAX_REGISTROS_REPORTE) {
+      throw new (require('@nestjs/common').BadRequestException)(
+        `La consulta traería ${totalEstimado} registros, supera el máximo permitido ` +
+          `(${this.MAX_REGISTROS_REPORTE}). Agrega un filtro de departamento, área o ` +
+          `reduce el rango de fechas.`,
+      );
+    }
 
     // ── hr.attendance paginado ───────────────────────────────────────────────
     const attFields = [
