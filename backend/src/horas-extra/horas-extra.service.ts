@@ -36,16 +36,17 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
   return Math.max(0, Math.min(e1, e2) - Math.max(s1, s2));
 }
 
-// Minutos nocturnos en el rango [start, end] (21:00-06:00 = 1260-1440 y 0-360)
-// Usado para RNDF, HENO, HEFN. Soporta end > 1440 para turnos que cruzan medianoche
+// Minutos nocturnos en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
+// Usado para RNDF, HENO, HEFN. La jornada nocturna inicia a las 19:00 conforme
+// a la reforma laboral (Ley 2466 de 2025). Soporta end > 1440 (cruce de medianoche).
 function minsNocturno(start: number, end: number): number {
   if (end <= start) return 0;
   if (end <= 1440) {
-    return overlap(start, end, 1260, 1440) + overlap(start, end, 0, 360);
+    return overlap(start, end, 1140, 1440) + overlap(start, end, 0, 360);
   }
   // Cruce de medianoche: antes de las 24:00 y después de las 00:00
-  const antesMedianoche = overlap(start, 1440, 1260, 1440) + overlap(start, 1440, 0, 360);
-  const despuesMedianoche = overlap(0, end - 1440, 1260, 1440) + overlap(0, end - 1440, 0, 360);
+  const antesMedianoche = overlap(start, 1440, 1140, 1440) + overlap(start, 1440, 0, 360);
+  const despuesMedianoche = overlap(0, end - 1440, 1140, 1440) + overlap(0, end - 1440, 0, 360);
   return antesMedianoche + despuesMedianoche;
 }
 
@@ -61,16 +62,17 @@ function minsRN(start: number, end: number): number {
   return antesMedianoche + despuesMedianoche;
 }
 
-// Minutos diurnos en el rango [start, end] (06:00-21:00 = 360-1260)
-// Soporta end > 1440 para turnos que cruzan medianoche
+// Minutos diurnos en el rango [start, end] (06:00-19:00 = 360-1140)
+// La jornada diurna termina a las 19:00 (la noche inicia ahí) conforme a la
+// reforma laboral (Ley 2466 de 2025). Soporta end > 1440 (cruce de medianoche).
 function minsDiurno(start: number, end: number): number {
   if (end <= start) return 0;
   if (end <= 1440) {
-    return overlap(start, end, 360, 1260);
+    return overlap(start, end, 360, 1140);
   }
   // Cruce de medianoche
-  const antesMedianoche = overlap(start, 1440, 360, 1260);
-  const despuesMedianoche = overlap(0, end - 1440, 360, 1260);
+  const antesMedianoche = overlap(start, 1440, 360, 1140);
+  const despuesMedianoche = overlap(0, end - 1440, 360, 1140);
   return antesMedianoche + despuesMedianoche;
 }
 
@@ -1577,12 +1579,12 @@ export class HorasExtraService {
       '',
       'CONVENCIONES:',
       'RN = Recargo Nocturno: Dentro de la jornada laboral de 19:00 Hr a 6:00 Hr',
-      'RNDF = Recargo Nocturno Dominical o Festivo: Dentro de la jornada Laboral, Domingo, de 21:00 Hr y 6:00 Hr',
-      'RDDF = Recargo Diurno Dominical o Festivo: Dentro de la Jornada laboral, Domingo o Días Festivos de 6:00 Hr y 21:00 Hr',
-      'HEDO = Hora Extra Diurna Ordinaria: Hora adicional a su jornada laboral, de 6:00 Hr y 21:00 Hr',
-      'HENO = Hora Extra Nocturna Ordinaria: Hora adicional a su jornada laboral, de 21:00 Hr y 6:00 Hr',
-      'HEFD = Hora Extra Festiva Diurna: Hora adicional a su jornada laboral, Domingo o Festivo, 6:00 Hr y 21:00 Hr',
-      'HEFN = Hora Extra Festiva Nocturna: Hora adicional a su jornada laboral, Domingo o Festivo, de 21:00 Hr y 6:00 Hr',
+      'RNDF = Recargo Nocturno Dominical o Festivo: Dentro de la jornada Laboral, Domingo o Festivo, de 19:00 Hr a 6:00 Hr',
+      'RDDF = Recargo Diurno Dominical o Festivo: Dentro de la Jornada laboral, Domingo o Días Festivos de 6:00 Hr a 19:00 Hr',
+      'HEDO = Hora Extra Diurna Ordinaria: Hora adicional a su jornada laboral, de 6:00 Hr a 19:00 Hr',
+      'HENO = Hora Extra Nocturna Ordinaria: Hora adicional a su jornada laboral, de 19:00 Hr a 6:00 Hr',
+      'HEFD = Hora Extra Festiva Diurna: Hora adicional a su jornada laboral, Domingo o Festivo, 6:00 Hr a 19:00 Hr',
+      'HEFN = Hora Extra Festiva Nocturna: Hora adicional a su jornada laboral, Domingo o Festivo, de 19:00 Hr a 6:00 Hr',
     ];
 
     notas.forEach((texto) => {

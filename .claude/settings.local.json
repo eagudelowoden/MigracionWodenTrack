@@ -148,7 +148,16 @@
       "Bash(xargs grep -l \"malla\\\\|seed\\\\|init\")",
       "Bash(grep -v \"comment\\\\|//\")",
       "Bash(grep -n \"file\\\\b\\\\|/file\\\\`\\\\|window.open\\\\|target=\\\\\"_blank\\\\\"\\\\|href=\" \"frontend/src/composables/adminLogica/useNovedades.js\" \"frontend/src/views/novedades/novedadesRRHView.vue\")",
-      "Bash(grep -rn \"novedades/\\\\${.*}/file\\\\|/file\\\\`\\\\|:href\\\\|:src=\\\\\"modal\\\\|window.open\\\\|getFileUrl\\\\|getArchivoUrl\\\\|\\\\.value = .*VITE_API_URL.*file\\\\|= url\\\\b\" frontend/src/views/novedades/novedadesadminView.vue frontend/src/views/novedades/MisAprobacionesView.vue)"
+      "Bash(grep -rn \"novedades/\\\\${.*}/file\\\\|/file\\\\`\\\\|:href\\\\|:src=\\\\\"modal\\\\|window.open\\\\|getFileUrl\\\\|getArchivoUrl\\\\|\\\\.value = .*VITE_API_URL.*file\\\\|= url\\\\b\" frontend/src/views/novedades/novedadesadminView.vue frontend/src/views/novedades/MisAprobacionesView.vue)",
+      "WebSearch",
+      "WebFetch(domain:www.gerencie.com)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl OK'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python)",
+      "Bash(PYTHONIOENCODING=utf-8 python)",
+      "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\")",
+      "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189)",
+      "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189 --csv \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\reconciliacion_19vs21.csv\")"
     ]
   }
 }
