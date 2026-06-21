@@ -18,6 +18,7 @@ const NAV_GROUPS = [
     label: 'Operación',
     items: {
       mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      paramhx: { icon: 'fas fa-business-time', label: 'Param. Horas Extra', color: 'text-lime-400', bg: 'bg-lime-500/10' },
       solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
       sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
@@ -55,6 +56,7 @@ const MODULE_LABELS = {
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
   offboarding: 'Checklist Offboarding', sync: 'Sync Automático',
+  paramhx: 'Parametrización Horas Extra',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -78,6 +80,7 @@ import GestionMensajes from '../components/admin/SuperAdmin/GestionMensajes.vue'
 import GestionRecordatorios from '../components/admin/SuperAdmin/GestionRecordatorios.vue';
 import GestionSolicitudes from '../components/admin/SuperAdmin/GestionSolicitudes.vue';
 import GestionModulos from '../components/admin/SuperAdmin/GestionModulos.vue';
+import GestionParametrosHorasExtra from '../components/admin/SuperAdmin/GestionParametrosHorasExtra.vue';
 import ModuloReportesFalla from '../components/admin/ModuloReportesFalla.vue';
 import '../assets/css/admin-style.css';
 import '../assets/css/SuperAdmin.css';
@@ -99,6 +102,7 @@ const TAB_PERMS = {
   notifications: 'super.avisos',
   estructura: 'super.organizacion',
   mallas: 'super.mallas',
+  paramhx: 'super.parametroshx',
   analitica: 'super.analitica',
   sesiones: 'super.sesiones',
   mensajes: 'super.mensajes',
@@ -573,12 +577,13 @@ onUnmounted(() => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
+          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
             <GestionMallas v-if="tab === 'mallas'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
+            <GestionParametrosHorasExtra v-if="tab === 'paramhx'" :isDark="isDark" />
             <GestionAnalitica v-if="tab === 'analitica'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
             <GestionConfiguraciones v-if="tab === 'config'" :isDark="isDark" @success="showNotification($event)"

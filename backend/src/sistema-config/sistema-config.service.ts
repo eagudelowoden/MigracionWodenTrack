@@ -16,6 +16,21 @@ const DEFAULTS: Record<string, { valor: string; descripcion: string }> = {
   mallas_schedule_weekly_days: { valor: '[]', descripcion: 'Días de semana habilitados (JSON array: 0=Dom 1=Lun ... 6=Sáb)' },
   mallas_schedule_monthly_days: { valor: '[]', descripcion: 'Días del mes habilitados (JSON array: 1-31)' },
   mallas_schedule_specific_dates: { valor: '[]', descripcion: 'Fechas exactas habilitadas (JSON array de strings YYYY-MM-DD)' },
+
+  // ── Parametrización Horas Extra (solo informativo por ahora; el motor de
+  //    cálculo aún usa estos valores fijos en código. Sembrarlos NO cambia el
+  //    comportamiento; sirve para mostrarlos en el módulo de super admin) ──────
+  hx_inicio_nocturno: { valor: '19', descripcion: 'Hora en que inicia la jornada nocturna (HH 0-23). Ley 2466/2025 = 19' },
+  hx_inicio_diurno: { valor: '6', descripcion: 'Hora en que inicia la jornada diurna / fin del nocturno (HH 0-23)' },
+  hx_tolerancia_min: { valor: '6', descripcion: 'Tolerancia en minutos para llegada tarde antes de contar reposición' },
+  hx_redondeo_min: { valor: '50', descripcion: 'Si la fracción de hora tiene >= estos minutos, sube a la hora completa' },
+  hx_max_turno_horas: { valor: '14', descripcion: 'Duración máxima razonable de un turno (h); por encima se considera mal emparejado' },
+  hx_umbral_entrada_nocturna: { valor: '21', descripcion: 'Hora mínima (HH) para tratar una entrada sin salida como turno que cruza medianoche' },
+  hx_dominical_festivo_modo: { valor: 'todo_extra', descripcion: 'Trabajo en domingo/festivo sin malla: todo_extra | recargo_mas_extra' },
+  hx_recargo_nocturno_pct: { valor: '35', descripcion: 'Porcentaje de recargo nocturno (referencia/Excel)' },
+  hx_recargo_dominical_pct: { valor: '80', descripcion: 'Porcentaje de recargo dominical/festivo vigente (referencia/Excel)' },
+  hx_extra_diurna_pct: { valor: '25', descripcion: 'Porcentaje adicional de hora extra diurna (referencia/Excel)' },
+  hx_extra_nocturna_pct: { valor: '75', descripcion: 'Porcentaje adicional de hora extra nocturna (referencia/Excel)' },
 };
 
 @Injectable()
