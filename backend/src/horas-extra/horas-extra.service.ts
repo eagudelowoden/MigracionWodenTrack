@@ -36,6 +36,11 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
   return Math.max(0, Math.min(e1, e2) - Math.max(s1, s2));
 }
 
+// Duración máxima razonable de un turno (14h). Un emparejamiento entrada→salida
+// que supere esto es inválido: en realidad son la salida de un turno y la entrada
+// de otro (p. ej. 05:00 madrugada + 22:00 noche = 17h imposibles de un solo turno).
+const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
+
 // Minutos nocturnos en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
 // Usado para RNDF, HENO, HEFN. La jornada nocturna inicia a las 19:00 conforme
 // a la reforma laboral (Ley 2466 de 2025). Soporta end > 1440 (cruce de medianoche).
@@ -683,6 +688,10 @@ export class HorasExtraService {
 
     // Agrupar biométrico: turno nocturno → empareja entrada(día N) con salida(día N+1)
     const processedSalidaKeys = new Set<string>(); // keys ya consumidos como salida nocturna
+    // Marcaciones (rawTime) ya usadas como salida de un turno anterior. Sirve para
+    // NO reusar el punch de madrugada como si fuera una entrada del día siguiente,
+    // sin perder una entrada vespertina real de ese mismo día (turno nocturno extra).
+    const consumedSalidaPunches = new Set<string>();
 
     for (const [empId, punches] of allLogsByEmp) {
       const fechasConPunch = [...new Set(punches.map(p => p.localTime.split(' ')[0]))].sort();
@@ -693,10 +702,24 @@ export class HorasExtraService {
 
         const turno = getTurnoParaFecha(empId, fecha);
 
-        // Si este día fue marcado como "salida" del turno nocturno anterior,
-        // solo lo saltamos si el turno NO es nocturno (punch matutino aislado, nada más).
-        // Si ES nocturno, puede tener su propia entrada vespertina → seguimos procesando.
-        if (processedSalidaKeys.has(key) && !esNocturnoTurno(turno)) continue;
+        // Marcaciones de ESTE día que aún no fueron consumidas como salida de un
+        // turno nocturno anterior (excluye la marcación de madrugada del turno previo).
+        const dayPunchesLibres = punches.filter(
+          (p) =>
+            p.localTime.split(' ')[0] === fecha &&
+            !consumedSalidaPunches.has(p.rawTime),
+        );
+
+        // Si este día solo fue la "salida" (madrugada) del turno nocturno anterior y
+        // no tiene turno nocturno propio, lo saltamos SOLO si no quedan marcaciones
+        // libres. Si quedan (p. ej. una entrada vespertina de un turno nocturno extra
+        // en sábado/domingo), seguimos procesando para no perder ese turno.
+        if (
+          processedSalidaKeys.has(key) &&
+          !esNocturnoTurno(turno) &&
+          dayPunchesLibres.length === 0
+        )
+          continue;
 
         if (esNocturnoTurno(turno)) {
           // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida ≈ hora_fin en `fecha+1`
@@ -716,8 +739,12 @@ export class HorasExtraService {
           if (!entrada) continue; // Sin entrada biométrica → ignorar este día
 
           const keySig = `${empId}_${siguiente}`;
-          // Marcar el día siguiente como "consumido" como salida de este turno
-          if (salida && !grupos[keySig]) processedSalidaKeys.add(keySig);
+          // Marcar el día siguiente como "consumido" como salida de este turno y
+          // recordar la marcación exacta para no reusarla como entrada del día sig.
+          if (salida && !grupos[keySig]) {
+            processedSalidaKeys.add(keySig);
+            consumedSalidaPunches.add(salida.rawTime);
+          }
 
           const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
           const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
@@ -732,15 +759,38 @@ export class HorasExtraService {
             }],
           };
         } else {
-          // Turno diurno o sin turno: tomar todos los punches del día
-          const dayPunches = punches.filter(p => p.localTime.split(' ')[0] === fecha);
+          // Turno diurno o sin turno: tomar las marcaciones del día aún no
+          // consumidas como salida de un turno nocturno anterior.
+          const dayPunches = dayPunchesLibres;
           if (!dayPunches.length) continue;
 
           const primero   = dayPunches[0];
           const ultimoDay = dayPunches[dayPunches.length - 1];
-          const haySalida =
-            dayPunches.length > 1 &&
-            new Date(ultimoDay.rawTime).getTime() - new Date(primero.rawTime).getTime() >= 60_000;
+          const spanMs = new Date(ultimoDay.rawTime).getTime() - new Date(primero.rawTime).getTime();
+
+          // VALIDACIÓN: si entre la primera y la última marcación hay más de 14h,
+          // no pueden ser entrada/salida del MISMO turno (p. ej. 05:00 madrugada +
+          // 22:00 noche). La primera es salida de un turno anterior y la última es
+          // la entrada de un turno nocturno nuevo → tomamos la última como entrada
+          // y dejamos que el fallback reconstruya su salida en la madrugada siguiente.
+          if (spanMs > MAX_TURNO_MS) {
+            const nom = ultimoDay.log.employee_id?.[1] || 'Desconocido';
+            grupos[key] = {
+              empId,
+              nombre: nom,
+              dept: ultimoDay.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO',
+              fecha,
+              records: [{
+                employee_id: [empId, nom],
+                check_in:  ultimoDay.rawTime,
+                check_out: null,
+                department_id: null,
+              }],
+            };
+            continue;
+          }
+
+          const haySalida = dayPunches.length > 1 && spanMs >= 60_000;
 
           const nombre = primero.log.employee_id?.[1] || 'Desconocido';
           const dept   = primero.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
@@ -902,25 +952,31 @@ export class HorasExtraService {
       //
       //  1. Turno DIURNO (o sin turno): buscar la última punch del mismo día
       //     que sea al menos 10 minutos posterior a la entrada.
-      //  2. Turno NOCTURNO sin malla / sin turno definido pero entrada ≥ 21:00:
+      //  2. Turno NOCTURNO sin malla / sin turno definido pero entrada ≥ 19:00:
       //     buscar la primera punch del día siguiente con hora ≤ 08:00.
       if (!localOut && localIn && allLogsByEmp.has(empId)) {
         const inFecha  = localIn.split(' ')[0];
         const inMins   = this.parseMinutos(localIn);
         const punches  = allLogsByEmp.get(empId)!;
+        const MAX_MIN  = MAX_TURNO_MS / 60000; // 840 min (14h)
 
         // 1. Misma fecha: última punch posterior a la entrada (≥ 10 min después)
+        //    y que NO genere un turno imposible (> 14h). Si la única "salida" del
+        //    día está a más de 14h, en realidad es la entrada de un turno nocturno
+        //    distinto → no la usamos aquí (se cae al caso 2).
         const salidaMismoDia = [...punches]
           .filter(p =>
             p.localTime.split(' ')[0] === inFecha &&
-            this.parseMinutos(p.localTime) >= inMins + 10,
+            this.parseMinutos(p.localTime) >= inMins + 10 &&
+            this.parseMinutos(p.localTime) - inMins <= MAX_MIN,
           )
-          .at(-1); // la más tardía del día
+          .at(-1); // la más tardía del día válida
 
         if (salidaMismoDia) {
           localOut = salidaMismoDia.localTime;
-        } else if (inMins >= 1260) {
-          // 2. Entrada nocturna (≥ 21:00) sin salida ese día → buscar en día siguiente
+        } else if (inMins >= 1140) {
+          // 2. Entrada nocturna (≥ 19:00, jornada nocturna Ley 2466/2025) sin salida
+          //    ese día → buscar la salida en la madrugada del día siguiente (≤ 08:00).
           const siguiente    = addUnDia(inFecha);
           const salidaSigDia = punches.find(p =>
             p.localTime.split(' ')[0] === siguiente &&
