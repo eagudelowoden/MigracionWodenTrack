@@ -13,6 +13,11 @@ import { Server, Socket } from 'socket.io';
     cors: {
         origin: '*', // En producción pon la URL de tu frontend Vue
     },
+    // Heartbeat agresivo: el servidor manda un ping cada 10s y espera el pong
+    // en 5s. Así el cliente detecta una conexión muerta en ~15s (en vez de los
+    // ~45s por defecto), clave detrás del proxy de IIS que mantiene el WS abierto.
+    pingInterval: 10000,
+    pingTimeout: 5000,
 })
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()

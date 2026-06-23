@@ -2,9 +2,44 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import * as fs from 'fs';
+
+/**
+ * Carga el certificado para servir HTTPS (necesario para que el WebSocket vaya
+ * directo a Node como `wss://` sin pasar por el proxy de IIS). Si las variables
+ * no están o el archivo no carga, devuelve null y el servidor arranca en HTTP
+ * (comportamiento actual) — así nunca tumba local ni entornos sin certificado.
+ *
+ * Variables admitidas (.env):
+ *   - SSL_PFX_PATH (+ SSL_PFX_PASSPHRASE)   → certificado .pfx exportado de IIS
+ *   - o bien SSL_KEY_PATH + SSL_CERT_PATH   → par clave/certificado en PEM
+ */
+function cargarHttpsOptions(): { pfx?: Buffer; passphrase?: string; key?: Buffer; cert?: Buffer } | null {
+  try {
+    const pfxPath = process.env.SSL_PFX_PATH;
+    if (pfxPath && fs.existsSync(pfxPath)) {
+      return {
+        pfx: fs.readFileSync(pfxPath),
+        passphrase: process.env.SSL_PFX_PASSPHRASE || undefined,
+      };
+    }
+    const keyPath = process.env.SSL_KEY_PATH;
+    const certPath = process.env.SSL_CERT_PATH;
+    if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+      return { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) };
+    }
+  } catch (e: any) {
+    console.error('⚠️  No se pudo cargar el certificado HTTPS, se arranca en HTTP:', e?.message);
+  }
+  return null;
+}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  const httpsOptions = cargarHttpsOptions();
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions: httpsOptions ?? undefined,
+    bodyParser: true,
+  });
   // Deshabilitar ETags para evitar respuestas 304 con datos cacheados
   app.getHttpAdapter().getInstance().set('etag', false);
 
@@ -43,6 +78,7 @@ async function bootstrap() {
 
   const PORT = process.env.PORT || 8082;
   await app.listen(PORT, '0.0.0.0');
-  console.log(`🚀 Servidor NestJS corriendo en: http://localhost:${PORT}`);
+  const proto = httpsOptions ? 'https' : 'http';
+  console.log(`🚀 Servidor NestJS corriendo en: ${proto}://0.0.0.0:${PORT}  (${httpsOptions ? 'HTTPS/wss' : 'HTTP/ws'})`);
 }
 bootstrap();

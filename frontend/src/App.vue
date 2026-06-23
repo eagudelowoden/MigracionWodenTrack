@@ -119,18 +119,28 @@ const programarChequeoSalud = () => {
   _healthCheckTimer = setTimeout(verificarVersion, 800);
 };
 
+// Latch: ¿el socket llegó a conectar alguna vez en esta carga de página?
+// Sirve para distinguir "recarga normal que aún no conecta" (no mostrar banner)
+// de "reconexión fallida tras una caída real" (mostrar banner de inmediato).
+let _socketYaConecto = false;
+
 const setupSockets = () => {
+  socket.on('connect', () => {
+    _socketYaConecto = true;
+    verificarVersion();
+  });
+
   // disconnect = la conexión ESTABA viva y se perdió → caída real → banner ya.
-  // No se dispara al recargar (ahí el socket nuevo arranca en connect/connect_error),
-  // así que esto da detección inmediata sin reintroducir el falso banner de recarga.
   socket.on('disconnect', () => { backendCaido.value = true; });
 
-  // connect_error = no logró conectar (puede ser recarga/parpadeo del proxy) →
-  // confirmar con HTTP antes de mostrar nada.
-  socket.on('connect_error', programarChequeoSalud);
-
-  // Cuando el socket (re)conecta (backend reinició y está listo) → verificar versión de inmediato
-  socket.on('connect', verificarVersion);
+  // connect_error: si YA habíamos conectado, es una reconexión que falla tras una
+  // caída real → banner inmediato (los intentos de reconexión fallan al instante
+  // porque el proxy no alcanza el backend; ESTO es lo que da la rapidez en IIS).
+  // Si nunca conectamos (recarga normal), confirmamos por HTTP para no parpadear.
+  socket.on('connect_error', () => {
+    if (_socketYaConecto) backendCaido.value = true;
+    else programarChequeoSalud();
+  });
 
   socket.on('onNotification', (data) => {
     if (data.is_active === false) {

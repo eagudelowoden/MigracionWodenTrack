@@ -159,7 +159,11 @@
       "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189)",
       "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189 --csv \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\reconciliacion_19vs21.csv\")",
       "Bash(echo \"exit: $?\")",
-      "Bash(echo \"rc=$?\")"
+      "Bash(echo \"rc=$?\")",
+      "Bash(echo \"front rc=$?\")",
+      "Read(//c/Users/e.agudelo/Documents/**)",
+      "Bash(ls -la backend/.env.example backend/.env.sample)",
+      "Bash(grep -rn \"SSL\\\\|https\\\\|pfx\\\\|cert\" backend/src/main.ts)"
     ]
   }
 }
