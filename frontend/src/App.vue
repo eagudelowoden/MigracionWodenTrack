@@ -86,7 +86,10 @@ const backendCaido = ref(false);
 const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
 
 // --- 🔵 LÓGICA DE NOTIFICACIONES (SOCKETS) ---
-const socket = io(API_BASE, { transports: ['websocket'], forceNew: true });
+// Incluimos 'polling' como respaldo: si IIS no proxea bien el WebSocket en
+// producción, socket.io conecta igual por long-polling (vía el reverse proxy
+// HTTP normal), de modo que el evento 'disconnect' sí se dispare ante una caída.
+const socket = io(API_BASE, { transports: ['websocket', 'polling'], forceNew: true });
 
 const cargarAnuncioActivo = async () => {
   try {
@@ -206,8 +209,9 @@ onMounted(() => {
   cargarAnuncioActivo();
   verificarVersion();
   setupSockets();
-  // Reducido de 60 s a 20 s como respaldo del socket
-  setInterval(verificarVersion, 20000);
+  // Respaldo HTTP cada 8 s: garantiza detección de caída en ≤ 8 s aunque el
+  // WebSocket no avise (caso típico detrás del proxy de IIS en producción).
+  setInterval(verificarVersion, 8000);
   // Verificar al volver a la pestaña
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') verificarVersion();
