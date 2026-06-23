@@ -107,11 +107,24 @@ const cargarAnuncioActivo = async () => {
 };
 
 
+// connect_error puede dispararse en una recarga normal (el socket nuevo aún no
+// conecta a través del proxy de IIS) → NO encendemos el banner directo, sino
+// que confirmamos con un chequeo HTTP real para evitar falsos positivos.
+let _healthCheckTimer = null;
+const programarChequeoSalud = () => {
+  clearTimeout(_healthCheckTimer);
+  _healthCheckTimer = setTimeout(verificarVersion, 800);
+};
+
 const setupSockets = () => {
-  // El socket comparte backend con la API: si se cae, lo sabemos casi al
-  // instante (evento nativo de socket.io), sin esperar a que falle un fetch.
+  // disconnect = la conexión ESTABA viva y se perdió → caída real → banner ya.
+  // No se dispara al recargar (ahí el socket nuevo arranca en connect/connect_error),
+  // así que esto da detección inmediata sin reintroducir el falso banner de recarga.
   socket.on('disconnect', () => { backendCaido.value = true; });
-  socket.on('connect_error', () => { backendCaido.value = true; });
+
+  // connect_error = no logró conectar (puede ser recarga/parpadeo del proxy) →
+  // confirmar con HTTP antes de mostrar nada.
+  socket.on('connect_error', programarChequeoSalud);
 
   // Cuando el socket (re)conecta (backend reinició y está listo) → verificar versión de inmediato
   socket.on('connect', verificarVersion);
@@ -135,25 +148,43 @@ let _retryTimeout = null;
 
 const verificarVersion = async () => {
   try {
-    const res = await apiFetch(`${API_BASE}/version?t=${Date.now()}`);
+    // Timeout corto: si /version no responde rápido, lo damos por caído sin
+    // esperar el timeout largo del navegador (detección inmediata).
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    let res;
+    try {
+      res = await apiFetch(`${API_BASE}/version?t=${Date.now()}`, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+
     if (res.url.includes('mantenimiento.html') || res.status === 503) {
       window.location.reload(true);
       return;
     }
-    // El backend respondió correctamente → ya no está caído
-    backendCaido.value = false;
+
+    // OJO: detrás de IIS, un backend caído devuelve 502/504 (hay "respuesta"
+    // pero NO está vivo). Solo un 2xx con JSON de versión válido cuenta como
+    // vivo; cualquier otra cosa la tratamos como caída → al catch.
+    if (!res.ok) throw new Error(`status ${res.status}`);
 
     const data = await res.json();
     const versionServidor = String(data.version).trim();
-    const versionGuardada = localStorage.getItem('app_version');
 
+    // Confirmado vivo SOLO aquí (tras leer una versión válida). Hacerlo antes
+    // causaba un parpadeo false→true en cada 502 del proxy.
+    backendCaido.value = false;
+
+    const versionGuardada = localStorage.getItem('app_version');
     if (versionGuardada && versionServidor !== versionGuardada) {
       nuevaActualizacion.value = true;
     } else if (!versionGuardada) {
       localStorage.setItem('app_version', versionServidor);
     }
   } catch {
-    // Backend posiblemente reiniciando → avisar al usuario y reintentar en 5 s
+    // Backend caído/reiniciando (timeout, error de red o 502/504) → banner y
+    // reintento en 5 s. Se mantiene en true de forma estable (sin parpadeo).
     backendCaido.value = true;
     clearTimeout(_retryTimeout);
     _retryTimeout = setTimeout(verificarVersion, 5000);

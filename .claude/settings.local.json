@@ -158,7 +158,8 @@
       "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\")",
       "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189)",
       "Bash(PYTHONIOENCODING=utf-8 python tools/reconciliacion-horas-extra.py \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\Consolidado Horas Extras Junio 2026.xlsx\" --valor-hora 6189 --csv \"C:\\\\Users\\\\e.agudelo\\\\Downloads\\\\reconciliacion_19vs21.csv\")",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"rc=$?\")"
     ]
   }
 }
