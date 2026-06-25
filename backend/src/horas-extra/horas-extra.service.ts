@@ -338,6 +338,12 @@ export class HorasExtraService {
     esFestivo: boolean,
     esFestivoSiguiente: boolean = false,
     retrasoMins: number = 0,
+    // Festivo entre semana (lunes a sábado, no domingo): invalida el turno
+    // SOLO para la porción de horas que cae en ese día específico. Si el
+    // turno cruza medianoche, la otra porción (día normal) sigue usando el
+    // turno con normalidad.
+    ignorarTurnoFestivo: boolean = false,
+    ignorarTurnoFestivoSiguiente: boolean = false,
   ): Pick<HoraExtra, 'rn' | 'rndf' | 'rddf' | 'hedo' | 'heno' | 'hefd' | 'hefn'> {
     const result = { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
     if (!localIn || !localOut) return result;
@@ -365,9 +371,10 @@ export class HorasExtraService {
       // así las primeras retrasoMins después del turno son reposición (no extras).
       // Solo aplica a la salida tardía; la llegada anticipada no se ve afectada.
       const finEfectivo = shiftEnd !== null ? shiftEnd + retrasoMins : null;
+      const turnoAplicaHoy = !ignorarTurnoFestivo;
 
       if (esFestivo) {
-        if (shiftStart !== null && shiftEnd !== null && finEfectivo !== null) {
+        if (turnoAplicaHoy && shiftStart !== null && shiftEnd !== null && finEfectivo !== null) {
           const dentroStart = Math.max(inMins, shiftStart);
           const dentroEnd   = Math.min(outMins, shiftEnd);
           if (dentroEnd > dentroStart) {
@@ -389,7 +396,7 @@ export class HorasExtraService {
           result.hefn = toHex(minsNocturno(inMins, outMins));
         }
       } else {
-        if (!turno || shiftStart === null || shiftEnd === null || finEfectivo === null) {
+        if (!turnoAplicaHoy || !turno || shiftStart === null || shiftEnd === null || finEfectivo === null) {
           // Sin turno en día ordinario: todo el tiempo trabajado es HEDO/HENO
           result.hedo = toHex(minsDiurno(inMins, outMins));
           result.heno = toHex(minsNocturno(inMins, outMins));
@@ -416,10 +423,13 @@ export class HorasExtraService {
       //
       // El retraso solo afecta la salida (Día 2): la persona debe quedarse
       // retrasoMins más allá de su fin de turno en Día 2 para reponer.
-      const day1TurnoStart = shiftStart;
-      const day1TurnoEnd   = shiftEnd !== null ? Math.min(shiftEnd, 1440) : null;
-      const day2TurnoStart = shiftStart !== null ? 0 : null;
-      const day2TurnoEnd   = shiftEnd  !== null ? Math.max(0, shiftEnd - 1440) : null;
+      // Cada porción ignora el turno de forma independiente: si el día 1 es
+      // festivo entre semana pero el día 2 es ordinario (o viceversa), solo
+      // la porción festiva pierde el turno — la otra se calcula con normalidad.
+      const day1TurnoStart = ignorarTurnoFestivo ? null : shiftStart;
+      const day1TurnoEnd   = ignorarTurnoFestivo ? null : (shiftEnd !== null ? Math.min(shiftEnd, 1440) : null);
+      const day2TurnoStart = ignorarTurnoFestivoSiguiente ? null : (shiftStart !== null ? 0 : null);
+      const day2TurnoEnd   = ignorarTurnoFestivoSiguiente ? null : (shiftEnd !== null ? Math.max(0, shiftEnd - 1440) : null);
 
       // Porción Día 1 → sin retraso (la salida no ocurre en Día 1)
       this.acumularPorcion(
@@ -428,12 +438,23 @@ export class HorasExtraService {
         esFestivo, TOLERANCIA, 0,
       );
 
-      // Porción Día 2 → aplica retraso en el fin efectivo del turno
-      this.acumularPorcion(
-        result, 0, outMins - 1440,
-        day2TurnoStart, day2TurnoEnd,
-        esFestivoSiguiente, TOLERANCIA, retrasoMins,
-      );
+      // Porción Día 2
+      // Caso especial: el bloque viene de un FESTIVO entre semana (cuya malla
+      // ignoramos) y entra a un día ORDINARIO. Esa madrugada es la continuación
+      // de la jornada nocturna del trabajador → su porción nocturna se paga como
+      // Recargo Nocturno (RN), no como hora extra (HENO). Las horas diurnas de
+      // esa porción (si las hubiera) son jornada ordinaria sin recargo.
+      const cruzaFestivoAOrdinario =
+        ignorarTurnoFestivo && !esFestivoSiguiente && !ignorarTurnoFestivoSiguiente;
+      if (cruzaFestivoAOrdinario) {
+        result.rn += toHex(minsRN(0, outMins - 1440));
+      } else {
+        this.acumularPorcion(
+          result, 0, outMins - 1440,
+          day2TurnoStart, day2TurnoEnd,
+          esFestivoSiguiente, TOLERANCIA, retrasoMins,
+        );
+      }
     }
 
     // Redondeo laboral: minutos ≥ 55 en la fracción → sube a la hora completa
@@ -888,7 +909,11 @@ export class HorasExtraService {
       // que cruzan medianoche: las horas del día N+1 usan el tipo de ese día)
       const fechaSiguiente       = addUnDia(fecha);
       const diaSemSiguiente      = this.getDiaSemana(fechaSiguiente);
-      const esFestivoSiguiente   = diaSemSiguiente === 6 || festivosSet.has(fechaSiguiente);
+      const esDominicalSiguiente = diaSemSiguiente === 6;
+      const esFestivoSiguiente   = esDominicalSiguiente || festivosSet.has(fechaSiguiente);
+      // Igual que esFestivoEntreSemana, pero para la porción del día siguiente
+      // (turnos nocturnos que cruzan medianoche).
+      const esFestivoEntreSemanaSiguiente = !esDominicalSiguiente && festivosSet.has(fechaSiguiente);
 
       // Resolver turno solo si tiene malla asignada
       let turno: any = null;
@@ -1015,7 +1040,10 @@ export class HorasExtraService {
 
       const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
-        ? this.calcularCategorias(localIn, localOut, turnoParaClasificar, esFestivo, esFestivoSiguiente, retrasoMins)
+        ? this.calcularCategorias(
+            localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins,
+            esFestivoEntreSemana, esFestivoEntreSemanaSiguiente,
+          )
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
 
       // Compatibilidad con campos legacy (minutos)
