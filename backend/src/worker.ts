@@ -1,0 +1,100 @@
+/**
+ * WORKER de horas extra — proceso APARTE de la API.
+ *
+ * Arranca un contexto de Nest (sin servidor HTTP) para reusar los servicios
+ * existentes, y se queda en un bucle consumiendo la cola `horas_extra_jobs`:
+ *   1. Toma 1 job pendiente (atómico).
+ *   2. Lo calcula con el motor por lotes (`calcularExtras`, que ya guarda en DB).
+ *   3. Lo marca completado / error.
+ *   4. Si no hay nada, espera y vuelve a revisar.
+ *
+ * Al ser un proceso separado, si revienta la memoria muere SOLO el worker; la
+ * API sigue viva. Se ejecuta con:  cross-env HX_WORKER=1 node dist/worker.js
+ * (o `npm run start:worker`). En producción se deja vivo con PM2/NSSM.
+ *
+ * La bandera HX_WORKER=1 desactiva los crons de la app dentro de este proceso
+ * para no duplicarlos (recordatorios, sync, seed).
+ */
+import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
+import { AppModule } from './app.module';
+import { HorasExtraJobService } from './horas-extra/horas-extra-job.service';
+import { HorasExtraService, CalcularExtrasDto } from './horas-extra/horas-extra.service';
+
+const POLL_MS = 5000; // cada cuánto revisa la cola cuando está vacía
+const logger = new Logger('HXWorker');
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function bootstrap() {
+  // Marca este proceso como worker (desactiva crons de la app)
+  process.env.HX_WORKER = '1';
+
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
+  app.enableShutdownHooks();
+
+  const jobs = app.get(HorasExtraJobService);
+  const horas = app.get(HorasExtraService);
+
+  // Devolver a la cola jobs que quedaron 'procesando' por una caída previa
+  const recuperados = await jobs.recuperarColgados(30);
+  if (recuperados > 0) {
+    logger.warn(`Recuperados ${recuperados} job(s) colgados → vuelven a la cola.`);
+  }
+
+  logger.log('Worker de horas extra iniciado. Esperando trabajos…');
+
+  let activo = true;
+  const detener = async (sig: string) => {
+    logger.log(`Señal ${sig} recibida. Cerrando worker…`);
+    activo = false;
+    await app.close();
+    process.exit(0);
+  };
+  process.on('SIGINT', () => detener('SIGINT'));
+  process.on('SIGTERM', () => detener('SIGTERM'));
+
+  // Bucle principal
+  while (activo) {
+    let job;
+    try {
+      job = await jobs.tomarSiguiente();
+    } catch (e: any) {
+      logger.error(`Error tomando job de la cola: ${e?.message}`);
+      await sleep(POLL_MS);
+      continue;
+    }
+
+    if (!job) {
+      await sleep(POLL_MS); // cola vacía → esperar
+      continue;
+    }
+
+    logger.log(`Procesando job #${job.id} (${job.tipo})…`);
+    const t0 = Date.now();
+    try {
+      const params: CalcularExtrasDto = job.params
+        ? JSON.parse(job.params)
+        : {};
+      // El motor por lotes calcula y persiste (params trae guardar:true)
+      const resultado = await horas.calcularExtras(params);
+      const seg = ((Date.now() - t0) / 1000).toFixed(1);
+      await jobs.marcarCompletado(
+        job.id,
+        `${resultado.length} registros calculados en ${seg}s`,
+      );
+      logger.log(`Job #${job.id} completado (${resultado.length} registros, ${seg}s).`);
+    } catch (e: any) {
+      logger.error(`Job #${job.id} falló: ${e?.message}`);
+      await jobs.marcarError(job.id, e?.message ?? 'Error desconocido');
+    }
+  }
+}
+
+bootstrap().catch((e) => {
+  // eslint-disable-next-line no-console
+  console.error('Fallo fatal al iniciar el worker:', e);
+  process.exit(1);
+});

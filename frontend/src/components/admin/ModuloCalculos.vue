@@ -309,7 +309,7 @@
                 <div></div>
               </div>
               <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-                {{ isCalculating ? 'Calculando…' : 'Cargando registros…' }}
+                {{ isCalculating ? (jobEstado || 'Calculando…') : 'Cargando registros…' }}
               </span>
             </template>
 
@@ -2564,6 +2564,7 @@ const {
   registros,
   isLoading,
   isCalculating,
+  jobEstado,
   isSaving,
   isExporting,
   hayResultadosCalculados,

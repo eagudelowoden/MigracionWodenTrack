@@ -82,6 +82,8 @@ export class ModulosDisponiblesService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    // El seed lo hace solo el proceso API, no el worker.
+    if (process.env.HX_WORKER === '1') return;
     await this.seed();
   }
 

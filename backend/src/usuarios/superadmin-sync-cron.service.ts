@@ -30,6 +30,8 @@ export class SuperAdminSyncCronService implements OnModuleInit {
 
   // ── Al arrancar el servidor, registra el cron con la config guardada ────────
   async onModuleInit() {
+    // En el proceso WORKER no se registran crons (evita duplicar la sync).
+    if (process.env.HX_WORKER === '1') return;
     const config = await this.obtenerConfig();
 
     // Si quedó en "running" por un reinicio/caída, marcarlo como cancelado

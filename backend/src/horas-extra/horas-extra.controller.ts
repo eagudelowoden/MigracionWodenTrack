@@ -15,10 +15,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { HorasExtraService } from './horas-extra.service';
+import { HorasExtraJobService } from './horas-extra-job.service';
 
 @Controller('usuarios/horas-extra')
 export class HorasExtraController {
-  constructor(private readonly service: HorasExtraService) {}
+  constructor(
+    private readonly service: HorasExtraService,
+    private readonly jobService: HorasExtraJobService,
+  ) {}
 
   @Post('calcular')
   calcular(
@@ -51,6 +55,51 @@ export class HorasExtraController {
     },
   ) {
     return this.service.calcularExtras({ ...dto, guardar: true });
+  }
+
+  // ── COLA (worker en proceso aparte) ──────────────────────────────────────────
+  // Encola un cálculo y responde al instante con el jobId. NO calcula aquí: el
+  // worker lo procesa en segundo plano. Reemplaza con el tiempo a /calcular.
+  @Post('encolar')
+  async encolar(
+    @Body()
+    dto: {
+      startDate?: string;
+      endDate?: string;
+      soloHoy?: boolean;
+      company?: string;
+      calculado_por?: string;
+      area_id?: number;
+      segmento_id?: number;
+    },
+  ) {
+    const job = await this.jobService.encolar(
+      { ...dto, guardar: true },
+      { tipo: 'manual', solicitadoPor: dto.calculado_por },
+    );
+    return { jobId: job.id, estado: job.estado };
+  }
+
+  // Estado de un job (la UI hace polling hasta que esté 'completado' o 'error')
+  @Get('job/:id')
+  async estadoJob(@Param('id') id: string) {
+    const job = await this.jobService.obtenerEstado(Number(id));
+    if (!job) return { error: 'Job no encontrado' };
+    return {
+      id: job.id,
+      estado: job.estado,
+      resumen: job.resultado_resumen,
+      error: job.error_mensaje,
+      intentos: job.intentos,
+      creado: job.created_at,
+      finalizado: job.finished_at,
+    };
+  }
+
+  // Monitoreo: últimos jobs de la cola
+  @Get('jobs')
+  listarJobs() {
+    return this.jobService.listarRecientes();
   }
 
   @Get('historial')

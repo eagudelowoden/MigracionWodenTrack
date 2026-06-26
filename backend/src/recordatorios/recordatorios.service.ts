@@ -69,6 +69,8 @@ export class RecordatoriosService {
   // ── Cron: cada minuto revisa si hay recordatorios que disparar ───────────
   @Cron('* * * * *')
   async revisarRecordatorios() {
+    // En el proceso WORKER no se ejecutan crons (solo procesa la cola de cálculo).
+    if (process.env.HX_WORKER === '1') return;
     const ahora    = new Date();
     const diaHoy   = ahora.getDay();                          // 0=Dom…6=Sáb
     const horaAhora = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
