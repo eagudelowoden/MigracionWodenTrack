@@ -29,6 +29,9 @@ export interface CalcularExtrasDto {
   area_id?: number;
   segmento_id?: number;
   registros?: { cedula: string; fecha: string; aprobado: boolean | null }[];
+  // Uso interno: limita el cálculo a este lote de empleados. Lo inyecta el
+  // orquestador `calcularExtras` para procesar por bloques y no cargar todo en RAM.
+  empIds?: number[];
 }
 
 // Minutos que se solapan entre [s1,e1] y [s2,e2]
@@ -554,7 +557,100 @@ export class HorasExtraService {
     }
   }
 
+  /**
+   * Orquestador: resuelve el universo de empleados del filtro y procesa el
+   * cálculo en LOTES de empleados, liberando memoria entre cada bloque. Así el
+   * pico de RAM es el de un lote (~50 empleados), no el del rango completo.
+   * La persistencia (dto.guardar) se hace UNA sola vez al final sobre todo.
+   */
   async calcularExtras(dto: CalcularExtrasDto): Promise<HoraExtra[]> {
+    const uid = await this.odoo.authenticate();
+
+    // Universo de empleados a procesar (según estructura/empresa)
+    const idsPorEstructura = await this.resolverIdsPorEstructura(
+      dto.area_id,
+      dto.segmento_id,
+    );
+    if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
+
+    const empIdsScope = await this.resolverEmpIdsScope(
+      uid,
+      dto,
+      idsPorEstructura,
+    );
+    if (!empIdsScope.length) return [];
+
+    // Procesar por lotes de empleados (cada lote es autocontenido: trae sus
+    // propias marcaciones, incluidas las nocturnas que cruzan medianoche).
+    const LOTE = 50;
+    const resultados: HoraExtra[] = [];
+    for (let i = 0; i < empIdsScope.length; i += LOTE) {
+      const lote = empIdsScope.slice(i, i + LOTE);
+      const parcial = await this._calcularExtrasScoped({
+        ...dto,
+        empIds: lote,
+        guardar: false, // la persistencia se hace una vez al final
+      });
+      if (parcial.length) resultados.push(...parcial);
+      // Las estructuras internas del lote se liberan al retornar _calcularExtrasScoped
+    }
+
+    // Persistencia única sobre el conjunto completo
+    if (dto.guardar) {
+      const startDay = dto.soloHoy ? getFechaColombiaHoy() : dto.startDate;
+      const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
+      if (startDay && endDay) {
+        const qb = this.horaExtraRepo
+          .createQueryBuilder()
+          .delete()
+          .from(HoraExtra)
+          .where('fecha >= :start AND fecha <= :end', {
+            start: startDay,
+            end: endDay,
+          });
+        if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+          qb.andWhere('company = :company', { company: dto.company });
+        }
+        await qb.execute();
+      }
+      const SAVE_CHUNK = 50;
+      for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
+        await this.horaExtraRepo.save(resultados.slice(i, i + SAVE_CHUNK));
+      }
+    }
+
+    return resultados;
+  }
+
+  /**
+   * Resuelve el universo de IDs de empleados a procesar. Si hay filtro de
+   * estructura (área/segmento) usa esa lista; si no, trae los empleados activos
+   * (opcionalmente filtrados por empresa). Es una consulta liviana: solo IDs de
+   * hr.employee (cientos de filas), no las marcaciones.
+   */
+  private async resolverEmpIdsScope(
+    uid: number,
+    dto: CalcularExtrasDto,
+    idsPorEstructura: number[] | null,
+  ): Promise<number[]> {
+    if (idsPorEstructura && idsPorEstructura.length) return idsPorEstructura;
+
+    const domEmp: any[] = [['active', '=', true]];
+    if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+      domEmp.push(['company_id.name', '=', dto.company]);
+    }
+    const emps = await this.odoo.searchReadAll<{ id: number }>(
+      'hr.employee',
+      domEmp,
+      ['id'],
+      uid,
+    );
+    return [...new Set(emps.map((e) => e.id).filter(Boolean))];
+  }
+
+  private async _calcularExtrasScoped(
+    dto: CalcularExtrasDto,
+  ): Promise<HoraExtra[]> {
     const uid = await this.odoo.authenticate();
     const hoy = getFechaColombiaHoy();
 
@@ -581,6 +677,11 @@ export class HorasExtraService {
     );
     if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
 
+    // Filtro efectivo de empleados: el lote inyectado por el orquestador tiene
+    // prioridad; si no, el de estructura. Así cada llamada procesa solo su bloque.
+    const empFiltro =
+      dto.empIds && dto.empIds.length ? dto.empIds : idsPorEstructura;
+
     // Dominio para hr.attendance
     const domainAtt: any[] = [];
     if (inicioUTC) domainAtt.push(['check_in', '>=', inicioUTC]);
@@ -588,8 +689,8 @@ export class HorasExtraService {
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', dto.company]);
     }
-    if (idsPorEstructura && idsPorEstructura.length > 0) {
-      domainAtt.push(['employee_id', 'in', idsPorEstructura]);
+    if (empFiltro && empFiltro.length > 0) {
+      domainAtt.push(['employee_id', 'in', empFiltro]);
     }
 
     // Dominio para attendance.log (biométrico / app)
@@ -600,35 +701,32 @@ export class HorasExtraService {
     if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
       domainLog.push(['company_id.name', '=', dto.company]);
     }
-    if (idsPorEstructura && idsPorEstructura.length > 0) {
-      domainLog.push(['employee_id', 'in', idsPorEstructura]);
+    if (empFiltro && empFiltro.length > 0) {
+      domainLog.push(['employee_id', 'in', empFiltro]);
     }
 
-    // Consultar ambos modelos en paralelo
-    const [attendances, logs] = await Promise.all([
-      this.odoo.executeKw<any[]>(
-        'hr.attendance',
-        'search_read',
-        [domainAtt],
-        {
-          fields: ['employee_id', 'check_in', 'check_out', 'department_id'],
-          limit: 30000000,
-          order: 'check_in asc',
-        },
-        uid,
-      ),
-      this.odoo.executeKw<any[]>(
-        'attendance.log',
-        'search_read',
-        [domainLog],
-        {
-          fields: ['employee_id', 'punching_time', 'x_studio_related_field_j40wn'],
-          limit: 30000000,
-          order: 'punching_time asc',
-        },
-        uid,
-      ),
-    ]);
+    // Consultar ambos modelos de forma PAGINADA y SECUENCIAL (no en paralelo).
+    // Antes se traían con limit:30000000 en una sola respuesta JSON-RPC, lo que
+    // buffeaba millones de filas + una copia al hacer JSON.parse, y en paralelo
+    // duplicaba el pico de memoria → OOM que tumbaba TODA la API.
+    // searchReadAllWithProgress trae en páginas de 5000 y aborta con un error
+    // controlado si el heap supera ~1.2 GB (en vez de matar el proceso).
+    // El orden global ya no importa: cada grupo se reordena más abajo.
+    const sinProgreso = () => {};
+    const attendances = await this.odoo.searchReadAllWithProgress<any>(
+      'hr.attendance',
+      domainAtt,
+      ['employee_id', 'check_in', 'check_out', 'department_id'],
+      uid,
+      sinProgreso,
+    );
+    const logs = await this.odoo.searchReadAllWithProgress<any>(
+      'attendance.log',
+      domainLog,
+      ['employee_id', 'punching_time', 'x_studio_related_field_j40wn'],
+      uid,
+      sinProgreso,
+    );
 
     if (!attendances.length && !logs.length) return [];
 
@@ -689,7 +787,7 @@ export class HorasExtraService {
     }
 
     // ── Agrupar attendance.log con conciencia de turnos nocturnos ─────────────
-    const idsPermitidos = idsPorEstructura ? new Set(idsPorEstructura) : null;
+    const idsPermitidos = empFiltro ? new Set(empFiltro) : null;
 
     // Recopilar TODOS los punches biométricos por empleado, ordenados cronológicamente
     const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
