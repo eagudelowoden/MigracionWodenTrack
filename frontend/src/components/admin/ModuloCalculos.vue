@@ -98,14 +98,14 @@
           <span>{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
         </button>
 
-        <!-- Calcular -->
+        <!-- Consultar (lee el snapshot que dejó el cron en calculados_extras) -->
         <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
           class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
           :class="isDark
             ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
             : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
-          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-calculator'" class="text-[10px]"></i>
-          <span>{{ isCalculating ? 'Calculando…' : 'Calcular' }}</span>
+          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-magnifying-glass'" class="text-[10px]"></i>
+          <span>{{ isCalculating ? 'Consultando…' : 'Consultar' }}</span>
         </button>
 
 
@@ -546,7 +546,7 @@
                       <i class="fas fa-calculator text-xl text-[#3B82F6]"></i>
                     </div>
                     <p class="text-[11px] font-bold uppercase" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                      Selecciona un rango de fechas y presiona Calcular
+                      Selecciona un rango de fechas y presiona Consultar
                     </p>
                   </div>
                 </td>

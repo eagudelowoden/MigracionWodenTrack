@@ -391,77 +391,29 @@ export function useReporteMallas() {
     }
   }
 
-  const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-  // El cálculo ya NO se hace en vivo en la API (consumía RAM y se caía con
-  // varios usuarios). Ahora se ENCOLA y lo procesa el worker (proceso aparte);
-  // aquí hacemos polling del estado y, al terminar, cargamos los resultados ya
-  // guardados desde la DB. Así la API nunca se cae por el cálculo.
+  // CONSULTAR: ya NO se calcula en vivo. El cron (worker, proceso aparte) calcula
+  // de madrugada y guarda en `calculados_extras`. Aquí solo LEEMOS esa tabla:
+  // es un SELECT instantáneo, no toca Odoo ni consume RAM → aguanta muchos
+  // usuarios consultando a la vez sin caerse.
   async function calcular(company) {
     try {
       isCalculating.value = true;
       hayResultadosCalculados.value = false;
-      jobEstado.value = "Encolando…";
-      await _asegurarPerfil();
-      const s = getSession();
-      const filtro = getAreaSegmento();
-      const payload = {
-        startDate: startDate.value,
-        endDate: endDate.value,
-        company: company || "",
-        calculado_por: s.name || "Desconocido",
-        ...filtro,
-      };
-
-      // 1. Encolar el cálculo (respuesta instantánea con el jobId)
-      const { data: enq } = await axios.post(
-        `${API_BASE_URL}/horas-extra/encolar`,
-        payload,
-      );
-      const jobId = enq.jobId;
-
-      // 2. Polling del estado del job (máx ~5 min)
-      let estado = enq.estado || "pendiente";
-      jobEstado.value = "En cola…";
-      const MAX_INTENTOS = 100; // 100 × 3s = 5 min
-      for (
-        let i = 0;
-        i < MAX_INTENTOS && estado !== "completado" && estado !== "error";
-        i++
-      ) {
-        await _sleep(3000);
-        const { data: st } = await axios.get(
-          `${API_BASE_URL}/horas-extra/job/${jobId}`,
-        );
-        estado = st.estado;
-        jobEstado.value = estado === "procesando" ? "Procesando…" : "En cola…";
-        if (estado === "error") {
-          throw new Error(st.error || "El cálculo falló en el worker");
-        }
-      }
-      if (estado !== "completado") {
-        throw new Error(
-          "El cálculo está tardando. Verifica que el worker esté corriendo e intenta de nuevo.",
-        );
-      }
-
-      // 3. Cargar los resultados ya guardados desde la DB
-      jobEstado.value = "Cargando resultados…";
+      jobEstado.value = "Consultando…";
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
-        ...filtro,
       };
       const { data } = await axios.get(
-        `${API_BASE_URL}/horas-extra/historial`,
+        `${API_BASE_URL}/horas-extra/calculados`,
         { params },
       );
       registros.value = data;
       limpiarFiltroFechas();
       hayResultadosCalculados.value = true;
     } catch (err) {
-      console.error("Error calculando horas extra:", err);
+      console.error("Error consultando horas extra:", err);
       throw err;
     } finally {
       isCalculating.value = false;

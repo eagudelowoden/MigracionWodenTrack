@@ -38,6 +38,7 @@ const NAV_GROUPS = [
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
       sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+      cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -57,6 +58,7 @@ const MODULE_LABELS = {
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
   offboarding: 'Checklist Offboarding', sync: 'Sync Automático',
   paramhx: 'Parametrización Horas Extra',
+  cronhoras: 'Cálculo Automático Horas Extra',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -68,6 +70,7 @@ import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vu
 import GestionUsuarios from '../components/admin/SuperAdmin/GestionUsuarios.vue';
 import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vue';
 import GestionSyncCron from '../components/admin/SuperAdmin/GestionSyncCron.vue';
+import GestionCronHoras from '../components/admin/SuperAdmin/GestionCronHoras.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
@@ -114,6 +117,7 @@ const TAB_PERMS = {
   reportes: 'super.reportes',
   offboarding: 'super.offboarding',
   sync: 'super.superadmin',
+  cronhoras: 'super.superadmin',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -552,7 +556,7 @@ onUnmounted(() => {
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync']"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -572,6 +576,7 @@ onUnmounted(() => {
             <GestionModulos v-if="tab === 'modulos'" :isDark="isDark" :apiUrl="API_URL"
               @success="showNotification($event)" @error="showNotification($event, 'error')" />
             <GestionSyncCron v-if="tab === 'sync'" :isDark="isDark" />
+            <GestionCronHoras v-if="tab === 'cronhoras'" :isDark="isDark" />
           </div>
         </template>
 

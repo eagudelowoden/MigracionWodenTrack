@@ -16,12 +16,14 @@ import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { HorasExtraService } from './horas-extra.service';
 import { HorasExtraJobService } from './horas-extra-job.service';
+import { HorasExtraCronService } from './horas-extra-cron.service';
 
 @Controller('usuarios/horas-extra')
 export class HorasExtraController {
   constructor(
     private readonly service: HorasExtraService,
     private readonly jobService: HorasExtraJobService,
+    private readonly cronService: HorasExtraCronService,
   ) {}
 
   @Post('calcular')
@@ -77,6 +79,8 @@ export class HorasExtraController {
       { ...dto, guardar: true },
       { tipo: 'manual', solicitadoPor: dto.calculado_por },
     );
+    // Lanza el worker bajo demanda (procesa y se cierra solo)
+    this.cronService.asegurarWorker();
     return { jobId: job.id, estado: job.estado };
   }
 
@@ -100,6 +104,55 @@ export class HorasExtraController {
   @Get('jobs')
   listarJobs() {
     return this.jobService.listarRecientes();
+  }
+
+  // ── CRON (administración desde Super Admin) ──────────────────────────────────
+  @Get('cron/config')
+  async cronConfig() {
+    const config = await this.cronService.obtenerConfig();
+    return { ...config, proximaEjecucion: this.cronService.proximaEjecucion() };
+  }
+
+  @Patch('cron/config')
+  actualizarCronConfig(
+    @Body()
+    dto: {
+      hora?: number;
+      minuto?: number;
+      activo?: boolean;
+      dias_ventana?: number;
+    },
+  ) {
+    return this.cronService.actualizarConfig(dto);
+  }
+
+  @Post('cron/ejecutar')
+  async ejecutarCronAhora(
+    @Body() body: { startDate?: string; endDate?: string; company?: string },
+  ) {
+    const job = await this.cronService.ejecutarAhora(body || {});
+    return { jobId: job.id, estado: job.estado };
+  }
+
+  // CONSULTAR el snapshot que dejó el cron en `calculados_extras` (lectura
+  // instantánea, sin recalcular ni tocar Odoo). Es lo que usa la pantalla.
+  @Get('calculados')
+  consultarCalculados(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('company') company?: string,
+    @Query('cedula') cedula?: string,
+    @Query('nombre') nombre?: string,
+    @Query('departamento') departamento?: string,
+  ) {
+    return this.service.consultarCalculados({
+      startDate,
+      endDate,
+      company,
+      cedula,
+      nombre,
+      departamento,
+    });
   }
 
   @Get('historial')

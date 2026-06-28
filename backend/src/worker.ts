@@ -21,7 +21,10 @@ import { AppModule } from './app.module';
 import { HorasExtraJobService } from './horas-extra/horas-extra-job.service';
 import { HorasExtraService, CalcularExtrasDto } from './horas-extra/horas-extra.service';
 
-const POLL_MS = 5000; // cada cuánto revisa la cola cuando está vacía
+const POLL_MS = 5000; // cada cuánto revisa la cola cuando está vacía (modo demonio)
+// Modo "once": procesa la cola hasta vaciarla y se cierra. Lo usa el cron, que
+// lanza el worker bajo demanda en vez de dejarlo prendido todo el día.
+const ONCE = process.env.HX_WORKER_ONCE === '1';
 const logger = new Logger('HXWorker');
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -44,7 +47,9 @@ async function bootstrap() {
     logger.warn(`Recuperados ${recuperados} job(s) colgados → vuelven a la cola.`);
   }
 
-  logger.log('Worker de horas extra iniciado. Esperando trabajos…');
+  logger.log(
+    `Worker de horas extra iniciado (modo ${ONCE ? 'once: procesa y cierra' : 'demonio'}).`,
+  );
 
   let activo = true;
   const detener = async (sig: string) => {
@@ -63,12 +68,14 @@ async function bootstrap() {
       job = await jobs.tomarSiguiente();
     } catch (e: any) {
       logger.error(`Error tomando job de la cola: ${e?.message}`);
+      if (ONCE) break;
       await sleep(POLL_MS);
       continue;
     }
 
     if (!job) {
-      await sleep(POLL_MS); // cola vacía → esperar
+      if (ONCE) break; // modo once: cola vacía → terminar y cerrar
+      await sleep(POLL_MS); // modo demonio: esperar y reintentar
       continue;
     }
 
@@ -78,18 +85,26 @@ async function bootstrap() {
       const params: CalcularExtrasDto = job.params
         ? JSON.parse(job.params)
         : {};
-      // El motor por lotes calcula y persiste (params trae guardar:true)
-      const resultado = await horas.calcularExtras(params);
+      // Calcula por lotes y guarda el snapshot en `calculados_extras`
+      // (la tabla que consultan los usuarios). No toca `horas_extra`.
+      const guardados = await horas.recalcularYGuardarCalculados(params);
       const seg = ((Date.now() - t0) / 1000).toFixed(1);
       await jobs.marcarCompletado(
         job.id,
-        `${resultado.length} registros calculados en ${seg}s`,
+        `${guardados} registros calculados en ${seg}s`,
       );
-      logger.log(`Job #${job.id} completado (${resultado.length} registros, ${seg}s).`);
+      logger.log(`Job #${job.id} completado (${guardados} registros, ${seg}s).`);
     } catch (e: any) {
       logger.error(`Job #${job.id} falló: ${e?.message}`);
       await jobs.marcarError(job.id, e?.message ?? 'Error desconocido');
     }
+  }
+
+  // Modo once: salió del bucle porque la cola quedó vacía → cerrar y terminar.
+  if (ONCE) {
+    logger.log('Cola vacía. Worker (once) finalizado.');
+    await app.close();
+    process.exit(0);
   }
 }
 

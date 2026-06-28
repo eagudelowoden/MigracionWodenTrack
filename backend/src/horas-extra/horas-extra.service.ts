@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HoraExtra } from './entities/hora-extra.entity';
 import { HoraExtraCargue } from './entities/hora-extra-cargue.entity';
+import { CalculadoExtra } from './entities/calculado-extra.entity';
 import { MallaAsignacion } from '../mallas/entities/malla-asignacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { OdooService } from '../odoo/odoo.service';
@@ -200,6 +201,8 @@ export class HorasExtraService {
     private readonly horaExtraRepo: Repository<HoraExtra>,
     @InjectRepository(HoraExtraCargue)
     private readonly cargueRepo: Repository<HoraExtraCargue>,
+    @InjectRepository(CalculadoExtra)
+    private readonly calculadoRepo: Repository<CalculadoExtra>,
     @InjectRepository(MallaAsignacion)
     private readonly asignacionRepo: Repository<MallaAsignacion>,
     @InjectRepository(Usuario)
@@ -623,6 +626,104 @@ export class HorasExtraService {
   }
 
   /**
+   * Recalcula un rango y guarda el resultado en `calculados_extras` (el snapshot
+   * automático que consultan los usuarios). Lo invoca el WORKER cuando el job
+   * viene del cron. NO toca `horas_extra` (el flujo de aprobación manual).
+   * Devuelve cuántos registros se guardaron.
+   */
+  async recalcularYGuardarCalculados(dto: CalcularExtrasDto): Promise<number> {
+    // Calcula por lotes SIN persistir en horas_extra
+    const resultados = await this.calcularExtras({ ...dto, guardar: false });
+
+    const startDay = dto.soloHoy ? getFechaColombiaHoy() : dto.startDate;
+    const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
+
+    // Borra el rango en calculados_extras (idempotente: recalcular reemplaza)
+    if (startDay && endDay) {
+      const qb = this.calculadoRepo
+        .createQueryBuilder()
+        .delete()
+        .from(CalculadoExtra)
+        .where('fecha >= :start AND fecha <= :end', {
+          start: startDay,
+          end: endDay,
+        });
+      if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
+        qb.andWhere('company = :company', { company: dto.company });
+      }
+      await qb.execute();
+    }
+
+    // Inserta el snapshot en bloques
+    const SAVE_CHUNK = 50;
+    let guardados = 0;
+    for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
+      const filas = resultados.slice(i, i + SAVE_CHUNK).map((r) =>
+        this.calculadoRepo.create({
+          cedula: r.cedula,
+          nombre: r.nombre,
+          employee_id_odoo: r.employee_id_odoo,
+          fecha: r.fecha,
+          company: r.company,
+          departamento: r.departamento,
+          cargo: r.cargo,
+          inicio_turno: r.inicio_turno,
+          fin_turno: r.fin_turno,
+          fecha_entrada: r.fecha_entrada,
+          fecha_salida: r.fecha_salida,
+          es_dominical: r.es_dominical,
+          rn: r.rn,
+          rndf: r.rndf,
+          rddf: r.rddf,
+          hedo: r.hedo,
+          heno: r.heno,
+          hefd: r.hefd,
+          hefn: r.hefn,
+          total_minutos_extra: r.total_minutos_extra,
+          calculado_por: r.calculado_por ?? dto.calculado_por ?? 'Cron',
+        }),
+      );
+      await this.calculadoRepo.save(filas);
+      guardados += filas.length;
+    }
+    return guardados;
+  }
+
+  /**
+   * Lectura instantánea del snapshot `calculados_extras` (lo que el cron dejó).
+   * Es lo que usa la pantalla de Cálculos para CONSULTAR — no toca Odoo ni RAM
+   * pesada: es un simple SELECT con filtros.
+   */
+  async consultarCalculados(filtros: {
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    cedula?: string;
+    nombre?: string;
+    departamento?: string;
+  }): Promise<CalculadoExtra[]> {
+    const qb = this.calculadoRepo
+      .createQueryBuilder('c')
+      .orderBy('c.nombre', 'ASC')
+      .addOrderBy('c.fecha', 'ASC');
+
+    if (filtros.startDate)
+      qb.andWhere('c.fecha >= :start', { start: filtros.startDate });
+    if (filtros.endDate)
+      qb.andWhere('c.fecha <= :end', { end: filtros.endDate });
+    if (filtros.company && filtros.company !== 'Todas')
+      qb.andWhere('c.company = :company', { company: filtros.company });
+    if (filtros.cedula)
+      qb.andWhere('c.cedula LIKE :ced', { ced: `%${filtros.cedula}%` });
+    if (filtros.nombre)
+      qb.andWhere('c.nombre LIKE :nom', { nom: `%${filtros.nombre}%` });
+    if (filtros.departamento)
+      qb.andWhere('c.departamento = :dep', { dep: filtros.departamento });
+
+    return qb.getMany();
+  }
+
+  /**
    * Resuelve el universo de IDs de empleados a procesar. Si hay filtro de
    * estructura (área/segmento) usa esa lista; si no, trae los empleados activos
    * (opcionalmente filtrados por empresa). Es una consulta liviana: solo IDs de
@@ -935,15 +1036,21 @@ export class HorasExtraService {
       'hr.employee',
       'search_read',
       [[['id', 'in', empIds]]],
-      { fields: ['id', 'name', 'identification_id', 'barcode', 'job_id'] },
+      {
+        fields: ['id', 'name', 'identification_id', 'barcode', 'job_id', 'company_id'],
+      },
       uid,
     );
 
     const cedulaMap = new Map<number, string>();
     const cargoOdooMap = new Map<number, string>();
+    const companyOdooMap = new Map<number, string>();
     empleados.forEach((e) => {
       cedulaMap.set(e.id, e.identification_id || e.barcode || 'N/A');
       if (e.job_id) cargoOdooMap.set(e.id, e.job_id[1] || '');
+      // Empresa REAL del empleado (no el filtro 'Todas'), para que la consulta
+      // por empresa encuentre los registros guardados.
+      if (e.company_id) companyOdooMap.set(e.id, e.company_id[1] || '');
     });
 
     // Complementar cargo desde tabla local si no está en Odoo
@@ -1151,12 +1258,17 @@ export class HorasExtraService {
       const hefn_mins = Math.round(categorias.hefn * 60);
       const totalMins = hedo_mins + heno_mins + hefd_mins + hefn_mins;
 
+      // Empresa real del empleado; si no se resolvió, cae al filtro o null
+      const companyEmpleado =
+        companyOdooMap.get(empId) ||
+        (dto.company && dto.company !== 'Todas' ? dto.company : null);
+
       const registro = this.horaExtraRepo.create({
         cedula,
         nombre,
         employee_id_odoo: empId,
         fecha,
-        company: dto.company ?? null,
+        company: companyEmpleado,
         departamento: dept,
         cargo,
         fecha_entrada: localIn,
