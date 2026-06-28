@@ -145,24 +145,28 @@ export class HorasExtraCronService implements OnModuleInit {
     endDate?: string;
     company?: string;
   }) {
-    if (opts?.startDate && opts?.endDate) {
-      const job = await this.jobs.encolar(
-        {
-          startDate: opts.startDate,
-          endDate: opts.endDate,
-          company: opts.company || 'Todas',
-          calculado_por: 'Recálculo manual (Super Admin)',
-          guardar: true,
-        },
-        { tipo: 'manual', solicitadoPor: 'Super Admin' },
-      );
-      this.logger.log(
-        `Encolado job manual #${job.id} para ${opts.startDate} → ${opts.endDate}.`,
-      );
-      this.asegurarWorker();
-      return job;
-    }
-    return this.encolarRango('Cron manual (Super Admin)');
+    const config = await this.obtenerConfig();
+    // Rango: el que manden, o la ventana de asentamiento por defecto
+    const startDate = opts?.startDate || this.fechaColombia(-config.dias_ventana);
+    const endDate = opts?.endDate || this.fechaColombia(-1);
+    // Empresa: SIEMPRE se respeta la elegida (con o sin fechas)
+    const company = opts?.company && opts.company !== '' ? opts.company : 'Todas';
+
+    const job = await this.jobs.encolar(
+      {
+        startDate,
+        endDate,
+        company,
+        calculado_por: 'Recálculo manual (Super Admin)',
+        guardar: true,
+      },
+      { tipo: 'manual', solicitadoPor: 'Super Admin' },
+    );
+    this.logger.log(
+      `Encolado job manual #${job.id} para ${startDate} → ${endDate} | empresa: ${company}.`,
+    );
+    this.asegurarWorker();
+    return job;
   }
 
   // ── CronJob dinámico ─────────────────────────────────────────────────────────

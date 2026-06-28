@@ -13,6 +13,15 @@
       </div>
       <div class="flex items-end gap-2 flex-wrap">
         <div>
+          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Empresa</label>
+          <select v-model="empresaSel"
+            class="h-9 px-2 text-[12px] rounded-lg border outline-none min-w-[200px]"
+            :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
+            <option value="Todas">Todas las empresas</option>
+            <option v-for="e in empresas" :key="e" :value="e">{{ e }}</option>
+          </select>
+        </div>
+        <div>
           <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde (opcional)</label>
           <input type="date" v-model="rangoDesde"
             class="h-9 px-2 text-[12px] rounded-lg border outline-none"
@@ -170,6 +179,8 @@ const ejecutando = ref(false);
 const guardando = ref(false);
 const rangoDesde = ref('');
 const rangoHasta = ref('');
+const empresas = ref([]);
+const empresaSel = ref('Todas');
 const cargandoJobs = ref(false);
 const mensaje = ref('');
 const mensajeError = ref(false);
@@ -215,6 +226,19 @@ async function cargarJobs() {
   }
 }
 
+async function cargarEmpresas() {
+  try {
+    const { data } = await axios.get(`${API}/companies`);
+    empresas.value = (Array.isArray(data) ? data : [])
+      .filter((c) => c.is_active !== false)
+      .map((c) => c.name)
+      .filter(Boolean)
+      .sort();
+  } catch {
+    empresas.value = [];
+  }
+}
+
 async function guardar() {
   guardando.value = true;
   try {
@@ -239,6 +263,9 @@ async function ejecutarAhora() {
       body.startDate = rangoDesde.value;
       body.endDate = rangoHasta.value;
     }
+    if (empresaSel.value && empresaSel.value !== 'Todas') {
+      body.company = empresaSel.value;
+    }
     const { data } = await axios.post(`${API}/horas-extra/cron/ejecutar`, body);
     flash(`Cálculo encolado (job #${data.jobId}). El worker lo procesará.`);
     setTimeout(cargarJobs, 1500);
@@ -250,6 +277,6 @@ async function ejecutarAhora() {
 }
 
 onMounted(async () => {
-  await Promise.all([cargarConfig(), cargarJobs()]);
+  await Promise.all([cargarConfig(), cargarJobs(), cargarEmpresas()]);
 });
 </script>
