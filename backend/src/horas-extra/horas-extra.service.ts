@@ -736,17 +736,72 @@ export class HorasExtraService {
   ): Promise<number[]> {
     if (idsPorEstructura && idsPorEstructura.length) return idsPorEstructura;
 
-    const domEmp: any[] = [['active', '=', true]];
-    if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
-      domEmp.push(['company_id.name', '=', dto.company]);
+    // Empleados que REALMENTE tienen marcaciones en el rango (igual que el
+    // cálculo en vivo de antes). Incluye empleados inactivos/retirados que
+    // trabajaron en el período — si filtráramos por active=true se omitirían
+    // sus días. Se obtiene con read_group (la BD agrupa: solo IDs, liviano).
+    const startDay = dto.soloHoy ? getFechaColombiaHoy() : dto.startDate;
+    const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
+    const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
+    let finUTC: string | null = null;
+    if (endDay) {
+      const [a, m, d] = endDay.split('-').map(Number);
+      const fd = new Date(a, m - 1, d);
+      fd.setDate(fd.getDate() + 1);
+      finUTC = `${fd.getFullYear()}-${String(fd.getMonth() + 1).padStart(2, '0')}-${String(fd.getDate()).padStart(2, '0')} 11:59:59`;
     }
-    const emps = await this.odoo.searchReadAll<{ id: number }>(
-      'hr.employee',
-      domEmp,
-      ['id'],
-      uid,
-    );
-    return [...new Set(emps.map((e) => e.id).filter(Boolean))];
+    const company =
+      dto.company && dto.company !== 'Todas' && dto.company !== ''
+        ? dto.company
+        : null;
+
+    const ids = new Set<number>();
+
+    const domAtt: any[] = [];
+    if (inicioUTC) domAtt.push(['check_in', '>=', inicioUTC]);
+    if (finUTC) domAtt.push(['check_in', '<=', finUTC]);
+    if (company) domAtt.push(['employee_id.company_id.name', '=', company]);
+
+    const domLog: any[] = [];
+    if (inicioUTC) domLog.push(['punching_time', '>=', inicioUTC]);
+    if (finUTC) domLog.push(['punching_time', '<=', finUTC]);
+    if (company) domLog.push(['company_id.name', '=', company]);
+
+    try {
+      const gAtt = await this.odoo.executeKw<any[]>(
+        'hr.attendance',
+        'read_group',
+        [domAtt, ['employee_id'], ['employee_id']],
+        { lazy: false },
+        uid,
+      );
+      for (const g of gAtt) if (g.employee_id?.[0]) ids.add(g.employee_id[0]);
+
+      const gLog = await this.odoo.executeKw<any[]>(
+        'attendance.log',
+        'read_group',
+        [domLog, ['employee_id'], ['employee_id']],
+        { lazy: false },
+        uid,
+      );
+      for (const g of gLog) if (g.employee_id?.[0]) ids.add(g.employee_id[0]);
+    } catch (e: any) {
+      console.warn(
+        `read_group falló (${e?.message}); usando empleados activos como respaldo.`,
+      );
+      // Respaldo: empleados activos (puede omitir retirados, pero no rompe)
+      const domEmp: any[] = [['active', '=', true]];
+      if (company) domEmp.push(['company_id.name', '=', company]);
+      const emps = await this.odoo.searchReadAll<{ id: number }>(
+        'hr.employee',
+        domEmp,
+        ['id'],
+        uid,
+      );
+      emps.forEach((e) => e.id && ids.add(e.id));
+    }
+
+    return [...ids];
   }
 
   private async _calcularExtrasScoped(
