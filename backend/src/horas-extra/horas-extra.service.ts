@@ -701,12 +701,29 @@ export class HorasExtraService {
     cedula?: string;
     nombre?: string;
     departamento?: string;
+    area_id?: number;
+    segmento_id?: number;
   }): Promise<CalculadoExtra[]> {
+    // ── Alcance del JEFE: si consulta con área/segmento, solo ve a SU gente ──
+    // Se resuelven los empleados de esa estructura y se filtra por ellos.
+    if (filtros.area_id || filtros.segmento_id) {
+      const idsScope = await this.resolverIdsPorEstructura(
+        filtros.area_id,
+        filtros.segmento_id,
+      );
+      // Sin empleados en su estructura → no ve nada
+      if (!idsScope || idsScope.length === 0) return [];
+      filtros = { ...filtros, _empIds: idsScope } as any;
+    }
+    const empIds: number[] | undefined = (filtros as any)._empIds;
+
     const qb = this.calculadoRepo
       .createQueryBuilder('c')
       .orderBy('c.nombre', 'ASC')
       .addOrderBy('c.fecha', 'ASC');
 
+    if (empIds && empIds.length)
+      qb.andWhere('c.employee_id_odoo IN (:...empIds)', { empIds });
     if (filtros.startDate)
       qb.andWhere('c.fecha >= :start', { start: filtros.startDate });
     if (filtros.endDate)

@@ -144,6 +144,8 @@ export class HorasExtraController {
     @Query('cedula') cedula?: string,
     @Query('nombre') nombre?: string,
     @Query('departamento') departamento?: string,
+    @Query('area_id') area_id?: string,
+    @Query('segmento_id') segmento_id?: string,
   ) {
     return this.service.consultarCalculados({
       startDate,
@@ -152,6 +154,8 @@ export class HorasExtraController {
       cedula,
       nombre,
       departamento,
+      area_id: area_id ? Number(area_id) : undefined,
+      segmento_id: segmento_id ? Number(segmento_id) : undefined,
     });
   }
 

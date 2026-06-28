@@ -400,10 +400,17 @@ export function useReporteMallas() {
       isCalculating.value = true;
       hayResultadosCalculados.value = false;
       jobEstado.value = "Consultando…";
+      // Cargar el perfil del jefe para saber su área/segmento
+      await _asegurarPerfil();
+      const filtroEstructura = getAreaSegmento(); // {} para superadmin/ver_todo
+      const cedulaPropia = _getCedulaPropia(); // solo si no tiene estructura
       const params = {
         startDate: startDate.value,
         endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
+        // Alcance del jefe: solo ve a su gente (área/segmento), o a sí mismo
+        ...filtroEstructura,
+        ...(cedulaPropia ? { cedula: cedulaPropia } : {}),
       };
       const { data } = await axios.get(
         `${API_BASE_URL}/horas-extra/calculados`,
