@@ -168,7 +168,8 @@
       "Bash(xargs grep -liE \"HttpClient|RestClient|api\")",
       "Bash(ls -la)",
       "Bash(dir)",
-      "WebFetch(domain:wfsapi.tcpip.tech)"
+      "WebFetch(domain:wfsapi.tcpip.tech)",
+      "Bash(cd /tmp)"
     ]
   }
 }
