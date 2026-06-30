@@ -123,6 +123,7 @@ export class HorasExtraController {
       dias_ventana?: number;
       hora_inicio?: number;
       hora_fin?: number;
+      company?: string;
     },
   ) {
     return this.cronService.actualizarConfig(dto);

@@ -57,6 +57,7 @@ export class HorasExtraCronService implements OnModuleInit {
     dias_ventana?: number;
     hora_inicio?: number;
     hora_fin?: number;
+    company?: string;
   }): Promise<CalculoExtraCronConfig> {
     const config = await this.obtenerConfig();
     if (dto.hora !== undefined) config.hora = dto.hora;
@@ -65,6 +66,7 @@ export class HorasExtraCronService implements OnModuleInit {
     if (dto.dias_ventana !== undefined) config.dias_ventana = dto.dias_ventana;
     if (dto.hora_inicio !== undefined) config.hora_inicio = dto.hora_inicio;
     if (dto.hora_fin !== undefined) config.hora_fin = dto.hora_fin;
+    if (dto.company !== undefined) config.company = dto.company;
     await this.configRepo.save(config);
 
     // Re-registrar el cron con la nueva config
@@ -82,18 +84,19 @@ export class HorasExtraCronService implements OnModuleInit {
     const config = await this.obtenerConfig();
     const startDate = this.fechaColombia(-config.dias_ventana);
     const endDate = this.fechaColombia(-1); // ayer (último día cerrado)
+    const company = config.company || 'Todas'; // la empresa elegida en la config
     const job = await this.jobs.encolar(
       {
         startDate,
         endDate,
-        company: 'Todas',
+        company,
         calculado_por: origen,
         guardar: true,
       },
       { tipo: 'cron', solicitadoPor: origen },
     );
     this.logger.log(
-      `Encolado job #${job.id} (${origen}) para ${startDate} → ${endDate}.`,
+      `Encolado job #${job.id} (${origen}) para ${startDate} → ${endDate} | empresa: ${company}.`,
     );
     // Lanza el worker bajo demanda (procesa la cola y se cierra solo)
     this.asegurarWorker();

@@ -13,24 +13,24 @@
       </div>
       <div class="flex items-end gap-2 flex-wrap">
         <div>
-          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Empresa</label>
-          <select v-model="empresaSel"
-            class="h-9 px-2 text-[12px] rounded-lg border outline-none min-w-[200px]"
+          <label class="text-[10px] font-medium block mb-1"
+            :class="isDark ? 'text-slate-400' : 'text-slate-500'">Empresa</label>
+          <select v-model="empresaSel" class="h-9 px-2 text-[12px] rounded-lg border outline-none min-w-[200px]"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
             <option value="Todas">Todas las empresas</option>
             <option v-for="e in empresas" :key="e" :value="e">{{ e }}</option>
           </select>
         </div>
         <div>
-          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde (opcional)</label>
-          <input type="date" v-model="rangoDesde"
-            class="h-9 px-2 text-[12px] rounded-lg border outline-none"
+          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Desde
+            (opcional)</label>
+          <input type="date" v-model="rangoDesde" class="h-9 px-2 text-[12px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
         <div>
-          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta (opcional)</label>
-          <input type="date" v-model="rangoHasta"
-            class="h-9 px-2 text-[12px] rounded-lg border outline-none"
+          <label class="text-[10px] font-medium block mb-1" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Hasta
+            (opcional)</label>
+          <input type="date" v-model="rangoHasta" class="h-9 px-2 text-[12px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
         <button @click="ejecutarAhora" :disabled="ejecutando"
@@ -63,35 +63,41 @@
           <input type="checkbox" v-model="config.activo" class="sr-only peer" />
           <div class="w-10 h-5 rounded-full transition-colors peer-checked:bg-[#3B82F6]"
             :class="isDark ? 'bg-[#222938]' : 'bg-slate-200'"></div>
-          <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
+          <div
+            class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-5">
+          </div>
         </div>
       </label>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <!-- Hora inicio -->
         <div>
-          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Desde hora (0-23)</label>
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Desde hora
+            (0-23)</label>
           <input type="number" min="0" max="23" v-model.number="config.hora_inicio"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
         <!-- Hora fin -->
         <div>
-          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Hasta hora (0-23)</label>
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Hasta hora
+            (0-23)</label>
           <input type="number" min="0" max="23" v-model.number="config.hora_fin"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
         <!-- Minuto -->
         <div>
-          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Minuto (0-59)</label>
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Minuto
+            (0-59)</label>
           <input type="number" min="0" max="59" v-model.number="config.minuto"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
         <!-- Ventana -->
         <div>
-          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Días a recalcular</label>
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Días a
+            recalcular</label>
           <input type="number" min="1" max="60" v-model.number="config.dias_ventana"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
@@ -100,8 +106,15 @@
       <div class="rounded-lg px-3 py-2.5 text-[12px] border"
         :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'">
         <div>
+          <i class="fas fa-building mr-1.5 text-[#3B82F6]"></i>
+          Empresa del cron:
+          <strong :class="isDark ? 'text-white' : 'text-slate-900'">{{ empresaSel === 'Todas' ? 'Todas las empresas' :
+            empresaSel }}</strong>
+          <span class="opacity-60">(la que elijas arriba y guardes)</span>
+        </div>
+        <div class="mt-1">
           <i class="fas fa-calendar-day mr-1.5 text-[#3B82F6]"></i>
-          El cron automático recalcula los últimos <strong>{{ config.dias_ventana }} días</strong>:
+          Recalcula los últimos <strong>{{ config.dias_ventana }} días</strong>:
           <strong :class="isDark ? 'text-white' : 'text-slate-900'">{{ rangoCron.desde }}</strong>
           →
           <strong :class="isDark ? 'text-white' : 'text-slate-900'">{{ rangoCron.hasta }}</strong>
@@ -139,9 +152,10 @@
       <div class="flex items-center justify-between px-5 py-3 border-b"
         :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
         <h3 class="text-[13px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
-          Últimas corridas
+          Últimas Ejecuciones
         </h3>
-        <button @click="cargarJobs" class="text-[11px]" :class="isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'">
+        <button @click="cargarJobs" class="text-[11px]"
+          :class="isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'">
           <i class="fas fa-rotate" :class="{ 'fa-spin': cargandoJobs }"></i> Actualizar
         </button>
       </div>
@@ -173,11 +187,12 @@
               <td class="px-4 py-2" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                 {{ j.resultado_resumen || j.error_mensaje || '—' }}
               </td>
-              <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFecha(j.created_at) }}</td>
+              <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFecha(j.created_at)
+                }}</td>
             </tr>
             <tr v-if="!jobs.length">
               <td colspan="6" class="px-4 py-8 text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                Sin corridas todavía
+                Sin Ejecuciones todavía
               </td>
             </tr>
           </tbody>
@@ -252,6 +267,8 @@ const estadoClass = (e) => {
 async function cargarConfig() {
   const { data } = await axios.get(`${API}/horas-extra/cron/config`);
   config.value = data;
+  // Sincronizar el dropdown con la empresa guardada del cron
+  if (data?.company) empresaSel.value = data.company;
 }
 
 async function cargarJobs() {
@@ -283,6 +300,7 @@ async function guardar() {
     const { hora, minuto, activo, dias_ventana, hora_inicio, hora_fin } = config.value;
     await axios.patch(`${API}/horas-extra/cron/config`, {
       hora, minuto, activo, dias_ventana, hora_inicio, hora_fin,
+      company: empresaSel.value, // el cron automático usará esta empresa
     });
     await cargarConfig();
     flash('Configuración guardada');

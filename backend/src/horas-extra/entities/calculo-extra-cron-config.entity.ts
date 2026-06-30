@@ -29,6 +29,10 @@ export class CalculoExtraCronConfig {
   @Column({ type: 'bit', default: true })
   activo: boolean;
 
+  /** Empresa que calcula el cron automático. 'Todas' = todas las empresas. */
+  @Column({ type: 'nvarchar', length: 255, default: 'Todas' })
+  company: string;
+
   /**
    * Ventana de asentamiento: cuántos días hacia atrás recalcula cada corrida
    * (para recoger marcaciones tardías y correcciones). Default 3.
