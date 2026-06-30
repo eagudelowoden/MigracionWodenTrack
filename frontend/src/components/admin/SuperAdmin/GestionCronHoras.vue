@@ -38,6 +38,13 @@
           <i class="fas" :class="ejecutando ? 'fa-spinner fa-spin' : 'fa-play'"></i>
           {{ ejecutando ? 'Encolando…' : 'Ejecutar ahora' }}
         </button>
+        <button @click="limpiarOtras" :disabled="limpiando || empresaSel === 'Todas'"
+          :title="empresaSel === 'Todas' ? 'Elige una empresa específica' : 'Borra de la tabla las demás empresas'"
+          class="flex items-center gap-2 h-9 px-3 rounded-lg text-[12px] font-semibold transition-all disabled:opacity-40 border"
+          :class="isDark ? 'border-red-500/40 text-red-400 hover:bg-red-500/10' : 'border-red-300 text-red-600 hover:bg-red-50'">
+          <i class="fas" :class="limpiando ? 'fa-spinner fa-spin' : 'fa-broom'"></i>
+          Dejar solo esta empresa
+        </button>
       </div>
     </div>
     <p class="text-[11px] -mt-3" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
@@ -217,6 +224,7 @@ const config = ref(null);
 const jobs = ref([]);
 const ejecutando = ref(false);
 const guardando = ref(false);
+const limpiando = ref(false);
 const rangoDesde = ref('');
 const rangoHasta = ref('');
 const empresas = ref([]);
@@ -308,6 +316,28 @@ async function guardar() {
     flash('Error al guardar', true);
   } finally {
     guardando.value = false;
+  }
+}
+
+async function limpiarOtras() {
+  if (empresaSel.value === 'Todas') return;
+  if (
+    !confirm(
+      `Esto eliminará de la tabla los registros de TODAS las empresas excepto "${empresaSel.value}". ¿Continuar?`,
+    )
+  )
+    return;
+  limpiando.value = true;
+  try {
+    const { data } = await axios.post(`${API}/horas-extra/calculados/limpiar`, {
+      company: empresaSel.value,
+      modo: 'otras',
+    });
+    flash(`Eliminados ${data} registros de otras empresas. Quedó solo "${empresaSel.value}".`);
+  } catch (e) {
+    flash('Error al limpiar', true);
+  } finally {
+    limpiando.value = false;
   }
 }
 

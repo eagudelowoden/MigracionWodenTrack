@@ -137,6 +137,18 @@ export class HorasExtraController {
     return { jobId: job.id, estado: job.estado };
   }
 
+  // Limpia calculados_extras: 'otras' borra todo menos la empresa indicada;
+  // 'todo' vacía la tabla. Para dejar la tabla con una sola empresa.
+  @Post('calculados/limpiar')
+  limpiarCalculados(
+    @Body() body: { company?: string; modo?: 'otras' | 'todo' },
+  ) {
+    return this.service.limpiarCalculados({
+      company: body.company,
+      modo: body.modo ?? 'otras',
+    });
+  }
+
   // CONSULTAR el snapshot que dejó el cron en `calculados_extras` (lectura
   // instantánea, sin recalcular ni tocar Odoo). Es lo que usa la pantalla.
   @Get('calculados')

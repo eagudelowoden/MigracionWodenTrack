@@ -690,6 +690,30 @@ export class HorasExtraService {
   }
 
   /**
+   * Limpieza de `calculados_extras`:
+   *  - modo 'otras': borra todas las empresas EXCEPTO la indicada (deja solo esa).
+   *  - modo 'todo': vacía la tabla por completo.
+   * Devuelve cuántos registros se eliminaron.
+   */
+  async limpiarCalculados(opts: {
+    company?: string;
+    modo?: 'otras' | 'todo';
+  }): Promise<number> {
+    const qb = this.calculadoRepo
+      .createQueryBuilder()
+      .delete()
+      .from(CalculadoExtra);
+
+    if (opts.modo !== 'todo' && opts.company && opts.company !== 'Todas') {
+      qb.where('company <> :company OR company IS NULL', {
+        company: opts.company,
+      });
+    }
+    const res = await qb.execute();
+    return res.affected ?? 0;
+  }
+
+  /**
    * Lectura instantánea del snapshot `calculados_extras` (lo que el cron dejó).
    * Es lo que usa la pantalla de Cálculos para CONSULTAR — no toca Odoo ni RAM
    * pesada: es un simple SELECT con filtros.
