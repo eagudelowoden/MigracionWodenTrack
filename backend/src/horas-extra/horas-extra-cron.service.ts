@@ -116,23 +116,27 @@ export class HorasExtraCronService implements OnModuleInit {
     }
 
     this.workerCorriendo = true;
+    // DETACHED: el worker corre como proceso TOTALMENTE independiente, no atado
+    // a la API. Así, lanzarlo no reinicia ni afecta al servicio (el problema que
+    // veías). unref() permite que la API no espere por él. Si revienta, muere solo.
     const hijo = spawn(process.execPath, [workerPath], {
       env: { ...process.env, HX_WORKER: '1', HX_WORKER_ONCE: '1' },
       stdio: 'ignore',
-      // No detached: si la API se reinicia, el hijo termina (los jobs colgados
-      // se recuperan en el siguiente arranque). Su memoria es propia: si revienta,
-      // muere solo él, no la API.
-    });
-    this.logger.log(`Worker lanzado (pid ${hijo.pid}) en modo once.`);
-
-    hijo.on('exit', (code) => {
-      this.workerCorriendo = false;
-      this.logger.log(`Worker finalizó (código ${code}).`);
+      detached: true,
+      windowsHide: true,
     });
     hijo.on('error', (err) => {
       this.workerCorriendo = false;
       this.logger.error(`No se pudo lanzar el worker: ${err.message}`);
     });
+    this.logger.log(`Worker lanzado (pid ${hijo.pid}) en modo once (independiente).`);
+    hijo.unref(); // desligar del proceso de la API
+
+    // No podemos saber cuándo termina (está desligado): liberamos el flag tras un
+    // margen para permitir relanzar en una próxima necesidad.
+    setTimeout(() => {
+      this.workerCorriendo = false;
+    }, 15000);
   }
 
   /**
