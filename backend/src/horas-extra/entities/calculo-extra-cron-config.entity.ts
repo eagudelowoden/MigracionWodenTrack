@@ -9,13 +9,21 @@ export class CalculoExtraCronConfig {
   @PrimaryColumn({ default: 1 })
   id: number;
 
-  /** Hora de ejecución (0-23). Por defecto 9 AM (turno nocturno ya cerró). */
+  /** (Legacy) Hora única de ejecución. Se conserva por compatibilidad. */
   @Column({ type: 'int', default: 9 })
   hora: number;
 
   /** Minuto de ejecución (0-59) */
   @Column({ type: 'int', default: 0 })
   minuto: number;
+
+  /** Corre CADA HORA desde esta hora (0-23). Por defecto 6 AM. */
+  @Column({ type: 'int', default: 6 })
+  hora_inicio: number;
+
+  /** ...hasta esta hora (0-23). Por defecto 20 (8 PM). */
+  @Column({ type: 'int', default: 20 })
+  hora_fin: number;
 
   /** Si el cron está activo */
   @Column({ type: 'bit', default: true })

@@ -35,7 +35,7 @@ export class HorasExtraCronService implements OnModuleInit {
     if (process.env.HX_WORKER === '1') return;
     const config = await this.obtenerConfig();
     if (config.activo) {
-      this.registrarCron(config.hora, config.minuto);
+      this.registrarCron(config);
     }
   }
 
@@ -55,18 +55,22 @@ export class HorasExtraCronService implements OnModuleInit {
     minuto?: number;
     activo?: boolean;
     dias_ventana?: number;
+    hora_inicio?: number;
+    hora_fin?: number;
   }): Promise<CalculoExtraCronConfig> {
     const config = await this.obtenerConfig();
     if (dto.hora !== undefined) config.hora = dto.hora;
     if (dto.minuto !== undefined) config.minuto = dto.minuto;
     if (dto.activo !== undefined) config.activo = dto.activo;
     if (dto.dias_ventana !== undefined) config.dias_ventana = dto.dias_ventana;
+    if (dto.hora_inicio !== undefined) config.hora_inicio = dto.hora_inicio;
+    if (dto.hora_fin !== undefined) config.hora_fin = dto.hora_fin;
     await this.configRepo.save(config);
 
     // Re-registrar el cron con la nueva config
     this.eliminarCronSiExiste();
     if (config.activo) {
-      this.registrarCron(config.hora, config.minuto);
+      this.registrarCron(config);
     }
     return config;
   }
@@ -102,6 +106,12 @@ export class HorasExtraCronService implements OnModuleInit {
    * uno corriendo, no lanza otro (la cola se procesa de todas formas).
    */
   asegurarWorker() {
+    // Si hay un worker DEMONIO siempre vivo (ej. PM2), la API no lanza workers:
+    // el demonio toma los jobs de la cola. Se activa con HX_NO_SPAWN=1.
+    if (process.env.HX_NO_SPAWN === '1') {
+      this.logger.log('HX_NO_SPAWN activo: el job lo tomará el worker demonio.');
+      return;
+    }
     if (this.workerCorriendo) {
       this.logger.log('Worker ya en ejecución; el job se procesará en esa corrida.');
       return;
@@ -175,8 +185,14 @@ export class HorasExtraCronService implements OnModuleInit {
 
   // ── CronJob dinámico ─────────────────────────────────────────────────────────
 
-  private registrarCron(hora: number, minuto: number) {
-    const cronExpr = `${minuto} ${hora} * * *`;
+  private registrarCron(config: CalculoExtraCronConfig) {
+    // Corre CADA HORA (en el minuto configurado) dentro del rango horario.
+    // Ej: minuto=0, inicio=6, fin=20 → "0 6-20 * * *" (6:00, 7:00, …, 20:00).
+    const min = config.minuto ?? 0;
+    const ini = config.hora_inicio ?? 6;
+    const fin = config.hora_fin ?? 20;
+    const rango = ini === fin ? `${ini}` : `${ini}-${fin}`;
+    const cronExpr = `${min} ${rango} * * *`;
     this.logger.log(`Registrando cron horas extra: "${cronExpr}"`);
     const job = new CronJob(cronExpr, () => {
       this.encolarRango('Cron automático').catch((e) =>

@@ -56,7 +56,7 @@
             Cron activo
           </div>
           <div class="text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-            Si está activo, calcula automáticamente todos los días a la hora configurada.
+            Si está activo, calcula automáticamente <strong>cada hora</strong>, dentro del rango horario configurado.
           </div>
         </div>
         <div class="relative">
@@ -67,11 +67,18 @@
         </div>
       </label>
 
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <!-- Hora -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <!-- Hora inicio -->
         <div>
-          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Hora (0-23)</label>
-          <input type="number" min="0" max="23" v-model.number="config.hora"
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Desde hora (0-23)</label>
+          <input type="number" min="0" max="23" v-model.number="config.hora_inicio"
+            class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
+            :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
+        </div>
+        <!-- Hora fin -->
+        <div>
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Hasta hora (0-23)</label>
+          <input type="number" min="0" max="23" v-model.number="config.hora_fin"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
@@ -85,11 +92,15 @@
         <!-- Ventana -->
         <div>
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Días a recalcular</label>
-          <input type="number" min="1" max="31" v-model.number="config.dias_ventana"
+          <input type="number" min="1" max="60" v-model.number="config.dias_ventana"
             class="mt-1 w-full h-9 px-3 text-[13px] rounded-lg border outline-none"
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
       </div>
+      <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+        Corre <strong>cada hora</strong> de las {{ config.hora_inicio }}:00 a las {{ config.hora_fin }}:00.
+        Para corridas horarias, mantén "Días a recalcular" bajo (2-3) para que sea ágil.
+      </p>
 
       <div class="flex items-center justify-between flex-wrap gap-3 pt-2">
         <div class="text-[12px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -120,9 +131,9 @@
           <i class="fas fa-rotate" :class="{ 'fa-spin': cargandoJobs }"></i> Actualizar
         </button>
       </div>
-      <div class="overflow-x-auto">
+      <div class="overflow-auto max-h-[340px]">
         <table class="w-full text-[12px]">
-          <thead>
+          <thead class="sticky top-0 z-10">
             <tr class="text-left" :class="isDark ? 'text-slate-400 bg-[#0B0F19]' : 'text-slate-500 bg-slate-50'">
               <th class="px-4 py-2 font-medium">#</th>
               <th class="px-4 py-2 font-medium">Tipo</th>
@@ -242,9 +253,9 @@ async function cargarEmpresas() {
 async function guardar() {
   guardando.value = true;
   try {
-    const { hora, minuto, activo, dias_ventana } = config.value;
+    const { hora, minuto, activo, dias_ventana, hora_inicio, hora_fin } = config.value;
     await axios.patch(`${API}/horas-extra/cron/config`, {
-      hora, minuto, activo, dias_ventana,
+      hora, minuto, activo, dias_ventana, hora_inicio, hora_fin,
     });
     await cargarConfig();
     flash('Configuración guardada');

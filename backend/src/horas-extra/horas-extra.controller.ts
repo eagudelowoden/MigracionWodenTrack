@@ -121,6 +121,8 @@ export class HorasExtraController {
       minuto?: number;
       activo?: boolean;
       dias_ventana?: number;
+      hora_inicio?: number;
+      hora_fin?: number;
     },
   ) {
     return this.cronService.actualizarConfig(dto);
