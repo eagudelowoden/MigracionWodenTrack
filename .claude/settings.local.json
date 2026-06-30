@@ -163,7 +163,12 @@
       "Bash(echo \"front rc=$?\")",
       "Read(//c/Users/e.agudelo/Documents/**)",
       "Bash(ls -la backend/.env.example backend/.env.sample)",
-      "Bash(grep -rn \"SSL\\\\|https\\\\|pfx\\\\|cert\" backend/src/main.ts)"
+      "Bash(grep -rn \"SSL\\\\|https\\\\|pfx\\\\|cert\" backend/src/main.ts)",
+      "Bash(awk '{print length, NR}' aplicacion-consulta.html)",
+      "Bash(xargs grep -liE \"HttpClient|RestClient|api\")",
+      "Bash(ls -la)",
+      "Bash(dir)",
+      "WebFetch(domain:wfsapi.tcpip.tech)"
     ]
   }
 }

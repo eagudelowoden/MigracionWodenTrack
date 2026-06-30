@@ -139,6 +139,11 @@
             class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
             <i class="fas fa-fingerprint text-[9px] text-[#e88710]"></i> Marcación
           </button>
+          <span class="opacity-20">|</span>
+          <button @click="router.push('/marcacion/seriales')"
+            class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+            <i class="fas fa-barcode text-[9px] text-[#e88710]"></i> Seriales
+          </button>
         </div>
 
         <!-- ACCIONES DE CIERRE -->

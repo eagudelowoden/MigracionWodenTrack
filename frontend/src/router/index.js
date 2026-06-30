@@ -27,6 +27,12 @@ const routes = [
     component: () => import("../views/MarcacionView.vue"),
   },
 
+  {
+    path: "/marcacion/seriales",
+    name: "SerialesRecuperados",
+    component: () => import("../views/SerialesRecuperadosView.vue"),
+  },
+
   // ── Panel Admin con sub-rutas ──────────────────────────────────────────────
   {
     path: "/admin",

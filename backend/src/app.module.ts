@@ -20,6 +20,7 @@ import { HorasExtraModule } from './horas-extra/horas-extra.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponibles.module';
+import { WfsmModule } from './wfsm/wfsm.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponib
     ScheduleModule.forRoot(),
     RecordatoriosModule,
     ModulosDisponiblesModule,
+    WfsmModule,
   ],
   controllers: [AppController],
   providers: [AppService],
