@@ -61,24 +61,24 @@ export class WfsmService {
       .toISOString()
       .split('T')[0];
 
-    const params = new URLSearchParams({
-      'visita/min_recepcion': `${fecha}T00:00:00.000Z`,
-      'visita/max_recepcion': `${nextDay}T04:59:59.000Z`,
-      'conf/timezone': '300',
-      'servicio/id_proyecto': '1',
-    });
-    if (documento) params.set('documento_identidad', documento);
+    const qs: string[] = [
+      `min_fecha=${encodeURIComponent(`${fecha}T00:00:00.000Z`)}`,
+      `max_fecha=${encodeURIComponent(`${nextDay}T04:59:59.000Z`)}`,
+      `conf/timezone=300`,
+      `servicio/id_proyecto=1`,
+    ];
+    if (documento) qs.push(`documento_identidad=${encodeURIComponent(documento)}`);
 
-    const consultaFullUrl = `${consultaUrl}?${params.toString()}`;
+    const consultaFullUrl = `${consultaUrl}?${qs.join('&')}`;
     console.log('[WFSM] Consultando:', consultaFullUrl);
 
-    // 3. Consulta con el token como api key en Authorization
+    // 3. Consulta con esquema "Token <token>" igual que OMS
     const consultaRes = await fetch(consultaFullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: token,
+        Authorization: `Token ${token}`,
       },
     });
 
