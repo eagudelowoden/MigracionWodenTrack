@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { WfsmService } from './wfsm.service';
 
-@Controller('wfsm')
+@Controller('usuarios/wfsm')
 export class WfsmController {
   constructor(private readonly svc: WfsmService) {}
 

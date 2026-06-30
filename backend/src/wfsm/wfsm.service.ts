@@ -30,13 +30,32 @@ export class WfsmService {
         Authorization: authBasic,
       },
     });
-    if (!loginRes.ok)
-      throw new Error(`Login WFS fallido (${loginRes.status})`);
-    const { token } = await loginRes.json();
-    if (!token) throw new Error('Token WFS no recibido');
 
-    // 2. Rango de fechas: Colombia UTC-5; el fin del día (23:59) equivale a
-    //    04:59 del día siguiente en UTC, por eso se extiende hasta +1 día 04:59Z.
+    if (!loginRes.ok) {
+      const body = await loginRes.text().catch(() => '');
+      throw new Error(
+        `Login WFS fallido (${loginRes.status}): ${body}`,
+      );
+    }
+
+    const loginData = await loginRes.json();
+    console.log('[WFSM] Login response keys:', Object.keys(loginData));
+
+    // El campo puede llamarse "token", "access_token", "api_key", etc.
+    const token =
+      loginData.token ??
+      loginData.access_token ??
+      loginData.api_key ??
+      loginData.key ??
+      null;
+
+    if (!token) {
+      throw new Error(
+        `Token WFS no encontrado. Respuesta login: ${JSON.stringify(loginData)}`,
+      );
+    }
+
+    // 2. Rango de fechas Colombia UTC-5
     const [y, m, d] = fecha.split('-').map(Number);
     const nextDay = new Date(Date.UTC(y, m - 1, d + 1))
       .toISOString()
@@ -50,19 +69,28 @@ export class WfsmService {
     });
     if (documento) params.set('documento_identidad', documento);
 
-    // 3. Consulta con Token custom (esquema "Token <token>")
-    const consultaRes = await fetch(`${consultaUrl}?${params.toString()}`, {
+    const consultaFullUrl = `${consultaUrl}?${params.toString()}`;
+    console.log('[WFSM] Consultando:', consultaFullUrl);
+
+    // 3. Consulta con el token como api key en Authorization
+    const consultaRes = await fetch(consultaFullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: `Token ${token}`,
+        Authorization: token,
       },
     });
-    if (!consultaRes.ok)
-      throw new Error(`Consulta WFS fallida (${consultaRes.status})`);
+
+    if (!consultaRes.ok) {
+      const body = await consultaRes.text().catch(() => '');
+      throw new Error(
+        `Consulta WFS fallida (${consultaRes.status}): ${body}`,
+      );
+    }
 
     const data = await consultaRes.json();
+    console.log('[WFSM] Respuesta keys:', Object.keys(data));
     return data?.registros ?? (Array.isArray(data) ? data : []);
   }
 }
