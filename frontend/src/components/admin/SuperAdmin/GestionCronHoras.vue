@@ -76,7 +76,17 @@
         </div>
       </label>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <!-- Empresa del cron -->
+        <div class="col-span-2 sm:col-span-1">
+          <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Empresa del cron</label>
+          <select v-model="empresaSel"
+            class="mt-1 w-full h-9 px-2 text-[12px] rounded-lg border outline-none"
+            :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
+            <option value="Todas">Todas</option>
+            <option v-for="e in empresas" :key="e" :value="e">{{ e }}</option>
+          </select>
+        </div>
         <!-- Hora inicio -->
         <div>
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Desde hora
