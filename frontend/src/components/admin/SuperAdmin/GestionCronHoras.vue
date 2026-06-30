@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-5 overflow-y-auto pr-1" style="max-height: calc(100vh - 150px);">
     <!-- Header -->
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
@@ -97,10 +97,24 @@
             :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'" />
         </div>
       </div>
-      <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-        Corre <strong>cada hora</strong> de las {{ config.hora_inicio }}:00 a las {{ config.hora_fin }}:00.
-        Para corridas horarias, mantén "Días a recalcular" bajo (2-3) para que sea ágil.
-      </p>
+      <div class="rounded-lg px-3 py-2.5 text-[12px] border"
+        :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'">
+        <div>
+          <i class="fas fa-calendar-day mr-1.5 text-[#3B82F6]"></i>
+          El cron automático recalcula los últimos <strong>{{ config.dias_ventana }} días</strong>:
+          <strong :class="isDark ? 'text-white' : 'text-slate-900'">{{ rangoCron.desde }}</strong>
+          →
+          <strong :class="isDark ? 'text-white' : 'text-slate-900'">{{ rangoCron.hasta }}</strong>
+        </div>
+        <div class="mt-1">
+          <i class="fas fa-clock mr-1.5 text-[#3B82F6]"></i>
+          Corre <strong>cada hora</strong> de las {{ config.hora_inicio }}:00 a las {{ config.hora_fin }}:00.
+        </div>
+        <div class="mt-1 opacity-70">
+          Nota: las fechas <em>Desde/Hasta</em> de arriba son solo para "Ejecutar ahora" (manual),
+          no para el cron automático.
+        </div>
+      </div>
 
       <div class="flex items-center justify-between flex-wrap gap-3 pt-2">
         <div class="text-[12px]" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
@@ -178,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
 defineProps({ isDark: { type: Boolean, default: true } });
@@ -192,6 +206,19 @@ const rangoDesde = ref('');
 const rangoHasta = ref('');
 const empresas = ref([]);
 const empresaSel = ref('Todas');
+
+// Muestra a qué fechas equivale "Días a recalcular": desde (hoy - N) hasta ayer.
+const rangoCron = computed(() => {
+  const dias = Number(config.value?.dias_ventana) || 0;
+  const fmt = (offset) => {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    return d.toLocaleDateString('es-CO', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    });
+  };
+  return { desde: fmt(dias), hasta: fmt(1) };
+});
 const cargandoJobs = ref(false);
 const mensaje = ref('');
 const mensajeError = ref(false);
