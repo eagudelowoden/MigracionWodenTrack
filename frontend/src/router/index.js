@@ -30,6 +30,7 @@ const routes = [
   {
     path: "/marcacion/seriales",
     name: "SerialesRecuperados",
+    meta: { permiso: "admin.marcacion_seriales" },
     component: () => import("../views/SerialesRecuperadosView.vue"),
   },
 
@@ -194,6 +195,14 @@ router.beforeEach((to, from, next) => {
         ? getFirstAdminRoute(session)
         : "/marcacion";
     return next(fallback);
+  }
+
+  // ── Protección de Seriales Recuperados ─────────────────────────────────────
+  const tieneAccesoSeriales =
+    tieneAccesoSuperAdmin || session?.permisos?.["admin.marcacion_seriales"];
+
+  if (to.path === "/marcacion/seriales" && !tieneAccesoSeriales) {
+    return next("/marcacion");
   }
 
   // ── Protección de rutas /admin/* ───────────────────────────────────────────

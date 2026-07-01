@@ -122,25 +122,27 @@
         </div>
 
         <!-- MENU DE DESARROLLO / ROLES COMPACTADO CORREGIDO PARA MODO CLARO -->
-        <div v-if="employee?.isSuperAdmin"
+        <div v-if="employee?.isSuperAdmin || canVerSeriales"
           class="p-1 border rounded-xl flex items-center justify-around text-[10px] font-bold"
           :class="isDark ? 'bg-[#161B26] border-[#222938] text-zinc-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'">
-          <button @click="router.push('/super-admin')"
-            class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
-            <i class="fas fa-shield-halved text-[9px] text-[#e88710]"></i> Super
-          </button>
-          <span class="opacity-20">|</span>
-          <button @click="router.push('/admin')"
-            class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
-            <i class="fas fa-user-shield text-[9px] text-[#e88710]"></i> Admin
-          </button>
-          <span class="opacity-20">|</span>
-          <button @click="router.push('/marcacion')"
-            class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
-            <i class="fas fa-fingerprint text-[9px] text-[#e88710]"></i> Marcación
-          </button>
-          <span class="opacity-20">|</span>
-          <button @click="router.push('/marcacion/seriales')"
+          <template v-if="employee?.isSuperAdmin">
+            <button @click="router.push('/super-admin')"
+              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+              <i class="fas fa-shield-halved text-[9px] text-[#e88710]"></i> Super
+            </button>
+            <span class="opacity-20">|</span>
+            <button @click="router.push('/admin')"
+              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+              <i class="fas fa-user-shield text-[9px] text-[#e88710]"></i> Admin
+            </button>
+            <span class="opacity-20">|</span>
+            <button @click="router.push('/marcacion')"
+              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+              <i class="fas fa-fingerprint text-[9px] text-[#e88710]"></i> Marcación
+            </button>
+            <span class="opacity-20">|</span>
+          </template>
+          <button v-if="canVerSeriales" @click="router.push('/marcacion/seriales')"
             class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
             <i class="fas fa-barcode text-[9px] text-[#e88710]"></i> Seriales
           </button>
@@ -413,6 +415,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 const canRegistrarNovedad = computed(() =>
   employee.value?.isSuperAdmin ||
   employee.value?.permisos?.['marcacion.novedad'] === true
+);
+
+const canVerSeriales = computed(() =>
+  employee.value?.isSuperAdmin ||
+  employee.value?.permisos?.['admin.marcacion_seriales'] === true
 );
 
 // ── Modal elección ─────────────────────────────────────────────────────────
