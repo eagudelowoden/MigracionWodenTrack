@@ -5,23 +5,38 @@ import { ConfigService } from '@nestjs/config';
 export class WfsmService {
   constructor(private readonly config: ConfigService) {}
 
-  async getSerialesRecuperados(
-    fecha: string,
-    documento?: string,
-  ): Promise<any[]> {
-    const loginUrl = this.config.get<string>('WFSM_LOGIN_URL');
-    const authBasic = this.config.get<string>('WFSM_AUTH_BASIC');
-    const consultaUrl = this.config.get<string>(
-      'WFSM_CONSULTA_SERIALES_RECUPERADOS_URL',
-    );
+  // ── Cache del token en memoria ─────────────────────────────────────────────
+  // El login devuelve un token válido por bastante tiempo; en vez de pedir uno
+  // nuevo en cada consulta lo reutilizamos hasta que expire (o falle la consulta).
+  private tokenCache: { token: string; expira: number } | null = null;
+  private readonly TOKEN_TTL_MS = 50 * 60 * 1000; // 50 min
+  private loginEnCurso: Promise<string> | null = null;
 
-    if (!loginUrl || !authBasic || !consultaUrl) {
-      throw new Error(
-        'Variables de entorno WFSM no configuradas en el servidor.',
-      );
+  private async getToken(forzar = false): Promise<string> {
+    if (
+      !forzar &&
+      this.tokenCache &&
+      Date.now() < this.tokenCache.expira
+    ) {
+      return this.tokenCache.token;
     }
 
-    // 1. Login con Basic Auth → obtener token
+    // Si ya hay un login en curso, esperamos ese mismo (evita logins en paralelo)
+    if (this.loginEnCurso) return this.loginEnCurso;
+
+    this.loginEnCurso = this.doLogin().finally(() => {
+      this.loginEnCurso = null;
+    });
+    return this.loginEnCurso;
+  }
+
+  private async doLogin(): Promise<string> {
+    const loginUrl = this.config.get<string>('WFSM_LOGIN_URL');
+    const authBasic = this.config.get<string>('WFSM_AUTH_BASIC');
+    if (!loginUrl || !authBasic) {
+      throw new Error('Variables de entorno WFSM_LOGIN_URL/WFSM_AUTH_BASIC no configuradas.');
+    }
+
     const loginRes = await fetch(loginUrl, {
       method: 'POST',
       headers: {
@@ -33,15 +48,10 @@ export class WfsmService {
 
     if (!loginRes.ok) {
       const body = await loginRes.text().catch(() => '');
-      throw new Error(
-        `Login WFS fallido (${loginRes.status}): ${body}`,
-      );
+      throw new Error(`Login WFS fallido (${loginRes.status}): ${body}`);
     }
 
     const loginData = await loginRes.json();
-    console.log('[WFSM] Login response keys:', Object.keys(loginData));
-
-    // El campo puede llamarse "token", "access_token", "api_key", etc.
     const token =
       loginData.token ??
       loginData.access_token ??
@@ -50,12 +60,26 @@ export class WfsmService {
       null;
 
     if (!token) {
-      throw new Error(
-        `Token WFS no encontrado. Respuesta login: ${JSON.stringify(loginData)}`,
-      );
+      throw new Error(`Token WFS no encontrado. Respuesta login: ${JSON.stringify(loginData)}`);
     }
 
-    // 2. Rango de fechas Colombia UTC-5
+    this.tokenCache = { token, expira: Date.now() + this.TOKEN_TTL_MS };
+    console.log('[WFSM] Nuevo token obtenido y cacheado.');
+    return token;
+  }
+
+  async getSerialesRecuperados(
+    fecha: string,
+    documento?: string,
+  ): Promise<any[]> {
+    const consultaUrl = this.config.get<string>(
+      'WFSM_CONSULTA_SERIALES_RECUPERADOS_URL',
+    );
+    if (!consultaUrl) {
+      throw new Error('Variable de entorno WFSM_CONSULTA_SERIALES_RECUPERADOS_URL no configurada.');
+    }
+
+    // Rango de fechas Colombia UTC-5
     const [y, m, d] = fecha.split('-').map(Number);
     const nextDay = new Date(Date.UTC(y, m - 1, d + 1))
       .toISOString()
@@ -70,10 +94,24 @@ export class WfsmService {
     if (documento) qs.push(`documento_identidad=${encodeURIComponent(documento)}`);
 
     const consultaFullUrl = `${consultaUrl}?${qs.join('&')}`;
-    console.log('[WFSM] Consultando:', consultaFullUrl);
 
-    // 3. Consulta con esquema "Token <token>" igual que OMS
-    const consultaRes = await fetch(consultaFullUrl, {
+    // Consulta reutilizando el token cacheado; si vuelve 401/403 el token
+    // expiró → forzamos un login nuevo y reintentamos una sola vez.
+    let data = await this.consultar(consultaFullUrl, await this.getToken());
+    if (data === '__AUTH_EXPIRED__') {
+      console.log('[WFSM] Token expirado, renovando y reintentando...');
+      data = await this.consultar(consultaFullUrl, await this.getToken(true));
+    }
+
+    if (data === '__AUTH_EXPIRED__') {
+      throw new Error('Consulta WFS fallida: autenticación rechazada tras renovar token.');
+    }
+
+    return data?.registros ?? (Array.isArray(data) ? data : []);
+  }
+
+  private async consultar(url: string, token: string): Promise<any> {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -82,15 +120,16 @@ export class WfsmService {
       },
     });
 
-    if (!consultaRes.ok) {
-      const body = await consultaRes.text().catch(() => '');
-      throw new Error(
-        `Consulta WFS fallida (${consultaRes.status}): ${body}`,
-      );
+    if (res.status === 401 || res.status === 403) {
+      this.tokenCache = null; // invalidar cache
+      return '__AUTH_EXPIRED__';
     }
 
-    const data = await consultaRes.json();
-    console.log('[WFSM] Respuesta keys:', Object.keys(data));
-    return data?.registros ?? (Array.isArray(data) ? data : []);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Consulta WFS fallida (${res.status}): ${body}`);
+    }
+
+    return res.json();
   }
 }
