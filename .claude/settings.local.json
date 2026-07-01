@@ -169,7 +169,18 @@
       "Bash(ls -la)",
       "Bash(dir)",
       "WebFetch(domain:wfsapi.tcpip.tech)",
-      "Bash(cd /tmp)"
+      "Bash(cd /tmp)",
+      "Bash(git log *)",
+      "Bash(xargs grep -l \"comprobante\\\\|Comprobante\")",
+      "Bash(npx ng *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8100 --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST \"https://track.woden.com.co:8443/usuarios/wfsm/seriales-recuperados\" -H \"Content-Type: application/json\" -d '{\"fecha\":\"2026-07-01\"}' -k --max-time 15)",
+      "Bash(curl -s -X POST \"https://track.woden.com.co:8443/usuarios/wfsm/seriales-recuperados\" -H \"Content-Type: application/json\" -d '{\"fecha\":\"2026-07-01\"}' -k --max-time 15 -i)",
+      "Bash(curl -s -X GET \"https://track.woden.com.co:8443/usuarios/hora-oficial\" -k --max-time 15 -i)",
+      "Bash(curl -s -X POST \"https://track.woden.com.co:8443/usuarios/login\" -H \"Content-Type: application/json\" -d '{\"usuario\":\"x\",\"password\":\"y\"}' -k --max-time 15 -i)",
+      "Bash(curl -s -o /dev/null -w \"local backend 8082: %{http_code}\\\\n\" http://localhost:8082/usuarios/hora-oficial --max-time 5)",
+      "Bash(curl -s -i -X POST \"http://localhost:8082/usuarios/wfsm/seriales-recuperados\" -H \"Content-Type: application/json\" -d '{\"fecha\":\"2026-07-01\"}' --max-time 15)",
+      "Bash(curl -s -i -X OPTIONS http://localhost:8082/usuarios/wfsm/seriales-recuperados -H 'Origin: http://localhost:8100' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type,Authorization' --max-time 10)"
     ]
   }
 }
