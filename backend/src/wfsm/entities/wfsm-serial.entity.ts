@@ -20,6 +20,10 @@ export class WfsmSerial {
   @Column({ type: 'nvarchar', length: 100, nullable: true })
   estatus: string | null;
 
+  // Link al comprobante (PDF/imagen) que ya viene listo desde WFS.
+  @Column({ type: 'nvarchar', length: 500, nullable: true })
+  comprobante_link: string | null;
+
   // Registro completo tal como lo devuelve WFS, para no perder ningún campo.
   @Column({ type: 'nvarchar', length: 'MAX' })
   datos: string;

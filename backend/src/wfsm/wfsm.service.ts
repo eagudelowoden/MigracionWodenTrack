@@ -86,7 +86,7 @@ export class WfsmService {
   // de la misma fecha llegan casi al tiempo y ninguna tiene datos frescos, la
   // segunda se "engancha" a la sincronización de la primera en vez de disparar
   // otra consulta de 20MB a WFS (cola de sincronización en memoria).
-  private readonly SYNC_TTL_MS = 5 * 60 * 1000; // 5 min
+  private readonly SYNC_TTL_MS = 15 * 60 * 1000; // 15 min
   private sincronizacionesEnCurso = new Map<string, Promise<void>>();
 
   async getSerialesRecuperados(
@@ -139,6 +139,7 @@ export class WfsmService {
         cedula_cliente: r.cedula_cliente ?? null,
         agente_campo: r.agente_campo ?? null,
         estatus: r.estatus ?? null,
+        comprobante_link: r.comprobante_cliente ?? r.imagen_comprobante ?? null,
         datos: JSON.stringify(r),
       }),
     );
