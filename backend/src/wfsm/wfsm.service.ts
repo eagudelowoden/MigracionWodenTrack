@@ -132,9 +132,18 @@ export class WfsmService {
   private async sincronizarDia(fecha: string): Promise<void> {
     const registros = await this.fetchRegistrosDelDia(fecha);
 
-    const filas = registros.map((r) =>
+    // WFS puede repetir el mismo id_visita más de una vez en el mismo día;
+    // deduplicamos por id (nos quedamos con la última ocurrencia) para no
+    // violar la llave primaria al guardar.
+    const porId = new Map<number, any>();
+    for (const r of registros) {
+      const id = r.id_visita ?? r.key;
+      if (id != null) porId.set(id, r);
+    }
+
+    const filas = Array.from(porId.entries()).map(([id, r]) =>
       this.serialRepo.create({
-        id_visita: r.id_visita ?? r.key,
+        id_visita: id,
         fecha,
         cedula_cliente: r.cedula_cliente ?? null,
         agente_campo: r.agente_campo ?? null,
