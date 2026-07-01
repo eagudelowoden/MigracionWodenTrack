@@ -180,7 +180,18 @@
       "Bash(curl -s -X POST \"https://track.woden.com.co:8443/usuarios/login\" -H \"Content-Type: application/json\" -d '{\"usuario\":\"x\",\"password\":\"y\"}' -k --max-time 15 -i)",
       "Bash(curl -s -o /dev/null -w \"local backend 8082: %{http_code}\\\\n\" http://localhost:8082/usuarios/hora-oficial --max-time 5)",
       "Bash(curl -s -i -X POST \"http://localhost:8082/usuarios/wfsm/seriales-recuperados\" -H \"Content-Type: application/json\" -d '{\"fecha\":\"2026-07-01\"}' --max-time 15)",
-      "Bash(curl -s -i -X OPTIONS http://localhost:8082/usuarios/wfsm/seriales-recuperados -H 'Origin: http://localhost:8100' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type,Authorization' --max-time 10)"
+      "Bash(curl -s -i -X OPTIONS http://localhost:8082/usuarios/wfsm/seriales-recuperados -H 'Origin: http://localhost:8100' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type,Authorization' --max-time 10)",
+      "Bash(tee /tmp/login_resp.json)",
+      "Bash(cat /tmp/login_resp.json 2>/dev/null; echo \"---\"; which python3 python 2>/dev/null)",
+      "Bash(curl -sv -X POST \"https://wfsapi.tcpip.tech/api/usuarios/login\" -H \"Content-Type: application/json\" -H \"Accept: application/json\" -H \"Authorization: Basic bXB1bGlkb0B3b2Rlbi5jb20uY286TTFjaDQzbDIwMjAq\" -o \"C:\\\\Users\\\\E8038~1.AGU\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-e-agudelo-Documents-MigracionWodenTrack\\\\be29463f-80c8-4076-8084-9252847f59a1\\\\scratchpad\\\\login_resp.json\")",
+      "Bash(node check.js)",
+      "Bash(curl -s -X POST 'https://wfsapi.tcpip.tech/api/consultas/seriales/recuperados?min_fecha=2026-01-07T00:00:00.000Z&max_fecha=2026-01-08T04:59:59.000Z&conf/timezone=300&servicio/id_proyecto=1' -H 'Authorization: Token eyJhbGciOiJIUzUxMiJ9.eyJuaWNrIjpudWxsLCJpZF9zZXNpb24iOiJmYzU2MjFkNy0xZWEyLTRjMjktODM4My0wZDQ5M2Y1NmUyNGIiLCJuYW1lIjoiQ29udGFjdCBDZW50ZXIgUmVnaW9uYWwiLCJyb2xlcyI6WyJhZG1pbmlzdHJhZG9yIl0sInRpdGxlIjoiSkVGRSBERSBERVNBUlJPTExPIElUIiwiaWQiOjIyNzE0ODUsImluZGljYWRvcmVzIjpbImFjY2Vzb3Jpb3MiLCJlcXVpcG9zIiwib3BlcmFkb3JlcyIsInZpc2l0YXMiXSwiYXZhdGFyIjpudWxsLCJ2ZXJzaW9uIjpudWxsLCJ1c2VyIjoibXB1bGlkb0B3b2Rlbi5jb20uY28iLCJ2ZXJpZmllZCI6ZmFsc2UsImlhdCI6MTc4MjkyMTU2MX0.Pky-DXZdUz-zR1O_4jrdrKboDmShsrkX4V3PFl-RgDTi4jWE058Lvi5zSQH4YH-qFHKqIbuxkPFmIRhGXBYXfA' -o /c/Users/E8038~1.AGU/AppData/Local/Temp/claude/C--Users-e-agudelo-Documents-MigracionWodenTrack/be29463f-80c8-4076-8084-9252847f59a1/scratchpad/sin_filtro.json --max-time 60)",
+      "Bash(time curl -s -X POST http://localhost:8082/usuarios/wfsm/seriales-recuperados -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzdWFyaW8iOiJ0ZXN0IiwiaWF0IjoxNzgyOTIyMTEwLCJleHAiOjE3ODI5NTgxMTB9.W2lKJCCfHaGOecst_Dk5tm-_RBIm6L4vuOKiBfmxmRI' -d '{\"fecha\":\"2026-01-07\"}' -o /tmp/out1.json -w 'HTTP %{http_code} size=%{size_download}\\\\n')",
+      "Bash(time curl -s -X POST http://localhost:8082/usuarios/wfsm/seriales-recuperados -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzdWFyaW8iOiJ0ZXN0IiwiaWF0IjoxNzgyOTIyMTEwLCJleHAiOjE3ODI5NTgxMTB9.W2lKJCCfHaGOecst_Dk5tm-_RBIm6L4vuOKiBfmxmRI' -d '{\"fecha\":\"2026-01-07\",\"documento\":\"68284148\"}' -o /tmp/out2.json -w 'HTTP %{http_code} size=%{size_download}\\\\n')",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\" //FO CSV)",
+      "Bash(wmic process *)",
+      "Bash(powershell -Command \"\\(Get-CimInstance Win32_Process -Filter 'ProcessId=28920'\\).CommandLine\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }

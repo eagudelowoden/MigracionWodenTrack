@@ -1,9 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { WfsmSerial } from './entities/wfsm-serial.entity';
+import { WfsmSyncEstado } from './entities/wfsm-sync-estado.entity';
 
 @Injectable()
 export class WfsmService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    @InjectRepository(WfsmSerial)
+    private readonly serialRepo: Repository<WfsmSerial>,
+    @InjectRepository(WfsmSyncEstado)
+    private readonly syncEstadoRepo: Repository<WfsmSyncEstado>,
+  ) {}
 
   // ── Cache del token en memoria ─────────────────────────────────────────────
   // El login devuelve un token válido por bastante tiempo; en vez de pedir uno
@@ -68,10 +78,91 @@ export class WfsmService {
     return token;
   }
 
+  // ── Persistencia en BD por día ──────────────────────────────────────────────
+  // WFS ignora cualquier filtro de query string (comprobado: misma respuesta con
+  // o sin documento_identidad) y siempre devuelve el día completo (~20MB). Para
+  // no pegarle esa carga a su API en cada búsqueda, guardamos el día en la BD
+  // (tabla wfsm_seriales_recuperados) y filtramos ahí con SQL. Si dos búsquedas
+  // de la misma fecha llegan casi al tiempo y ninguna tiene datos frescos, la
+  // segunda se "engancha" a la sincronización de la primera en vez de disparar
+  // otra consulta de 20MB a WFS (cola de sincronización en memoria).
+  private readonly SYNC_TTL_MS = 5 * 60 * 1000; // 5 min
+  private sincronizacionesEnCurso = new Map<string, Promise<void>>();
+
   async getSerialesRecuperados(
     fecha: string,
     documento?: string,
+    agente?: string,
   ): Promise<any[]> {
+    await this.asegurarSincronizado(fecha);
+
+    const qb = this.serialRepo
+      .createQueryBuilder('s')
+      .where('s.fecha = :fecha', { fecha });
+
+    const doc = documento?.trim();
+    if (doc) qb.andWhere('s.cedula_cliente LIKE :doc', { doc: `%${doc}%` });
+
+    const ag = agente?.trim();
+    if (ag) qb.andWhere('LOWER(s.agente_campo) LIKE :ag', { ag: `%${ag.toLowerCase()}%` });
+
+    const filas = await qb.getMany();
+    return filas.map((f) => JSON.parse(f.datos));
+  }
+
+  private async asegurarSincronizado(fecha: string): Promise<void> {
+    const enCurso = this.sincronizacionesEnCurso.get(fecha);
+    if (enCurso) return enCurso;
+
+    const estado = await this.syncEstadoRepo.findOne({ where: { fecha } });
+    if (estado && Date.now() - estado.ultima_sync_en.getTime() < this.SYNC_TTL_MS) {
+      return; // datos ya frescos en BD
+    }
+
+    const promesa = this.sincronizarDia(fecha).finally(() => {
+      this.sincronizacionesEnCurso.delete(fecha);
+    });
+
+    this.sincronizacionesEnCurso.set(fecha, promesa);
+    return promesa;
+  }
+
+  // Trae el día completo de WFS y reemplaza en bloque lo que había en BD para
+  // esa fecha (evita arrastrar registros obsoletos si un estatus cambió).
+  private async sincronizarDia(fecha: string): Promise<void> {
+    const registros = await this.fetchRegistrosDelDia(fecha);
+
+    const filas = registros.map((r) =>
+      this.serialRepo.create({
+        id_visita: r.id_visita ?? r.key,
+        fecha,
+        cedula_cliente: r.cedula_cliente ?? null,
+        agente_campo: r.agente_campo ?? null,
+        estatus: r.estatus ?? null,
+        datos: JSON.stringify(r),
+      }),
+    );
+
+    // SQL Server admite ~2100 parámetros por consulta; con miles de filas hay
+    // que insertar en lotes para no exceder ese límite.
+    const LOTE = 200;
+
+    await this.serialRepo.manager.transaction(async (trx) => {
+      await trx.delete(WfsmSerial, { fecha });
+      // upsert (no insert/save) por si un id_visita ya existía bajo otra fecha
+      // (ej. un registro que WFS reclasificó de día tras un reintento).
+      for (let i = 0; i < filas.length; i += LOTE) {
+        await trx.upsert(WfsmSerial, filas.slice(i, i + LOTE), ['id_visita']);
+      }
+      await trx.upsert(
+        WfsmSyncEstado,
+        { fecha, ultima_sync_en: new Date() },
+        ['fecha'],
+      );
+    });
+  }
+
+  private async fetchRegistrosDelDia(fecha: string): Promise<any[]> {
     const consultaUrl = this.config.get<string>(
       'WFSM_CONSULTA_SERIALES_RECUPERADOS_URL',
     );
@@ -91,7 +182,6 @@ export class WfsmService {
       `conf/timezone=300`,
       `servicio/id_proyecto=1`,
     ];
-    if (documento) qs.push(`documento_identidad=${encodeURIComponent(documento)}`);
 
     const consultaFullUrl = `${consultaUrl}?${qs.join('&')}`;
 

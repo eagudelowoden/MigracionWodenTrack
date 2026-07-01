@@ -23,6 +23,8 @@ import { SesionActiva } from '../usuarios/entities/sesion-activa.entity';
 import { ApiCredencial } from '../api-externa/entities/api-credencial.entity';
 import { ApiCampoConfig } from '../api-externa/entities/api-campo-config.entity';
 import { RecordatorioMalla } from '../recordatorios/entities/recordatorio.entity';
+import { WfsmSerial } from '../wfsm/entities/wfsm-serial.entity';
+import { WfsmSyncEstado } from '../wfsm/entities/wfsm-sync-estado.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -69,6 +71,9 @@ export const getDatabaseConfig = (
       ApiCampoConfig,
       // Recordatorios
       RecordatorioMalla,
+      // WFSM (seriales recuperados)
+      WfsmSerial,
+      WfsmSyncEstado,
     ],
     autoLoadEntities: true,
     synchronize: true,

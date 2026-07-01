@@ -38,14 +38,19 @@
 
       <!-- Filtros -->
       <section class="v-card p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 sm:items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 sm:items-end">
           <div class="flex flex-col gap-1.5">
             <label class="v-label">Fecha</label>
             <input type="date" v-model="filtros.fecha" class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Cédula <span class="v-muted font-normal">(opcional)</span></label>
+            <label class="v-label">Cédula cliente <span class="v-muted font-normal">(opcional)</span></label>
             <input type="text" v-model="filtros.documento" placeholder="Ej. 1035851539" @keyup.enter="consultar"
+              class="v-input" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="v-label">Agente <span class="v-muted font-normal">(opcional)</span></label>
+            <input type="text" v-model="filtros.agente" placeholder="Nombre del agente" @keyup.enter="consultar"
               class="v-input" />
           </div>
           <button @click="consultar" :disabled="loading" class="v-btn-primary">
@@ -165,7 +170,7 @@ const toggleTheme = () => {
 
 const hoy = () => new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-const filtros = reactive({ fecha: hoy(), documento: '' });
+const filtros = reactive({ fecha: hoy(), documento: '', agente: '' });
 const loading = ref(false);
 const error = ref('');
 const registros = ref(null);
@@ -173,7 +178,7 @@ const busquedaLocal = ref('');
 const limite = ref(50);
 
 const CAMPOS_VISIBLES = [
-  { key: 'documento_identidad', label: 'Cédula' },
+  { key: 'cedula_cliente', label: 'Cédula cliente' },
   { key: 'agente_campo', label: 'Agente' },
   { key: 'nombre_usuario', label: 'Cliente' },
   { key: 'ciudad', label: 'Ciudad' },
@@ -205,6 +210,7 @@ const consultar = async () => {
   try {
     const body = { fecha: filtros.fecha };
     if (filtros.documento.trim()) body.documento = filtros.documento.trim();
+    if (filtros.agente.trim()) body.agente = filtros.agente.trim();
 
     const res = await apiFetch(`${API_URL}/wfsm/seriales-recuperados`, {
       method: 'POST',

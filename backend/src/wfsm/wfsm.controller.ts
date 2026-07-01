@@ -7,7 +7,7 @@ export class WfsmController {
 
   @Post('seriales-recuperados')
   async getSerialesRecuperados(
-    @Body() body: { fecha?: string; documento?: string },
+    @Body() body: { fecha?: string; documento?: string; agente?: string },
   ) {
     const fecha =
       body.fecha ?? new Date().toISOString().split('T')[0];
@@ -16,6 +16,7 @@ export class WfsmController {
       const registros = await this.svc.getSerialesRecuperados(
         fecha,
         body.documento,
+        body.agente,
       );
       return { ok: true, fecha, total: registros.length, registros };
     } catch (err) {
