@@ -12,6 +12,24 @@
         <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Asistencias
         </h2>
+        <!-- Pestañas Odoo / Ecuador GPS -->
+        <div class="flex items-center gap-0.5 ml-2 p-0.5 rounded-md border"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+          <button @click="tabActiva = 'odoo'"
+            class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all"
+            :class="tabActiva === 'odoo'
+              ? 'bg-[#3B82F6] text-white'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            Odoo
+          </button>
+          <button v-if="esEcuador" @click="tabActiva = 'ecuador'; cargarMarcacionesEcuador()"
+            class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all flex items-center gap-1"
+            :class="tabActiva === 'ecuador'
+              ? 'bg-emerald-500 text-white'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            <i class="fas fa-location-dot text-[8px]"></i> Ecuador GPS
+          </button>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
@@ -111,7 +129,7 @@
     </div>
 
     <!-- Tabla -->
-    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+    <div v-if="tabActiva === 'odoo'" class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -285,11 +303,133 @@
         </div>
       </div>
     </div>
+
+    <!-- ── TABLA MARCACIONES ECUADOR GPS ─────────────────────────────────── -->
+    <div v-if="tabActiva === 'ecuador'" class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
+        <table class="w-full border-separate border-spacing-0">
+          <thead class="sticky top-0 z-30">
+            <tr class="bg-[#1e2538]">
+              <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Colaborador</th>
+              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
+              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Fecha</th>
+              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Entrada</th>
+              <th class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Salida</th>
+            </tr>
+          </thead>
+
+          <tbody v-if="cargandoEcuador">
+            <tr>
+              <td colspan="5" class="py-16 text-center">
+                <div class="loading-ring mx-auto"><div></div><div></div><div></div><div></div></div>
+                <span class="block mt-3 text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Cargando marcaciones…</span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else-if="!marcacionesEcuadorAgrupadas.length && !cargandoEcuador">
+            <tr>
+              <td colspan="5" class="py-16 text-center">
+                <i class="fas fa-location-dot text-2xl mb-2 block" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                <span class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin marcaciones Ecuador</span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else class="divide-y-0">
+            <tr v-for="(m, idx) in marcacionesEcuadorAgrupadas" :key="`${m.cedula}-${m.fecha}`"
+              class="group transition-all duration-150"
+              :class="[
+                idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]'
+              ]">
+
+              <!-- Colaborador -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <i class="fas fa-user text-[10px] text-emerald-500"></i>
+                  </div>
+                  <span class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ m.nombre }}</span>
+                </div>
+              </td>
+
+              <!-- Cédula -->
+              <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
+                :class="isDark ? 'text-slate-300 border-[#222938]' : 'text-slate-700 border-slate-100'">
+                {{ m.cedula }}
+              </td>
+
+              <!-- Fecha -->
+              <td class="px-4 py-3 text-center border-b text-[11px] tabular-nums"
+                :class="isDark ? 'text-slate-400 border-[#222938]' : 'text-slate-500 border-slate-100'">
+                {{ m.fecha }}
+              </td>
+
+              <!-- Entrada -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div v-if="m.entrada" class="flex items-center justify-center gap-2">
+                  <span class="text-[12px] font-bold tabular-nums text-emerald-500">{{ m.entrada.hora }}</span>
+                  <button v-if="m.entrada.latitud && m.entrada.longitud"
+                    @click="verEnMapa(m.entrada.latitud, m.entrada.longitud)"
+                    class="h-6 px-2 rounded border text-[9px] font-semibold transition-all hover:scale-105"
+                    :class="isDark
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'"
+                    title="Ver ubicación de entrada en Google Maps">
+                    <i class="fas fa-map-location-dot"></i>
+                  </button>
+                </div>
+                <span v-else class="block text-center text-[10px]"
+                  :class="isDark ? 'text-slate-600' : 'text-slate-400'">—</span>
+              </td>
+
+              <!-- Salida -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div v-if="m.salida" class="flex items-center justify-center gap-2">
+                  <span class="text-[12px] font-bold tabular-nums text-rose-500">{{ m.salida.hora }}</span>
+                  <button v-if="m.salida.latitud && m.salida.longitud"
+                    @click="verEnMapa(m.salida.latitud, m.salida.longitud)"
+                    class="h-6 px-2 rounded border text-[9px] font-semibold transition-all hover:scale-105"
+                    :class="isDark
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                      : 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'"
+                    title="Ver ubicación de salida en Google Maps">
+                    <i class="fas fa-map-location-dot"></i>
+                  </button>
+                </div>
+                <span v-else class="block text-center text-[10px]"
+                  :class="isDark ? 'text-slate-600' : 'text-slate-400'">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer conteo -->
+      <div class="px-3 py-2 border-t flex items-center justify-between"
+        :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+        <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+          <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ marcacionesEcuadorAgrupadas.length }}</span>
+          {{ marcacionesEcuadorAgrupadas.length === 1 ? 'registro' : 'registros' }} ·
+          {{ marcacionesEcuador.length }} marcaciones Ecuador
+        </span>
+        <button @click="cargarMarcacionesEcuador" :disabled="cargandoEcuador"
+          class="flex items-center gap-1 h-6 px-2 rounded text-[10px] font-medium border transition-all disabled:opacity-50"
+          :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-700'">
+          <i class="fas fa-rotate text-[9px]" :class="{ 'fa-spin': cargandoEcuador }"></i>
+          Actualizar
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { apiFetch } from '@/utils/apiFetch.js';
+import axios from 'axios';
 import { onMounted, watch, ref, computed } from 'vue';
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
@@ -434,9 +574,77 @@ const getStatusClass = (status) => {
 
 const getFuenteClass = (fuente) => {
   if (!fuente) return '';
-  // Estilo Vercel sutil: gris neutro con sutil distinción
   return 'bg-transparent text-[#888888] border-[#222938] dark:border-[#222938]';
 };
+
+// ── Pestaña Ecuador GPS ────────────────────────────────────────────────────
+const tabActiva = ref('odoo');
+const esEcuador = computed(() =>
+  props.company?.toLowerCase().includes('ecuador') ||
+  session.company?.toLowerCase().includes('ecuador')
+);
+
+const API_URL = import.meta.env.VITE_API_URL;
+const marcacionesEcuador = ref([]);
+const cargandoEcuador = ref(false);
+
+const cargarMarcacionesEcuador = async () => {
+  cargandoEcuador.value = true;
+  try {
+    const params = new URLSearchParams();
+    params.append('company', props.company || session.company || 'Ecuador');
+    if (startDate.value) params.append('startDate', startDate.value);
+    if (endDate.value) params.append('endDate', endDate.value);
+    if (filterHoy.value) {
+      const hoy = new Date().toISOString().slice(0, 10);
+      params.set('startDate', hoy);
+      params.set('endDate', hoy);
+    }
+    if (search.value) params.append('cedula', search.value);
+    params.append('limit', '1000');
+    const { data } = await axios.get(`${API_URL}/marcacion-ecuador/historial?${params}`);
+    marcacionesEcuador.value = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('Error cargando marcaciones Ecuador:', e);
+    marcacionesEcuador.value = [];
+  } finally {
+    cargandoEcuador.value = false;
+  }
+};
+
+const verEnMapa = (latitud, longitud) => {
+  if (!latitud || !longitud) return;
+  window.open(`https://www.google.com/maps?q=${latitud},${longitud}&z=17`, '_blank');
+};
+
+// Agrupa las marcaciones por empleado+fecha: cada fila = un día con su entrada y salida
+const marcacionesEcuadorAgrupadas = computed(() => {
+  const mapa = new Map();
+  for (const m of marcacionesEcuador.value) {
+    const key = `${m.cedula}__${m.fecha}`;
+    if (!mapa.has(key)) {
+      mapa.set(key, {
+        cedula: m.cedula,
+        nombre: m.nombre,
+        fecha: m.fecha,
+        company: m.company,
+        entrada: null,
+        salida: null,
+      });
+    }
+    const fila = mapa.get(key);
+    // Guarda el de hora más temprana para entrada y más tardía para salida
+    if (m.tipo === 'entrada') {
+      if (!fila.entrada || m.hora < fila.entrada.hora) fila.entrada = m;
+    } else {
+      if (!fila.salida || m.hora > fila.salida.hora) fila.salida = m;
+    }
+  }
+  // Ordenar por fecha desc, luego nombre
+  return [...mapa.values()].sort((a, b) =>
+    b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre)
+  );
+});
 </script>
 
 <style scoped>
