@@ -21,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponibles.module';
 import { WfsmModule } from './wfsm/wfsm.module';
+import { MarcacionEcuadorModule } from './marcacion-ecuador/marcacion-ecuador.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { WfsmModule } from './wfsm/wfsm.module';
     RecordatoriosModule,
     ModulosDisponiblesModule,
     WfsmModule,
+    MarcacionEcuadorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

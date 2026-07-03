@@ -9,6 +9,10 @@ export class Company {
   @Column({ type: 'nvarchar', length: 255 }) 
   name: string; // Nombre de la empresa (Soporta tildes y caracteres especiales)
 
-  @Column({ type: 'bit', default: 1 }) 
+  @Column({ type: 'bit', default: 1 })
   is_active: boolean; // 1 = Visible en el Login, 0 = Oculta
+
+  /** Habilita la marcación de asistencia con GPS (exclusivo Ecuador) */
+  @Column({ type: 'bit', default: 0 })
+  marcacion_asistencia: boolean;
 }

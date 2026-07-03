@@ -70,6 +70,20 @@ export function useCompanies() {
     }
   };
 
+  // 5. Habilita/deshabilita marcación de asistencia GPS (Ecuador)
+  const toggleMarcacionAsistencia = async (id, currentStatus) => {
+    try {
+      await apiFetch(`${API_URL}/${id}/marcacion-asistencia`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marcacion_asistencia: !currentStatus }),
+      });
+      await fetchDbCompanies();
+    } catch (e) {
+      console.error('Error al actualizar marcación asistencia:', e);
+    }
+  };
+
   return {
     dbCompanies,
     odooCompanies,
@@ -79,5 +93,6 @@ export function useCompanies() {
     fetchOdooRaw,
     syncCompanies,
     toggleCompanyStatus,
+    toggleMarcacionAsistencia,
   };
 }

@@ -109,4 +109,14 @@ export class CompaniesService {
       throw new InternalServerErrorException('Error al actualizar el estado de la compañía');
     }
   }
+
+  /** Habilita/deshabilita la marcación de asistencia con GPS para una empresa (Ecuador). */
+  async toggleMarcacionAsistencia(id: number, habilitado: boolean) {
+    try {
+      await this.companyRepo.update(id, { marcacion_asistencia: habilitado });
+      return { status: 'success', message: `Marcación asistencia ${habilitado ? 'habilitada' : 'deshabilitada'}.` };
+    } catch (error) {
+      throw new InternalServerErrorException('Error al actualizar marcación asistencia');
+    }
+  }
 }

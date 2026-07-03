@@ -121,6 +121,13 @@
           </button>
         </div>
 
+        <!-- MARCACIÓN ECUADOR CON GPS — solo para usuarios Ecuador con permiso -->
+        <MarcacionAsistenciaEcuador
+          v-if="canMarcacionEcuador"
+          :isDark="isDark"
+          :employee="employee"
+        />
+
         <!-- MENU DE DESARROLLO / ROLES COMPACTADO CORREGIDO PARA MODO CLARO -->
         <div v-if="employee?.isSuperAdmin || canVerSeriales"
           class="p-1 border rounded-xl flex items-center justify-around text-[10px] font-bold"
@@ -404,6 +411,7 @@ import '../assets/css/marcacion-style.css';
 import { ref, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
+import MarcacionAsistenciaEcuador from '../components/MarcacionAsistenciaEcuador.vue';
 import axios from 'axios';
 
 const router = useRouter();
@@ -421,6 +429,18 @@ const canVerSeriales = computed(() =>
   employee.value?.isSuperAdmin ||
   employee.value?.permisos?.['admin.marcacion_seriales'] === true
 );
+
+// Solo para usuarios Ecuador (por company o pais) con permiso ecuador.marcacion
+const canMarcacionEcuador = computed(() => {
+  const emp = employee.value;
+  if (!emp) return false;
+  const esEcuador =
+    emp.company?.toLowerCase().includes('ecuador') ||
+    emp.pais?.toLowerCase() === 'ecuador';
+  const tienePermiso =
+    emp.isSuperAdmin || emp.permisos?.['ecuador.marcacion'] === true;
+  return esEcuador && tienePermiso;
+});
 
 // ── Modal elección ─────────────────────────────────────────────────────────
 const showChoiceModal = ref(false);

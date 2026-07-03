@@ -191,7 +191,8 @@
       "Bash(tasklist //FI \"IMAGENAME eq node.exe\" //FO CSV)",
       "Bash(wmic process *)",
       "Bash(powershell -Command \"\\(Get-CimInstance Win32_Process -Filter 'ProcessId=28920'\\).CommandLine\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(xargs grep -l \"marcacion\\\\|asistencia\")"
     ]
   }
 }

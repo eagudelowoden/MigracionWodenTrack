@@ -103,11 +103,26 @@
                                             {{ comp.is_active ? 'Visible en login' : 'Oculta' }}
                                         </span>
                                     </div>
+                                    <!-- Badge marcación GPS si está habilitada -->
+                                    <div v-if="comp.marcacion_asistencia"
+                                        class="gc-gps-badge">
+                                        <i class="fas fa-location-dot"></i> Marcación GPS activa
+                                    </div>
                                 </td>
-                                <td class="gc-td-toggle">
+                                <td class="gc-td-toggle" style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
                                     <button @click="handleToggle(comp.id, comp.is_active)" class="gc-toggle-btn"
-                                        :class="comp.is_active ? 'is-on' : 'is-off'">
+                                        :class="comp.is_active ? 'is-on' : 'is-off'"
+                                        title="Visibilidad en login">
                                         {{ comp.is_active ? 'ON' : 'OFF' }}
+                                    </button>
+                                    <!-- Toggle marcación GPS (solo si es Ecuador) -->
+                                    <button v-if="comp.name?.toLowerCase().includes('ecuador')"
+                                        @click="handleToggleMarcacion(comp.id, comp.marcacion_asistencia)"
+                                        class="gc-toggle-btn gc-toggle-gps"
+                                        :class="comp.marcacion_asistencia ? 'is-gps-on' : 'is-off'"
+                                        title="Marcación GPS con ubicación">
+                                        <i class="fas fa-location-dot" style="font-size:9px;margin-right:3px;"></i>
+                                        GPS {{ comp.marcacion_asistencia ? 'ON' : 'OFF' }}
                                     </button>
                                 </td>
                             </tr>
@@ -136,7 +151,7 @@ const {
     dbCompanies, odooCompanies,
     isSyncing: isSyncingCompanies,
     fetchDbCompanies, fetchOdooRaw,
-    syncCompanies, toggleCompanyStatus
+    syncCompanies, toggleCompanyStatus, toggleMarcacionAsistencia
 } = useCompanies();
 
 const syncProgress = ref(0);
@@ -179,6 +194,16 @@ const handleToggle = async (id, currentStatus) => {
         await fetchDbCompanies();
     } catch (e) {
         emit('error', 'Error al cambiar estado');
+    }
+};
+
+const handleToggleMarcacion = async (id, currentStatus) => {
+    try {
+        await toggleMarcacionAsistencia(id, currentStatus);
+        emit('success', `Marcación GPS ${!currentStatus ? 'habilitada' : 'deshabilitada'}`);
+        await fetchDbCompanies();
+    } catch (e) {
+        emit('error', 'Error al cambiar marcación GPS');
     }
 };
 
@@ -611,6 +636,27 @@ onMounted(() => Promise.all([fetchDbCompanies(), fetchOdooRaw()]));
 .gc-toggle-btn.is-off:hover {
     background: var(--bg-hover);
     color: var(--text);
+}
+
+.gc-toggle-btn.is-gps-on {
+    background: #10b981;
+    border-color: #10b981;
+    color: #fff;
+}
+
+.gc-toggle-btn.is-gps-on:hover {
+    background: #059669;
+    border-color: #059669;
+}
+
+.gc-gps-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #10b981;
 }
 
 /* EMPTY */
