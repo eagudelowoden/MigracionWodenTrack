@@ -621,11 +621,13 @@ const verEnMapa = (latitud, longitud) => {
 const marcacionesEcuadorAgrupadas = computed(() => {
   const mapa = new Map();
   for (const m of marcacionesEcuador.value) {
-    const key = `${m.cedula}__${m.fecha}`;
+    // Usar id_odoo como clave principal; si no hay, caer en nombre normalizado
+    const empKey = m.id_odoo || m.nombre?.toLowerCase().trim() || m.cedula || 'unknown';
+    const key = `${empKey}__${m.fecha}`;
     if (!mapa.has(key)) {
       mapa.set(key, {
-        cedula: m.cedula,
-        nombre: m.nombre,
+        cedula: m.cedula || '',
+        nombre: m.nombre || '',
         fecha: m.fecha,
         company: m.company,
         entrada: null,
@@ -633,6 +635,9 @@ const marcacionesEcuadorAgrupadas = computed(() => {
       });
     }
     const fila = mapa.get(key);
+    // Si este registro tiene más datos que el que ya guardamos, actualizar
+    if (m.cedula && !fila.cedula) fila.cedula = m.cedula;
+    if (m.nombre && !fila.nombre) fila.nombre = m.nombre;
     // Guarda el de hora más temprana para entrada y más tardía para salida
     if (m.tipo === 'entrada') {
       if (!fila.entrada || m.hora < fila.entrada.hora) fila.entrada = m;
