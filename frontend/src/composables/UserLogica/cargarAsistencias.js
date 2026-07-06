@@ -232,20 +232,50 @@ export function useCargarAsistencias() {
   });
 
   const reporteParaPantalla = computed(() => {
-    const vistos = new Set();
-    return filteredReport.value.filter((item) => {
-      if (item.tipo !== "LOG CRUDO") return true;
+    // LOG CRUDO: fusionar todos los toques del mismo empleado+día en una sola fila.
+    // Primer toque = entrada, último toque = salida (si hay más de uno).
+    // Se usa _bestExit para rastrear el timestamp más tardío independientemente
+    // de cuándo se actualice check_in (evita que sobreescribir check_in rompa la comparación).
+    const logCrudoMap = new Map();
+
+    for (const item of filteredReport.value) {
+      if (item.tipo !== "LOG CRUDO") continue;
       const key = `${item.empleado}_${item.fecha}`;
-      if (vistos.has(key)) return false;
-      vistos.add(key);
-      return true;
+      const itemTs = item.check_out || item.check_in;
+      if (!logCrudoMap.has(key)) {
+        logCrudoMap.set(key, { ...item, _bestExit: itemTs });
+      } else {
+        const fila = logCrudoMap.get(key);
+        // Entrada = toque más temprano
+        if (item.check_in && fila.check_in && item.check_in < fila.check_in) {
+          fila.check_in = item.check_in;
+        }
+        // Salida = timestamp más tardío (independiente de check_in)
+        if (itemTs && (!fila._bestExit || itemTs > fila._bestExit)) {
+          fila._bestExit = itemTs;
+        }
+      }
+    }
+
+    // Aplicar _bestExit como check_out solo si es distinto de check_in
+    const logCrudoFinal = [...logCrudoMap.values()].map((fila) => {
+      if (fila._bestExit && fila._bestExit !== fila.check_in) {
+        fila.check_out = fila._bestExit;
+        fila.c_salida = "";
+        fila.estado = "Finalizado";
+      }
+      delete fila._bestExit;
+      return fila;
     });
+
+    const noLogCrudo = filteredReport.value.filter((i) => i.tipo !== "LOG CRUDO");
+    return [...noLogCrudo, ...logCrudoFinal];
   });
 
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
 
   const downloadReport = async () => {
-    const datos = [...filteredReport.value].sort((a, b) =>
+    const datos = [...reporteParaPantalla.value].sort((a, b) =>
       (b.fecha || "").localeCompare(a.fecha || "") ||
       (b.check_in || "").localeCompare(a.check_in || "")
     );
