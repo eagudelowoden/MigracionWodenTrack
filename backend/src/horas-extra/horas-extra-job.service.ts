@@ -136,6 +136,32 @@ export class HorasExtraJobService {
     return this.jobRepo.findOne({ where: { id } });
   }
 
+  /**
+   * Cancela un job que aún no terminó (pendiente o procesando).
+   * Para 'procesando' el worker ya está corriendo (proceso detached), no se puede
+   * matar, pero al finalizar su resultado queda igualmente guardado. La cancelación
+   * es útil para jobs PENDIENTES o para registrar que el usuario quiso detenerlo.
+   */
+  async cancelarJob(id: number): Promise<{ ok: boolean; mensaje: string }> {
+    const job = await this.jobRepo.findOne({ where: { id } });
+    if (!job) return { ok: false, mensaje: `Job #${id} no encontrado` };
+    if (['completado', 'error', 'cancelado'].includes(job.estado)) {
+      return { ok: false, mensaje: `Job #${id} ya está en estado "${job.estado}"` };
+    }
+    await this.jobRepo.update(id, {
+      estado: 'cancelado',
+      finished_at: new Date(),
+      resultado_resumen: 'Cancelado manualmente',
+    });
+    this.logger.log(`Job #${id} cancelado manualmente.`);
+    return { ok: true, mensaje: `Job #${id} cancelado` };
+  }
+
+  /** Cuántos jobs están actualmente en estado 'procesando' (para evitar lanzar workers duplicados). */
+  async contarProcesando(): Promise<number> {
+    return this.jobRepo.count({ where: { estado: 'procesando' } });
+  }
+
   /** Últimos N jobs (para una vista de monitoreo de la cola). */
   async listarRecientes(limite = 50): Promise<HoraExtraJob[]> {
     return this.jobRepo.find({

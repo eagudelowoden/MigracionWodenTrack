@@ -638,20 +638,20 @@ export class HorasExtraService {
     const startDay = dto.soloHoy ? getFechaColombiaHoy() : dto.startDate;
     const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
 
-    // Borra el rango en calculados_extras (idempotente: recalcular reemplaza)
+    // Borra el rango COMPLETO antes de insertar (sin filtro de empresa).
+    // Filtrar por empresa en el DELETE causaba que workers concurrentes con distinta
+    // empresa se pisaran dejando duplicados: cada uno borraba solo "su" empresa pero
+    // los otros seguían insertando. Borrar TODO el rango y re-insertar es atómico.
     if (startDay && endDay) {
-      const qb = this.calculadoRepo
+      await this.calculadoRepo
         .createQueryBuilder()
         .delete()
         .from(CalculadoExtra)
         .where('fecha >= :start AND fecha <= :end', {
           start: startDay,
           end: endDay,
-        });
-      if (dto.company && dto.company !== 'Todas' && dto.company !== '') {
-        qb.andWhere('company = :company', { company: dto.company });
-      }
-      await qb.execute();
+        })
+        .execute();
     }
 
     // Inserta el snapshot en bloques
@@ -813,7 +813,7 @@ export class HorasExtraService {
         'hr.attendance',
         'read_group',
         [domAtt, ['employee_id'], ['employee_id']],
-        { lazy: false },
+        { lazy: false, limit: 0 },
         uid,
       );
       for (const g of gAtt) if (g.employee_id?.[0]) ids.add(g.employee_id[0]);
@@ -822,7 +822,7 @@ export class HorasExtraService {
         'attendance.log',
         'read_group',
         [domLog, ['employee_id'], ['employee_id']],
-        { lazy: false },
+        { lazy: false, limit: 0 },
         uid,
       );
       for (const g of gLog) if (g.employee_id?.[0]) ids.add(g.employee_id[0]);
@@ -1038,45 +1038,58 @@ export class HorasExtraService {
           continue;
 
         if (esNocturnoTurno(turno)) {
-          // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida ≈ hora_fin en `fecha+1`
+          // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida en `fecha+1`
           const inicioMins = Number(turno.hora_inicio) * 60;
-          const finMins    = Number(turno.hora_fin)    * 60;
           const siguiente  = addUnDia(fecha);
 
           const entrada = punches.find(p =>
             p.localTime.split(' ')[0] === fecha &&
             Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
           );
-          const salida = punches.find(p =>
-            p.localTime.split(' ')[0] === siguiente &&
-            Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
-          );
 
-          if (!entrada) continue; // Sin entrada biométrica → ignorar este día
+          if (entrada) {
+            // Salida: primer punch del día siguiente con gap entre 3h y 18h desde
+            // la entrada. No se busca "cerca del fin_turno" porque las horas extra
+            // extienden la salida real más allá del horario programado.
+            // Regla: gap ≥ 3h (turno mínimo real) y ≤ 18h (evita pairing con
+            // el turno nocturno del día siguiente ~22h después).
+            const entradaMs = new Date(entrada.rawTime).getTime();
+            const salida = punches.find(p => {
+              if (p.localTime.split(' ')[0] !== siguiente) return false;
+              const gapMs = new Date(p.rawTime).getTime() - entradaMs;
+              return gapMs >= 3 * 3_600_000 && gapMs <= 18 * 3_600_000;
+            });
 
-          const keySig = `${empId}_${siguiente}`;
-          // Marcar el día siguiente como "consumido" como salida de este turno y
-          // recordar la marcación exacta para no reusarla como entrada del día sig.
-          if (salida && !grupos[keySig]) {
-            processedSalidaKeys.add(keySig);
-            consumedSalidaPunches.add(salida.rawTime);
+            const keySig = `${empId}_${siguiente}`;
+            // Marcar el día siguiente como "consumido" como salida de este turno y
+            // recordar la marcación exacta para no reusarla como entrada del día sig.
+            if (salida && !grupos[keySig]) {
+              processedSalidaKeys.add(keySig);
+              consumedSalidaPunches.add(salida.rawTime);
+            }
+
+            const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
+            const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+
+            grupos[key] = {
+              empId, nombre, dept, fecha,
+              records: [{
+                employee_id: [empId, nombre],
+                check_in:  entrada.rawTime,
+                check_out: salida?.rawTime ?? null,
+                department_id: null,
+              }],
+            };
+            continue; // Procesado como nocturno: no caer en la rama diurna.
           }
+          // No encontró punch en la ventana nocturna: el empleado realmente trabajó
+          // en horario diferente a su malla. Caer a la rama diurna para no perder
+          // esas marcaciones (p. ej. turno 22:00-06:00 pero punches a las 05:xx y 15:xx).
+        }
 
-          const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
-          const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
-
-          grupos[key] = {
-            empId, nombre, dept, fecha,
-            records: [{
-              employee_id: [empId, nombre],
-              check_in:  entrada.rawTime,
-              check_out: salida?.rawTime ?? null,
-              department_id: null,
-            }],
-          };
-        } else {
-          // Turno diurno o sin turno: tomar las marcaciones del día aún no
-          // consumidas como salida de un turno nocturno anterior.
+        {
+          // Turno diurno, sin turno asignado, o nocturno sin entrada en ventana:
+          // tomar las marcaciones del día aún no consumidas como salida de turno anterior.
           const dayPunches = dayPunchesLibres;
           if (!dayPunches.length) continue;
 

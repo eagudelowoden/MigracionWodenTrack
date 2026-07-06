@@ -72,7 +72,7 @@ export function useCargarAsistencias() {
   const buildUrl = (chunkStart, chunkEnd, stream = false) => {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const permisos = session.permisos || session.permissions || {};
-    const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true;
+    const tieneFiltroDepto = permisos["admin.filtro_departamento"] === true || permisos["admin.ver_todo"] === true;
 
     const url = new URL(`${API_BASE_URL}/reporte-novedades${stream ? '/stream' : ''}`);
     url.searchParams.append("hoy", filterHoy.value.toString());

@@ -80,7 +80,7 @@ export class HorasExtraController {
       { tipo: 'manual', solicitadoPor: dto.calculado_por },
     );
     // Lanza el worker bajo demanda (procesa y se cierra solo)
-    this.cronService.asegurarWorker();
+    await this.cronService.asegurarWorker();
     return { jobId: job.id, estado: job.estado };
   }
 
@@ -104,6 +104,12 @@ export class HorasExtraController {
   @Get('jobs')
   listarJobs() {
     return this.jobService.listarRecientes();
+  }
+
+  // Cancela un job pendiente o procesando
+  @Patch('jobs/:id/cancelar')
+  cancelarJob(@Param('id') id: string) {
+    return this.jobService.cancelarJob(+id);
   }
 
   // ── CRON (administración desde Super Admin) ──────────────────────────────────

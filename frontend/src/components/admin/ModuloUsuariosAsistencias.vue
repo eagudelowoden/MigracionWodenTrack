@@ -44,7 +44,7 @@
         </div>
 
         <!-- Departamento -->
-        <template v-if="hasPerm('admin.filtro_departamento')">
+        <template v-if="hasPerm('admin.filtro_departamento') || hasPerm('admin.ver_todo')">
           <div class="relative">
             <select v-model="selectedDepartment"
               class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-36 transition-all"
@@ -329,7 +329,7 @@ const hasPerm = (permiso) => {
   return permisos[permiso] === true;
 };
 
-const esAdmin = computed(() => hasPerm('admin.filtro_departamento'));
+const esAdmin = computed(() => hasPerm('admin.filtro_departamento') || hasPerm('admin.ver_todo'));
 const miDepto = session.department;
 const idLogueado = session.id_odoo;
 const userProfile = ref(null);
@@ -354,7 +354,9 @@ onMounted(async () => {
   }
 
   // 2. Cargar perfil
-  if (!session.isSuperAdmin) {
+  // admin.ver_todo: ve todos los departamentos de su empresa sin restricción de área/segmento
+  const tieneVerTodo = session.permisos?.['admin.ver_todo'] === true;
+  if (!session.isSuperAdmin && !tieneVerTodo) {
     try {
       const resp = await apiFetch(`${baseUrl}/perfil-completo/${idLogueado}`);
       if (resp.ok) {

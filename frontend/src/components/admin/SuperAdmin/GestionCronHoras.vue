@@ -182,10 +182,12 @@
             <tr class="text-left" :class="isDark ? 'text-slate-400 bg-[#0B0F19]' : 'text-slate-500 bg-slate-50'">
               <th class="px-4 py-2 font-medium">#</th>
               <th class="px-4 py-2 font-medium">Tipo</th>
+              <th class="px-4 py-2 font-medium">Empresa</th>
               <th class="px-4 py-2 font-medium">Rango</th>
               <th class="px-4 py-2 font-medium">Estado</th>
               <th class="px-4 py-2 font-medium">Resultado</th>
               <th class="px-4 py-2 font-medium">Creado</th>
+              <th class="px-4 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -193,6 +195,7 @@
               :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
               <td class="px-4 py-2" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ j.id }}</td>
               <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ j.tipo }}</td>
+              <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ j.company || 'Todas' }}</td>
               <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                 {{ j.rango_desde || '—' }} → {{ j.rango_hasta || '—' }}
               </td>
@@ -204,11 +207,21 @@
               <td class="px-4 py-2" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                 {{ j.resultado_resumen || j.error_mensaje || '—' }}
               </td>
-              <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFecha(j.created_at)
-                }}</td>
+              <td class="px-4 py-2" :class="isDark ? 'text-slate-400' : 'text-slate-500'">{{ formatFecha(j.created_at) }}</td>
+              <td class="px-4 py-2">
+                <button
+                  v-if="j.estado === 'pendiente' || j.estado === 'procesando'"
+                  @click="cancelarJob(j.id)"
+                  :disabled="cancelando === j.id"
+                  class="px-2 py-0.5 rounded text-[10px] font-semibold transition-all disabled:opacity-40 border border-red-400/40 text-red-400 hover:bg-red-500/10"
+                  title="Cancelar este job"
+                >
+                  <i class="fas" :class="cancelando === j.id ? 'fa-spinner fa-spin' : 'fa-xmark'"></i>
+                </button>
+              </td>
             </tr>
             <tr v-if="!jobs.length">
-              <td colspan="6" class="px-4 py-8 text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <td colspan="8" class="px-4 py-8 text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                 Sin Ejecuciones todavía
               </td>
             </tr>
@@ -224,7 +237,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
 defineProps({ isDark: { type: Boolean, default: true } });
@@ -235,10 +248,12 @@ const jobs = ref([]);
 const ejecutando = ref(false);
 const guardando = ref(false);
 const limpiando = ref(false);
+const cancelando = ref(null);
 const rangoDesde = ref('');
 const rangoHasta = ref('');
 const empresas = ref([]);
 const empresaSel = ref('Todas');
+let autoRefreshTimer = null;
 
 // Muestra a qué fechas equivale "Días a recalcular": desde (hoy - N) hasta ayer.
 const rangoCron = computed(() => {
@@ -278,6 +293,7 @@ const estadoClass = (e) => {
     procesando: 'bg-blue-500/15 text-blue-500',
     pendiente: 'bg-amber-500/15 text-amber-500',
     error: 'bg-red-500/15 text-red-500',
+    cancelado: 'bg-slate-500/15 text-slate-400',
   };
   return map[e] || 'bg-slate-500/15 text-slate-400';
 };
@@ -294,8 +310,31 @@ async function cargarJobs() {
   try {
     const { data } = await axios.get(`${API}/horas-extra/jobs`);
     jobs.value = Array.isArray(data) ? data : [];
+    // Auto-refresh cada 8s mientras haya jobs activos
+    const hayActivos = jobs.value.some((j) => j.estado === 'pendiente' || j.estado === 'procesando');
+    clearTimeout(autoRefreshTimer);
+    if (hayActivos) {
+      autoRefreshTimer = setTimeout(cargarJobs, 8000);
+    }
   } finally {
     cargandoJobs.value = false;
+  }
+}
+
+async function cancelarJob(id) {
+  cancelando.value = id;
+  try {
+    const { data } = await axios.patch(`${API}/horas-extra/jobs/${id}/cancelar`);
+    if (data?.ok) {
+      flash(`Job #${id} cancelado`);
+      await cargarJobs();
+    } else {
+      flash(data?.mensaje || 'No se pudo cancelar', true);
+    }
+  } catch {
+    flash('Error al cancelar el job', true);
+  } finally {
+    cancelando.value = null;
   }
 }
 
@@ -374,5 +413,9 @@ async function ejecutarAhora() {
 
 onMounted(async () => {
   await Promise.all([cargarConfig(), cargarJobs(), cargarEmpresas()]);
+});
+
+onUnmounted(() => {
+  clearTimeout(autoRefreshTimer);
 });
 </script>

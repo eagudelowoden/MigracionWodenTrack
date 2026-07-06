@@ -20,8 +20,6 @@ const CRON_JOB_NAME = 'calculo-horas-extra';
 @Injectable()
 export class HorasExtraCronService implements OnModuleInit {
   private readonly logger = new Logger(HorasExtraCronService.name);
-  // Evita lanzar varios workers a la vez. Se libera cuando el worker se cierra.
-  private workerCorriendo = false;
 
   constructor(
     @InjectRepository(CalculoExtraCronConfig)
@@ -99,24 +97,28 @@ export class HorasExtraCronService implements OnModuleInit {
       `Encolado job #${job.id} (${origen}) para ${startDate} → ${endDate} | empresa: ${company}.`,
     );
     // Lanza el worker bajo demanda (procesa la cola y se cierra solo)
-    this.asegurarWorker();
+    await this.asegurarWorker();
     return job;
   }
 
   /**
    * Lanza el worker como PROCESO APARTE en modo "once": procesa la cola hasta
-   * vaciarla y se cierra. Así no hay que dejarlo prendido todo el día. Si ya hay
-   * uno corriendo, no lanza otro (la cola se procesa de todas formas).
+   * vaciarla y se cierra. Verifica en BD (no en un flag en memoria) si ya hay jobs
+   * procesando activamente, para no lanzar workers concurrentes con el mismo rango.
    */
-  asegurarWorker() {
+  async asegurarWorker(): Promise<void> {
     // Si hay un worker DEMONIO siempre vivo (ej. PM2), la API no lanza workers:
     // el demonio toma los jobs de la cola. Se activa con HX_NO_SPAWN=1.
     if (process.env.HX_NO_SPAWN === '1') {
       this.logger.log('HX_NO_SPAWN activo: el job lo tomará el worker demonio.');
       return;
     }
-    if (this.workerCorriendo) {
-      this.logger.log('Worker ya en ejecución; el job se procesará en esa corrida.');
+    // Verificar en BD si ya hay jobs procesando. Un flag en memoria no sirve porque
+    // el worker es un proceso detached y el flag se libera antes de que termine
+    // (el job tarda 200s pero el flag se liberaba a los 15s → se lanzaban workers en paralelo).
+    const procesando = await this.jobs.contarProcesando();
+    if (procesando > 0) {
+      this.logger.log(`${procesando} job(s) en procesando; no se lanza otro worker.`);
       return;
     }
     // dist/horas-extra/horas-extra-cron.service.js → dist/worker.js
@@ -128,7 +130,6 @@ export class HorasExtraCronService implements OnModuleInit {
       return;
     }
 
-    this.workerCorriendo = true;
     // DETACHED: el worker corre como proceso TOTALMENTE independiente, no atado
     // a la API. Así, lanzarlo no reinicia ni afecta al servicio (el problema que
     // veías). unref() permite que la API no espere por él. Si revienta, muere solo.
@@ -139,17 +140,10 @@ export class HorasExtraCronService implements OnModuleInit {
       windowsHide: true,
     });
     hijo.on('error', (err) => {
-      this.workerCorriendo = false;
       this.logger.error(`No se pudo lanzar el worker: ${err.message}`);
     });
     this.logger.log(`Worker lanzado (pid ${hijo.pid}) en modo once (independiente).`);
     hijo.unref(); // desligar del proceso de la API
-
-    // No podemos saber cuándo termina (está desligado): liberamos el flag tras un
-    // margen para permitir relanzar en una próxima necesidad.
-    setTimeout(() => {
-      this.workerCorriendo = false;
-    }, 15000);
   }
 
   /**
@@ -182,7 +176,7 @@ export class HorasExtraCronService implements OnModuleInit {
     this.logger.log(
       `Encolado job manual #${job.id} para ${startDate} → ${endDate} | empresa: ${company}.`,
     );
-    this.asegurarWorker();
+    await this.asegurarWorker();
     return job;
   }
 
