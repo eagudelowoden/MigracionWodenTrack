@@ -258,11 +258,26 @@ export function useCargarAsistencias() {
     }
 
     // Aplicar _bestExit como check_out solo si es distinto de check_in
+    // y el span es razonable (< 14h). Si el span supera 14h, el primer toque
+    // probablemente es la salida de un turno nocturno anterior y el último es
+    // la entrada de un turno nuevo → dejar solo el último como entrada sin salida
+    // (misma guarda que usa Gestión de Horas para sin-malla).
+    const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
     const logCrudoFinal = [...logCrudoMap.values()].map((fila) => {
       if (fila._bestExit && fila._bestExit !== fila.check_in) {
-        fila.check_out = fila._bestExit;
-        fila.c_salida = "";
-        fila.estado = "Finalizado";
+        const spanMs = new Date(fila._bestExit.replace(" ", "T")).getTime()
+          - new Date(fila.check_in.replace(" ", "T")).getTime();
+        if (spanMs > MAX_TURNO_MS) {
+          // Span > 14h: el primer toque es de otro turno, usar solo el último como entrada
+          fila.check_in = fila._bestExit;
+          fila.check_out = null;
+          fila.c_salida = "SIN SALIDA";
+          fila.estado = "En curso";
+        } else {
+          fila.check_out = fila._bestExit;
+          fila.c_salida = "";
+          fila.estado = "Finalizado";
+        }
       }
       delete fila._bestExit;
       return fila;
