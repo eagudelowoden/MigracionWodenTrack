@@ -232,20 +232,47 @@ export function useCargarAsistencias() {
   });
 
   const reporteParaPantalla = computed(() => {
+    // 1. Deduplicar LOG CRUDO (lógica original)
     const vistos = new Set();
-    return filteredReport.value.filter((item) => {
+    const base = filteredReport.value.filter((item) => {
       if (item.tipo !== "LOG CRUDO") return true;
       const key = `${item.empleado}_${item.fecha}`;
       if (vistos.has(key)) return false;
       vistos.add(key);
       return true;
     });
+
+    // 2. Agrupar por empleado+fecha: múltiples toques biométricos sin check_out
+    //    colapsan en una fila → primer toque = entrada, último = salida
+    const mapa = new Map();
+    for (const item of base) {
+      const key = `${item.cc || item.empleado}__${item.fecha}`;
+      if (!mapa.has(key)) {
+        mapa.set(key, { ...item });
+      } else {
+        const fila = mapa.get(key);
+        // Entrada = toque más temprano
+        if (item.check_in && item.check_in !== "N/A" &&
+            (!fila.check_in || fila.check_in === "N/A" || item.check_in < fila.check_in)) {
+          fila.check_in = item.check_in;
+          fila.c_entrada = item.c_entrada;
+        }
+        // Salida = timestamp más tardío (check_out real, si no el check_in del último toque)
+        const itemMax = (item.check_out && item.check_out !== "N/A") ? item.check_out : item.check_in;
+        const filaMax = (fila.check_out && fila.check_out !== "N/A") ? fila.check_out : fila.check_in;
+        if (itemMax && itemMax > (filaMax || "")) {
+          fila.check_out = itemMax;
+          fila.c_salida = (item.check_out && item.check_out !== "N/A") ? item.c_salida : "";
+        }
+      }
+    }
+    return [...mapa.values()];
   });
 
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
 
   const downloadReport = async () => {
-    const datos = [...filteredReport.value].sort((a, b) =>
+    const datos = [...reporteParaPantalla.value].sort((a, b) =>
       (b.fecha || "").localeCompare(a.fecha || "") ||
       (b.check_in || "").localeCompare(a.check_in || "")
     );
