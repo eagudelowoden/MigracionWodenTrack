@@ -1037,6 +1037,37 @@ export class HorasExtraService {
         )
           continue;
 
+        // ── Regla "primera marcación = entrada, última = salida" ─────────────────
+        // Si hay ≥ 2 marcaciones libres en el día y el span entre primera y última
+        // es MENOR a 14h, todo ocurrió dentro del mismo turno (aunque la malla
+        // diga nocturno): primera = entrada, última = salida.
+        // Si hay 1 sola marcación libre o el span ≥ 14h, el turno cruza medianoche
+        // y se aplica la lógica nocturna para buscar salida en `fecha+1`.
+        if (dayPunchesLibres.length >= 2) {
+          const primeroLibre = dayPunchesLibres[0];
+          const ultimoLibre  = dayPunchesLibres[dayPunchesLibres.length - 1];
+          const spanLibreMs  = new Date(ultimoLibre.rawTime).getTime()
+                             - new Date(primeroLibre.rawTime).getTime();
+
+          if (spanLibreMs < MAX_TURNO_MS) {
+            // Turno completo dentro del mismo día
+            const nombre = primeroLibre.log.employee_id?.[1] || 'Desconocido';
+            const dept   = primeroLibre.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+            grupos[key] = {
+              empId, nombre, dept, fecha,
+              records: [{
+                employee_id: [empId, nombre],
+                check_in:  primeroLibre.rawTime,
+                check_out: spanLibreMs >= 60_000 ? ultimoLibre.rawTime : null,
+                department_id: null,
+              }],
+            };
+            continue;
+          }
+          // span ≥ 14h: el primer punch pertenece al turno anterior y el último es
+          // la entrada del turno nocturno propio → continúa con la lógica nocturna.
+        }
+
         if (esNocturnoTurno(turno)) {
           // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida en `fecha+1`
           const inicioMins = Number(turno.hora_inicio) * 60;
@@ -1088,8 +1119,7 @@ export class HorasExtraService {
         }
 
         {
-          // Turno diurno, sin turno asignado, o nocturno sin entrada en ventana:
-          // tomar las marcaciones del día aún no consumidas como salida de turno anterior.
+          // Turno diurno, sin turno asignado (FEST/libre), o nocturno sin entrada en ventana.
           const dayPunches = dayPunchesLibres;
           if (!dayPunches.length) continue;
 
@@ -1097,39 +1127,45 @@ export class HorasExtraService {
           const ultimoDay = dayPunches[dayPunches.length - 1];
           const spanMs = new Date(ultimoDay.rawTime).getTime() - new Date(primero.rawTime).getTime();
 
-          // VALIDACIÓN: si entre la primera y la última marcación hay más de 14h,
-          // no pueden ser entrada/salida del MISMO turno (p. ej. 05:00 madrugada +
-          // 22:00 noche). La primera es salida de un turno anterior y la última es
-          // la entrada de un turno nocturno nuevo → tomamos la última como entrada
-          // y dejamos que el fallback reconstruya su salida en la madrugada siguiente.
-          if (spanMs > MAX_TURNO_MS) {
-            const nom = ultimoDay.log.employee_id?.[1] || 'Desconocido';
-            grupos[key] = {
-              empId,
-              nombre: nom,
-              dept: ultimoDay.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO',
-              fecha,
-              records: [{
-                employee_id: [empId, nom],
-                check_in:  ultimoDay.rawTime,
-                check_out: null,
-                department_id: null,
-              }],
-            };
-            continue;
+          // span > 14h → primera = salida del turno anterior, última = entrada del turno nocturno nuevo.
+          const entrada = spanMs > MAX_TURNO_MS ? ultimoDay : primero;
+
+          // Buscar salida el día siguiente con gap 3h-18h desde la entrada.
+          // Aplica a días FEST/libre sin malla (no llegan al bloque nocturno) y a
+          // nocturno sin entrada en ventana que cayó aquí.
+          const siguiente  = addUnDia(fecha);
+          const entradaMs  = new Date(entrada.rawTime).getTime();
+          const salidaSig  = punches.find(p => {
+            if (p.localTime.split(' ')[0] !== siguiente) return false;
+            if (consumedSalidaPunches.has(p.rawTime)) return false;
+            const gapMs = new Date(p.rawTime).getTime() - entradaMs;
+            return gapMs >= 3 * 3_600_000 && gapMs <= 18 * 3_600_000;
+          });
+
+          const keySig = `${empId}_${siguiente}`;
+          if (salidaSig && !grupos[keySig]) {
+            processedSalidaKeys.add(keySig);
+            consumedSalidaPunches.add(salidaSig.rawTime);
           }
 
-          const haySalida = dayPunches.length > 1 && spanMs >= 60_000;
+          // check_out: salida del día siguiente (turno cruza medianoche) o, si span ≤ 14h
+          // y hay ≥2 marcaciones en el mismo día, la última del día.
+          const checkOut: string | null =
+            salidaSig
+              ? salidaSig.rawTime
+              : (spanMs <= MAX_TURNO_MS && dayPunches.length > 1 && spanMs >= 60_000
+                  ? ultimoDay.rawTime
+                  : null);
 
-          const nombre = primero.log.employee_id?.[1] || 'Desconocido';
-          const dept   = primero.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+          const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
+          const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
 
           grupos[key] = {
             empId, nombre, dept, fecha,
             records: [{
               employee_id: [empId, nombre],
-              check_in:  primero.rawTime,
-              check_out: haySalida ? ultimoDay.rawTime : null,
+              check_in:  entrada.rawTime,
+              check_out: checkOut,
               department_id: null,
             }],
           };
