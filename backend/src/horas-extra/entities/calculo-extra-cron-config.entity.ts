@@ -39,4 +39,21 @@ export class CalculoExtraCronConfig {
    */
   @Column({ type: 'int', default: 3 })
   dias_ventana: number;
+
+  /**
+   * Checkpoint (ISO UTC) de la última corrida DELTA exitosa: la próxima
+   * corrida solo pide a Odoo registros con write_date >= este valor, en vez
+   * de recalcular siempre la ventana completa. Null = próxima corrida completa.
+   */
+  @Column({ type: 'nvarchar', length: 30, nullable: true })
+  ultima_corrida_utc: string | null;
+
+  /**
+   * Fecha (YYYY-MM-DD, hora Colombia) de la última corrida COMPLETA (sin
+   * delta). El cron fuerza al menos una corrida completa por día para
+   * autocorregir lo que el delta no puede detectar (registros borrados en
+   * Odoo, o cuya fecha se editó y quedó fuera de la ventana de asentamiento).
+   */
+  @Column({ type: 'nvarchar', length: 10, nullable: true })
+  ultima_corrida_completa_fecha: string | null;
 }

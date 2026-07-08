@@ -77,12 +77,37 @@ export class HorasExtraCronService implements OnModuleInit {
 
   // ── Ejecución ──────────────────────────────────────────────────────────────
 
+  // Margen de seguridad restado al checkpoint delta, para tolerar desfase de
+  // reloj entre este servidor y Odoo, y la latencia entre "se escribió el
+  // registro" y "se confirmó el commit" en Odoo.
+  private static readonly MARGEN_DELTA_MIN = 15;
+
   /** Encola el cálculo de la ventana de asentamiento (lo procesa el worker). */
   async encolarRango(origen: string) {
     const config = await this.obtenerConfig();
     const startDate = this.fechaColombia(-config.dias_ventana);
     const endDate = this.fechaColombia(-1); // ayer (último día cerrado)
     const company = config.company || 'Todas'; // la empresa elegida en la config
+
+    // Al menos 1 vez al día se fuerza una corrida COMPLETA (sin delta): el
+    // filtro write_date no puede detectar registros BORRADOS en Odoo, ni
+    // marcaciones cuya fecha se editó y quedó fuera de la ventana — la
+    // corrida completa se autocorrige sola porque recalcula todo el rango.
+    const hoy = this.fechaColombia(0);
+    const esCorridaCompleta = config.ultima_corrida_completa_fecha !== hoy;
+    const writeDateDesde = esCorridaCompleta
+      ? undefined
+      : config.ultima_corrida_utc ?? undefined;
+
+    // Checkpoint candidato para la PRÓXIMA corrida delta. Se calcula ANTES de
+    // que el worker consulte Odoo (aquí, al encolar) y con margen de
+    // seguridad, para no perder registros escritos mientras el job corre.
+    // Solo se confirma (se guarda en config) si el job termina exitosamente
+    // — ver `confirmarCorridaExitosa`, invocado desde worker.ts.
+    const checkpointCandidato = new Date(
+      Date.now() - HorasExtraCronService.MARGEN_DELTA_MIN * 60_000,
+    ).toISOString();
+
     const job = await this.jobs.encolar(
       {
         startDate,
@@ -90,15 +115,41 @@ export class HorasExtraCronService implements OnModuleInit {
         company,
         calculado_por: origen,
         guardar: true,
+        writeDateDesde,
+        _checkpointCandidato: checkpointCandidato,
+        _esCorridaCompleta: esCorridaCompleta,
       },
       { tipo: 'cron', solicitadoPor: origen },
     );
     this.logger.log(
-      `Encolado job #${job.id} (${origen}) para ${startDate} → ${endDate} | empresa: ${company}.`,
+      `Encolado job #${job.id} (${origen}) para ${startDate} → ${endDate} | empresa: ${company}` +
+        (esCorridaCompleta
+          ? ' | corrida COMPLETA (forzada 1x/día).'
+          : ` | delta desde ${writeDateDesde}.`),
     );
     // Lanza el worker bajo demanda (procesa la cola y se cierra solo)
     await this.asegurarWorker();
     return job;
+  }
+
+  /**
+   * Confirma que una corrida CRON delta terminó bien: guarda el checkpoint
+   * `write_date` para la próxima corrida y, si esta corrida fue "completa",
+   * registra la fecha para no forzar otra el mismo día. Si el job falló, NO
+   * se llama esto — la próxima corrida delta simplemente reintenta desde el
+   * mismo checkpoint anterior (reprocesa un poco de más, pero no pierde nada).
+   */
+  async confirmarCorridaExitosa(params: {
+    _checkpointCandidato?: string;
+    _esCorridaCompleta?: boolean;
+  }): Promise<void> {
+    if (!params._checkpointCandidato) return;
+    const config = await this.obtenerConfig();
+    config.ultima_corrida_utc = params._checkpointCandidato;
+    if (params._esCorridaCompleta) {
+      config.ultima_corrida_completa_fecha = this.fechaColombia(0);
+    }
+    await this.configRepo.save(config);
   }
 
   /**

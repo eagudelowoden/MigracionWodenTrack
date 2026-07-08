@@ -20,6 +20,7 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HorasExtraJobService } from './horas-extra/horas-extra-job.service';
 import { HorasExtraService, CalcularExtrasDto } from './horas-extra/horas-extra.service';
+import { HorasExtraCronService } from './horas-extra/horas-extra-cron.service';
 
 const POLL_MS = 5000; // cada cuánto revisa la cola cuando está vacía (modo demonio)
 // Modo "once": procesa la cola hasta vaciarla y se cierra. Lo usa el cron, que
@@ -40,6 +41,7 @@ async function bootstrap() {
 
   const jobs = app.get(HorasExtraJobService);
   const horas = app.get(HorasExtraService);
+  const cron = app.get(HorasExtraCronService);
 
   // Devolver a la cola jobs que quedaron 'procesando' por una caída previa
   const recuperados = await jobs.recuperarColgados(30);
@@ -93,6 +95,12 @@ async function bootstrap() {
         job.id,
         `${guardados} registros calculados en ${seg}s`,
       );
+      // Solo tras un ÉXITO confirmado: si el job hubiera fallado, no se debe
+      // avanzar el checkpoint delta (la próxima corrida debe reintentar desde
+      // el mismo punto, no saltarse lo que este job no llegó a guardar).
+      if (job.tipo === 'cron') {
+        await cron.confirmarCorridaExitosa(params);
+      }
       logger.log(`Job #${job.id} completado (${guardados} registros, ${seg}s).`);
     } catch (e: any) {
       logger.error(`Job #${job.id} falló: ${e?.message}`);

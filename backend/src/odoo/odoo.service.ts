@@ -182,6 +182,48 @@ export class OdooService {
   }
 
   /**
+   * search_read paginado que NUNCA materializa el resultado completo: cada
+   * página de `pageSize` se entrega a `onPage` y se descarta (no se acumula
+   * en un array interno). Úsalo cuando el llamador va a agregar/indexar cada
+   * página en su propia estructura (evita mantener dos copias del dataset
+   * completo en memoria a la vez). Devuelve el total de registros procesados.
+   */
+  public async searchReadAllStream<T>(
+    model: string,
+    domain: any[],
+    fields: string[],
+    uid: number,
+    onPage: (chunk: T[]) => void | Promise<void>,
+    pageSize = 5000,
+  ): Promise<number> {
+    const HEAP_LIMIT_BYTES = 1.2 * 1024 * 1024 * 1024;
+    let offset = 0;
+    let totalFetched = 0;
+
+    while (true) {
+      const chunk = await this.executeKw<T[]>(
+        model, 'search_read', [domain],
+        { fields, limit: pageSize, offset },
+        uid,
+      );
+      if (!chunk || chunk.length === 0) break;
+      await onPage(chunk);
+      totalFetched += chunk.length;
+
+      if (process.memoryUsage().heapUsed > HEAP_LIMIT_BYTES) {
+        throw new InternalServerErrorException(
+          `Consulta abortada: uso de memoria excesivo al cargar ${model} ` +
+            `(${totalFetched} registros procesados). Reduce el rango de fechas o agrega filtros.`,
+        );
+      }
+
+      if (chunk.length < pageSize) break;
+      offset += pageSize;
+    }
+    return totalFetched;
+  }
+
+  /**
    * search_read paginado: obtiene TODOS los registros en chunks de `pageSize`.
    * Evita timeouts y límites artificiales en consultas grandes (1 mes, 400+ empleados).
    */

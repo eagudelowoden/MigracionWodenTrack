@@ -33,6 +33,19 @@ export interface CalcularExtrasDto {
   // Uso interno: limita el cálculo a este lote de empleados. Lo inyecta el
   // orquestador `calcularExtras` para procesar por bloques y no cargar todo en RAM.
   empIds?: number[];
+
+  // ── Delta por write_date (solo cron automático) ──────────────────────────
+  // Si viene informado, reduce el universo de empleados a procesar a solo
+  // los que tienen registros de asistencia/log MODIFICADOS en Odoo desde este
+  // timestamp (ISO UTC) — en vez de recalcular siempre a todos los que
+  // marcaron en la ventana de días. undefined = corrida completa (sin delta).
+  writeDateDesde?: string;
+  // Uso interno del cron/worker (no afecta el cálculo en sí): checkpoint
+  // candidato a guardar como `ultima_corrida_utc` SI el job termina bien.
+  _checkpointCandidato?: string;
+  // Uso interno: marca si esta corrida ignoró el delta a propósito (corrida
+  // completa forzada); si termina bien, actualiza `ultima_corrida_completa_fecha`.
+  _esCorridaCompleta?: boolean;
 }
 
 // Minutos que se solapan entre [s1,e1] y [s2,e2]
@@ -561,12 +574,16 @@ export class HorasExtraService {
   }
 
   /**
-   * Orquestador: resuelve el universo de empleados del filtro y procesa el
-   * cálculo en LOTES de empleados, liberando memoria entre cada bloque. Así el
-   * pico de RAM es el de un lote (~50 empleados), no el del rango completo.
-   * La persistencia (dto.guardar) se hace UNA sola vez al final sobre todo.
+   * Resuelve el universo de empleados del filtro y procesa el cálculo en
+   * LOTES de empleados, invocando `onLote` con el resultado parcial de cada
+   * lote apenas está listo (en vez de acumularlo). Así el llamador decide si
+   * guarda/descarta cada lote de inmediato (pico de RAM real de un lote) o si
+   * necesita juntar todo (p. ej. para mostrarlo en un preview de UI).
    */
-  async calcularExtras(dto: CalcularExtrasDto): Promise<HoraExtra[]> {
+  private async procesarPorLotes(
+    dto: CalcularExtrasDto,
+    onLote: (parcial: HoraExtra[]) => Promise<void> | void,
+  ): Promise<void> {
     const uid = await this.odoo.authenticate();
 
     // Universo de empleados a procesar (según estructura/empresa)
@@ -574,29 +591,42 @@ export class HorasExtraService {
       dto.area_id,
       dto.segmento_id,
     );
-    if (idsPorEstructura !== null && idsPorEstructura.length === 0) return [];
+    if (idsPorEstructura !== null && idsPorEstructura.length === 0) return;
 
     const empIdsScope = await this.resolverEmpIdsScope(
       uid,
       dto,
       idsPorEstructura,
     );
-    if (!empIdsScope.length) return [];
+    if (!empIdsScope.length) return;
 
     // Procesar por lotes de empleados (cada lote es autocontenido: trae sus
     // propias marcaciones, incluidas las nocturnas que cruzan medianoche).
     const LOTE = 50;
-    const resultados: HoraExtra[] = [];
     for (let i = 0; i < empIdsScope.length; i += LOTE) {
       const lote = empIdsScope.slice(i, i + LOTE);
       const parcial = await this._calcularExtrasScoped({
         ...dto,
         empIds: lote,
-        guardar: false, // la persistencia se hace una vez al final
+        guardar: false, // la persistencia la maneja el llamador vía onLote
       });
-      if (parcial.length) resultados.push(...parcial);
-      // Las estructuras internas del lote se liberan al retornar _calcularExtrasScoped
+      await onLote(parcial);
+      // `parcial` sale de scope tras onLote: si el llamador no lo retiene
+      // (p. ej. lo guarda y descarta), se libera aquí mismo, lote a lote.
     }
+  }
+
+  /**
+   * Orquestador para uso interactivo (preview/guardado manual desde la UI):
+   * junta el resultado de TODOS los lotes en un array y lo retorna. Para el
+   * job pesado del cron usar `recalcularYGuardarCalculados`, que guarda por
+   * lote sin acumular todo el resultado en memoria.
+   */
+  async calcularExtras(dto: CalcularExtrasDto): Promise<HoraExtra[]> {
+    const resultados: HoraExtra[] = [];
+    await this.procesarPorLotes(dto, (parcial) => {
+      if (parcial.length) resultados.push(...parcial);
+    });
 
     // Persistencia única sobre el conjunto completo
     if (dto.guardar) {
@@ -632,17 +662,19 @@ export class HorasExtraService {
    * Devuelve cuántos registros se guardaron.
    */
   async recalcularYGuardarCalculados(dto: CalcularExtrasDto): Promise<number> {
-    // Calcula por lotes SIN persistir en horas_extra
-    const resultados = await this.calcularExtras({ ...dto, guardar: false });
-
     const startDay = dto.soloHoy ? getFechaColombiaHoy() : dto.startDate;
     const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
+    const esDelta = !!dto.writeDateDesde;
 
-    // Borra el rango COMPLETO antes de insertar (sin filtro de empresa).
-    // Filtrar por empresa en el DELETE causaba que workers concurrentes con distinta
-    // empresa se pisaran dejando duplicados: cada uno borraba solo "su" empresa pero
-    // los otros seguían insertando. Borrar TODO el rango y re-insertar es atómico.
-    if (startDay && endDay) {
+    // Corrida COMPLETA (sin delta): borra el rango COMPLETO antes de insertar
+    // (sin filtro de empleado/empresa), UNA sola vez antes de procesar los
+    // lotes. Filtrar por empresa en el DELETE causaba que workers concurrentes
+    // con distinta empresa se pisaran dejando duplicados: cada uno borraba
+    // solo "su" empresa pero los otros seguían insertando. Borrar TODO el
+    // rango y re-insertar es atómico, y de paso limpia empleados que ya no
+    // tienen ningún registro (ej. se borró en Odoo) — el delta no puede
+    // detectar eso (una fila borrada no tiene write_date que filtrar).
+    if (!esDelta && startDay && endDay) {
       await this.calculadoRepo
         .createQueryBuilder()
         .delete()
@@ -654,38 +686,66 @@ export class HorasExtraService {
         .execute();
     }
 
-    // Inserta el snapshot en bloques
+    // Calcula y guarda LOTE A LOTE (no acumula todos los HoraExtra calculados
+    // del rango completo en memoria antes de guardar: cada `parcial` se
+    // guarda y se descarta apenas termina su lote de ~50 empleados).
     const SAVE_CHUNK = 50;
     let guardados = 0;
-    for (let i = 0; i < resultados.length; i += SAVE_CHUNK) {
-      const filas = resultados.slice(i, i + SAVE_CHUNK).map((r) =>
-        this.calculadoRepo.create({
-          cedula: r.cedula,
-          nombre: r.nombre,
-          employee_id_odoo: r.employee_id_odoo,
-          fecha: r.fecha,
-          company: r.company,
-          departamento: r.departamento,
-          cargo: r.cargo,
-          inicio_turno: r.inicio_turno,
-          fin_turno: r.fin_turno,
-          fecha_entrada: r.fecha_entrada,
-          fecha_salida: r.fecha_salida,
-          es_dominical: r.es_dominical,
-          rn: r.rn,
-          rndf: r.rndf,
-          rddf: r.rddf,
-          hedo: r.hedo,
-          heno: r.heno,
-          hefd: r.hefd,
-          hefn: r.hefn,
-          total_minutos_extra: r.total_minutos_extra,
-          calculado_por: r.calculado_por ?? dto.calculado_por ?? 'Cron',
-        }),
-      );
-      await this.calculadoRepo.save(filas);
-      guardados += filas.length;
-    }
+    await this.procesarPorLotes({ ...dto, guardar: false }, async (parcial) => {
+      if (!parcial.length) return;
+
+      // Corrida DELTA: solo reemplaza el snapshot de los empleados que SÍ se
+      // recalcularon en este lote. NO se puede borrar el rango completo como
+      // en la corrida completa, porque dejaría sin snapshot a los empleados
+      // sin cambios recientes (no vienen en `parcial` en una corrida delta).
+      if (esDelta && startDay && endDay) {
+        const empIdsLote = [
+          ...new Set(parcial.map((r) => r.employee_id_odoo).filter((id): id is number => id != null)),
+        ];
+        if (empIdsLote.length) {
+          await this.calculadoRepo
+            .createQueryBuilder()
+            .delete()
+            .from(CalculadoExtra)
+            .where('fecha >= :start AND fecha <= :end', {
+              start: startDay,
+              end: endDay,
+            })
+            .andWhere('employee_id_odoo IN (:...ids)', { ids: empIdsLote })
+            .execute();
+        }
+      }
+
+      for (let i = 0; i < parcial.length; i += SAVE_CHUNK) {
+        const filas = parcial.slice(i, i + SAVE_CHUNK).map((r) =>
+          this.calculadoRepo.create({
+            cedula: r.cedula,
+            nombre: r.nombre,
+            employee_id_odoo: r.employee_id_odoo,
+            fecha: r.fecha,
+            company: r.company,
+            departamento: r.departamento,
+            cargo: r.cargo,
+            inicio_turno: r.inicio_turno,
+            fin_turno: r.fin_turno,
+            fecha_entrada: r.fecha_entrada,
+            fecha_salida: r.fecha_salida,
+            es_dominical: r.es_dominical,
+            rn: r.rn,
+            rndf: r.rndf,
+            rddf: r.rddf,
+            hedo: r.hedo,
+            heno: r.heno,
+            hefd: r.hefd,
+            hefn: r.hefn,
+            total_minutos_extra: r.total_minutos_extra,
+            calculado_por: r.calculado_por ?? dto.calculado_por ?? 'Cron',
+          }),
+        );
+        await this.calculadoRepo.save(filas);
+        guardados += filas.length;
+      }
+    });
     return guardados;
   }
 
@@ -798,15 +858,21 @@ export class HorasExtraService {
 
     const ids = new Set<number>();
 
+    // Delta (solo cron): además del rango de fechas, exige que el registro
+    // haya cambiado en Odoo desde la última corrida exitosa. Así el universo
+    // de empleados a recalcular se reduce a los que SÍ tienen novedades,
+    // en vez de recalcular siempre a todos los que marcaron en la ventana.
     const domAtt: any[] = [];
     if (inicioUTC) domAtt.push(['check_in', '>=', inicioUTC]);
     if (finUTC) domAtt.push(['check_in', '<=', finUTC]);
     if (company) domAtt.push(['employee_id.company_id.name', '=', company]);
+    if (dto.writeDateDesde) domAtt.push(['write_date', '>=', dto.writeDateDesde]);
 
     const domLog: any[] = [];
     if (inicioUTC) domLog.push(['punching_time', '>=', inicioUTC]);
     if (finUTC) domLog.push(['punching_time', '<=', finUTC]);
     if (company) domLog.push(['company_id.name', '=', company]);
+    if (dto.writeDateDesde) domLog.push(['write_date', '>=', dto.writeDateDesde]);
 
     try {
       const gAtt = await this.odoo.executeKw<any[]>(
@@ -902,42 +968,110 @@ export class HorasExtraService {
       domainLog.push(['employee_id', 'in', empFiltro]);
     }
 
-    // Consultar ambos modelos de forma PAGINADA y SECUENCIAL (no en paralelo).
-    // Antes se traían con limit:30000000 en una sola respuesta JSON-RPC, lo que
-    // buffeaba millones de filas + una copia al hacer JSON.parse, y en paralelo
-    // duplicaba el pico de memoria → OOM que tumbaba TODA la API.
-    // searchReadAllWithProgress trae en páginas de 5000 y aborta con un error
-    // controlado si el heap supera ~1.2 GB (en vez de matar el proceso).
-    // El orden global ya no importa: cada grupo se reordena más abajo.
-    const sinProgreso = () => {};
-    const attendances = await this.odoo.searchReadAllWithProgress<any>(
+    // Consultar ambos modelos de forma PAGINADA y SECUENCIAL (no en paralelo),
+    // y SIN acumular el array plano completo: cada página de 5000 se vuelca
+    // directo a la estructura agrupada (`grupos` / `allLogsByEmp`) y se
+    // descarta. Antes se traía primero el array plano completo (con
+    // searchReadAllWithProgress) y LUEGO se recorría para agrupar, lo que
+    // mantenía dos copias del dataset en memoria a la vez (la plana + la
+    // agrupada). Antes de eso incluso se traía con limit:30000000 en una sola
+    // respuesta JSON-RPC → OOM que tumbaba TODA la API.
+    const idsPermitidos = empFiltro && empFiltro.length ? new Set(empFiltro) : null;
+
+    // Agrupar hr.attendance por empId+fecha (se llena página a página)
+    const grupos: Record<
+      string,
+      {
+        empId: number;
+        nombre: string;
+        dept: string;
+        fecha: string;
+        records: any[];
+      }
+    > = {};
+
+    const totalAtt = await this.odoo.searchReadAllStream<any>(
       'hr.attendance',
       domainAtt,
       ['employee_id', 'check_in', 'check_out', 'department_id'],
       uid,
-      sinProgreso,
+      (chunk) => {
+        for (const att of chunk) {
+          const empId = att.employee_id?.[0];
+          const nombre = att.employee_id?.[1] || 'Desconocido';
+          const localIn = this.toLocal(att.check_in);
+          const fecha = localIn ? localIn.split(' ')[0] : null;
+          if (!fecha || !empId) continue;
+
+          const key = `${empId}_${fecha}`;
+          if (!grupos[key]) {
+            grupos[key] = {
+              empId,
+              nombre,
+              dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
+              fecha,
+              records: [],
+            };
+          }
+          grupos[key].records.push(att);
+        }
+      },
     );
-    const logs = await this.odoo.searchReadAllWithProgress<any>(
+
+    // Recopilar TODOS los punches biométricos por empleado (se llena página a
+    // página); se ordenan cronológicamente una vez completa la descarga.
+    const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
+    const totalLog = await this.odoo.searchReadAllStream<any>(
       'attendance.log',
       domainLog,
       ['employee_id', 'punching_time', 'x_studio_related_field_j40wn'],
       uid,
-      sinProgreso,
+      (chunk) => {
+        for (const log of chunk) {
+          const empId = log.employee_id?.[0];
+          if (!empId) continue;
+          if (idsPermitidos && !idsPermitidos.has(empId)) continue;
+          const localTime = this.toLocal(log.punching_time);
+          if (!localTime) continue;
+          const list = allLogsByEmp.get(empId) ?? [];
+          list.push({ localTime, rawTime: log.punching_time, log });
+          allLogsByEmp.set(empId, list);
+        }
+      },
     );
 
-    if (!attendances.length && !logs.length) return [];
+    if (!totalAtt && !totalLog) return [];
 
-    // ── Cargar mallas ANTES de agrupar logs (necesario para detectar turnos nocturnos) ──
-    // Recopilar IDs de empleados de ambas fuentes para la carga anticipada
-    const allEmpIdsEarly = new Set<number>();
-    for (const att of attendances) { if (att.employee_id?.[0]) allEmpIdsEarly.add(att.employee_id[0]); }
-    for (const log of logs) { if (log.employee_id?.[0]) allEmpIdsEarly.add(log.employee_id[0]); }
-    const mallasMapEarly = await this.getMallasMap([...allEmpIdsEarly]);
+    for (const [, punches] of allLogsByEmp) {
+      punches.sort((a, b) => a.rawTime.localeCompare(b.rawTime));
+    }
+
+    // ── Cargar mallas (necesario para detectar turnos nocturnos al agrupar logs) ──
+    // empFiltro ya acota el universo de empleados de este lote (LOTE=50 en
+    // calcularExtras), así que no hace falta esperar a ver los datos de Odoo
+    // para saber a quién cargarle la malla.
+    const empIdsParaMallas = idsPermitidos
+      ? [...idsPermitidos]
+      : [...new Set(Object.values(grupos).map((g) => g.empId))];
+    const mallasMapEarly = await this.getMallasMap(empIdsParaMallas);
 
     // Helpers disponibles en todo el método
+    // Cache de resolverDetallesParaFecha por empId+fecha: se resuelve una vez
+    // durante el agrupado biométrico (getTurnoParaFecha) y se reutiliza al
+    // construir el HoraExtra final del mismo grupo, en vez de recalcularlo.
+    const detallesCache = new Map<string, any[]>();
+    const getDetallesCached = (empId: number, fecha: string): any[] => {
+      const key = `${empId}_${fecha}`;
+      let det = detallesCache.get(key);
+      if (det === undefined) {
+        const asigs = mallasMapEarly.get(empId) ?? [];
+        det = this.resolverDetallesParaFecha(asigs, fecha);
+        detallesCache.set(key, det);
+      }
+      return det;
+    };
     const getTurnoParaFecha = (empId: number, fecha: string): any | null => {
-      const asigs = mallasMapEarly.get(empId) ?? [];
-      const det = this.resolverDetallesParaFecha(asigs, fecha);
+      const det = getDetallesCached(empId, fecha);
       const dia = this.getDiaSemana(fecha);
       return det
         .filter((d: any) => Number(d.dia_semana) === dia)
@@ -950,57 +1084,6 @@ export class HorasExtraService {
       const dt = new Date(a, m - 1, d + 1);
       return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     };
-
-    // Agrupar hr.attendance por empId+fecha
-    const grupos: Record<
-      string,
-      {
-        empId: number;
-        nombre: string;
-        dept: string;
-        fecha: string;
-        records: any[];
-      }
-    > = {};
-
-    for (const att of attendances) {
-      const empId = att.employee_id?.[0];
-      const nombre = att.employee_id?.[1] || 'Desconocido';
-      const localIn = this.toLocal(att.check_in);
-      const fecha = localIn ? localIn.split(' ')[0] : null;
-      if (!fecha || !empId) continue;
-
-      const key = `${empId}_${fecha}`;
-      if (!grupos[key]) {
-        grupos[key] = {
-          empId,
-          nombre,
-          dept: att.department_id ? att.department_id[1] : 'SIN DEPTO',
-          fecha,
-          records: [],
-        };
-      }
-      grupos[key].records.push(att);
-    }
-
-    // ── Agrupar attendance.log con conciencia de turnos nocturnos ─────────────
-    const idsPermitidos = empFiltro ? new Set(empFiltro) : null;
-
-    // Recopilar TODOS los punches biométricos por empleado, ordenados cronológicamente
-    const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
-    for (const log of logs) {
-      const empId = log.employee_id?.[0];
-      if (!empId) continue;
-      if (idsPermitidos && !idsPermitidos.has(empId)) continue;
-      const localTime = this.toLocal(log.punching_time);
-      if (!localTime) continue;
-      const list = allLogsByEmp.get(empId) ?? [];
-      list.push({ localTime, rawTime: log.punching_time, log });
-      allLogsByEmp.set(empId, list);
-    }
-    for (const [, punches] of allLogsByEmp) {
-      punches.sort((a, b) => a.rawTime.localeCompare(b.rawTime));
-    }
 
     // Agrupar biométrico: turno nocturno → empareja entrada(día N) con salida(día N+1)
     const processedSalidaKeys = new Set<string>(); // keys ya consumidos como salida nocturna
@@ -1268,7 +1351,7 @@ export class HorasExtraService {
       // Resolver turno solo si tiene malla asignada
       let turno: any = null;
       if (!sinMalla) {
-        const detalles = this.resolverDetallesParaFecha(asignaciones, fecha);
+        const detalles = getDetallesCached(empId, fecha);
         const turnoDetalles = detalles
           .filter((d: any) => Number(d.dia_semana) === diaSemana)
           .sort(
