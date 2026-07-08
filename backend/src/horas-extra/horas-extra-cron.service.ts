@@ -164,6 +164,16 @@ export class HorasExtraCronService implements OnModuleInit {
       this.logger.log('HX_NO_SPAWN activo: el job lo tomará el worker demonio.');
       return;
     }
+    // Antes de decidir si hace falta un worker nuevo, mata/recupera cualquier
+    // job "procesando" abandonado (>30min sin actualizarse — el worker murió
+    // sin avisar). Si no se hiciera esto ACÁ, un job trabado bloquearía este
+    // chequeo para siempre: nunca se vería "libre" y nunca se lanzaría el
+    // worker nuevo que es justamente lo único que lo recupera.
+    const recuperados = await this.jobs.recuperarColgados(30);
+    if (recuperados > 0) {
+      this.logger.warn(`${recuperados} job(s) 'procesando' colgado(s) recuperado(s) antes de evaluar el spawn.`);
+    }
+
     // Verificar en BD si ya hay jobs procesando. Un flag en memoria no sirve porque
     // el worker es un proceso detached y el flag se libera antes de que termine
     // (el job tarda 200s pero el flag se liberaba a los 15s → se lanzaban workers en paralelo).

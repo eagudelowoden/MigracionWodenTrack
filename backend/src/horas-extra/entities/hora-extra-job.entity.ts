@@ -70,6 +70,14 @@ export class HoraExtraJob {
   @Column({ type: 'nvarchar', length: 500, nullable: true })
   resultado_resumen: string | null;
 
+  /**
+   * PID del proceso worker (Node) que tomó este job. Se usa para poder
+   * matarlo si queda "procesando" colgado más del límite (ver
+   * `recuperarColgados`), en vez de esperar a que muera solo.
+   */
+  @Column({ type: 'int', nullable: true })
+  worker_pid: number | null;
+
   @Column({ type: 'datetime2', nullable: true })
   started_at: Date | null;
 

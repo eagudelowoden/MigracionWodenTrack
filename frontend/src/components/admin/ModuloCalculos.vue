@@ -2991,7 +2991,14 @@ function fmtFechaLote(f) {
 }
 function fmtDatetimeLote(dt) {
   if (!dt) return '—';
-  return new Date(dt).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(dt).toLocaleDateString('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function handleCargueMenuOutsideClick(e) {

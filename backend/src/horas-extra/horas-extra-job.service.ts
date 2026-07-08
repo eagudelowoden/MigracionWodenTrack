@@ -89,6 +89,7 @@ export class HorasExtraJobService {
       `UPDATE TOP (1) horas_extra_jobs
          SET estado     = 'procesando',
              started_at = SYSUTCDATETIME(),
+             worker_pid = @0,
              intentos   = intentos + 1,
              updated_at = SYSUTCDATETIME()
        OUTPUT inserted.*
@@ -98,8 +99,21 @@ export class HorasExtraJobService {
          WHERE  estado = 'pendiente' AND intentos < max_intentos
          ORDER BY created_at ASC
        )`,
+      [process.pid],
     );
     return filas && filas.length ? filas[0] : null;
+  }
+
+  /** Intenta matar (best-effort) el proceso worker que tomó un job, por su PID. */
+  private matarWorker(pid: number | null, jobId: number): void {
+    if (!pid) return;
+    try {
+      process.kill(pid);
+      this.logger.warn(`Job #${jobId}: worker (pid ${pid}) terminado.`);
+    } catch {
+      // Ya no existe (terminó solo) o no se pudo matar; no es fatal, el job
+      // igual se libera/recupera más abajo.
+    }
   }
 
   /** Marca un job como completado con un resumen del resultado. */
@@ -137,16 +151,18 @@ export class HorasExtraJobService {
   }
 
   /**
-   * Cancela un job que aún no terminó (pendiente o procesando).
-   * Para 'procesando' el worker ya está corriendo (proceso detached), no se puede
-   * matar, pero al finalizar su resultado queda igualmente guardado. La cancelación
-   * es útil para jobs PENDIENTES o para registrar que el usuario quiso detenerlo.
+   * Cancela un job que aún no terminó (pendiente o procesando). Si estaba
+   * 'procesando', además intenta matar (best-effort) el proceso worker que lo
+   * tomó, por su PID — así no queda corriendo de fondo aunque se cancele.
    */
   async cancelarJob(id: number): Promise<{ ok: boolean; mensaje: string }> {
     const job = await this.jobRepo.findOne({ where: { id } });
     if (!job) return { ok: false, mensaje: `Job #${id} no encontrado` };
     if (['completado', 'error', 'cancelado'].includes(job.estado)) {
       return { ok: false, mensaje: `Job #${id} ya está en estado "${job.estado}"` };
+    }
+    if (job.estado === 'procesando') {
+      this.matarWorker(job.worker_pid, job.id);
     }
     await this.jobRepo.update(id, {
       estado: 'cancelado',
@@ -171,11 +187,27 @@ export class HorasExtraJobService {
   }
 
   /**
-   * Recupera jobs que quedaron 'procesando' colgados (ej. el worker se cayó a
-   * media tarea). Se llaman al arrancar el worker para devolverlos a la cola.
+   * Recupera jobs que quedaron 'procesando' colgados más de `minutosLimite`
+   * (ej. el worker se cayó a media tarea, o quedó esperando algo que nunca
+   * responde). Antes de devolverlos a la cola intenta MATAR el proceso
+   * worker que los tomó (por su PID) — así no queda un proceso zombie
+   * corriendo de fondo mientras el job se reprocesa desde cero.
+   *
+   * Se llama al arrancar cada worker Y también desde `asegurarWorker()`
+   * ANTES de decidir si hace falta lanzar uno nuevo: si esto solo corriera al
+   * arrancar, un job trabado en 'procesando' bloquearía para siempre el spawn
+   * de un worker nuevo (que es justamente lo único que lo destraba).
    */
   async recuperarColgados(minutosLimite = 30): Promise<number> {
     const limite = new Date(Date.now() - minutosLimite * 60_000);
+    const colgados = await this.jobRepo.find({ where: { estado: 'procesando' } });
+    const vencidos = colgados.filter((j) => j.started_at && j.started_at < limite);
+    if (!vencidos.length) return 0;
+
+    for (const job of vencidos) {
+      this.matarWorker(job.worker_pid, job.id);
+    }
+
     const res = await this.jobRepo
       .createQueryBuilder()
       .update()
@@ -183,6 +215,9 @@ export class HorasExtraJobService {
       .where('estado = :p', { p: 'procesando' })
       .andWhere('started_at < :limite', { limite })
       .execute();
+    this.logger.warn(
+      `${res.affected ?? 0} job(s) 'procesando' colgado(s) (>${minutosLimite}min) recuperado(s).`,
+    );
     return res.affected ?? 0;
   }
 }
