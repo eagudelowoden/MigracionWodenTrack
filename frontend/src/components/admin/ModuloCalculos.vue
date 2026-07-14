@@ -1651,62 +1651,88 @@
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-10">
               <tr class="bg-[#1e2538]">
-                <th
-                  class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
                   Período</th>
-                <th
-                  class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
-                  Registros</th>
-                <th
-                  class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                  Empleados</th>
+                <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
                   Notificado por</th>
-                <th
-                  class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
                   Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(grupoRows, loteKey) in historialAgrupadoPorLote" :key="loteKey" class="transition-all"
-                :class="isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'">
-                <!-- Período -->
-                <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-                      :class="isDark ? 'bg-[#0B0F19]' : 'bg-slate-100'">
-                      <i class="fas fa-clock-rotate-left text-[10px] text-[#3B82F6]"></i>
+              <template v-for="(grupoRows, loteKey) in historialAgrupadoPorLote" :key="loteKey">
+                <tr class="transition-all" :class="isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50'">
+                  <!-- Período -->
+                  <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <div class="flex items-center gap-2">
+                      <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                        :class="isDark ? 'bg-[#0B0F19]' : 'bg-slate-100'">
+                        <i class="fas fa-clock-rotate-left text-[10px] text-[#3B82F6]"></i>
+                      </div>
+                      <div>
+                        <p class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+                          {{ formatFecha(historialFechaMin(grupoRows)) }} — {{ formatFecha(historialFechaMax(grupoRows)) }}
+                        </p>
+                        <p class="text-[10px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+                          {{ grupoRows[0]?.company || '—' }}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
-                        {{ formatFecha(historialFechaMin(grupoRows)) }} — {{ formatFecha(historialFechaMax(grupoRows))
-                        }}
-                      </p>
-                      <p class="text-[10px] mt-0.5" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
-                        {{ grupoRows[0]?.company || '—' }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <!-- Registros -->
-                <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                  <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ grupoRows.length
-                  }}</span>
-                </td>
-                <!-- Notificado por -->
-                <td class="px-3 py-3 border-b"
-                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
-                  {{ grupoRows[0]?.calculado_por || '—' }}
-                </td>
-                <!-- Acciones -->
-                <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
-                  <div class="flex items-center justify-center gap-1.5">
-                    <button v-if="loteKey !== 'sin_lote'" @click="abrirComparativoHistorial(loteKey, grupoRows)"
-                      class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
-                      :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
-                      <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
+                  </td>
+                  <!-- Empleados (clic para expandir) -->
+                  <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                    <button @click="toggleLoteEmpleados(loteKey)"
+                      class="inline-flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-semibold transition-all"
+                      :class="loteExpandido === loteKey
+                        ? (isDark ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-blue-50 border-blue-300 text-blue-700')
+                        : (isDark ? 'border-[#2a3245] text-white hover:border-blue-500/40' : 'border-slate-200 text-slate-800 hover:border-blue-300')">
+                      {{ grupoRows.length }}
+                      <i class="fas text-[9px]" :class="loteExpandido === loteKey ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                     </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <!-- Notificado por -->
+                  <td class="px-3 py-3 border-b"
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-600'">
+                    {{ grupoRows[0]?.calculado_por || '—' }}
+                  </td>
+                  <!-- Acciones -->
+                  <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                    <div class="flex items-center justify-center gap-1.5">
+                      <!-- Reenviar correo -->
+                      <button @click="reenviarNotificacionHistorial(loteKey, grupoRows)"
+                        :disabled="renotificandoKey === loteKey"
+                        class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all disabled:opacity-40"
+                        :class="isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'">
+                        <i class="fas text-[9px]" :class="renotificandoKey === loteKey ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+                        {{ renotificandoKey === loteKey ? 'Enviando…' : 'Reenviar' }}
+                      </button>
+                      <!-- Comparativo vs sistema -->
+                      <button v-if="loteKey !== 'sin_lote'" @click="abrirComparativoHistorial(loteKey, grupoRows)"
+                        class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
+                        :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
+                        <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Fila expandida: lista de empleados del lote -->
+                <tr v-if="loteExpandido === loteKey">
+                  <td colspan="4" class="px-6 pb-3 pt-0 border-b"
+                    :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-100 bg-slate-50/60'">
+                    <div class="flex flex-wrap gap-1.5 py-2">
+                      <div v-for="r in grupoRows" :key="r.id"
+                        class="flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[10px] font-medium border"
+                        :class="isDark ? 'border-[#2a3245] text-slate-300 bg-[#161B26]' : 'border-slate-200 text-slate-700 bg-white'">
+                        <span class="text-[9px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">{{ r.cedula }}</span>
+                        {{ r.nombre }}
+                        <span class="text-[9px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">· {{ r.fecha }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -3277,6 +3303,31 @@ async function handleTabHistorial() {
     startDate.value = hace30.toISOString().slice(0, 10);
   }
   await cargarHistorial(props.company);
+}
+
+// ── Historial: reenvío y detalle de empleados ────────────────────────────────
+const loteExpandido    = ref(null);   // loteKey del grupo con empleados visibles
+const renotificandoKey = ref(null);   // loteKey que está enviando correo
+
+function toggleLoteEmpleados(loteKey) {
+  loteExpandido.value = loteExpandido.value === loteKey ? null : loteKey;
+}
+
+async function reenviarNotificacionHistorial(loteKey, grupoRows) {
+  if (renotificandoKey.value) return;
+  renotificandoKey.value = loteKey;
+  const base = import.meta.env.VITE_API_URL;
+  try {
+    await axios.post(`${base}/horas-extra/notificar-aprobados`, {
+      registros: grupoRows,
+      calculado_por: calculadoPor.value,
+    });
+    alert('Correo reenviado correctamente.');
+  } catch (e) {
+    alert('Error al reenviar el correo.');
+  } finally {
+    renotificandoKey.value = null;
+  }
 }
 
 async function handleTabGuardados() {

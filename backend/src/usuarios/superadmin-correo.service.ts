@@ -69,7 +69,7 @@ export class SuperAdminCorreoService {
   }
 
   // ── Transporter dinámico (BD > .env como fallback) ───────────
-  private async crearTransporter() {
+  async crearTransporter() {
     const all = await this.cfg.getAll();
     const host = this.envFallback(all[K.HOST], 'MAIL_HOST', 'smtp.office365.com');
     const port = Number(this.envFallback(all[K.PORT], 'MAIL_PORT', '587'));

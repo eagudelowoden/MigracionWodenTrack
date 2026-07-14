@@ -3,22 +3,22 @@ import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
-  private transporter;
-
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
+  private crearTransporter() {
+    return nodemailer.createTransport({
+      host: process.env.MAIL_HOST || 'smtp.office365.com',
       port: Number(process.env.MAIL_PORT) || 587,
       secure: false,
+      requireTLS: true,
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
-      tls: {
-        ciphers: 'SSLv3',
-        rejectUnauthorized: false,
-      },
+      tls: { rejectUnauthorized: false },
     });
+  }
+
+  private getFrom(): string {
+    return `"Sistema Asistencias" <${process.env.MAIL_USER}>`;
   }
 
   async enviarAprobacionHorasExtra(datos: {
@@ -81,8 +81,8 @@ export class MailService {
         </div>
       `;
 
-      await this.transporter.sendMail({
-        from: `"Sistema Asistencias" <${process.env.MAIL_USER}>`,
+      await this.crearTransporter().sendMail({
+        from: this.getFrom(),
         to: process.env.MAIL_ALERT_TO,
         subject: `✅ Horas extra aprobadas — ${registro.nombre} (${registro.fecha})`,
         html,
@@ -111,13 +111,11 @@ export class MailService {
     destinatarios?: string[];
     calculado_por?: string;
   }) {
-    // Usar SOLO los destinatarios configurados en la BD.
-    // El fallback MAIL_ALERT_TO ya no aplica — si no hay destinatarios configurados
-    // simplemente no se envía, para evitar notificar a correos no deseados.
     const to = datos.destinatarios?.length
       ? datos.destinatarios.join(', ')
       : null;
     if (!to) return;
+
     try {
       const { registros, excelBuffer, calculado_por } = datos;
       const fecha = new Date().toLocaleString('es-CO', {
@@ -135,8 +133,10 @@ export class MailService {
       `;
 
       const fechaArchivo = new Date().toISOString().slice(0, 10);
-      await this.transporter.sendMail({
-        from: `"Sistema Asistencias" <${process.env.MAIL_USER}>`,
+      console.log(`📧 Enviando desde: ${process.env.MAIL_USER} | host: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
+      console.log(`📧 Destinatarios: ${to}`);
+      const info = await this.crearTransporter().sendMail({
+        from: this.getFrom(),
         to,
         subject: `Horas Extras aprobadas Por:${calculado_por}  — ${fechaArchivo}`,
         html,
@@ -149,9 +149,10 @@ export class MailService {
           },
         ],
       });
-      console.log(`📧 Novedades HX enviadas → ${process.env.MAIL_ALERT_TO}`);
+      console.log(`📧 Novedades HX enviadas → ${to} | messageId: ${info.messageId} | response: ${info.response}`);
     } catch (error) {
       console.error('📧 Error enviando novedades HX:', error.message);
+      console.error('📧 Detalle SMTP:', error);
     }
   }
 
@@ -172,17 +173,9 @@ export class MailService {
       const { tipo, registros, tiempo, departamento, rango, mensaje } = datos;
 
       const colores = {
-        grande: {
-          borde: '#BA7517',
-          titulo: 'Consulta grande detectada',
-          icono: '⚠️',
-        },
-        error: { borde: '#E24B4A', titulo: 'Error en consulta', icono: '❌' },
-        completada: {
-          borde: '#639922',
-          titulo: 'Consulta completada',
-          icono: '✅',
-        },
+        grande: { borde: '#BA7517', titulo: 'Consulta grande detectada', icono: '⚠️' },
+        error:  { borde: '#E24B4A', titulo: 'Error en consulta',         icono: '❌' },
+        completada: { borde: '#639922', titulo: 'Consulta completada',   icono: '✅' },
       };
 
       const { borde, titulo, icono } = colores[tipo];
@@ -191,58 +184,13 @@ export class MailService {
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
           <div style="border-left: 4px solid ${borde}; padding: 16px 20px; background: #f9f9f9; border-radius: 8px;">
             <h2 style="margin: 0 0 8px; font-size: 16px; color: #1a1a1a;">${icono} ${titulo}</h2>
-
             <table style="width: 100%; font-size: 13px; color: #444; border-collapse: collapse;">
-              ${
-                departamento
-                  ? `
-              <tr>
-                <td style="padding: 4px 0; color: #888;">Departamento</td>
-                <td style="padding: 4px 0; font-weight: bold;">${departamento}</td>
-              </tr>`
-                  : ''
-              }
-
-              ${
-                rango
-                  ? `
-              <tr>
-                <td style="padding: 4px 0; color: #888;">Rango de fechas</td>
-                <td style="padding: 4px 0; font-weight: bold;">${rango}</td>
-              </tr>`
-                  : ''
-              }
-
-              ${
-                registros !== undefined
-                  ? `
-              <tr>
-                <td style="padding: 4px 0; color: #888;">Registros</td>
-                <td style="padding: 4px 0; font-weight: bold;">${registros.toLocaleString()}</td>
-              </tr>`
-                  : ''
-              }
-
-              ${
-                tiempo !== undefined
-                  ? `
-              <tr>
-                <td style="padding: 4px 0; color: #888;">Tiempo</td>
-                <td style="padding: 4px 0; font-weight: bold;">${tiempo.toFixed(1)}s</td>
-              </tr>`
-                  : ''
-              }
-
-              ${
-                mensaje
-                  ? `
-              <tr>
-                <td colspan="2" style="padding: 8px 0 0; color: #666; font-style: italic;">${mensaje}</td>
-              </tr>`
-                  : ''
-              }
+              ${departamento ? `<tr><td style="padding: 4px 0; color: #888;">Departamento</td><td style="padding: 4px 0; font-weight: bold;">${departamento}</td></tr>` : ''}
+              ${rango       ? `<tr><td style="padding: 4px 0; color: #888;">Rango de fechas</td><td style="padding: 4px 0; font-weight: bold;">${rango}</td></tr>` : ''}
+              ${registros !== undefined ? `<tr><td style="padding: 4px 0; color: #888;">Registros</td><td style="padding: 4px 0; font-weight: bold;">${registros.toLocaleString()}</td></tr>` : ''}
+              ${tiempo !== undefined   ? `<tr><td style="padding: 4px 0; color: #888;">Tiempo</td><td style="padding: 4px 0; font-weight: bold;">${tiempo.toFixed(1)}s</td></tr>` : ''}
+              ${mensaje ? `<tr><td colspan="2" style="padding: 8px 0 0; color: #666; font-style: italic;">${mensaje}</td></tr>` : ''}
             </table>
-
             <p style="margin: 12px 0 0; font-size: 11px; color: #aaa;">
               ${new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' })} · Sistema de Asistencias
             </p>
@@ -250,16 +198,14 @@ export class MailService {
         </div>
       `;
 
-      await this.transporter.sendMail({
-        from: `"Sistema Asistencias" <${process.env.MAIL_USER}>`,
+      await this.crearTransporter().sendMail({
+        from: this.getFrom(),
         to: process.env.MAIL_ALERT_TO,
         subject: `${icono} ${titulo} - Sistema Asistencias`,
         html,
       });
 
-      console.log(
-        `📧 Alerta enviada: [${tipo}] → ${process.env.MAIL_ALERT_TO}`,
-      );
+      console.log(`📧 Alerta enviada: [${tipo}] → ${process.env.MAIL_ALERT_TO}`);
     } catch (error) {
       console.error('📧 Error enviando alerta de correo:', error.message);
     }

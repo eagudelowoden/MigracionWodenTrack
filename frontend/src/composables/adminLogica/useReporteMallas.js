@@ -641,15 +641,19 @@ export function useReporteMallas() {
       isLoadingHistorial.value = true;
       await _asegurarPerfil();
       const s = getSession();
+      // Sin filtro de fechas: el historial notificado debe verse completo
+      // sin importar el rango de fechas activo en pantalla.
       const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
+        ...getAreaSegmento(),
       };
-      // No-admin: filtra por quien calculó (id) igual que Guardados
+      // No-admin sin área/segmento: filtra por quien calculó
       if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")) {
-        const idOdoo = s.employee_id || s.id_odoo;
-        if (idOdoo) params.calculado_por_id = idOdoo;
+        const filtroEst = getAreaSegmento();
+        if (!filtroEst.area_id && !filtroEst.segmento_id) {
+          const idOdoo = s.employee_id || s.id_odoo;
+          if (idOdoo) params.calculado_por_id = idOdoo;
+        }
       }
       const { data } = await axios.get(
         `${API_BASE_URL}/horas-extra/historial`,
