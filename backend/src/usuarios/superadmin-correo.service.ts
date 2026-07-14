@@ -68,20 +68,20 @@ export class SuperAdminCorreoService {
     return { ok: true };
   }
 
-  // ── Transporter dinámico (BD > .env como fallback) ───────────
+  // ── Transporter: SOLO .env (ignora config de BD) ─────────────
   async crearTransporter() {
-    const all = await this.cfg.getAll();
-    const host = this.envFallback(all[K.HOST], 'MAIL_HOST', 'smtp.office365.com');
-    const port = Number(this.envFallback(all[K.PORT], 'MAIL_PORT', '587'));
-    const user = this.envFallback(all[K.USER], 'MAIL_USER', '');
-    const pass = this.envFallback(all[K.PASS], 'MAIL_PASS', '');
-    const requireTls = true;
+    const host = process.env.MAIL_HOST || 'smtp.office365.com';
+    const port = Number(process.env.MAIL_PORT) || 587;
+    const user = process.env.MAIL_USER || '';
+    const pass = process.env.MAIL_PASS || '';
+
+    console.log(`📧 SMTP (.env) → user: ${user} | host: ${host}:${port} | pass.len: ${pass.length}`);
 
     return nodemailer.createTransport({
       host,
       port,
       secure: false,
-      requireTLS: requireTls,
+      requireTLS: true,
       auth: { user, pass },
       tls: { rejectUnauthorized: false },
     });
@@ -122,7 +122,7 @@ export class SuperAdminCorreoService {
     try {
       const t = await this.crearTransporter();
       const all = await this.cfg.getAll();
-      const fromUser = this.envFallback(all[K.USER], 'MAIL_USER', '');
+      const fromUser = process.env.MAIL_USER || '';
       const fromNombre = this.envFallback(all[K.FROM_NAME], 'MAIL_USER', 'WodenTrack');
 
       const fechaDisplay =
@@ -261,7 +261,7 @@ export class SuperAdminCorreoService {
     try {
       const t = await this.crearTransporter();
       const all = await this.cfg.getAll();
-      const fromUser = this.envFallback(all[K.USER], 'MAIL_USER', '');
+      const fromUser = process.env.MAIL_USER || '';
       const fromNombre = this.envFallback(all[K.FROM_NAME], 'MAIL_USER', 'WodenTrack');
       const esAprobado = data.decision === 'aprobado';
 
