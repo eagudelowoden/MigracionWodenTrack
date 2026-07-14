@@ -126,7 +126,7 @@ export class MailService {
           <div style="border-left:4px solid #16a34a;padding:16px 20px;background:#f9fafb;border-radius:8px;">
             <h2 style="margin:0 0 12px;font-size:16px;color:#1a1a1a;">✅ Novedades de horas extra aprobadas</h2>
             <p style="font-size:12px;color:#666;margin:0 0 12px;">${registros.length} registro(s) aprobado(s). Ver detalle en el archivo adjunto.</p>
-            ${calculado_por ? `<p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por}</p>` : ''}
+            <p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por?.trim() || 'Sistema'}</p>
             <p style="margin:6px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
           </div>
         </div>
@@ -135,10 +135,11 @@ export class MailService {
       const fechaArchivo = new Date().toISOString().slice(0, 10);
       console.log(`📧 Enviando desde: ${process.env.MAIL_USER} | host: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
       console.log(`📧 Destinatarios: ${to}`);
+      const porQuien = calculado_por?.trim() || 'Sistema';
       const info = await this.crearTransporter().sendMail({
         from: this.getFrom(),
         to,
-        subject: `Horas Extras aprobadas Por:${calculado_por}  — ${fechaArchivo}`,
+        subject: `Horas Extras aprobadas Por: ${porQuien} — ${fechaArchivo}`,
         html,
         attachments: [
           {

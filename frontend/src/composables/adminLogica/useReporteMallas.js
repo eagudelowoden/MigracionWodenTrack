@@ -595,6 +595,13 @@ export function useReporteMallas() {
       const aNotificar = selectedNovedades.value.size > 0
         ? novedadesAprobadas.value.filter(n => selectedNovedades.value.has(n.id))
         : novedadesAprobadas.value;
+      // Asegurar que "calculado_por" no vaya vacío: input → sesión → registro
+      if (!calculadoPor.value) {
+        const s = getSession();
+        calculadoPor.value =
+          s.nombre || s.name || s.username || s.email ||
+          aNotificar.find(r => r.calculado_por)?.calculado_por || '';
+      }
       await axios.post(`${API_BASE_URL}/horas-extra/notificar-aprobados`, {
         registros: aNotificar,
         calculado_por: calculadoPor.value,

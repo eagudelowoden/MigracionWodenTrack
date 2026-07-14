@@ -1714,6 +1714,13 @@ export class HorasExtraService {
   async notificarAprobados(registros: any[], calculado_por?: string): Promise<{ enviado: boolean }> {
     if (!registros.length) return { enviado: false };
 
+    // Fallback: si el frontend no envió "calculado_por", tomarlo del propio registro
+    const calculadoPorFinal =
+      calculado_por?.trim() ||
+      (registros.find(r => r.calculado_por?.trim())?.calculado_por ?? '').trim() ||
+      undefined;
+    calculado_por = calculadoPorFinal;
+
     const departamentos = [
       ...new Set(registros.map(r => r.departamento).filter(Boolean) as string[]),
     ];
