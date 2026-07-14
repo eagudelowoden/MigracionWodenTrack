@@ -620,8 +620,6 @@ export function useReporteMallas() {
         calculadoPor.value = s.nombre || s.name || s.username || s.email || '';
       }
       const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
         ...getAreaSegmento(),
       };
