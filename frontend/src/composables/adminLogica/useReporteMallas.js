@@ -709,13 +709,18 @@ export function useReporteMallas() {
       isLoadingGuardados.value = true;
       await _asegurarPerfil();
       const s = getSession();
+      // Sin filtro de fechas: los pendientes deben aparecer aunque la fecha de
+      // trabajo sea del mes anterior al rango activo en pantalla.
+      const filtroEstructura = getAreaSegmento(); // { area_id, segmento_id } para jefe; {} para superadmin
+      const cedulaPropia     = _getCedulaPropia(); // cedula propia si no tiene estructura admin
       const params = {
-        startDate: startDate.value,
-        endDate: endDate.value,
         ...(company && company !== "Todas" ? { company } : {}),
+        ...filtroEstructura,
+        ...(cedulaPropia ? { cedula: cedulaPropia } : {}),
       };
-      // No-admin: filtra por quien calculó (su id_odoo) para ver solo lo que creó
-      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")) {
+      // Usuario sin área/segmento y sin ver_todo → solo ve lo que él mismo calculó
+      if (!s.isSuperAdmin && !hasPerm("admin.ver_todo")
+          && !filtroEstructura.area_id && !filtroEstructura.segmento_id && !cedulaPropia) {
         const idOdoo = s.employee_id || s.id_odoo;
         if (idOdoo) params.calculado_por_id = idOdoo;
       }
