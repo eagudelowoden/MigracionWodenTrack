@@ -194,12 +194,23 @@ export class HorasExtraCronService implements OnModuleInit {
     // DETACHED: el worker corre como proceso TOTALMENTE independiente, no atado
     // a la API. Así, lanzarlo no reinicia ni afecta al servicio (el problema que
     // veías). unref() permite que la API no espere por él. Si revienta, muere solo.
-    const hijo = spawn(process.execPath, [workerPath], {
-      env: { ...process.env, HX_WORKER: '1', HX_WORKER_ONCE: '1' },
-      stdio: 'ignore',
-      detached: true,
-      windowsHide: true,
-    });
+    // Forzar heap amplio (4 GB) en la CLI: un arg de línea de comandos gana
+    // sobre cualquier --max-old-space-size heredado vía NODE_OPTIONS. Sin esto,
+    // si el servicio que lanza la API arranca con un límite bajo, el worker lo
+    // hereda y muere por OOM al procesar datasets grandes de Odoo.
+    const envSinLimite = { ...process.env };
+    delete envSinLimite.NODE_OPTIONS;
+
+    const hijo = spawn(
+      process.execPath,
+      ['--max-old-space-size=4096', workerPath],
+      {
+        env: { ...envSinLimite, HX_WORKER: '1', HX_WORKER_ONCE: '1' },
+        stdio: 'ignore',
+        detached: true,
+        windowsHide: true,
+      },
+    );
     hijo.on('error', (err) => {
       this.logger.error(`No se pudo lanzar el worker: ${err.message}`);
     });
