@@ -146,28 +146,59 @@ async function cargarEstado() {
 async function obtenerUbicacion() {
   if (!navigator.geolocation) {
     sinGps.value = true;
-    return;
+    return false;
   }
   obteniendo.value = true;
   sinGps.value = false;
+
+  // Precisión objetivo (metros) y tope de tiempo. En lugar de tomar la primera
+  // lectura (casi siempre la menos precisa) o una cacheada, observamos varias
+  // lecturas y nos quedamos con la MEJOR (menor 'accuracy').
+  const PRECISION_OBJETIVO = 20; // m: si se alcanza esto o mejor, cortamos ya
+  const TIEMPO_MAXIMO = 15000; // ms: tope de espera antes de usar la mejor lectura
+
   return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
+    let mejor = null; // mejor posición acumulada (menor accuracy)
+    let watchId = null;
+    let timer = null;
+
+    const finalizar = (ok) => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (timer !== null) clearTimeout(timer);
+      obteniendo.value = false;
+      if (ok && mejor) {
         ubicacion.value = {
-          latitud: pos.coords.latitude,
-          longitud: pos.coords.longitude,
-          precision: pos.coords.accuracy,
+          latitud: mejor.coords.latitude,
+          longitud: mejor.coords.longitude,
+          precision: mejor.coords.accuracy,
         };
-        obteniendo.value = false;
         resolve(true);
+      } else {
+        sinGps.value = true;
+        resolve(false);
+      }
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        // Nos quedamos con la lectura más precisa vista hasta ahora
+        if (!mejor || pos.coords.accuracy < mejor.coords.accuracy) {
+          mejor = pos;
+        }
+        // Si ya es lo bastante precisa, no seguimos esperando
+        if (mejor.coords.accuracy <= PRECISION_OBJETIVO) {
+          finalizar(true);
+        }
       },
       () => {
-        sinGps.value = true;
-        obteniendo.value = false;
-        resolve(false);
+        // Si falló pero ya teníamos alguna lectura válida, la usamos igual
+        finalizar(!!mejor);
       },
-      { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true },
+      { enableHighAccuracy: true, timeout: TIEMPO_MAXIMO, maximumAge: 0 },
     );
+
+    // Al vencer el tope de tiempo, usamos la mejor lectura acumulada
+    timer = setTimeout(() => finalizar(!!mejor), TIEMPO_MAXIMO);
   });
 }
 
