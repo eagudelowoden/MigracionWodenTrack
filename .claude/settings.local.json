@@ -192,7 +192,9 @@
       "Bash(wmic process *)",
       "Bash(powershell -Command \"\\(Get-CimInstance Win32_Process -Filter 'ProcessId=28920'\\).CommandLine\")",
       "Bash(git check-ignore *)",
-      "Bash(xargs grep -l \"marcacion\\\\|asistencia\")"
+      "Bash(xargs grep -l \"marcacion\\\\|asistencia\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@capacitor/geolocation/package.json'\\).version\\)\")",
+      "Bash(echo \"=== EXIT: $? ===\")"
     ]
   }
 }
