@@ -21,7 +21,7 @@
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
             Odoo
           </button>
-          <button v-if="esEcuador" @click="tabActiva = 'ecuador'; cargarMarcacionesEcuador()"
+          <button v-if="puedeVerGps" @click="tabActiva = 'ecuador'; cargarMarcacionesEcuador()"
             class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all flex items-center gap-1" :class="tabActiva === 'ecuador'
               ? 'bg-emerald-500 text-white'
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
@@ -601,9 +601,10 @@ const getFuenteClass = (fuente) => {
 
 // ── Pestaña Ecuador GPS ────────────────────────────────────────────────────
 const tabActiva = ref('odoo');
-const esEcuador = computed(() =>
-  props.company?.toLowerCase().includes('ecuador') ||
-  session.company?.toLowerCase().includes('ecuador')
+// La pestaña GPS ahora se controla por permiso: solo la ven quienes tengan
+// 'ecuador.ver_marcaciones' (o los super admin), sin importar la compañía.
+const puedeVerGps = computed(() =>
+  !!session.isSuperAdmin || hasPerm('ecuador.ver_marcaciones')
 );
 
 const API_URL = import.meta.env.VITE_API_URL;
