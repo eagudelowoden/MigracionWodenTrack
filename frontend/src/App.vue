@@ -150,7 +150,9 @@ const setupSockets = () => {
   });
 
   // disconnect = la conexión ESTABA viva y se perdió → caída real → banner ya.
-  socket.on('disconnect', () => { backendCaido.value = true; });
+  // disconnect puede dispararse por un event loop bloqueado durante una consulta
+  // pesada (no una caída real). Confirmamos por HTTP antes de mostrar el banner.
+  socket.on('disconnect', () => { programarChequeoSalud(); });
 
   // connect_error: si YA habíamos conectado, es una reconexión que falla tras una
   // caída real → banner inmediato (los intentos de reconexión fallan al instante
@@ -177,6 +179,10 @@ const setupSockets = () => {
 };
 // --- 🟢 LÓGICA DE VERSIÓN ---
 let _retryTimeout = null;
+// Cuenta fallos seguidos del health check. Un solo fallo puede ser un bloqueo
+// transitorio del event loop (backend procesando un reporte pesado unos
+// segundos), NO una caída. Solo tras 2 fallos seguidos mostramos el banner.
+let _fallosConsecutivos = 0;
 
 const verificarVersion = async () => {
   try {
@@ -206,6 +212,7 @@ const verificarVersion = async () => {
 
     // Confirmado vivo SOLO aquí (tras leer una versión válida). Hacerlo antes
     // causaba un parpadeo false→true en cada 502 del proxy.
+    _fallosConsecutivos = 0;
     backendCaido.value = false;
 
     const versionGuardada = localStorage.getItem('app_version');
@@ -215,11 +222,16 @@ const verificarVersion = async () => {
       localStorage.setItem('app_version', versionServidor);
     }
   } catch {
-    // Backend caído/reiniciando (timeout, error de red o 502/504) → banner y
-    // reintento en 5 s. Se mantiene en true de forma estable (sin parpadeo).
-    backendCaido.value = true;
+    // Un solo fallo NO enciende el banner: puede ser un bloqueo transitorio del
+    // event loop (backend procesando un reporte pesado unos segundos). Solo tras
+    // 2 fallos consecutivos (caída real) mostramos "servicios no disponibles".
+    // El primer fallo reintenta rápido (1.5 s) para confirmar si es real o no.
+    _fallosConsecutivos++;
+    if (_fallosConsecutivos >= 2) {
+      backendCaido.value = true;
+    }
     clearTimeout(_retryTimeout);
-    _retryTimeout = setTimeout(verificarVersion, 5000);
+    _retryTimeout = setTimeout(verificarVersion, _fallosConsecutivos >= 2 ? 5000 : 1500);
   }
 };
 
