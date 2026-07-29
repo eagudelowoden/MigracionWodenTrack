@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { SuperAdminAnaliticaService } from './superadmin-analitica.service';
+import { Pesado } from '../common/carga/pesado.decorator';
 
+@Pesado()
 @Controller('usuarios/superadmin/analitica')
 export class SuperAdminAnaliticaController {
   constructor(private readonly svc: SuperAdminAnaliticaService) {}

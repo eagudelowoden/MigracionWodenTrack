@@ -21,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponibles.module';
 import { WfsmModule } from './wfsm/wfsm.module';
+import { CargaModule } from './common/carga/carga.module';
 
 @Module({
   imports: [
@@ -43,6 +44,9 @@ import { WfsmModule } from './wfsm/wfsm.module';
 
     // 3. Auth (guard global JWT)
     AuthModule,
+
+    // Control de admisión de consultas pesadas (anti-OOM, global)
+    CargaModule,
 
     // 4. Módulos funcionales
     OdooModule,

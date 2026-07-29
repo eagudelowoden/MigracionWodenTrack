@@ -64,6 +64,23 @@ export function setupAxiosInterceptors() {
         localStorage.removeItem(SESSION_KEY);
         window.location.href = '/login';
       }
+
+      // Sistema bajo presión (memoria/concurrencia): el backend rechazó una
+      // consulta pesada con 503. En vez de un error feo, mostramos un mensaje
+      // amable de "vuelve a intentar" y marcamos el error para que el llamador
+      // pueda ofrecer reintento en línea si quiere.
+      const data = error?.response?.data;
+      if (status === 503 && data?.code === 'SISTEMA_OCUPADO') {
+        const mensaje =
+          data.message ||
+          'Ups, esto podría tardar un poco. Intenta de nuevo en unos segundos.';
+        error.sistemaOcupado = true;
+        error.mensajeAmable = mensaje;
+        window.dispatchEvent(
+          new CustomEvent('sistema-ocupado', { detail: { message: mensaje } }),
+        );
+      }
+
       return Promise.reject(error);
     },
   );

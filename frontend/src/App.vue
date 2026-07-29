@@ -62,6 +62,22 @@
     </div>
   </Transition>
 
+  <!-- Sistema bajo presión: consulta pesada rechazada (503 SISTEMA_OCUPADO) -->
+  <Transition name="slide-up">
+    <div v-if="sistemaOcupadoMsg"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[10002] max-w-md w-[92%] p-4 rounded-2xl border shadow-2xl flex items-center gap-3"
+      :class="isDark ? 'bg-slate-900 border-amber-500/40 text-white' : 'bg-white border-amber-300 text-slate-800'">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-500'">
+        <i class="fas fa-hourglass-half"></i>
+      </div>
+      <p class="flex-1 text-[12px] font-semibold leading-snug">{{ sistemaOcupadoMsg }}</p>
+      <button @click="sistemaOcupadoMsg = null" class="opacity-40 hover:opacity-100 flex-shrink-0">
+        <i class="fas fa-times text-[13px]"></i>
+      </button>
+    </div>
+  </Transition>
+
   <main :class="{ 'pt-10 transition-all': anuncioSuperior || backendCaido }">
     <router-view />
   </main>
@@ -82,6 +98,9 @@ const anuncioInferior = ref(null);
 const anuncioSuperior = ref(null);
 // true mientras el backend no responde (ej. reiniciando por un deploy)
 const backendCaido = ref(false);
+// Mensaje amable cuando el sistema rechaza una consulta pesada por presión
+const sistemaOcupadoMsg = ref(null);
+let _sistemaOcupadoTimer = null;
 
 const API_BASE = import.meta.env.VITE_API_URL.replace('/usuarios', '');
 
@@ -215,10 +234,20 @@ const recargarPagina = async () => {
   } catch { window.location.reload(true); }
 };
 
+// Escucha el evento que dispara axiosSetup cuando el backend responde 503
+// SISTEMA_OCUPADO → muestra el toast amable y lo auto-oculta a los 6 s.
+const onSistemaOcupado = (e) => {
+  sistemaOcupadoMsg.value =
+    e?.detail?.message || 'Ups, esto podría tardar un poco. Intenta de nuevo en unos segundos.';
+  clearTimeout(_sistemaOcupadoTimer);
+  _sistemaOcupadoTimer = setTimeout(() => { sistemaOcupadoMsg.value = null; }, 6000);
+};
+
 onMounted(() => {
   cargarAnuncioActivo();
   verificarVersion();
   setupSockets();
+  window.addEventListener('sistema-ocupado', onSistemaOcupado);
   // Respaldo HTTP cada 8 s: garantiza detección de caída en ≤ 8 s aunque el
   // WebSocket no avise (caso típico detrás del proxy de IIS en producción).
   setInterval(verificarVersion, 8000);

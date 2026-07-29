@@ -14,6 +14,7 @@ import {
 import type { Response } from 'express';
 import { UsuariosService } from './usuarios.service';
 import { Public } from '../auth/public.decorator';
+import { Pesado } from '../common/carga/pesado.decorator';
 
 @Controller('usuarios')
 export class UsuariosController {
@@ -145,6 +146,7 @@ export class UsuariosController {
   }
 
   // En el controlador
+  @Pesado()
   @Get('reporte-novedades')
   async getReporteNovedades(
     @Query('hoy') hoy: string,
