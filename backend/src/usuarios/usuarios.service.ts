@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import * as v8 from 'v8';
 import { JwtService } from '@nestjs/jwt';
 import { OdooService } from '../odoo/odoo.service';
 import { Usuario } from './entities/usuario.entity';
@@ -1805,6 +1806,16 @@ export class UsuariosService {
       ]);
     }
     console.timeEnd('⏱ partners+mallas');
+
+    // ── PREVENCIÓN DE OOM antes de la fase pesada ────────────────────────────
+    // El mapeo + agrupamiento + ordenamiento que viene DUPLICA la memoria (crea
+    // arrays nuevos mientras aún existen los crudos). Como esa fase es síncrona
+    // y NO se puede interrumpir a mitad, verificamos AQUÍ que hay headroom: si
+    // ya vamos por encima del 45% del heap, al duplicar llegaríamos al límite →
+    // abortamos con un error CONTROLADO (que el stream envía al cliente) en vez
+    // de dejar que el proceso muera por OOM.
+    this.abortarSiSinHeadroom('procesar el reporte', total);
+
     emit(92, 'Procesando registros…');
 
     const toLocal = this.crearConvertidorLocal();
@@ -1900,6 +1911,27 @@ export class UsuariosService {
   // ==========================================
   // MÉTODOS AUXILIARES DEL REPORTE
   // ==========================================
+
+  /**
+   * Última barrera anti-OOM ANTES de la fase de procesamiento (map+group+sort),
+   * que ~duplica la memoria y es síncrona (no se puede interrumpir a mitad). Si
+   * ya no hay headroom suficiente, lanza un error CONTROLADO en vez de dejar que
+   * el proceso muera. El umbral 45% deja espacio para que el "duplicado" quepa.
+   */
+  private abortarSiSinHeadroom(operacion: string, registros: number): void {
+    const heapLimit = v8.getHeapStatistics().heap_size_limit;
+    const heapUsed = process.memoryUsage().heapUsed;
+
+    if (heapUsed / heapLimit >= 0.45) {
+      const usadoMb = Math.round(heapUsed / 1024 / 1024);
+      const limiteMb = Math.round(heapLimit / 1024 / 1024);
+      throw new InternalServerErrorException(
+        `Consulta demasiado grande para ${operacion}: memoria en ${usadoMb} MB ` +
+          `de ${limiteMb} MB con ${registros} registros. Reduce el rango de fechas ` +
+          `o agrega un filtro de departamento/área e intenta de nuevo.`,
+      );
+    }
+  }
 
   private async resolverIdsPorEstructura(
     areaId?: number,
