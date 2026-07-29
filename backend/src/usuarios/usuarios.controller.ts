@@ -15,10 +15,14 @@ import type { Response } from 'express';
 import { UsuariosService } from './usuarios.service';
 import { Public } from '../auth/public.decorator';
 import { Pesado } from '../common/carga/pesado.decorator';
+import { CargaService } from '../common/carga/carga.service';
 
 @Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(
+    private readonly usuariosService: UsuariosService,
+    private readonly carga: CargaService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -116,6 +120,20 @@ export class UsuariosController {
       }
     }
 
+    // Control de admisión: si el sistema está bajo presión, espera turno (hasta
+    // 30 s) o avisa por SSE que reintente — así no encolamos consultas pesadas
+    // que reventarían la memoria. Se avisa por el MISMO canal SSE (no un 503,
+    // que rompería el lector de stream del cliente).
+    const motivo = await this.carga.adquirir();
+    if (motivo) {
+      send({
+        type: 'error',
+        message: 'Ups, esto podría tardar un poco. Intenta de nuevo en unos segundos.',
+      });
+      res.end();
+      return;
+    }
+
     // Tamaño del lote enviado al cliente por evento SSE: evita serializar
     // (JSON.stringify) un array gigante de una sola vez y reduce el pico de
     // memoria retenido mientras se construye la respuesta.
@@ -141,6 +159,7 @@ export class UsuariosController {
     } catch (err: any) {
       send({ type: 'error', message: err?.message || 'Error desconocido' });
     } finally {
+      this.carga.liberar();
       res.end();
     }
   }

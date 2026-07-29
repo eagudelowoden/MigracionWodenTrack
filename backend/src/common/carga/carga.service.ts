@@ -99,11 +99,14 @@ export class CargaService {
 
   /** Estado actual — útil para un endpoint de salud/diagnóstico. */
   estado() {
+    const mb = (b: number) => Math.round(b / 1024 / 1024);
     return {
       enCurso: this.enCurso,
       esperando: this.cola.length,
       maxConcurrentes: this.MAX_CONCURRENTES,
       esperaMaxSeg: this.MAX_ESPERA_MS / 1000,
+      heapLimiteMb: mb(this.heapLimit),
+      heapUsadoMb: mb(process.memoryUsage().heapUsed),
       presionMemoriaPct: Math.round(this.presionMemoria() * 100),
       umbralPct: this.UMBRAL_HEAP * 100,
     };

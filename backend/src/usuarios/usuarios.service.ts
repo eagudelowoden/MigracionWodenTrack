@@ -1810,7 +1810,7 @@ export class UsuariosService {
     const toLocal = this.crearConvertidorLocal();
 
     console.time('⏱ mapLogs');
-    const [resAttendances, resLogs] = await Promise.all([
+    const mapeados = await Promise.all([
       Promise.resolve(
         this.mapAttendances(attendances, partnerMap!, toLocal, mallasLocalMap),
       ),
@@ -1825,8 +1825,24 @@ export class UsuariosService {
     ]);
     console.timeEnd('⏱ mapLogs');
 
-    // 8. Unir y ordenar
-    const todosSinFiltrar = [...resAttendances, ...resLogs].sort((a, b) => {
+    let resAttendances: any[] = mapeados[0];
+    let resLogs: any[] | null = mapeados[1];
+
+    // ── Mitigación de memoria #1 ─────────────────────────────────────────────
+    // Los arrays CRUDOS de Odoo ya se mapearon y no se vuelven a usar. Liberarlos
+    // deja que el GC recupere ~la mitad del pico antes de agrupar/ordenar.
+    attendances = null as any;
+    logs = null as any;
+
+    // ── Mitigación de memoria #2 ─────────────────────────────────────────────
+    // Unir SIN crear una 3.ª copia: en vez de `[...resAttendances, ...resLogs]`
+    // (que materializa un array nuevo con TODO), hacemos append in-place de
+    // resLogs dentro de resAttendances (en loop, no spread, para no reventar la
+    // pila con arrays grandes) y luego liberamos resLogs.
+    for (let i = 0; i < resLogs.length; i++) resAttendances.push(resLogs[i]);
+    resLogs = null;
+
+    resAttendances.sort((a, b) => {
       const timeA = new Date(
         (a.check_in || a.check_out || '0').replace(' ', 'T'),
       ).getTime();
@@ -1836,24 +1852,28 @@ export class UsuariosService {
       return timeB - timeA;
     });
 
-    // FILTRO REPARADO:
-    const resultado =
-      startDay || endDay
-        ? todosSinFiltrar.filter((r) => {
-            // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha
-            // sea el día que empezó el turno (incluso para salidas nocturnas)
-            const f = r.fecha;
+    // FILTRO REPARADO (sin copia extra cuando no hay filtro de días):
+    let resultado: any[];
+    if (startDay || endDay) {
+      resultado = resAttendances.filter((r) => {
+        // Usamos r.fecha porque mapLogs ya se encarga de que r.fecha
+        // sea el día que empezó el turno (incluso para salidas nocturnas)
+        const f = r.fecha;
 
-            if (!f || f === 'N/A') return true;
+        if (!f || f === 'N/A') return true;
 
-            // Si pediste hasta el 29, esto eliminará cualquier bloque que
-            // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
-            if (startDay && f < startDay) return false;
-            if (endDay && f > endDay) return false;
+        // Si pediste hasta el 29, esto eliminará cualquier bloque que
+        // HAYA EMPEZADO el día 30, pero mantendrá el que empezó el 29 y terminó el 30.
+        if (startDay && f < startDay) return false;
+        if (endDay && f > endDay) return false;
 
-            return true;
-          })
-        : todosSinFiltrar;
+        return true;
+      });
+      // Ya tenemos el filtrado → liberar el array grande sin filtrar.
+      resAttendances = null as any;
+    } else {
+      resultado = resAttendances;
+    }
 
     emit(98, 'Preparando resultado…');
     const tiempoTotal = (Date.now() - inicioTotal) / 1000;

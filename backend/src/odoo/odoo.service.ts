@@ -1,6 +1,7 @@
 // src/odoo/odoo.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as v8 from 'v8';
 
 /**
  * Cliente Odoo vía JSON-RPC (POST /jsonrpc).
@@ -152,11 +153,15 @@ export class OdooService {
     const results: T[] = [];
     let offset = 0;
 
-    // Heap máximo por defecto de Node (--max-old-space-size) ronda ~2GB en la
-    // mayoría de hosts; abortamos bastante antes de llegar ahí para devolver
-    // un error controlado al cliente en vez de que el proceso completo muera
-    // por out-of-memory (lo que tumba toda la API, no solo este reporte).
-    const HEAP_LIMIT_BYTES = 1.2 * 1024 * 1024 * 1024;
+    // Umbral DINÁMICO relativo al heap REAL del proceso (respeta el
+    // --max-old-space-size efectivo). Abortamos al 55% porque el pico REAL no
+    // es la descarga sino el PROCESAMIENTO posterior (agrupar + mapear cédulas),
+    // donde la memoria casi se duplica: mantiene los arrays crudos mientras
+    // construye la estructura agrupada. Cortar la descarga al 55% deja ~45% de
+    // headroom para esa fase y evita el OOM (lanza un error CONTROLADO que el
+    // stream envía al cliente, en vez de que el proceso muera).
+    const heapLimit = v8.getHeapStatistics().heap_size_limit;
+    const umbralBytes = Math.floor(heapLimit * 0.55);
 
     while (true) {
       const chunk = await this.executeKw<T[]>(
@@ -168,10 +173,14 @@ export class OdooService {
       results.push(...chunk);
       onProgress(results.length, total);
 
-      if (process.memoryUsage().heapUsed > HEAP_LIMIT_BYTES) {
+      if (process.memoryUsage().heapUsed > umbralBytes) {
+        const usadoMb = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        const limiteMb = Math.round(heapLimit / 1024 / 1024);
         throw new InternalServerErrorException(
-          `Consulta abortada: uso de memoria excesivo al cargar ${model} ` +
-            `(${results.length}/${total} registros). Reduce el rango de fechas o agrega filtros.`,
+          `Consulta demasiado grande: se alcanzó el límite de memoria ` +
+            `(${usadoMb} MB de ${limiteMb} MB) al cargar ${model} ` +
+            `(${results.length}/${total} registros). Reduce el rango de fechas ` +
+            `o agrega un filtro de departamento/área e intenta de nuevo.`,
         );
       }
 
