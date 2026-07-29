@@ -8,11 +8,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MallasUploadService } from './mallas-upload.service';
+import { Pesado } from '../common/carga/pesado.decorator';
 
 @Controller('usuarios/mallas-upload')
 export class MallasUploadController {
   constructor(private readonly mallasUploadService: MallasUploadService) {}
 
+  @Pesado()
   @Post('import')
   @UseInterceptors(FileInterceptor('file'))
   async importMallas(

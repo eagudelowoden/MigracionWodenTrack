@@ -17,6 +17,7 @@ import type { Response } from 'express';
 import { HorasExtraService } from './horas-extra.service';
 import { HorasExtraJobService } from './horas-extra-job.service';
 import { HorasExtraCronService } from './horas-extra-cron.service';
+import { Pesado } from '../common/carga/pesado.decorator';
 
 @Controller('usuarios/horas-extra')
 export class HorasExtraController {
@@ -26,6 +27,7 @@ export class HorasExtraController {
     private readonly cronService: HorasExtraCronService,
   ) {}
 
+  @Pesado()
   @Post('calcular')
   calcular(
     @Body()
@@ -42,6 +44,7 @@ export class HorasExtraController {
     return this.service.calcularExtras({ ...dto, guardar: false });
   }
 
+  @Pesado()
   @Post('guardar')
   guardar(
     @Body()
@@ -313,6 +316,7 @@ export class HorasExtraController {
     return this.service.notificarAprobados(body.registros ?? [], body.calculado_por);
   }
 
+  @Pesado()
   @Post('guardar-seleccionados')
   guardarSeleccionados(
     @Body() body: { registros: any[]; calculado_por?: string; calculado_por_id?: number },
@@ -324,6 +328,7 @@ export class HorasExtraController {
     );
   }
 
+  @Pesado()
   @Post('exportar-calculado')
   async exportarCalculado(
     @Body() body: { registros: any[] },
@@ -342,6 +347,7 @@ export class HorasExtraController {
     res.send(buffer);
   }
 
+  @Pesado()
   @Get('exportar-excel')
   async exportarExcel(
     @Query('startDate') startDate: string,

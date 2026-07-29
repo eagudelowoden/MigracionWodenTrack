@@ -25,14 +25,19 @@ export class CargaPesadaInterceptor implements NestInterceptor {
     private readonly carga: CargaService,
   ) {}
 
-  intercept(ctx: ExecutionContext, next: CallHandler): Observable<any> {
+  async intercept(
+    ctx: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<any>> {
     const esPesado = this.reflector.getAllAndOverride<boolean>(ES_PESADO, [
       ctx.getHandler(),
       ctx.getClass(),
     ]);
     if (!esPesado) return next.handle();
 
-    const motivo = this.carga.intentarAdquirir();
+    // Espera en cola hasta 30 s si no hay cupo; rechaza si la memoria ya está
+    // peligrosa o si se agota la espera.
+    const motivo = await this.carga.adquirir();
     if (motivo) {
       throw new HttpException(
         {
