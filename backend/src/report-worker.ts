@@ -30,6 +30,21 @@ process.env.HX_WORKER = '1';
 
 const CHUNK_SIZE = 1000;
 
+/**
+ * `process.send()` ENCOLA el mensaje en el pipe IPC, no lo escribe al instante.
+ * Si `process.exit()` corre antes de que termine de escribirse, el mensaje se
+ * PIERDE — el padre ve el proceso morir sin haber recibido 'done'/'error' y lo
+ * trata como una caída inesperada (código 0), aunque el hijo terminó bien.
+ * `send()` acepta un callback que confirma la escritura real: hay que esperarlo
+ * SIEMPRE antes de cerrar el proceso.
+ */
+function sendAndFlush(msg: any): Promise<void> {
+  return new Promise((resolve) => {
+    if (!process.send) return resolve();
+    process.send(msg, () => resolve());
+  });
+}
+
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn'],
@@ -51,16 +66,19 @@ async function bootstrap() {
         msg.segmentoId,
         msg.agrupar,
         (percent: number, message: string) => {
+          // Progreso: no se espera (no es crítico si se pierde alguno), pero
+          // no debe bloquear el bucle de descarga con awaits innecesarios.
           process.send?.({ type: 'progress', percent, message });
         },
       );
 
       for (let i = 0; i < result.length; i += CHUNK_SIZE) {
-        process.send?.({ type: 'chunk', data: result.slice(i, i + CHUNK_SIZE) });
+        await sendAndFlush({ type: 'chunk', data: result.slice(i, i + CHUNK_SIZE) });
       }
-      process.send?.({ type: 'done', total: result.length });
+      // Mensaje FINAL: hay que garantizar que se escribió antes de cerrar.
+      await sendAndFlush({ type: 'done', total: result.length });
     } catch (e: any) {
-      process.send?.({ type: 'error', message: e?.message || 'Error desconocido' });
+      await sendAndFlush({ type: 'error', message: e?.message || 'Error desconocido' });
     } finally {
       await app.close();
       process.exit(0);

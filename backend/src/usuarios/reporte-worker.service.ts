@@ -121,8 +121,13 @@ export class ReporteWorkerService {
 
       // Si el proceso muere sin haber mandado 'done'/'error' (crash/OOM del
       // propio hijo), lo tratamos como error controlado en vez de colgar la
-      // promesa para siempre.
-      child.on('exit', (code) => {
+      // promesa para siempre. OJO: usamos 'close', NO 'exit' — 'exit' puede
+      // dispararse ANTES de que el canal IPC termine de entregar los últimos
+      // mensajes en tránsito (falso positivo de "murió sin avisar"); 'close'
+      // Node lo garantiza recién DESPUÉS de que los streams (incluido IPC)
+      // terminaron de drenar, así que si el mensaje 'done' ya se envió, aquí
+      // siempre llega primero.
+      child.on('close', (code) => {
         if (this.activos.has(child.pid!)) {
           limpiar();
           reject(
