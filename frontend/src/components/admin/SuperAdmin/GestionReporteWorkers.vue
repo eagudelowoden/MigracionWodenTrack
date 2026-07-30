@@ -11,11 +11,22 @@
           <strong>proceso aparte</strong>, para que nunca bloquee la API. Aquí ves los que están corriendo ahora mismo.
         </p>
       </div>
-      <button @click="cargar" :disabled="cargando"
-        class="flex items-center gap-2 h-9 px-4 rounded-lg text-[12px] font-semibold transition-all disabled:opacity-50 bg-[#3B82F6] text-white hover:bg-[#2563EB]">
-        <i class="fas" :class="cargando ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
-        Actualizar
-      </button>
+      <div class="flex items-center gap-3">
+        <!-- Estado de la pool de precalentados -->
+        <div class="flex items-center gap-2 h-9 px-3 rounded-lg border"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-50 border-slate-200'"
+          title="Workers ya arrancados y conectados, listos para tomar un reporte al instante">
+          <i class="fas fa-fire" :class="poolClass"></i>
+          <span class="text-[12px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+            Precalentados: {{ pool?.disponibles ?? 0 }} / {{ pool?.tamanoObjetivo ?? 0 }}
+          </span>
+        </div>
+        <button @click="cargar" :disabled="cargando"
+          class="flex items-center gap-2 h-9 px-4 rounded-lg text-[12px] font-semibold transition-all disabled:opacity-50 bg-[#3B82F6] text-white hover:bg-[#2563EB]">
+          <i class="fas" :class="cargando ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
+          Actualizar
+        </button>
+      </div>
     </div>
 
     <!-- Tabla de activos -->
@@ -115,18 +126,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
 defineProps({ isDark: { type: Boolean, default: true } });
 
 const API = import.meta.env.VITE_API_URL; // .../usuarios
 const activos = ref([]);
+const pool = ref(null);
 const cargando = ref(false);
 const matando = ref(null);
 const mensaje = ref('');
 const mensajeError = ref(false);
 let autoRefreshTimer = null;
+
+const poolClass = computed(() => {
+  if (!pool.value) return 'text-slate-400';
+  return pool.value.disponibles >= pool.value.tamanoObjetivo
+    ? 'text-emerald-500'
+    : 'text-amber-500';
+});
 
 const flash = (msg, error = false) => {
   mensaje.value = msg;
@@ -154,9 +173,11 @@ async function cargar() {
   cargando.value = true;
   try {
     const { data } = await axios.get(`${API}/reporte-workers`);
-    activos.value = Array.isArray(data) ? data : [];
+    activos.value = Array.isArray(data?.activos) ? data.activos : [];
+    pool.value = data?.pool ?? null;
   } catch {
     activos.value = [];
+    pool.value = null;
   } finally {
     cargando.value = false;
   }

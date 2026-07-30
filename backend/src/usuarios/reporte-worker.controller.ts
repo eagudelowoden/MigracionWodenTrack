@@ -12,7 +12,10 @@ export class ReporteWorkerController {
 
   @Get()
   listar() {
-    return this.workers.listarActivos();
+    return {
+      activos: this.workers.listarActivos(),
+      pool: this.workers.estadoPool(),
+    };
   }
 
   @Patch(':pid/matar')
