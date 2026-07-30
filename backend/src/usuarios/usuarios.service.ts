@@ -1640,6 +1640,153 @@ export class UsuariosService {
     return resultado;
   }
   // ==========================================
+  // DIAGNÓSTICO: solo descarga de Odoo, SIN cruces (sin mallas, sin cédulas,
+  // sin mapAttendances/mapLogs). Sirve para medir de forma AISLADA cuánto pesa
+  // cada fase — bajar de Odoo vs. el cruce/procesamiento — sin tocar el reporte
+  // completo existente. No agrupa, no empareja turnos, no resuelve cédulas.
+  // ==========================================
+  async getReporteCrudoDiagnostico(
+    soloHoy?: boolean,
+    companyName?: string,
+    startDate?: string,
+    endDate?: string,
+    departamentoName?: string,
+    areaId?: number,
+    segmentoId?: number,
+  ) {
+    const mb = (b: number) => Math.round(b / 1024 / 1024);
+    const tiempos: Record<string, number> = {};
+    const memoria: Record<string, number> = {};
+    const marcar = (nombre: string, t0: number) => {
+      tiempos[nombre] = Date.now() - t0;
+      memoria[`heapMb_tras_${nombre}`] = mb(process.memoryUsage().heapUsed);
+    };
+
+    const inicioTotal = Date.now();
+    memoria.heapMb_inicio = mb(process.memoryUsage().heapUsed);
+
+    // 1. Autenticar
+    let t0 = Date.now();
+    const uid = await this.odoo.authenticate();
+    marcar('autenticar', t0);
+    const { hoyFechaCorta } = getFechaColombia();
+
+    // 2. Resolver filtro por estructura local (área/segmento) — igual que el
+    //    reporte real, para que el dominio de Odoo sea comparable.
+    t0 = Date.now();
+    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+      areaId,
+      segmentoId,
+    );
+    if (employeeIdsPorEstructura !== null && employeeIdsPorEstructura.length === 0) {
+      return {
+        attendancesCount: 0,
+        logsCount: 0,
+        tiempos,
+        memoria,
+        tiempoTotalMs: Date.now() - inicioTotal,
+        nota: 'Sin empleados para el filtro de estructura dado.',
+      };
+    }
+
+    let employeeIdsEfectivos: number[] | null = employeeIdsPorEstructura;
+    let usarFiltroRelacional = true;
+    if (employeeIdsEfectivos === null) {
+      const hayFiltroEmpresaODepto =
+        (companyName && companyName !== 'Todas' && companyName !== '') ||
+        (departamentoName && departamentoName !== 'DEPARTAMENTOS' && departamentoName !== '');
+      if (hayFiltroEmpresaODepto) {
+        const idsLocal = await this.resolverIdsPorCompanyDepto(companyName, departamentoName);
+        if (idsLocal.length > 0) {
+          employeeIdsEfectivos = idsLocal;
+          usarFiltroRelacional = false;
+        }
+      }
+    }
+    marcar('resolverFiltros', t0);
+
+    // 3. Dominios (mismas fechas/filtros que el reporte real)
+    const { inicioUTC, finUTC, finUTCLog } = this.calcularRangoUTC(
+      soloHoy, hoyFechaCorta, startDate, endDate,
+    );
+    const { domainAtt, domainLog } = this.construirDominios(
+      inicioUTC, finUTC,
+      usarFiltroRelacional ? companyName : undefined,
+      usarFiltroRelacional ? departamentoName : undefined,
+      employeeIdsEfectivos,
+      finUTCLog,
+    );
+
+    // 4. Contar (sin descargar aún)
+    t0 = Date.now();
+    const [countAtt, countLog] = await Promise.all([
+      this.odoo.executeKw<number>('hr.attendance', 'search_count', [domainAtt], {}, uid),
+      this.odoo.executeKw<number>('attendance.log', 'search_count', [domainLog], {}, uid),
+    ]);
+    marcar('contar', t0);
+
+    // 5. Descargar hr.attendance — CRUDO, sin mapear
+    t0 = Date.now();
+    const attFields = [
+      'employee_id', 'check_in', 'check_out', 'department_id',
+      'x_studio_tipo_entrada', 'x_studio_tipo_salida',
+    ];
+    const attendances = await this.odoo.searchReadAllWithProgress<any>(
+      'hr.attendance', domainAtt, attFields, uid, () => {},
+    );
+    marcar('descargarAttendances', t0);
+
+    // 6. Descargar attendance.log — CRUDO, sin mapear
+    t0 = Date.now();
+    const logFields = [
+      'employee_id', 'punching_time', 'status',
+      'x_studio_related_field_j40wn', 'device',
+    ];
+    const logs = await this.odoo.searchReadAllWithProgress<any>(
+      'attendance.log', domainLog, logFields, uid, () => {},
+    );
+    marcar('descargarLogs', t0);
+
+    // Aplanar para tabla: usamos employee_id (Odoo) directo — NO se resuelve
+    // cédula (eso requeriría otra llamada a Odoo, innecesaria para inspeccionar
+    // el dato crudo). La hora local es solo FORMATO (mismo conversor que usa el
+    // reporte real), no hay emparejamiento de turnos ni cruce con mallas.
+    const toLocal = this.crearConvertidorLocal();
+    const attendancesPlanas = attendances.map((a) => ({
+      id: a.id,
+      employee_id: a.employee_id?.[0] ?? null,
+      empleado: a.employee_id?.[1] ?? 'Desconocido',
+      department_id: a.department_id?.[1] ?? 'SIN DEPTO',
+      check_in: toLocal(a.check_in),
+      check_out: a.check_out ? toLocal(a.check_out) : null,
+      tipo_entrada: a.x_studio_tipo_entrada ?? null,
+      tipo_salida: a.x_studio_tipo_salida ?? null,
+    }));
+    const logsPlanos = logs.map((l) => ({
+      id: l.id,
+      employee_id: l.employee_id?.[0] ?? null,
+      empleado: l.employee_id?.[1] ?? 'Desconocido',
+      department_id: l.x_studio_related_field_j40wn?.[1] ?? 'SIN DEPTO',
+      punching_time: toLocal(l.punching_time),
+      status: l.status ?? null,
+      device: l.device ?? null,
+    }));
+
+    return {
+      attendancesCount: attendancesPlanas.length,
+      logsCount: logsPlanos.length,
+      countEstimadoAttendances: countAtt,
+      countEstimadoLogs: countLog,
+      tiempos,      // ms por fase
+      memoria,      // heap (MB) tras cada fase
+      tiempoTotalMs: Date.now() - inicioTotal,
+      attendances: attendancesPlanas,
+      logs: logsPlanos,
+      nota: 'Diagnóstico: solo descarga de Odoo (employee_id directo), sin cruces de mallas ni resolución de cédulas.',
+    };
+  }
+
+  // ==========================================
   // MÉTODO PRINCIPAL - Solo orquesta
   // ==========================================
   async getReporteNovedades(

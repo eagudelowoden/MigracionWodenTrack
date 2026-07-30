@@ -424,6 +424,40 @@ export function useCargarAsistencias() {
     errorMsg.value = "";
   };
 
+  // ─── Vista de diagnóstico: datos CRUDOS (sin cruces de mallas/cédulas) ──────
+  // Reutiliza los MISMOS filtros activos (fechas, empresa, depto, área/segmento)
+  // pero apunta a un endpoint aparte que solo descarga de Odoo, sin cruzar. Útil
+  // para medir/ver qué trae Odoo tal cual, sin la lógica de emparejamiento.
+  const crudoData = ref(null);
+  const loadingCrudo = ref(false);
+  const crudoError = ref("");
+
+  const fetchCrudoDiagnostico = async () => {
+    const errorValidacion = validarRango();
+    if (errorValidacion) {
+      crudoError.value = errorValidacion;
+      return;
+    }
+    crudoError.value = "";
+    loadingCrudo.value = true;
+    crudoData.value = null;
+    try {
+      const url = buildUrl(
+        filterHoy.value ? null : startDate.value,
+        filterHoy.value ? null : endDate.value,
+        false,
+      ).replace("/reporte-novedades", "/reporte-novedades/diagnostico-crudo");
+
+      const res = await apiFetch(url);
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+      crudoData.value = await res.json();
+    } catch (err) {
+      crudoError.value = err.message || "Error al cargar los datos crudos.";
+    } finally {
+      loadingCrudo.value = false;
+    }
+  };
+
   // ─── Exports ─────────────────────────────────────────────────────────────────
 
   return {
@@ -449,5 +483,10 @@ export function useCargarAsistencias() {
     totalPages,
     currentPage,
     itemsPerPage,
+    // Diagnóstico: datos crudos sin cruces
+    crudoData,
+    loadingCrudo,
+    crudoError,
+    fetchCrudoDiagnostico,
   };
 }

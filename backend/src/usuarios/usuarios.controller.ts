@@ -16,12 +16,14 @@ import { UsuariosService } from './usuarios.service';
 import { Public } from '../auth/public.decorator';
 import { Pesado } from '../common/carga/pesado.decorator';
 import { CargaService } from '../common/carga/carga.service';
+import { ReporteWorkerService } from './reporte-worker.service';
 
 @Controller('usuarios')
 export class UsuariosController {
   constructor(
     private readonly usuariosService: UsuariosService,
     private readonly carga: CargaService,
+    private readonly reporteWorker: ReporteWorkerService,
   ) {}
 
   @Public()
@@ -134,28 +136,27 @@ export class UsuariosController {
       return;
     }
 
-    // Tamaño del lote enviado al cliente por evento SSE: evita serializar
-    // (JSON.stringify) un array gigante de una sola vez y reduce el pico de
-    // memoria retenido mientras se construye la respuesta.
-    const CHUNK_SIZE = 1000;
-
+    // El CRUCE (descarga + emparejamiento de turnos/mallas) corre en un PROCESO
+    // APARTE (report-worker.ts), no en la API: así nunca bloquea el event loop
+    // ni congela marcaciones de otros usuarios mientras calcula. El resultado
+    // llega por IPC y se reenvía tal cual por SSE (misma forma de siempre para
+    // el cliente).
     try {
-      const result = await this.usuariosService.getReporteNovedades(
-        hoy === 'true',
-        company,
-        startDate,
-        endDate,
-        departamento,
-        areaId ? +areaId : undefined,
-        segmentoId ? +segmentoId : undefined,
-        agrupar !== 'false',
+      const { total } = await this.reporteWorker.ejecutar(
+        {
+          hoy: hoy === 'true',
+          company,
+          startDate,
+          endDate,
+          departamento,
+          areaId: areaId ? +areaId : undefined,
+          segmentoId: segmentoId ? +segmentoId : undefined,
+          agrupar: agrupar !== 'false',
+        },
         (pct, msg) => send({ type: 'progress', percent: pct, message: msg }),
+        (data) => send({ type: 'chunk', data }),
       );
-
-      for (let i = 0; i < result.length; i += CHUNK_SIZE) {
-        send({ type: 'chunk', data: result.slice(i, i + CHUNK_SIZE) });
-      }
-      send({ type: 'done', total: result.length });
+      send({ type: 'done', total });
     } catch (err: any) {
       send({ type: 'error', message: err?.message || 'Error desconocido' });
     } finally {
@@ -198,6 +199,35 @@ export class UsuariosController {
       areaId ? +areaId : undefined,
       segmentoId ? +segmentoId : undefined,
       agrupar !== 'false', // 👈 pasa true por defecto, false solo para Excel
+    );
+  }
+
+  /**
+   * DIAGNÓSTICO — opción adicional e independiente del reporte normal. Solo
+   * descarga de Odoo (hr.attendance + attendance.log), SIN cruzar mallas ni
+   * resolver cédulas. Sirve para medir por separado cuánto pesa la descarga
+   * vs. el cruce/procesamiento (que sí hace el endpoint 'reporte-novedades').
+   * No toca ni reemplaza los endpoints existentes.
+   */
+  @Pesado()
+  @Get('reporte-novedades/diagnostico-crudo')
+  async getReporteCrudoDiagnostico(
+    @Query('hoy') hoy: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company: string,
+    @Query('departamento') departamento: string,
+    @Query('area_id') areaId: string,
+    @Query('segmento_id') segmentoId: string,
+  ) {
+    return this.usuariosService.getReporteCrudoDiagnostico(
+      hoy === 'true',
+      company,
+      startDate,
+      endDate,
+      departamento,
+      areaId ? +areaId : undefined,
+      segmentoId ? +segmentoId : undefined,
     );
   }
   /**

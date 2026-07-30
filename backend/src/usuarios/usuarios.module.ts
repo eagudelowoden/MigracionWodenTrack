@@ -43,6 +43,8 @@ import { SyncCronLog } from './entities/sync-cron-log.entity';
 import { SuperAdminSyncCronService } from './superadmin-sync-cron.service';
 import { SuperAdminSyncCronController } from './superadmin-sync-cron.controller';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { ReporteWorkerService } from './reporte-worker.service';
+import { ReporteWorkerController } from './reporte-worker.controller';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
     SuperAdminSolicitudesController,
     SuperAdminFondosController,
     SuperAdminSyncCronController,
+    ReporteWorkerController,
   ],
   providers: [
     UsuariosService,
@@ -95,6 +98,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
     SuperAdminFondosService,
     SuperAdminSyncCronService,
     SchedulerRegistry,
+    ReporteWorkerService,
   ],
   exports: [UsuariosService, MallasUploadService, MallasCrudService, InternoGateway, SuperAdminCorreoService],
 })
