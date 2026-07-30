@@ -1141,12 +1141,12 @@ export class UsuariosService {
     return 'No programado';
   }
 
-  private mapAttendances(
+  private async mapAttendances(
     attendances: any[],
     partnerMap: Record<string, string>,
     toLocal: (d: string) => string | null,
     mallasLocalMap: Map<number, any[]>,
-  ): any[] {
+  ): Promise<any[]> {
     // ── helpers ──────────────────────────────────────────────────────────────
     const horaDecimalDeLocal = (local: string): number => {
       const t = local.split(' ')[1] || '';
@@ -1194,7 +1194,11 @@ export class UsuariosService {
       { empId: number; nombre: string; dept: string; registros: any[] }
     > = {};
 
+    let _iterAtt = 0;
     for (const att of attendances) {
+      // Ceder el event loop cada 2000 asistencias para no bloquear el servidor.
+      if (++_iterAtt % 2000 === 0) await this.cederEventLoop();
+
       const empId = att.employee_id?.[0];
       const nombre = att.employee_id?.[1] || 'Desconocido';
       const localIn = toLocal(att.check_in);
@@ -1460,7 +1464,11 @@ export class UsuariosService {
       { nombre: string; dept: string; punches: any[] }
     >();
 
+    let _iterLog = 0;
     for (const log of logs) {
+      // Ceder el event loop cada 2000 logs para no bloquear el servidor.
+      if (++_iterLog % 2000 === 0) await this.cederEventLoop();
+
       const empId: number = log.employee_id?.[0];
       if (!empId) continue;
       const nombre: string = log.employee_id?.[1] || 'Desconocido';
@@ -1480,7 +1488,11 @@ export class UsuariosService {
     const MIN_DIFF_MS = 5 * 60 * 1000;
     const resultado: any[] = [];
 
+    let _iterEmp = 0;
     for (const [empId, { nombre, dept, punches }] of porEmpleado) {
+      // Ceder el event loop cada 500 empleados durante el emparejamiento.
+      if (++_iterEmp % 500 === 0) await this.cederEventLoop();
+
       punches.sort(
         (a, b) =>
           new Date(a.punching_time).getTime() -
@@ -1822,9 +1834,7 @@ export class UsuariosService {
 
     console.time('⏱ mapLogs');
     const mapeados = await Promise.all([
-      Promise.resolve(
-        this.mapAttendances(attendances, partnerMap!, toLocal, mallasLocalMap),
-      ),
+      this.mapAttendances(attendances, partnerMap!, toLocal, mallasLocalMap),
       this.mapLogs(
         logs,
         partnerMap!,
@@ -1918,6 +1928,16 @@ export class UsuariosService {
    * ya no hay headroom suficiente, lanza un error CONTROLADO en vez de dejar que
    * el proceso muera. El umbral 45% deja espacio para que el "duplicado" quepa.
    */
+  /**
+   * Cede el control al event loop. Se llama cada N iteraciones en los bucles
+   * pesados (map/agrupar) para que Node NO quede bloqueado varios segundos: así
+   * puede atender el ping del socket, el health check y otras marcaciones ENTRE
+   * lote y lote del procesamiento, en vez de congelar todo el servidor.
+   */
+  private cederEventLoop(): Promise<void> {
+    return new Promise((resolve) => setImmediate(resolve));
+  }
+
   private abortarSiSinHeadroom(operacion: string, registros: number): void {
     const heapLimit = v8.getHeapStatistics().heap_size_limit;
     const heapUsed = process.memoryUsage().heapUsed;

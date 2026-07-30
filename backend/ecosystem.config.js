@@ -1,58 +1,71 @@
 /**
- * Configuración de PM2 para WodenTrack.
+ * Configuración de PM2 para la API WodenTrack — PRODUCCIÓN.
  *
- * Levanta DOS procesos independientes que se reinician solos y arrancan con el
- * servidor:
- *   1. woden-api    → la API (NestJS). Nunca lanza workers (HX_NO_SPAWN=1):
- *                     el cron solo ENCOLA, y el worker demonio procesa la cola.
- *   2. woden-worker → el worker en modo DEMONIO (siempre vivo, revisa la cola
- *                     cada pocos segundos). Si revienta por un job enorme, PM2 lo
- *                     reinicia solo (max_memory_restart) sin tocar la API.
+ * Un solo proceso: `WodenTrackPRD` (la API NestJS). El cálculo de horas extra
+ * se procesa con el modelo de WORKER ON-DEMAND que ya funciona: la API lanza un
+ * worker detached por cada job (con su propio --max-old-space-size, definido en
+ * horas-extra-cron.service.ts) y ese worker muere solo al terminar. Por eso NO
+ * hay un worker demonio aquí ni se usa HX_NO_SPAWN.
  *
- * Uso (en el servidor, dentro de la carpeta backend):
+ * NO usamos cluster a propósito: el cron, los WebSockets (socket.io) y los
+ * guards en memoria (marcación / control de carga) asumen instancia única.
+ * Cluster requeriría Redis + sticky sessions (ver análisis previo).
+ *
+ * ── Despliegue en el servidor (dentro de la carpeta del backend) ──────────────
  *   npm run build
- *   pm2 start ecosystem.config.js
- *   pm2 save          # recuerda los procesos
- *   pm2 startup       # que arranquen al reiniciar Windows (sigue las instrucciones que imprime)
+ *   pm2 delete WodenTrackPRD          # quita la instancia vieja (para tomar node_args nuevos)
+ *   pm2 start ecosystem.config.js     # arranca con esta config
+ *   pm2 save                          # persiste para que reviva tras reinicio del servidor
+ *   pm2 startup                       # (una vez) que arranque al reiniciar Windows
  *
- * Comandos útiles:
- *   pm2 status                 # ver estado
- *   pm2 logs woden-worker      # ver logs del worker
- *   pm2 restart woden-api      # reiniciar la API
- *   pm2 reload ecosystem.config.js   # recargar tras un nuevo build
+ * ── Reinicio normal (releyendo variables de entorno) ──────────────────────────
+ *   pm2 restart WodenTrackPRD --update-env
+ *
+ * ── Comandos útiles ───────────────────────────────────────────────────────────
+ *   pm2 status
+ *   pm2 logs WodenTrackPRD
+ *   pm2 env <id>                      # ver NODE_OPTIONS / env del proceso
  */
 module.exports = {
   apps: [
     {
-      name: 'woden-api',
+      name: 'WodenTrackPRD',
       script: 'dist/main.js',
-      cwd: __dirname,
-      instances: 1,
+      cwd: __dirname, // resuelve dist/ relativo a la ubicación de este archivo
+
       exec_mode: 'fork',
-      autorestart: true,
+      instances: 1,
       watch: false,
-      max_memory_restart: '1G',
+
+      // Heap de 3 GB. Este box (8 GB) también corre IIS + SO, por eso 3 GB y no
+      // 4: deja margen para que el servidor no haga swap. El guard dinámico del
+      // código se ajusta solo a este límite (v8.getHeapStatistics()).
+      node_args: '--max-old-space-size=3072',
+
+      // El código carga .env.${NODE_ENV} → esto hace que lea .env.production.
       env: {
         NODE_ENV: 'production',
-        // La API no spawnea workers: el demonio (abajo) procesa la cola.
-        HX_NO_SPAWN: '1',
       },
-    },
-    {
-      name: 'woden-worker',
-      script: 'dist/worker.js',
-      cwd: __dirname,
-      instances: 1,
-      exec_mode: 'fork',
+
+      // ── Auto-recuperación (red de seguridad de último recurso) ─────────────
       autorestart: true,
-      watch: false,
-      // Si un job enorme dispara la memoria, PM2 reinicia SOLO el worker.
-      max_memory_restart: '1500M',
-      env: {
-        NODE_ENV: 'production',
-        // Modo DEMONIO: siempre vivo, revisa la cola (sin HX_WORKER_ONCE).
-        HX_WORKER: '1',
-      },
+      // Si el RSS pasa 3 GB (algo imprevisto se fugó), PM2 reinicia ORDENADO
+      // antes de que Node muera por OOM. En operación normal los guards del
+      // código mantienen el uso muy por debajo, así que casi nunca se dispara.
+      max_memory_restart: '3000M',
+      // Si crashea al arrancar, espacia los reintentos (evita bucle que quema
+      // CPU): 200ms → 400ms → 800ms…
+      exp_backoff_restart_delay: 200,
+      max_restarts: 15,
+
+      // ── Logs con timestamp ─────────────────────────────────────────────────
+      time: true,
+      merge_logs: true,
+      out_file: './logs/wodentrack-out.log',
+      error_file: './logs/wodentrack-error.log',
+
+      // Da 5 s para cerrar conexiones en curso al reiniciar/desplegar.
+      kill_timeout: 5000,
     },
   ],
 };
