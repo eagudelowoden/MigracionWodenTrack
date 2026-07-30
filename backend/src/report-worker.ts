@@ -14,6 +14,7 @@
  *   worker  → padre:  { type: 'ready' }                          (listo para recibir filtros)
  *   padre   → worker: { tipo: 'params', ...filtros }
  *   worker  → padre:  { type: 'progress', percent, message }
+ *   worker  → padre:  { type: 'stats', rssMb, heapUsedMb, cpuPercent } (cada 2s, para monitoreo)
  *   worker  → padre:  { type: 'chunk', data: [...] }              (varias veces)
  *   worker  → padre:  { type: 'done', total }
  *   worker  → padre:  { type: 'error', message }
@@ -45,6 +46,41 @@ function sendAndFlush(msg: any): Promise<void> {
   });
 }
 
+const STATS_INTERVAL_MS = 2000;
+
+/**
+ * Auto-reporte de consumo (RAM real del proceso + % CPU) para el panel de
+ * monitoreo en Super Admin. `rss` es la memoria física real del proceso (más
+ * representativa que el heap de V8 solo). El % de CPU se calcula con el delta
+ * de `process.cpuUsage()` entre dos lecturas, sobre el tiempo real transcurrido.
+ */
+function iniciarReporteDeConsumo(): NodeJS.Timeout {
+  let cpuAnterior = process.cpuUsage();
+  let tiempoAnterior = Date.now();
+
+  return setInterval(() => {
+    const cpuDelta = process.cpuUsage(cpuAnterior); // microsegundos desde la última lectura
+    const ahora = Date.now();
+    const msTranscurridos = ahora - tiempoAnterior;
+
+    const cpuPercent =
+      msTranscurridos > 0
+        ? Math.round(((cpuDelta.user + cpuDelta.system) / 1000 / msTranscurridos) * 100)
+        : 0;
+
+    cpuAnterior = process.cpuUsage();
+    tiempoAnterior = ahora;
+
+    const mem = process.memoryUsage();
+    process.send?.({
+      type: 'stats',
+      rssMb: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
+      cpuPercent,
+    });
+  }, STATS_INTERVAL_MS);
+}
+
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn'],
@@ -54,6 +90,8 @@ async function bootstrap() {
 
   process.once('message', async (msg: any) => {
     if (!msg || msg.tipo !== 'params') return;
+
+    const statsInterval = iniciarReporteDeConsumo();
 
     try {
       const result = await usuarios.getReporteNovedades(
@@ -80,6 +118,7 @@ async function bootstrap() {
     } catch (e: any) {
       await sendAndFlush({ type: 'error', message: e?.message || 'Error desconocido' });
     } finally {
+      clearInterval(statsInterval);
       await app.close();
       process.exit(0);
     }

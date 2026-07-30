@@ -19,6 +19,7 @@ interface WorkerInfo {
   startedAt: number;
   filtros: ReporteWorkerParams;
   ultimoProgreso: { percent: number; message: string } | null;
+  stats: { rssMb: number; heapUsedMb: number; cpuPercent: number } | null;
   child: ChildProcess;
 }
 
@@ -66,6 +67,7 @@ export class ReporteWorkerService {
         startedAt: Date.now(),
         filtros: params,
         ultimoProgreso: null,
+        stats: null,
         child,
       };
       this.activos.set(child.pid!, info);
@@ -108,6 +110,8 @@ export class ReporteWorkerService {
         if (msg.type === 'progress') {
           info.ultimoProgreso = { percent: msg.percent, message: msg.message };
           onProgress(msg.percent, msg.message);
+        } else if (msg.type === 'stats') {
+          info.stats = { rssMb: msg.rssMb, heapUsedMb: msg.heapUsedMb, cpuPercent: msg.cpuPercent };
         } else if (msg.type === 'chunk') {
           onChunk(msg.data);
         } else if (msg.type === 'done') {
@@ -153,6 +157,7 @@ export class ReporteWorkerService {
       segundosActivo: Math.round((Date.now() - w.startedAt) / 1000),
       filtros: w.filtros,
       ultimoProgreso: w.ultimoProgreso,
+      stats: w.stats,
     }));
   }
 

@@ -38,6 +38,8 @@
               <th class="px-4 py-2 font-medium">PID</th>
               <th class="px-4 py-2 font-medium">Filtros</th>
               <th class="px-4 py-2 font-medium">Progreso</th>
+              <th class="px-4 py-2 font-medium">RAM</th>
+              <th class="px-4 py-2 font-medium">CPU</th>
               <th class="px-4 py-2 font-medium">Tiempo activo</th>
               <th class="px-4 py-2 font-medium"></th>
             </tr>
@@ -76,6 +78,14 @@
                   {{ w.ultimoProgreso.message }}
                 </div>
               </td>
+              <td class="px-4 py-2 tabular-nums" :class="ramClass(w.stats?.rssMb)">
+                <span v-if="w.stats">{{ w.stats.rssMb }} MB</span>
+                <span v-else class="opacity-40">—</span>
+              </td>
+              <td class="px-4 py-2 tabular-nums" :class="cpuClass(w.stats?.cpuPercent)">
+                <span v-if="w.stats">{{ w.stats.cpuPercent }}%</span>
+                <span v-else class="opacity-40">—</span>
+              </td>
               <td class="px-4 py-2 tabular-nums" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                 {{ w.segundosActivo }}s
               </td>
@@ -89,7 +99,7 @@
               </td>
             </tr>
             <tr v-if="!activos.length">
-              <td colspan="5" class="px-4 py-8 text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+              <td colspan="7" class="px-4 py-8 text-center" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
                 No hay workers de reporte corriendo ahora mismo.
               </td>
             </tr>
@@ -122,6 +132,22 @@ const flash = (msg, error = false) => {
   mensaje.value = msg;
   mensajeError.value = error;
   setTimeout(() => (mensaje.value = ''), 4000);
+};
+
+// Referencia: heap del worker hereda el de la API (3 GB) → sobre ~1.5GB de RSS
+// ya es una consulta pesada; sobre ~2.2GB está cerca del guard del 55%.
+const ramClass = (mb) => {
+  if (mb == null) return 'text-slate-400';
+  if (mb >= 2200) return 'text-red-500 font-semibold';
+  if (mb >= 1500) return 'text-amber-500 font-semibold';
+  return 'text-emerald-500';
+};
+
+const cpuClass = (pct) => {
+  if (pct == null) return 'text-slate-400';
+  if (pct >= 90) return 'text-red-500 font-semibold';
+  if (pct >= 50) return 'text-amber-500 font-semibold';
+  return 'text-emerald-500';
 };
 
 async function cargar() {

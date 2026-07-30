@@ -2243,10 +2243,13 @@ export class UsuariosService {
     return { domainAtt, domainLog };
   }
 
-  // Tope duro de registros combinados (attendance + log). Por encima de esto
-  // el volumen de objetos mapeados en memoria puede disparar el heap del
-  // proceso y tumbar toda la API, no solo este reporte.
-  private readonly MAX_REGISTROS_REPORTE = 25000;
+  // Tope de sentido común sobre registros combinados (attendance + log). Ya NO
+  // es la última defensa contra OOM: el reporte corre en un worker APARTE
+  // (report-worker.ts), así que si algo se pasa de memoria el guard dinámico
+  // (55%/45% del heap) aborta SOLO ese worker, sin afectar la API. Este límite
+  // solo evita hacer esperar al usuario con una consulta absurda que igual
+  // toparía el timeout de 3 min del worker.
+  private readonly MAX_REGISTROS_REPORTE = 50000;
 
   private async consultarOdoo(
     domainAtt: any[],
