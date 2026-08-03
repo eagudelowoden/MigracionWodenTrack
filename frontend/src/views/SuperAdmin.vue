@@ -40,6 +40,7 @@ const NAV_GROUPS = [
       sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
       cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       reporteworkers: { icon: 'fas fa-microchip', label: 'Workers de Reporte', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+      datoscrudos: { icon: 'fas fa-database', label: 'Datos Crudos', color: 'text-amber-400', bg: 'bg-amber-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -61,6 +62,7 @@ const MODULE_LABELS = {
   paramhx: 'Parametrización Horas Extra',
   cronhoras: 'Cálculo Automático Horas Extra',
   reporteworkers: 'Workers de Reporte de Asistencias',
+  datoscrudos: 'Datos Crudos (Odoo)',
 };
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
@@ -74,6 +76,7 @@ import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vu
 import GestionSyncCron from '../components/admin/SuperAdmin/GestionSyncCron.vue';
 import GestionCronHoras from '../components/admin/SuperAdmin/GestionCronHoras.vue';
 import GestionReporteWorkers from '../components/admin/SuperAdmin/GestionReporteWorkers.vue';
+import GestionDatosCrudos from '../components/admin/SuperAdmin/GestionDatosCrudos.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
 import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfiguraciones.vue';
@@ -122,6 +125,7 @@ const TAB_PERMS = {
   sync: 'super.superadmin',
   cronhoras: 'super.superadmin',
   reporteworkers: 'super.superadmin',
+  datoscrudos: 'super.superadmin',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.
@@ -587,7 +591,7 @@ onUnmounted(() => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding']"
+          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -610,6 +614,7 @@ onUnmounted(() => {
               @error="showNotification($event, 'error')" />
             <ModuloReportesFalla v-if="tab === 'reportes'" :isDark="isDark" />
             <GestionChecklistOffboarding v-if="tab === 'offboarding'" :isDark="isDark" />
+            <GestionDatosCrudos v-if="tab === 'datoscrudos'" :isDark="isDark" />
           </div>
         </template>
 
