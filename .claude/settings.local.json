@@ -194,7 +194,10 @@
       "Bash(git check-ignore *)",
       "Bash(xargs grep -l \"marcacion\\\\|asistencia\")",
       "Bash(node -e \"console.log\\(require\\('./node_modules/@capacitor/geolocation/package.json'\\).version\\)\")",
-      "Bash(echo \"=== EXIT: $? ===\")"
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(echo \"findstr /S SSL _revision_ssl\\\\\\\\*.env.production\")",
+      "Bash(echo \"   findstr DB_HOST C:\\\\\\\\Users\\\\\\\\Administrator\\\\\\\\Documents\\\\\\\\WodenTrack_Prd\\\\\\\\.env.production\")",
+      "Bash(echo \"   findstr DB_NAME C:\\\\\\\\Users\\\\\\\\Administrator\\\\\\\\Documents\\\\\\\\WodenTrack_Prd\\\\\\\\.env.production\")"
     ]
   }
 }
