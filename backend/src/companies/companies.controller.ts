@@ -33,9 +33,18 @@ export class CompaniesController {
   // Endpoint para habilitar/deshabilitar sedes desde el Admin
   @Patch(':id/status')
   async updateStatus(
-    @Param('id') id: string, // Los parámetros de URL llegan como string inicialmente
-    @Body('is_active') is_active: boolean
+    @Param('id') id: string,
+    @Body('is_active') is_active: boolean,
   ) {
     return await this.companiesService.toggleStatus(Number(id), is_active);
+  }
+
+  // Habilitar/deshabilitar marcación de asistencia con GPS (Ecuador)
+  @Patch(':id/marcacion-asistencia')
+  async updateMarcacionAsistencia(
+    @Param('id') id: string,
+    @Body('marcacion_asistencia') marcacion_asistencia: boolean,
+  ) {
+    return await this.companiesService.toggleMarcacionAsistencia(Number(id), marcacion_asistencia);
   }
 }

@@ -12,6 +12,22 @@
         <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
           Asistencias
         </h2>
+        <!-- Pestañas Odoo / Ecuador GPS -->
+        <div class="flex items-center gap-0.5 ml-2 p-0.5 rounded-md border"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+          <button @click="tabActiva = 'odoo'" class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all"
+            :class="tabActiva === 'odoo'
+              ? 'bg-[#3B82F6] text-white'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            Odoo
+          </button>
+          <button v-if="puedeVerGps" @click="tabActiva = 'ecuador'; cargarMarcacionesEcuador()"
+            class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all flex items-center gap-1" :class="tabActiva === 'ecuador'
+              ? 'bg-emerald-500 text-white'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            <i class="fas fa-location-dot text-[8px]"></i> GPS
+          </button>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
@@ -63,7 +79,8 @@
         <div class="relative">
           <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
             :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          <input v-model="search" type="text" placeholder="Nombre o cédula…" @keyup.enter="modoCrudo ? null : fetchReporte()"
+          <input v-model="search" type="text" placeholder="Nombre o cédula…"
+            @keyup.enter="modoCrudo ? null : fetchReporte()"
             class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-44 transition-all"
             :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
@@ -87,7 +104,8 @@
               ? 'bg-[#0B0F19] border-[#222938] text-[#f5f5f7] hover:text-white hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
             title="Buscar">
-            <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': modoCrudo ? loadingCrudo : loading }"></i>
+            <i class="fas fa-magnifying-glass text-[10px]"
+              :class="{ 'fa-spin': modoCrudo ? loadingCrudo : loading }"></i>
           </button>
 
           <button @click="downloadReport" :disabled="loading || reportData.length === 0"
@@ -116,9 +134,10 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg && !modoCrudo" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
-      ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
-      : 'bg-red-50 border-red-200 text-red-700'">
+    <div v-if="errorMsg && !modoCrudo"
+      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+        ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+        : 'bg-red-50 border-red-200 text-red-700'">
       <i class="fas fa-circle-exclamation text-[11px]"></i>
       {{ errorMsg }}
     </div>
@@ -130,7 +149,8 @@
       <div class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border"
         :class="isDark ? 'bg-amber-500/[0.08] border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'">
         <i class="fas fa-flask text-[11px]"></i>
-        Vista de diagnóstico: datos tal cual vienen de Odoo (employee_id directo), SIN emparejar turnos ni cruzar mallas/cédulas.
+        Vista de diagnóstico: datos tal cual vienen de Odoo (employee_id directo), SIN emparejar turnos ni cruzar
+        mallas/cédulas.
       </div>
 
       <div v-if="crudoError" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
@@ -154,20 +174,31 @@
       <template v-else-if="crudoData">
         <!-- Métricas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div class="px-3 py-2 rounded-md border" :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-            <span class="block text-[9px] uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Asistencias</span>
-            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{ crudoData.attendancesCount }}</span>
+          <div class="px-3 py-2 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <span class="block text-[9px] uppercase tracking-wide"
+              :class="isDark ? 'text-slate-500' : 'text-slate-400'">Asistencias</span>
+            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+              crudoData.attendancesCount }}</span>
           </div>
-          <div class="px-3 py-2 rounded-md border" :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-            <span class="block text-[9px] uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Logs biométrico/app</span>
-            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{ crudoData.logsCount }}</span>
+          <div class="px-3 py-2 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <span class="block text-[9px] uppercase tracking-wide"
+              :class="isDark ? 'text-slate-500' : 'text-slate-400'">Logs biométrico/app</span>
+            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+              crudoData.logsCount }}</span>
           </div>
-          <div class="px-3 py-2 rounded-md border" :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-            <span class="block text-[9px] uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Tiempo total</span>
-            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{ (crudoData.tiempoTotalMs / 1000).toFixed(1) }}s</span>
+          <div class="px-3 py-2 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <span class="block text-[9px] uppercase tracking-wide"
+              :class="isDark ? 'text-slate-500' : 'text-slate-400'">Tiempo total</span>
+            <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">{{
+              (crudoData.tiempoTotalMs / 1000).toFixed(1) }}s</span>
           </div>
-          <div class="px-3 py-2 rounded-md border" :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-            <span class="block text-[9px] uppercase tracking-wide" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Heap tras descarga</span>
+          <div class="px-3 py-2 rounded-md border"
+            :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+            <span class="block text-[9px] uppercase tracking-wide"
+              :class="isDark ? 'text-slate-500' : 'text-slate-400'">Heap tras descarga</span>
             <span class="block text-[16px] font-bold tabular-nums" :class="isDark ? 'text-white' : 'text-slate-900'">
               {{ crudoData.memoria?.heapMb_tras_descargarLogs ?? '—' }} MB
               <span class="text-[10px] font-normal opacity-60">(inicio {{ crudoData.memoria?.heapMb_inicio }} MB)</span>
@@ -197,42 +228,83 @@
             <table class="w-full border-separate border-spacing-0">
               <thead class="sticky top-0 z-30">
                 <tr class="bg-[#1e2538]">
-                  <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">ID Odoo</th>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Employee ID</th>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Empleado</th>
-                  <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Depto</th>
+                  <th
+                    class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    ID Odoo</th>
+                  <th
+                    class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Employee ID</th>
+                  <th
+                    class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Empleado</th>
+                  <th
+                    class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Depto</th>
                   <template v-if="crudoTab === 'attendances'">
-                    <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Check in</th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Check out</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                      Check in</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                      Check out</th>
                   </template>
                   <template v-else>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Punching time</th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Status</th>
-                    <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Device</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                      Punching time</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                      Status</th>
+                    <th
+                      class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                      Device</th>
                   </template>
                 </tr>
               </thead>
               <tbody v-if="!crudoRowsPaginadas.length">
-                <tr><td :colspan="crudoTab === 'attendances' ? 6 : 7" class="py-16 text-center">
-                  <i class="fas fa-inbox text-2xl mb-2 block" :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
-                  <span class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin registros</span>
-                </td></tr>
+                <tr>
+                  <td :colspan="crudoTab === 'attendances' ? 6 : 7" class="py-16 text-center">
+                    <i class="fas fa-inbox text-2xl mb-2 block"
+                      :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                    <span class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin registros</span>
+                  </td>
+                </tr>
               </tbody>
               <tbody v-else>
                 <tr v-for="(row, i) in crudoRowsPaginadas" :key="row.id"
                   :class="[i % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent']">
-                  <td class="px-3 py-2 border-b text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.id }}</td>
-                  <td class="px-3 py-2 border-b text-[11px] font-bold tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.employee_id }}</td>
-                  <td class="px-3 py-2 border-b text-[11px] font-semibold" :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ row.empleado }}</td>
-                  <td class="px-3 py-2 border-b text-[11px]" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.department_id }}</td>
+                  <td class="px-3 py-2 border-b text-[11px] tabular-nums"
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.id }}
+                  </td>
+                  <td class="px-3 py-2 border-b text-[11px] font-bold tabular-nums"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                    row.employee_id }}
+                  </td>
+                  <td class="px-3 py-2 border-b text-[11px] font-semibold"
+                    :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ row.empleado
+                    }}</td>
+                  <td class="px-3 py-2 border-b text-[11px]"
+                    :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                      row.department_id }}
+                  </td>
                   <template v-if="crudoTab === 'attendances'">
-                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.check_in || '—' }}</td>
-                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.check_out || '—' }}</td>
+                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                        row.check_in || '—' }}</td>
+                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                        row.check_out || '—' }}</td>
                   </template>
                   <template v-else>
-                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.punching_time || '—' }}</td>
-                    <td class="px-3 py-2 border-b text-center text-[11px]" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.status || '—' }}</td>
-                    <td class="px-3 py-2 border-b text-center text-[11px]" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.device || '—' }}</td>
+                    <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                        row.punching_time || '—' }}</td>
+                    <td class="px-3 py-2 border-b text-center text-[11px]"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.status || '—' }}</td>
+                    <td class="px-3 py-2 border-b text-center text-[11px]"
+                      :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.device || '—' }}</td>
                   </template>
                 </tr>
               </tbody>
@@ -243,7 +315,8 @@
           <div v-if="crudoRowsActivas.length" class="px-3 py-2 border-t flex items-center justify-between"
             :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
             <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-              <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ crudoRowsActivas.length }}</span>
+              <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ crudoRowsActivas.length
+                }}</span>
               registros
             </span>
             <div class="flex items-center gap-1.5">
@@ -268,7 +341,8 @@
     </div>
 
     <!-- Tabla -->
-    <div v-else class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+    <div v-if="tabActiva === 'odoo'"
+      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -315,13 +389,19 @@
                 <!-- Spinner + porcentaje -->
                 <div class="flex flex-col items-center justify-center gap-3 py-20">
                   <div class="relative">
-                    <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+                    <div class="loading-ring">
+                      <div></div>
+                      <div></div>
+                      <div></div>
+                      <div></div>
+                    </div>
                     <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums"
                       :class="isDark ? 'text-[#60A5FA]' : 'text-[#3B82F6]'">
                       {{ Math.min(99, Math.round(loadingProgress)) }}%
                     </span>
                   </div>
-                  <span class="text-[11px] font-medium tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+                  <span class="text-[11px] font-medium tracking-wide"
+                    :class="isDark ? 'text-slate-400' : 'text-slate-500'">
                     Consultando asistencias en Odoo…
                   </span>
                 </div>
@@ -340,11 +420,10 @@
           </tbody>
 
           <tbody v-else class="divide-y-0">
-            <tr v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150"
-              :class="[
-                index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
-                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]'
-              ]">
+            <tr v-for="(item, index) in paginatedData" :key="item.id" class="group transition-all duration-150" :class="[
+              index % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+              isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]'
+            ]">
 
               <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center gap-3">
@@ -442,11 +521,151 @@
         </div>
       </div>
     </div>
+
+    <!-- ── TABLA MARCACIONES ECUADOR GPS ─────────────────────────────────── -->
+    <div v-if="tabActiva === 'ecuador'"
+      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
+        <table class="w-full border-separate border-spacing-0">
+          <thead class="sticky top-0 z-30">
+            <tr class="bg-[#1e2538]">
+              <th
+                class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Colaborador</th>
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Cédula</th>
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Fecha</th>
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Entrada</th>
+              <th
+                class="px-2 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                Salida</th>
+            </tr>
+          </thead>
+
+          <tbody v-if="cargandoEcuador">
+            <tr>
+              <td colspan="5" class="py-16 text-center">
+                <div class="loading-ring mx-auto">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span class="block mt-3 text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Cargando
+                  marcaciones…</span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else-if="!marcacionesEcuadorAgrupadas.length && !cargandoEcuador">
+            <tr>
+              <td colspan="5" class="py-16 text-center">
+                <i class="fas fa-location-dot text-2xl mb-2 block"
+                  :class="isDark ? 'text-slate-600' : 'text-slate-300'"></i>
+                <span class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Sin marcaciones
+                  Ecuador</span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else class="divide-y-0">
+            <tr v-for="(m, idx) in marcacionesEcuadorAgrupadas" :key="`${m.cedula}-${m.fecha}`"
+              class="group transition-all duration-150" :class="[
+                idx % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent',
+                isDark ? 'hover:bg-white/[0.08]' : 'hover:bg-white/[0.03]'
+              ]">
+
+              <!-- Colaborador -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <i class="fas fa-user text-[10px] text-emerald-500"></i>
+                  </div>
+                  <span class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ m.nombre
+                  }}</span>
+                </div>
+              </td>
+
+              <!-- Cédula -->
+              <td class="px-4 py-3 text-center border-b font-bold text-[12px]"
+                :class="isDark ? 'text-slate-300 border-[#222938]' : 'text-slate-700 border-slate-100'">
+                {{ m.cedula }}
+              </td>
+
+              <!-- Fecha -->
+              <td class="px-4 py-3 text-center border-b text-[11px] tabular-nums"
+                :class="isDark ? 'text-slate-400 border-[#222938]' : 'text-slate-500 border-slate-100'">
+                {{ m.fecha }}
+              </td>
+
+              <!-- Entrada -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div v-if="m.entrada" class="flex items-center justify-center gap-2">
+                  <span class="text-[12px] font-bold tabular-nums text-emerald-500">{{ m.entrada.hora }}</span>
+                  <button v-if="m.entrada.latitud && m.entrada.longitud"
+                    @click="verEnMapa(m.entrada.latitud, m.entrada.longitud)"
+                    class="h-6 px-2 rounded border text-[9px] font-semibold transition-all hover:scale-105" :class="isDark
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'"
+                    title="Ver ubicación de entrada en Google Maps">
+                    <i class="fas fa-map-location-dot"></i>
+                  </button>
+                </div>
+                <span v-else class="block text-center text-[10px]"
+                  :class="isDark ? 'text-slate-600' : 'text-slate-400'">—</span>
+              </td>
+
+              <!-- Salida -->
+              <td class="px-4 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <div v-if="m.salida" class="flex items-center justify-center gap-2">
+                  <span class="text-[12px] font-bold tabular-nums text-rose-500">{{ m.salida.hora }}</span>
+                  <button v-if="m.salida.latitud && m.salida.longitud"
+                    @click="verEnMapa(m.salida.latitud, m.salida.longitud)"
+                    class="h-6 px-2 rounded border text-[9px] font-semibold transition-all hover:scale-105" :class="isDark
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                      : 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'"
+                    title="Ver ubicación de salida en Google Maps">
+                    <i class="fas fa-map-location-dot"></i>
+                  </button>
+                </div>
+                <span v-else class="block text-center text-[10px]"
+                  :class="isDark ? 'text-slate-600' : 'text-slate-400'">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer conteo -->
+      <div class="px-3 py-2 border-t flex items-center justify-between"
+        :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
+        <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+          <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{
+            marcacionesEcuadorAgrupadas.length }}</span>
+          {{ marcacionesEcuadorAgrupadas.length === 1 ? 'registro' : 'registros' }} ·
+          {{ marcacionesEcuador.length }} marcaciones Ecuador
+        </span>
+        <button @click="cargarMarcacionesEcuador" :disabled="cargandoEcuador"
+          class="flex items-center gap-1 h-6 px-2 rounded text-[10px] font-medium border transition-all disabled:opacity-50"
+          :class="isDark ? 'border-[#222938] text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-700'">
+          <i class="fas fa-rotate text-[9px]" :class="{ 'fa-spin': cargandoEcuador }"></i>
+          Actualizar
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { apiFetch } from '@/utils/apiFetch.js';
+import axios from 'axios';
 import { onMounted, watch, ref, computed } from 'vue';
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
@@ -597,87 +816,133 @@ const getStatusClass = (status) => {
 
 const getFuenteClass = (fuente) => {
   if (!fuente) return '';
-  // Estilo Vercel sutil: gris neutro con sutil distinción
   return 'bg-transparent text-[#888888] border-[#222938] dark:border-[#222938]';
 };
 
-// ── Vista de diagnóstico: datos crudos (sin cruces de mallas/cédulas) ────────
-const modoCrudo = ref(false);
-const crudoTab = ref('attendances'); // 'attendances' | 'logs'
-const crudoPage = ref(1);
-const crudoItemsPerPage = 20;
+// ── Pestaña Ecuador GPS ────────────────────────────────────────────────────
+const tabActiva = ref('odoo');
+// La pestaña GPS ahora se controla por permiso: solo la ven quienes tengan
+// 'ecuador.ver_marcaciones' (o los super admin), sin importar la compañía.
+const puedeVerGps = computed(() =>
+  !!session.isSuperAdmin || hasPerm('ecuador.ver_marcaciones')
+);
 
-const toggleModoCrudo = () => {
-  modoCrudo.value = !modoCrudo.value;
-  if (modoCrudo.value) {
-    crudoTab.value = 'attendances';
-    crudoPage.value = 1;
-    fetchCrudoDiagnostico();
+const API_URL = import.meta.env.VITE_API_URL;
+const marcacionesEcuador = ref([]);
+const cargandoEcuador = ref(false);
+
+const cargarMarcacionesEcuador = async () => {
+  cargandoEcuador.value = true;
+  try {
+    const params = new URLSearchParams();
+    params.append('company', props.company || session.company || 'Ecuador');
+    if (startDate.value) params.append('startDate', startDate.value);
+    if (endDate.value) params.append('endDate', endDate.value);
+    if (filterHoy.value) {
+      const hoy = new Date().toISOString().slice(0, 10);
+      params.set('startDate', hoy);
+      params.set('endDate', hoy);
+    }
+    if (search.value) params.append('cedula', search.value);
+    params.append('limit', '1000');
+    const { data } = await axios.get(`${API_URL}/marcacion-ecuador/historial?${params}`);
+    marcacionesEcuador.value = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('Error cargando marcaciones Ecuador:', e);
+    marcacionesEcuador.value = [];
+  } finally {
+    cargandoEcuador.value = false;
   }
 };
 
-// Datos crudos (sin filtrar): lo que trajo el backend para la pestaña activa
-const crudoRowsCrudas = computed(() => {
-  if (!crudoData.value) return [];
-  return crudoTab.value === 'attendances'
-    ? (crudoData.value.attendances ?? [])
-    : (crudoData.value.logs ?? []);
-});
+const verEnMapa = (latitud, longitud) => {
+  if (!latitud || !longitud) return;
+  window.open(`https://www.google.com/maps?q=${latitud},${longitud}&z=17`, '_blank');
+};
 
-// El buscador de "Nombre o cédula" en modo crudo no tiene cédula (no se
-// resuelve a propósito), así que filtra por nombre o employee_id.
-const crudoRowsActivas = computed(() => {
-  const s = search.value.toLowerCase().trim();
-  if (!s) return crudoRowsCrudas.value;
-  return crudoRowsCrudas.value.filter((row) =>
-    String(row.empleado || '').toLowerCase().includes(s) ||
-    String(row.employee_id || '').includes(s),
-  );
-});
-
-// Filtros que afectan la consulta al backend: si cambian mientras la vista de
-// datos crudos está activa, se refresca sola (antes solo cargaba al activar).
-watch(
-  [startDate, endDate, filterHoy, selectedDepartment, selectedArea, selectedSegmento, selectedCompany],
-  () => {
-    if (modoCrudo.value) {
-      crudoPage.value = 1;
-      fetchCrudoDiagnostico();
+// Agrupa las marcaciones por empleado+fecha: cada fila = un día con su entrada y salida
+const marcacionesEcuadorAgrupadas = computed(() => {
+  const mapa = new Map();
+  for (const m of marcacionesEcuador.value) {
+    // Usar id_odoo como clave principal; si no hay, caer en nombre normalizado
+    const empKey = m.id_odoo || m.nombre?.toLowerCase().trim() || m.cedula || 'unknown';
+    const key = `${empKey}__${m.fecha}`;
+    if (!mapa.has(key)) {
+      mapa.set(key, {
+        cedula: m.cedula || '',
+        nombre: m.nombre || '',
+        fecha: m.fecha,
+        company: m.company,
+        entrada: null,
+        salida: null,
+      });
     }
-  },
-);
-
-// El buscador (nombre/employee_id) es client-side → solo resetea la página.
-watch(search, () => {
-  if (modoCrudo.value) crudoPage.value = 1;
-});
-
-const crudoTotalPages = computed(() =>
-  Math.max(1, Math.ceil(crudoRowsActivas.value.length / crudoItemsPerPage)),
-);
-
-const crudoRowsPaginadas = computed(() => {
-  const start = (crudoPage.value - 1) * crudoItemsPerPage;
-  return crudoRowsActivas.value.slice(start, start + crudoItemsPerPage);
+    const fila = mapa.get(key);
+    // Si este registro tiene más datos que el que ya guardamos, actualizar
+    if (m.cedula && !fila.cedula) fila.cedula = m.cedula;
+    if (m.nombre && !fila.nombre) fila.nombre = m.nombre;
+    // Guarda el de hora más temprana para entrada y más tardía para salida
+    if (m.tipo === 'entrada') {
+      if (!fila.entrada || m.hora < fila.entrada.hora) fila.entrada = m;
+    } else {
+      if (!fila.salida || m.hora > fila.salida.hora) fila.salida = m;
+    }
+  }
+  // Ordenar por fecha desc, luego nombre
+  return [...mapa.values()].sort((a, b) =>
+    b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre)
+  );
 });
 </script>
 
 <style scoped>
+.loading-ring {
+  display: inline-block;
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
 
-.loading-ring { display: inline-block; position: relative; width: 36px; height: 36px; }
 .loading-ring div {
-  box-sizing: border-box; display: block; position: absolute;
-  width: 36px; height: 36px;
-  border: 3px solid transparent; border-top-color: #3B82F6;
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-top-color: #3B82F6;
   border-radius: 50%;
   animation: ring-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
-.loading-ring div:nth-child(1) { animation-delay: -0.3s; }
-.loading-ring div:nth-child(2) { animation-delay: -0.2s; border-top-color: #60A5FA; opacity: .6; }
-.loading-ring div:nth-child(3) { animation-delay: -0.1s; border-top-color: #93C5FD; opacity: .35; }
-.loading-ring div:nth-child(4) { border-top-color: #BFDBFE; opacity: .15; }
+
+.loading-ring div:nth-child(1) {
+  animation-delay: -0.3s;
+}
+
+.loading-ring div:nth-child(2) {
+  animation-delay: -0.2s;
+  border-top-color: #60A5FA;
+  opacity: .6;
+}
+
+.loading-ring div:nth-child(3) {
+  animation-delay: -0.1s;
+  border-top-color: #93C5FD;
+  opacity: .35;
+}
+
+.loading-ring div:nth-child(4) {
+  border-top-color: #BFDBFE;
+  opacity: .15;
+}
+
 @keyframes ring-spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

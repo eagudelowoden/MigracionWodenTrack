@@ -666,24 +666,34 @@ export class HorasExtraService {
     const endDay = dto.soloHoy ? getFechaColombiaHoy() : dto.endDate;
     const esDelta = !!dto.writeDateDesde;
 
-    // Corrida COMPLETA (sin delta): borra el rango COMPLETO antes de insertar
-    // (sin filtro de empleado/empresa), UNA sola vez antes de procesar los
-    // lotes. Filtrar por empresa en el DELETE causaba que workers concurrentes
-    // con distinta empresa se pisaran dejando duplicados: cada uno borraba
-    // solo "su" empresa pero los otros seguían insertando. Borrar TODO el
-    // rango y re-insertar es atómico, y de paso limpia empleados que ya no
-    // tienen ningún registro (ej. se borró en Odoo) — el delta no puede
-    // detectar eso (una fila borrada no tiene write_date que filtrar).
+    // Corrida COMPLETA (sin delta): borra el rango antes de insertar, una sola
+    // vez antes de procesar los lotes. Borrar (y no solo pisar por upsert)
+    // limpia empleados que ya no tienen ningún registro (ej. se borró en
+    // Odoo) — el delta no puede detectar eso (una fila borrada no tiene
+    // write_date que filtrar).
+    //
+    // El DELETE se filtra por EMPRESA cuando `dto.company` es una empresa
+    // específica (no 'Todas'), igual que ya hace el filtro de empleados de
+    // este mismo cálculo. Antes se borraba el rango COMPLETO sin filtrar por
+    // empresa: si el cron está configurado a una sola empresa (lo normal),
+    // cada corrida completa borraba el rango para TODAS las empresas de la
+    // tabla pero solo volvía a insertar la que se estaba procesando, dejando
+    // a las demás vacías hasta un recálculo manual. Filtrar por empresa aquí
+    // además evita que dos corridas concurrentes de empresas DISTINTAS se
+    // pisen (cada una solo toca sus propias filas).
     if (!esDelta && startDay && endDay) {
-      await this.calculadoRepo
+      const qbDelete = this.calculadoRepo
         .createQueryBuilder()
         .delete()
         .from(CalculadoExtra)
         .where('fecha >= :start AND fecha <= :end', {
           start: startDay,
           end: endDay,
-        })
-        .execute();
+        });
+      if (dto.company && dto.company !== 'Todas') {
+        qbDelete.andWhere('company = :company', { company: dto.company });
+      }
+      await qbDelete.execute();
     }
 
     // Calcula y guarda LOTE A LOTE (no acumula todos los HoraExtra calculados

@@ -74,6 +74,9 @@ const SEED_DATA: Omit<ModuloDisponible, 'id' | 'fecha_creacion'>[] = [
   { slug: 'novedades.offboarding.ch',  nombre: 'Offboarding — Capital Humano', descripcion: 'Acceso al módulo Capital Humano en el proceso de Paz y Salvo', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 11, activo: true, es_scope: false, es_base: false, creado_por: 'sistema' },
   { slug: 'novedades.offboarding.it',  nombre: 'Offboarding — IT', descripcion: 'Acceso al módulo IT en el proceso de Paz y Salvo', grupo: 'novedades', grupo_label: 'Novedades', grupo_icon: 'fas fa-file-lines', orden: 12, activo: true, es_scope: false, es_base: false, creado_por: 'sistema' },
   { slug: 'super.offboarding', nombre: 'Gestión Checklist Offboarding', descripcion: 'Administrar preguntas del checklist de Paz y Salvo por módulo', grupo: 'super', grupo_label: 'Super Admin', grupo_icon: 'fas fa-shield-halved', orden: 17, activo: true, es_scope: false, es_base: false, creado_por: 'sistema' },
+  // ── Ecuador ──────────────────────────────────────────────────────────────────
+  { slug: 'ecuador.marcacion', nombre: 'Marcación con Ubicación', descripcion: 'Permite registrar entrada/salida con coordenadas GPS (exclusivo para usuarios Ecuador)', grupo: 'ecuador', grupo_label: 'Ecuador', grupo_icon: 'fas fa-location-dot', orden: 0, activo: true, es_scope: false, es_base: false, creado_por: 'sistema' },
+  { slug: 'ecuador.ver_marcaciones', nombre: 'Ver Marcaciones GPS', descripcion: 'Permite ver el historial de marcaciones con ubicación GPS en el módulo de Asistencias', grupo: 'ecuador', grupo_label: 'Ecuador', grupo_icon: 'fas fa-location-dot', orden: 1, activo: true, es_scope: false, es_base: false, creado_por: 'sistema' },
 ];
 
 @Injectable()

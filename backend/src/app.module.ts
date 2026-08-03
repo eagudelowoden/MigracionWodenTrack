@@ -21,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RecordatoriosModule } from './recordatorios/recordatorios.module';
 import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponibles.module';
 import { WfsmModule } from './wfsm/wfsm.module';
+import { MarcacionEcuadorModule } from './marcacion-ecuador/marcacion-ecuador.module';
 import { CargaModule } from './common/carga/carga.module';
 
 @Module({
@@ -28,10 +29,7 @@ import { CargaModule } from './common/carga/carga.module';
     // 1. Carga de variables de entorno según NODE_ENV
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        `.env.${process.env.NODE_ENV || 'development'}`,
-        '.env',
-      ],
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
     }),
 
     // 2. Configuración Asíncrona de la Base de Datos (SQL Server)
@@ -65,6 +63,7 @@ import { CargaModule } from './common/carga/carga.module';
     RecordatoriosModule,
     ModulosDisponiblesModule,
     WfsmModule,
+    MarcacionEcuadorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -232,14 +232,10 @@ export function useCargarAsistencias() {
   });
 
   const reporteParaPantalla = computed(() => {
-    // LOG CRUDO: fusionar todos los toques del mismo empleado+día en una sola fila.
-    // Primer toque = entrada, último toque = salida (si hay más de uno).
-    // Se usa _bestExit para rastrear el timestamp más tardío independientemente
-    // de cuándo se actualice check_in (evita que sobreescribir check_in rompa la comparación).
+    // 1. Deduplicar LOG CRUDO (lógica original)
     const logCrudoMap = new Map();
-
-    for (const item of filteredReport.value) {
-      if (item.tipo !== "LOG CRUDO") continue;
+    const base = filteredReport.value.filter((item) => {
+      if (item.tipo !== "LOG CRUDO") return true;
       const key = `${item.empleado}_${item.fecha}`;
       const itemTs = item.check_out || item.check_in;
       if (!logCrudoMap.has(key)) {
@@ -255,7 +251,7 @@ export function useCargarAsistencias() {
           fila._bestExit = itemTs;
         }
       }
-    }
+    });
 
     // Aplicar _bestExit como check_out solo si es distinto de check_in
     // y el span es razonable (< 14h). Si el span supera 14h, el primer toque
@@ -283,8 +279,31 @@ export function useCargarAsistencias() {
       return fila;
     });
 
-    const noLogCrudo = filteredReport.value.filter((i) => i.tipo !== "LOG CRUDO");
-    return [...noLogCrudo, ...logCrudoFinal];
+    // 2. Agrupar por empleado+fecha: múltiples toques biométricos sin check_out
+    //    colapsan en una fila → primer toque = entrada, último = salida
+    const mapa = new Map();
+    for (const item of base) {
+      const key = `${item.cc || item.empleado}__${item.fecha}`;
+      if (!mapa.has(key)) {
+        mapa.set(key, { ...item });
+      } else {
+        const fila = mapa.get(key);
+        // Entrada = toque más temprano
+        if (item.check_in && item.check_in !== "N/A" &&
+            (!fila.check_in || fila.check_in === "N/A" || item.check_in < fila.check_in)) {
+          fila.check_in = item.check_in;
+          fila.c_entrada = item.c_entrada;
+        }
+        // Salida = timestamp más tardío (check_out real, si no el check_in del último toque)
+        const itemMax = (item.check_out && item.check_out !== "N/A") ? item.check_out : item.check_in;
+        const filaMax = (fila.check_out && fila.check_out !== "N/A") ? fila.check_out : fila.check_in;
+        if (itemMax && itemMax > (filaMax || "")) {
+          fila.check_out = itemMax;
+          fila.c_salida = (item.check_out && item.check_out !== "N/A") ? item.c_salida : "";
+        }
+      }
+    }
+    return [...mapa.values()];
   });
 
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
