@@ -7,6 +7,7 @@ import { useRouter, useRoute } from 'vue-router';
 const NAV_GROUPS = [
   {
     label: 'Gestión',
+    collapsible: true,
     items: {
       stats: { icon: 'fas fa-chart-pie', label: 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-500/10' },
       users: { icon: 'fas fa-users', label: 'Personal', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
@@ -16,6 +17,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'Operación',
+    collapsible: true,
     items: {
       mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
       paramhx: { icon: 'fas fa-business-time', label: 'Param. Horas Extra', color: 'text-lime-400', bg: 'bg-lime-500/10' },
@@ -26,6 +28,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'Comunicación',
+    collapsible: true,
     items: {
       notifications: { icon: 'fas fa-bell', label: 'Avisos', color: 'text-rose-400', bg: 'bg-rose-500/10' },
       mensajes: { icon: 'fas fa-message', label: 'Mensajes', color: 'text-sky-400', bg: 'bg-sky-500/10' },
@@ -35,7 +38,6 @@ const NAV_GROUPS = [
   {
     label: 'Cron & Jobs',
     collapsible: true,
-    icon: 'fas fa-robot',
     items: {
       cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
@@ -44,6 +46,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'Sistema',
+    collapsible: true,
     items: {
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
@@ -462,13 +465,14 @@ onUnmounted(() => {
             <!-- Label de grupo NORMAL (no colapsable) -->
             <p v-if="isSidebarOpen && !group.collapsible" class="sa-nav-group-label">{{ group.label }}</p>
 
-            <!-- Label de grupo COLAPSABLE: clickeable, con flecha -->
+            <!-- Label de grupo COLAPSABLE: clickeable, con flecha.
+                 La flecha es un triángulo CSS puro (sin depender de ninguna
+                 fuente de íconos) para que nunca falle su renderizado. -->
             <button v-if="isSidebarOpen && group.collapsible" @click="toggleGrupo(group.label)"
               class="sa-nav-group-label sa-nav-group-toggle">
-              <i :class="group.icon" class="text-[9px]"></i>
-              <span>{{ group.label }}</span>
-              <i class="fas fa-chevron-down sa-nav-group-chevron"
-                :class="{ 'sa-nav-group-chevron-closed': gruposColapsados.has(group.label) }"></i>
+              <span class="sa-nav-group-toggle-label">{{ group.label }}</span>
+              <span class="sa-nav-group-arrow"
+                :class="{ 'sa-nav-group-arrow-closed': gruposColapsados.has(group.label) }"></span>
             </button>
 
             <div v-if="!isSidebarOpen" class="sa-nav-group-divider lg:block hidden"></div>
@@ -1020,12 +1024,12 @@ onUnmounted(() => {
 .sa-nav-group-toggle {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
   background: none;
   border: none;
   cursor: pointer;
-  opacity: .55;
+  opacity: .7;
   transition: opacity .15s;
 }
 
@@ -1033,17 +1037,24 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-.sa-nav-group-toggle span {
+.sa-nav-group-toggle-label {
   flex: 1;
   text-align: left;
 }
 
-.sa-nav-group-chevron {
-  font-size: 7px;
+/* Flecha en CSS puro (triángulo por bordes) — no depende de ninguna fuente de
+   íconos, así que nunca puede fallar en renderizar. */
+.sa-nav-group-arrow {
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid currentColor;
   transition: transform .15s ease;
 }
 
-.sa-nav-group-chevron-closed {
+.sa-nav-group-arrow-closed {
   transform: rotate(-90deg);
 }
 
