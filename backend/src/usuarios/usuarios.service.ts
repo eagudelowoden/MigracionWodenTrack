@@ -2957,12 +2957,6 @@ export class UsuariosService {
     }
   }
   async obtenerPerfilConEstructura(idOdoo: number) {
-    // --- ESTE ES EL TEST DE DEPURACIÓN ---
-    const todos = await this.usuarioRepo.find({ take: 5 });
-    console.log('--- DEBUG DB ---');
-    console.log('ID Odoo que busco:', idOdoo);
-
-    // ------------------------------------
 
     const usuario = await this.usuarioRepo.findOne({
       where: [{ id_odoo: idOdoo }, { id: idOdoo }],

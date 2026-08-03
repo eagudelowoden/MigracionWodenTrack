@@ -31,6 +31,7 @@ export const getDatabaseConfig = (
 ): TypeOrmModuleOptions => {
   const host = configService.get<string>('DB_HOST');
   const db = configService.get<string>('DB_NAME');
+  const esProduccion = configService.get<string>('NODE_ENV') === 'production';
   console.log(`🔌 DB conectando a: ${host} / base: ${db}`);
   return {
     type: 'mssql',
@@ -76,8 +77,13 @@ export const getDatabaseConfig = (
       WfsmSyncEstado,
     ],
     autoLoadEntities: true,
-    synchronize: true,
-    logging: true,
+    // En producción NO se auto-altera el esquema: un cambio de entidad podría
+    // borrar columnas/datos en caliente sin revisión. Los cambios de esquema
+    // en prod se aplican a mano (ALTER TABLE), igual que ya se viene haciendo.
+    synchronize: !esProduccion,
+    // En producción solo error/warn: 'logging: true' imprime CADA query con
+    // sus parámetros y ahoga los errores reales entre miles de líneas de ruido.
+    logging: esProduccion ? ['error', 'warn'] : true,
     options: {
       encrypt: false,
       trustServerCertificate: true,

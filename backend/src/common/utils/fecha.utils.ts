@@ -29,10 +29,6 @@ export function getFechaColombia() {
   // Formato UTC para Odoo (IMPORTANTE)
   const fechaParaOdoo = ahora.toISOString().replace('T', ' ').split('.')[0];
 
-  console.log('--- LOG DE FECHAS ---');
-  console.log('Local (Colombia):', ahoraStrCol);
-  console.log('Para Odoo (UTC):', fechaParaOdoo);
-
   return {
     inicioDia: `${fechaHoyCol} 00:00:00`,
     cierreEstandar: `${fechaMananaCol} 04:59:59`, // <-- YA NO DARÁ ERROR

@@ -33,13 +33,20 @@ const NAV_GROUPS = [
     },
   },
   {
+    label: 'Cron & Jobs',
+    collapsible: true,
+    icon: 'fas fa-robot',
+    items: {
+      cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+      sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+      reporteworkers: { icon: 'fas fa-microchip', label: 'Workers de Reporte', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    },
+  },
+  {
     label: 'Sistema',
     items: {
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
-      sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-      cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-      reporteworkers: { icon: 'fas fa-microchip', label: 'Workers de Reporte', color: 'text-blue-400', bg: 'bg-blue-500/10' },
       datoscrudos: { icon: 'fas fa-database', label: 'Datos Crudos', color: 'text-amber-400', bg: 'bg-amber-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
@@ -48,6 +55,16 @@ const NAV_GROUPS = [
     },
   },
 ];
+
+// Grupos colapsables: qué grupos están CERRADOS ahora mismo (por label).
+// Vacío por defecto = todos abiertos (no cambia el comportamiento actual
+// hasta que el usuario colapse alguno explícitamente).
+const gruposColapsados = ref(new Set());
+const toggleGrupo = (label) => {
+  const s = new Set(gruposColapsados.value);
+  s.has(label) ? s.delete(label) : s.add(label);
+  gruposColapsados.value = s;
+};
 
 // Mapa plano para acceso rápido por key (icon/label en otros lugares del código)
 const NAV_ITEMS = NAV_GROUPS.reduce((acc, g) => ({ ...acc, ...g.items }), {});
@@ -442,25 +459,38 @@ onUnmounted(() => {
         <template v-for="(group, gIdx) in NAV_GROUPS" :key="group.label">
           <!-- Label de grupo (solo si hay items accesibles) -->
           <div v-if="groupHasAccess(group)" class="sa-nav-group">
-            <p v-if="isSidebarOpen" class="sa-nav-group-label">{{ group.label }}</p>
-            <div v-else class="sa-nav-group-divider lg:block hidden"></div>
+            <!-- Label de grupo NORMAL (no colapsable) -->
+            <p v-if="isSidebarOpen && !group.collapsible" class="sa-nav-group-label">{{ group.label }}</p>
 
-            <template v-for="(item, key) in group.items" :key="key">
-              <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label" class="sa-nav-item" :class="[
-                !isSidebarOpen && 'lg:justify-center',
-                currentTab === key
-                  ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
-                  : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
-              ]">
-                <div v-if="currentTab === key" class="sa-nav-bar"></div>
-                <div class="sa-nav-icon">
-                  <i :class="item.icon" :style="isDark
-                    ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
-                    : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
-                </div>
-                <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
-              </button>
-            </template>
+            <!-- Label de grupo COLAPSABLE: clickeable, con flecha -->
+            <button v-if="isSidebarOpen && group.collapsible" @click="toggleGrupo(group.label)"
+              class="sa-nav-group-label sa-nav-group-toggle">
+              <i :class="group.icon" class="text-[9px]"></i>
+              <span>{{ group.label }}</span>
+              <i class="fas fa-chevron-down sa-nav-group-chevron"
+                :class="{ 'sa-nav-group-chevron-closed': gruposColapsados.has(group.label) }"></i>
+            </button>
+
+            <div v-if="!isSidebarOpen" class="sa-nav-group-divider lg:block hidden"></div>
+
+            <div v-if="!group.collapsible || !gruposColapsados.has(group.label)">
+              <template v-for="(item, key) in group.items" :key="key">
+                <button v-if="canAccess(key)" @click="navigateTo(key)" :title="item.label" class="sa-nav-item" :class="[
+                  !isSidebarOpen && 'lg:justify-center',
+                  currentTab === key
+                    ? (isDark ? 'sa-nav-active-dark' : 'sa-nav-active-light')
+                    : (isDark ? 'sa-nav-idle-dark' : 'sa-nav-idle-light'),
+                ]">
+                  <div v-if="currentTab === key" class="sa-nav-bar"></div>
+                  <div class="sa-nav-icon">
+                    <i :class="item.icon" :style="isDark
+                      ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
+                      : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
+                  </div>
+                  <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
+                </button>
+              </template>
+            </div>
           </div>
         </template>
       </nav>
@@ -985,6 +1015,36 @@ onUnmounted(() => {
 
 .sa-sidebar-light .sa-nav-group-label {
   color: #64748b;
+}
+
+.sa-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: .55;
+  transition: opacity .15s;
+}
+
+.sa-nav-group-toggle:hover {
+  opacity: 1;
+}
+
+.sa-nav-group-toggle span {
+  flex: 1;
+  text-align: left;
+}
+
+.sa-nav-group-chevron {
+  font-size: 7px;
+  transition: transform .15s ease;
+}
+
+.sa-nav-group-chevron-closed {
+  transform: rotate(-90deg);
 }
 
 /* Separador entre grupos cuando sidebar está colapsado (solo desktop) */
