@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import * as crypto from 'crypto';
@@ -36,6 +36,8 @@ const CAMPOS_DEFAULT: Omit<ApiCampoConfig, 'id'>[] = [
 
 @Injectable()
 export class ApiExternaService implements OnModuleInit {
+  private readonly logger = new Logger(ApiExternaService.name);
+
   constructor(
     @InjectRepository(ApiCredencial)
     private readonly credRepo: Repository<ApiCredencial>,
@@ -49,12 +51,18 @@ export class ApiExternaService implements OnModuleInit {
   ) {}
 
   // ─── Sembrar campos por defecto si la tabla está vacía ────────────────────
+  // Nunca debe poder tumbar el arranque de toda la API: si esta tabla tiene
+  // un problema de esquema/conexión, la app debe seguir levantando igual.
   async onModuleInit() {
-    const count = await this.camposRepo.count();
-    if (count === 0) {
-      await this.camposRepo.save(
-        CAMPOS_DEFAULT.map((c) => this.camposRepo.create(c)),
-      );
+    try {
+      const count = await this.camposRepo.count();
+      if (count === 0) {
+        await this.camposRepo.save(
+          CAMPOS_DEFAULT.map((c) => this.camposRepo.create(c)),
+        );
+      }
+    } catch (e: any) {
+      this.logger.error(`No se pudo sembrar campos de API externa: ${e?.message}`);
     }
   }
 

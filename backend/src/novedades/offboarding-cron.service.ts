@@ -28,33 +28,39 @@ export class OffboardingCronService implements OnModuleInit {
 
   // ── Inicialización ───────────────────────────────────────────────────────────
 
+  // Nunca debe poder tumbar el arranque de toda la API: si esta tabla tiene
+  // un problema de esquema/conexión, la app debe seguir levantando igual.
   async onModuleInit() {
-    const config = await this.obtenerConfig();
+    try {
+      const config = await this.obtenerConfig();
 
-    // Limpiar estado 'running' que quedó de un crash anterior
-    if (config.ultimo_estado === 'running') {
-      config.ultimo_estado = 'error';
-      config.ultimo_error = 'Interrumpido por reinicio del servidor.';
-      if (!config.ultimo_fin) config.ultimo_fin = new Date();
-      await this.configRepo.save(config);
+      // Limpiar estado 'running' que quedó de un crash anterior
+      if (config.ultimo_estado === 'running') {
+        config.ultimo_estado = 'error';
+        config.ultimo_error = 'Interrumpido por reinicio del servidor.';
+        if (!config.ultimo_fin) config.ultimo_fin = new Date();
+        await this.configRepo.save(config);
 
-      const logAbierto = await this.logRepo.findOne({
-        where: { estado: 'running' },
-        order: { inicio: 'DESC' },
-      });
-      if (logAbierto) {
-        logAbierto.estado = 'error';
-        logAbierto.error = 'Interrumpido por reinicio del servidor.';
-        logAbierto.fin = new Date();
-        logAbierto.duracion_seg = Math.round(
-          (logAbierto.fin.getTime() - logAbierto.inicio.getTime()) / 1000,
-        );
-        await this.logRepo.save(logAbierto);
+        const logAbierto = await this.logRepo.findOne({
+          where: { estado: 'running' },
+          order: { inicio: 'DESC' },
+        });
+        if (logAbierto) {
+          logAbierto.estado = 'error';
+          logAbierto.error = 'Interrumpido por reinicio del servidor.';
+          logAbierto.fin = new Date();
+          logAbierto.duracion_seg = Math.round(
+            (logAbierto.fin.getTime() - logAbierto.inicio.getTime()) / 1000,
+          );
+          await this.logRepo.save(logAbierto);
+        }
       }
-    }
 
-    if (config.activo) {
-      this.registrarCron(config.hora, config.minuto);
+      if (config.activo) {
+        this.registrarCron(config.hora, config.minuto);
+      }
+    } catch (e: any) {
+      this.logger.error(`No se pudo inicializar el cron de offboarding: ${e?.message}`);
     }
   }
 

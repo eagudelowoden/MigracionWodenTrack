@@ -31,9 +31,21 @@ export class HorasExtraCronService implements OnModuleInit {
   async onModuleInit() {
     // El worker no registra el cron (solo procesa la cola).
     if (process.env.HX_WORKER === '1') return;
-    const config = await this.obtenerConfig();
-    if (config.activo) {
-      this.registrarCron(config);
+
+    // Nunca dejar que un problema con ESTA tabla (esquema desincronizado,
+    // conexión momentánea, etc.) tumbe el arranque de TODA la API — sin este
+    // try/catch, una excepción aquí aborta el bootstrap de Nest antes de que
+    // el servidor llegue a escuchar el puerto (crash-loop completo por un
+    // cron que ni siquiera es crítico para servir el resto de la app).
+    try {
+      const config = await this.obtenerConfig();
+      if (config.activo) {
+        this.registrarCron(config);
+      }
+    } catch (e: any) {
+      this.logger.error(
+        `No se pudo inicializar el cron de horas extra (la API sigue arrancando igual): ${e?.message}`,
+      );
     }
   }
 

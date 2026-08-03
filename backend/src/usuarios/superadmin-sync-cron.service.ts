@@ -29,36 +29,42 @@ export class SuperAdminSyncCronService implements OnModuleInit {
   ) {}
 
   // ── Al arrancar el servidor, registra el cron con la config guardada ────────
+  // Nunca debe poder tumbar el arranque de toda la API: si esta tabla tiene
+  // un problema de esquema/conexión, la app debe seguir levantando igual.
   async onModuleInit() {
     // En el proceso WORKER no se registran crons (evita duplicar la sync).
     if (process.env.HX_WORKER === '1') return;
-    const config = await this.obtenerConfig();
+    try {
+      const config = await this.obtenerConfig();
 
-    // Si quedó en "running" por un reinicio/caída, marcarlo como cancelado
-    if (config.ultimo_estado === 'running') {
-      config.ultimo_estado = 'error';
-      config.ultimo_error = 'Sincronización interrumpida por reinicio del servidor.';
-      if (!config.ultimo_fin) config.ultimo_fin = new Date();
-      await this.configRepo.save(config);
+      // Si quedó en "running" por un reinicio/caída, marcarlo como cancelado
+      if (config.ultimo_estado === 'running') {
+        config.ultimo_estado = 'error';
+        config.ultimo_error = 'Sincronización interrumpida por reinicio del servidor.';
+        if (!config.ultimo_fin) config.ultimo_fin = new Date();
+        await this.configRepo.save(config);
 
-      // También cerrar el log abierto si quedó sin fin
-      const logAbierto = await this.logRepo.findOne({
-        where: { estado: 'running' },
-        order: { inicio: 'DESC' },
-      });
-      if (logAbierto) {
-        logAbierto.estado = 'error';
-        logAbierto.error = 'Interrumpido por reinicio del servidor.';
-        logAbierto.fin = new Date();
-        logAbierto.duracion_seg = Math.round(
-          (logAbierto.fin.getTime() - logAbierto.inicio.getTime()) / 1000,
-        );
-        await this.logRepo.save(logAbierto);
+        // También cerrar el log abierto si quedó sin fin
+        const logAbierto = await this.logRepo.findOne({
+          where: { estado: 'running' },
+          order: { inicio: 'DESC' },
+        });
+        if (logAbierto) {
+          logAbierto.estado = 'error';
+          logAbierto.error = 'Interrumpido por reinicio del servidor.';
+          logAbierto.fin = new Date();
+          logAbierto.duracion_seg = Math.round(
+            (logAbierto.fin.getTime() - logAbierto.inicio.getTime()) / 1000,
+          );
+          await this.logRepo.save(logAbierto);
+        }
       }
-    }
 
-    if (config.activo) {
-      this.registrarCron(config.hora, config.minuto);
+      if (config.activo) {
+        this.registrarCron(config.hora, config.minuto);
+      }
+    } catch (e: any) {
+      this.logger.error(`No se pudo inicializar el cron de sync Odoo: ${e?.message}`);
     }
   }
 

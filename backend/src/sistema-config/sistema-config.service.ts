@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { SistemaConfig } from './entities/sistema-config.entity';
@@ -35,21 +35,29 @@ const DEFAULTS: Record<string, { valor: string; descripcion: string }> = {
 
 @Injectable()
 export class SistemaConfigService implements OnModuleInit {
+  private readonly logger = new Logger(SistemaConfigService.name);
+
   constructor(
     @InjectRepository(SistemaConfig)
     private readonly repo: Repository<SistemaConfig>,
     @InjectDataSource() private readonly ds: DataSource,
   ) {}
 
+  // Nunca debe poder tumbar el arranque de toda la API: si esta tabla tiene
+  // un problema de esquema/conexión, la app debe seguir levantando igual.
   async onModuleInit() {
-    for (const [clave, { valor, descripcion }] of Object.entries(DEFAULTS)) {
-      // Solo inserta si no existe — nunca pisa un valor que el admin ya cambió
-      await this.ds.query(
-        `IF NOT EXISTS (SELECT 1 FROM sistema_config WHERE clave = @0)
-         INSERT INTO sistema_config (clave, valor, descripcion, updated_at)
-         VALUES (@0, @1, @2, GETDATE())`,
-        [clave, valor, descripcion],
-      );
+    try {
+      for (const [clave, { valor, descripcion }] of Object.entries(DEFAULTS)) {
+        // Solo inserta si no existe — nunca pisa un valor que el admin ya cambió
+        await this.ds.query(
+          `IF NOT EXISTS (SELECT 1 FROM sistema_config WHERE clave = @0)
+           INSERT INTO sistema_config (clave, valor, descripcion, updated_at)
+           VALUES (@0, @1, @2, GETDATE())`,
+          [clave, valor, descripcion],
+        );
+      }
+    } catch (e: any) {
+      this.logger.error(`No se pudo sembrar sistema_config: ${e?.message}`);
     }
   }
 

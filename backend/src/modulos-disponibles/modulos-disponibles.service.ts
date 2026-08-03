@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ModuloDisponible } from './entities/modulo-disponible.entity';
@@ -81,15 +81,23 @@ const SEED_DATA: Omit<ModuloDisponible, 'id' | 'fecha_creacion'>[] = [
 
 @Injectable()
 export class ModulosDisponiblesService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(ModulosDisponiblesService.name);
+
   constructor(
     @InjectRepository(ModuloDisponible)
     private readonly repo: Repository<ModuloDisponible>,
   ) {}
 
+  // Nunca debe poder tumbar el arranque de toda la API: si esta tabla tiene
+  // un problema de esquema/conexión, la app debe seguir levantando igual.
   async onApplicationBootstrap() {
     // El seed lo hace solo el proceso API, no el worker.
     if (process.env.HX_WORKER === '1') return;
-    await this.seed();
+    try {
+      await this.seed();
+    } catch (e: any) {
+      this.logger.error(`No se pudo sembrar el catálogo de módulos: ${e?.message}`);
+    }
   }
 
   async seed() {
