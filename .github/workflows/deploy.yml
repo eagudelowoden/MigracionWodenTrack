@@ -46,7 +46,6 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
-          overwrite: true
 
       # 4. Copiar frontend compilado al IIS
       - name: Copiar Frontend dist a IIS TEST
@@ -58,7 +57,6 @@ jobs:
           source: "frontend/dist/*"
           target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
           strip_components: 2
-          overwrite: true
 
       # 5. Reiniciar PM2 en el servidor
       - name: Reiniciar PM2 TEST
@@ -115,7 +113,6 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
-          overwrite: true
 
       # 4. Copiar frontend compilado al IIS
       #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ
@@ -129,7 +126,6 @@ jobs:
           source: "frontend/dist/*"
           target: "C:/inetpub/wwwroot/WodenTrackPrd"
           strip_components: 2
-          overwrite: true
 
       # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
       #    Si falta una tabla/columna, este paso termina en error y GitHub
