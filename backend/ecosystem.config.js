@@ -12,10 +12,17 @@
  * Cluster requeriría Redis + sticky sessions (ver análisis previo).
  *
  * ── Despliegue en el servidor (dentro de la carpeta del backend) ──────────────
- *   npm run build
- *   pm2 delete WodenTrackPRD          # quita la instancia vieja (para tomar node_args nuevos)
- *   pm2 start ecosystem.config.js     # arranca con esta config
- *   pm2 save                          # persiste para que reviva tras reinicio del servidor
+ *   npm run build:prod
+ *   npm run verify:schema:prod && pm2 delete WodenTrackPRD && pm2 start ecosystem.config.js && pm2 save
+ *
+ *   El "&&" es la protección: si verify:schema:prod encuentra una tabla o
+ *   columna faltante en la base de datos, termina con código de salida 1 y
+ *   CMD/PowerShell corta la cadena ahí mismo — nunca se llega a "pm2 delete"
+ *   ni "pm2 start", así que el proceso viejo (bueno) se queda corriendo tal
+ *   cual estaba, y llega una alerta por correo (MAIL_ALERT_TO) con el detalle
+ *   de qué falta. Corregido eso (ALTER TABLE en la base correcta), se vuelve
+ *   a correr la misma línea.
+ *
  *   pm2 startup                       # (una vez) que arranque al reiniciar Windows
  *
  * ── Reinicio normal (releyendo variables de entorno) ──────────────────────────
