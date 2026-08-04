@@ -201,7 +201,9 @@
       "Bash(git status *)",
       "Bash(gh --version)",
       "Bash(gh auth *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(python3 -c \"import yaml,sys; yaml.safe_load\\(open\\('.github/workflows/deploy.yml'\\)\\)\")",
+      "Bash(node -e \"require\\('js-yaml'\\)\")"
     ]
   }
 }

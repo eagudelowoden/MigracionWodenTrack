@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - dagudelo/production
-      - test
+      - dagudelo/qa
 
 jobs:
   # ─────────────────────────────────────────────
-  # DESPLIEGUE A TEST  (rama: test)
+  # DESPLIEGUE A TEST/QA  (rama: dagudelo/qa)
   # ─────────────────────────────────────────────
   deploy-test:
-    if: github.ref == 'refs/heads/test'
+    if: github.ref == 'refs/heads/dagudelo/qa'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codigo
@@ -30,6 +30,11 @@ jobs:
           npm run build:qa
 
       # 2. Compilar frontend QA
+      #    frontend/.env.qa esta en .gitignore — el runner no lo tiene, hay
+      #    que escribirlo desde un secret antes de compilar (igual que prod).
+      - name: Escribir .env.qa del frontend
+        run: echo "${{ secrets.FRONTEND_ENV_QA }}" > frontend/.env.qa
+
       - name: Compilar Frontend QA
         run: |
           cd frontend
@@ -58,7 +63,25 @@ jobs:
           target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
           strip_components: 2
 
-      # 5. Reiniciar PM2 en el servidor
+      # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      #    Si falla, el paso 6 (reiniciar PM2) nunca se ejecuta.
+      - name: Verificar esquema de base de datos TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            $env:NODE_ENV='qa';
+            node dist\\scripts\\verify-schema.js;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
+      # 6. Reiniciar PM2 en el servidor (solo si el paso 5 pasó)
+      #    Se fija NODE_ENV=qa explícitamente antes de "pm2 start" porque el
+      #    arranque en frío no tenía forma de saber qué .env.* cargar.
       - name: Reiniciar PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -70,7 +93,7 @@ jobs:
             powershell -NoProfile -ExecutionPolicy Bypass -Command
             "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
             if ($p) { pm2 restart WodenTrackTest --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            else { $env:NODE_ENV='qa'; pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
             pm2 save"
 
   # ─────────────────────────────────────────────
