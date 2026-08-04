@@ -96,6 +96,13 @@ jobs:
           npm run build:prod
 
       # 2. Compilar frontend PROD
+      #    Vite incrusta las VITE_* en el bundle en tiempo de compilacion (no
+      #    en runtime), y .env.production del frontend esta en .gitignore, asi
+      #    que el runner de GitHub no lo tiene — hay que escribirlo desde un
+      #    secret antes de compilar, o VITE_API_URL queda undefined.
+      - name: Escribir .env.production del frontend
+        run: echo "${{ secrets.FRONTEND_ENV_PRODUCTION }}" > frontend/.env.production
+
       - name: Compilar Frontend PROD
         run: |
           cd frontend
