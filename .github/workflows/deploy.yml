@@ -22,21 +22,34 @@ jobs:
         with:
           node-version: '20'
 
-      # 1. Compilar backend QA
-      - name: Compilar Backend QA
+      # 1. Correr pruebas unitarias del backend — si algo falla, el job para
+      #    aqui mismo y NADA de lo de abajo se ejecuta (ni build ni copia ni
+      #    reinicio). No se despliega codigo que no pasa sus propias pruebas.
+      - name: Pruebas unitarias Backend
         run: |
           cd backend
           npm install
+          npm test
+
+      # 2. Compilar backend QA
+      - name: Compilar Backend QA
+        run: |
+          cd backend
           npm run build:qa
 
-      # 2. Compilar frontend QA
+      # 3. Compilar frontend QA
+      #    frontend/.env.qa esta en .gitignore — el runner no lo tiene, hay
+      #    que escribirlo desde un secret antes de compilar (igual que prod).
+      - name: Escribir .env.qa del frontend
+        run: echo "${{ secrets.FRONTEND_ENV_QA }}" > frontend/.env.qa
+
       - name: Compilar Frontend QA
         run: |
           cd frontend
           npm install
           npm run build:qa
 
-      # 3. Copiar backend compilado al servidor
+      # 4. Copiar backend compilado al servidor
       - name: Copiar Backend dist a servidor TEST
         uses: appleboy/scp-action@master
         with:
@@ -47,7 +60,7 @@ jobs:
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
 
-      # 4. Copiar frontend compilado al IIS
+      # 5. Copiar frontend compilado al IIS
       - name: Copiar Frontend dist a IIS TEST
         uses: appleboy/scp-action@master
         with:
@@ -58,7 +71,25 @@ jobs:
           target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
           strip_components: 2
 
-      # 5. Reiniciar PM2 en el servidor
+      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      #    Si falla, los pasos 7 y 8 (reiniciar PM2, avisar) nunca se ejecutan.
+      - name: Verificar esquema de base de datos TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            $env:NODE_ENV='qa';
+            node dist\\scripts\\verify-schema.js;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
+      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
+      #    Se fija NODE_ENV=qa explícitamente antes de "pm2 start" porque el
+      #    arranque en frío no tenía forma de saber qué .env.* cargar.
       - name: Reiniciar PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -70,8 +101,23 @@ jobs:
             powershell -NoProfile -ExecutionPolicy Bypass -Command
             "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
             if ($p) { pm2 restart WodenTrackTest --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            else { $env:NODE_ENV='qa'; pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
             pm2 save"
+
+      # 8. Avisar por correo que el despliegue terminó bien — solo se llega
+      #    aqui si TODO lo de arriba (pruebas, build, copia, esquema, PM2) pasó.
+      - name: Notificar despliegue exitoso TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            $env:NODE_ENV='qa';
+            node dist\\scripts\\notify-deploy.js"
 
   # ─────────────────────────────────────────────
   # DESPLIEGUE A PRODUCCION  (rama: dagudelo/production)
@@ -88,14 +134,21 @@ jobs:
         with:
           node-version: '20'
 
-      # 1. Compilar backend PROD
-      - name: Compilar Backend PROD
+      # 1. Correr pruebas unitarias del backend — si algo falla, el job para
+      #    aqui mismo. No se despliega codigo que no pasa sus propias pruebas.
+      - name: Pruebas unitarias Backend
         run: |
           cd backend
           npm install
+          npm test
+
+      # 2. Compilar backend PROD
+      - name: Compilar Backend PROD
+        run: |
+          cd backend
           npm run build:prod
 
-      # 2. Compilar frontend PROD
+      # 3. Compilar frontend PROD
       #    Vite incrusta las VITE_* en el bundle en tiempo de compilacion (no
       #    en runtime), y .env.production del frontend esta en .gitignore, asi
       #    que el runner de GitHub no lo tiene — hay que escribirlo desde un
@@ -109,7 +162,7 @@ jobs:
           npm install
           npm run build
 
-      # 3. Copiar backend compilado al servidor
+      # 4. Copiar backend compilado al servidor
       #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
       - name: Copiar Backend dist a servidor PROD
         uses: appleboy/scp-action@master
@@ -121,7 +174,7 @@ jobs:
           target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
 
-      # 4. Copiar frontend compilado al IIS
+      # 5. Copiar frontend compilado al IIS
       #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ
       #    (index.html/assets junto a web.config), sin subcarpeta "dist".
       - name: Copiar Frontend dist a IIS PROD
@@ -134,11 +187,11 @@ jobs:
           target: "C:/inetpub/wwwroot/WodenTrackPrd"
           strip_components: 2
 
-      # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso.
       #    Si falta una tabla/columna, este paso termina en error y GitHub
-      #    Actions NUNCA ejecuta el paso 6 (reiniciar PM2) — el proceso viejo
-      #    sigue corriendo tal cual, y llega un correo de alerta (MAIL_ALERT_TO)
-      #    con el detalle de qué falta en la base de datos.
+      #    Actions NUNCA ejecuta los pasos 7 y 8 (reiniciar PM2, avisar) — el
+      #    proceso viejo sigue corriendo tal cual, y llega un correo de alerta
+      #    (MAIL_ALERT_TO) con el detalle de qué falta en la base de datos.
       - name: Verificar esquema de base de datos PROD
         uses: appleboy/ssh-action@master
         with:
@@ -153,7 +206,7 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 6. Reiniciar PM2 en el servidor (solo si el paso 5 pasó)
+      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -167,3 +220,18 @@ jobs:
             if ($p) { pm2 restart WodenTrackPRD --update-env }
             else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js };
             pm2 save"
+
+      # 8. Avisar por correo que el despliegue terminó bien — solo se llega
+      #    aqui si TODO lo de arriba (pruebas, build, copia, esquema, PM2) pasó.
+      - name: Notificar despliegue exitoso PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrack_Prd;
+            $env:NODE_ENV='production';
+            node dist\\scripts\\notify-deploy.js"
