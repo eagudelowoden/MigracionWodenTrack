@@ -201,7 +201,9 @@
       "Bash(git status *)",
       "Bash(gh --version)",
       "Bash(gh auth *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git cherry-pick *)",
+      "Bash(npm test *)"
     ]
   }
 }
