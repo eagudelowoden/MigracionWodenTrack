@@ -112,7 +112,7 @@ import GestionModulos from '../components/admin/SuperAdmin/GestionModulos.vue';
 import GestionParametrosHorasExtra from '../components/admin/SuperAdmin/GestionParametrosHorasExtra.vue';
 import ModuloReportesFalla from '../components/admin/ModuloReportesFalla.vue';
 import '../assets/css/admin-style.css';
-import '../assets/css/SuperAdmin.css';
+import '../assets/css/superAdmin.css';
 
 
 // --- 1. CONFIGURACIÓN ---
