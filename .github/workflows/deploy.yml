@@ -3,7 +3,7 @@ name: Deploy WodenTrack V2
 on:
   push:
     branches:
-      - main
+      - dagudelo/production
       - test
 
 jobs:
@@ -76,10 +76,10 @@ jobs:
             pm2 save"
 
   # ─────────────────────────────────────────────
-  # DESPLIEGUE A PRODUCCION  (rama: main)
+  # DESPLIEGUE A PRODUCCION  (rama: dagudelo/production)
   # ─────────────────────────────────────────────
   deploy-prod:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/dagudelo/production'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codigo
@@ -105,6 +105,7 @@ jobs:
           npm run build
 
       # 3. Copiar backend compilado al servidor
+      #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
       - name: Copiar Backend dist a servidor PROD
         uses: appleboy/scp-action@master
         with:
@@ -112,11 +113,13 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "backend/dist/*"
-          target: "C:/Users/Administrator/Documents/WodenTrackV2/dist"
+          target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
           overwrite: true
 
       # 4. Copiar frontend compilado al IIS
+      #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ
+      #    (index.html/assets junto a web.config), sin subcarpeta "dist".
       - name: Copiar Frontend dist a IIS PROD
         uses: appleboy/scp-action@master
         with:
@@ -124,11 +127,30 @@ jobs:
           username: Administrator
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "frontend/dist/*"
-          target: "C:/inetpub/wwwroot/WodenTrack/dist"
+          target: "C:/inetpub/wwwroot/WodenTrackPrd"
           strip_components: 2
           overwrite: true
 
-      # 5. Reiniciar PM2 en el servidor
+      # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      #    Si falta una tabla/columna, este paso termina en error y GitHub
+      #    Actions NUNCA ejecuta el paso 6 (reiniciar PM2) — el proceso viejo
+      #    sigue corriendo tal cual, y llega un correo de alerta (MAIL_ALERT_TO)
+      #    con el detalle de qué falta en la base de datos.
+      - name: Verificar esquema de base de datos PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrack_Prd;
+            $env:NODE_ENV='production';
+            node dist\\scripts\\verify-schema.js;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
+      # 6. Reiniciar PM2 en el servidor (solo si el paso 5 pasó)
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -138,7 +160,7 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrack';
-            if ($p) { pm2 restart WodenTrack --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackV2\\dist\\main.js --name WodenTrack };
+            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
+            if ($p) { pm2 restart WodenTrackPRD --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js };
             pm2 save"
