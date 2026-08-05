@@ -221,8 +221,10 @@
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre, identificacion, id_odoo, pais, departamento, area_id, segmento_id, is_active FROM usuarios_registrados WHERE identificacion = '1001057273'\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT modulos FROM usuarios_permisos WHERE usuario_id_odoo = 20719\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre FROM maestro_segmentos WHERE id=1\" -W -s\"|\")",
-      "Bash(gh issue *)",
-      "WebFetch(domain:github.com)"
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT slug, nombre, descripcion, grupo, grupo_label, orden, activo FROM modulos_disponibles WHERE slug IN \\('super.superadmin','admin.admin','admin.marcacion','admin.asistencias'\\) ORDER BY grupo, orden\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT grupo, grupo_label, COUNT\\(*\\) as total FROM modulos_disponibles GROUP BY grupo, grupo_label ORDER BY grupo\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT DISTINCT grupo, grupo_label, grupo_icon FROM modulos_disponibles ORDER BY grupo\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P V29kZW4uMjAyMw== -d WodenTrack -Q ' *)"
     ]
   }
 }
