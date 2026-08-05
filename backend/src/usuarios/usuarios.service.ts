@@ -42,9 +42,6 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
-  private readonly _REPORTE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-  private _reporteCache = new Map<string, { ts: number; data: any }>();
-
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -1814,22 +1811,6 @@ export class UsuariosService {
       }
     }
 
-    // ── Opción 3: Caché en memoria ────────────────────────────────────────────
-    const cacheKey = JSON.stringify({
-      soloHoy,
-      companyName,
-      startDate,
-      endDate,
-      departamentoName,
-      areaId,
-      segmentoId,
-      agruparLogs,
-    });
-    const cached = this._reporteCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
-      console.log('✅ Reporte servido desde caché en memoria');
-      return cached.data;
-    }
 
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
