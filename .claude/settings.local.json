@@ -203,7 +203,20 @@
       "Bash(gh auth *)",
       "Bash(git commit *)",
       "Bash(git cherry-pick *)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(xargs grep -liE \"attendance\\\\.log|attendance_log|hr\\\\.attendance\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre, cedula, id_odoo, pais, departamento, area_id, segmento_id, is_active FROM usuarios WHERE cedula = '1003618766'\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre, identificacion, id_odoo, pais, departamento, area_id, segmento_id, is_active FROM usuarios_registrados WHERE identificacion = '1003618766' OR nombre LIKE '%AGUDELO%ELDER%' OR nombre LIKE '%ELDER%AGUDELO%'\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre FROM maestro_areas WHERE id=15; SELECT id, nombre FROM maestro_segmentos WHERE id=4;\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT TOP 5 s.id, u.nombre, u.area_id, u.segmento_id, u.is_active FROM sesiones_activas s JOIN usuarios_registrados u ON u.id = s.usuario_id ORDER BY s.id DESC\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT TOP 5 s.id, s.id_odoo, s.nombre, s.activa, s.last_seen_at, u.area_id, u.segmento_id FROM sesiones_activas s LEFT JOIN usuarios_registrados u ON u.id_odoo = s.id_odoo WHERE s.activa = 1 ORDER BY s.last_seen_at DESC\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT * FROM usuarios_permisos WHERE usuario_id = 15726\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT modulos, nivel_acceso FROM usuarios_permisos WHERE usuario_id_odoo = 15726; SELECT id_odoo, is_superadmin FROM usuarios_registrados WHERE id_odoo=15726\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SET NOCOUNT ON; SELECT id_odoo FROM usuarios_registrados WHERE segmento_id=4 AND is_active=1\" -h -1 -W)",
+      "Bash(grep -E '^[0-9]+$')",
+      "Read(//tmp/**)",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT COUNT\\(*\\) as total FROM usuarios_registrados WHERE area_id=15 AND is_active=1; SELECT COUNT\\(*\\) as total FROM usuarios_registrados WHERE is_active=1\" -W -s\"|\")",
+      "Bash(curl -s 'http://localhost:8082/usuarios/reporte-novedades?hoy=true&company=%28CO%29%20WODEN%20OPERATIVA%20COLOMBIA%20S.A.S' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -o /tmp/reporte.json -w 'HTTP %{http_code}\\\\n')"
     ]
   }
 }

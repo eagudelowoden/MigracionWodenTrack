@@ -50,11 +50,11 @@
           filterHoy ? 'opacity-40 pointer-events-none' : '',
           isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'
         ]">
-          <input v-model="startDate" type="date"
+          <input v-model="startDate" type="date" @change="filterHoy = false"
             class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
             :class="isDark ? 'text-white' : 'text-slate-700'">
           <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
-          <input v-model="endDate" type="date"
+          <input v-model="endDate" type="date" @change="filterHoy = false"
             class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
             :class="isDark ? 'text-white' : 'text-slate-700'">
         </div>

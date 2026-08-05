@@ -234,7 +234,7 @@ export function useCargarAsistencias() {
   const reporteParaPantalla = computed(() => {
     // 1. Deduplicar LOG CRUDO (lógica original)
     const logCrudoMap = new Map();
-    const base = filteredReport.value.filter((item) => {
+    const noLog = filteredReport.value.filter((item) => {
       if (item.tipo !== "LOG CRUDO") return true;
       const key = `${item.empleado}_${item.fecha}`;
       const itemTs = item.check_out || item.check_in;
@@ -251,6 +251,7 @@ export function useCargarAsistencias() {
           fila._bestExit = itemTs;
         }
       }
+      return false;
     });
 
     // Aplicar _bestExit como check_out solo si es distinto de check_in
@@ -279,6 +280,8 @@ export function useCargarAsistencias() {
       return fila;
     });
 
+    const base = [...noLog, ...logCrudoFinal];
+
     // 2. Agrupar por empleado+fecha: múltiples toques biométricos sin check_out
     //    colapsan en una fila → primer toque = entrada, último = salida
     const mapa = new Map();
@@ -300,6 +303,11 @@ export function useCargarAsistencias() {
         if (itemMax && itemMax > (filaMax || "")) {
           fila.check_out = itemMax;
           fila.c_salida = (item.check_out && item.check_out !== "N/A") ? item.c_salida : "";
+        }
+        // Si hay marcación biométrica para este empleado+fecha, prevalece sobre
+        // el "APLICATIVO" hardcodeado de hr.attendance (fuente real y verificable).
+        if (item.fuente === "BIOMÉTRICO") {
+          fila.fuente = "BIOMÉTRICO";
         }
       }
     }
