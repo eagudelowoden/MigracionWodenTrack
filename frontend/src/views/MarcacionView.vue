@@ -26,7 +26,8 @@
             <i class="far fa-user-circle text-lg"></i>
           </div>
           <div class="space-y-0.5 text-left">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Sesión {{ employee.job || 'Operario' }}</span>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Sesión {{ employee.job ||
+              'Operario' }}</span>
             <h2 class="text-sm font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-[#111827]'">
               Hola, {{ primerNombre }}
             </h2>
@@ -70,7 +71,7 @@
             :class="[isDark
               ? 'bg-[#1c2230]/90 border-[#2a3142] hover:border-[#e88710] backdrop-blur-md'
               : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400',
-              loading && accionPendiente === 'in' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
+            loading && accionPendiente === 'in' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
 
             <div v-if="loading && accionPendiente === 'in'" class="card-ripple" aria-hidden="true">
               <span></span><span></span><span></span>
@@ -80,7 +81,8 @@
               :class="isDark
                 ? 'bg-[#0B0F19] border-[#222938] text-zinc-400 group-hover:bg-[#e88710] group-hover:border-[#e88710] group-hover:text-white'
                 : 'bg-[#F4F6FA] border-slate-100 text-zinc-600 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] group-hover:text-white'">
-              <i v-if="loading && accionPendiente === 'in'" class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
+              <i v-if="loading && accionPendiente === 'in'"
+                class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
               <svg v-else-if="employee.day_completed" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor"
                 viewBox="0 0 24 24" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -93,7 +95,8 @@
             <div class="space-y-0.5 mt-4 relative z-10">
               <span class="block text-[11px] font-bold uppercase tracking-wider opacity-40">Registro</span>
               <span class="block text-sm font-bold" :class="isDark ? 'text-white' : 'text-[#111827]'">
-                {{ loading && accionPendiente === 'in' ? 'Registrando…' : (employee.day_completed ? 'Completado' : (employee.is_inside ? 'Dentro' : 'Entrada')) }}
+                {{ loading && accionPendiente === 'in' ? 'Registrando…' : (employee.day_completed ? 'Completado' :
+                  (employee.is_inside ? 'Ingreso Registrado' : 'Entrada')) }}
               </span>
               <span v-if="employee.hora_entrada" class="block text-[10px] font-semibold tabular-nums text-zinc-400">
                 {{ employee.hora_entrada }}
@@ -107,7 +110,7 @@
             :class="[isDark
               ? 'bg-[#1c2230]/90 border-[#2a3142] hover:border-[#e88710] backdrop-blur-md'
               : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400',
-              loading && accionPendiente === 'out' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
+            loading && accionPendiente === 'out' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
 
             <div v-if="loading && accionPendiente === 'out'" class="card-ripple" aria-hidden="true">
               <span></span><span></span><span></span>
@@ -117,7 +120,8 @@
               :class="isDark
                 ? 'bg-[#0B0F19] border-[#222938] text-zinc-400 group-hover:bg-[#e88710] group-hover:border-[#e88710] group-hover:text-white'
                 : 'bg-[#F4F6FA] border-slate-100 text-zinc-600 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] group-hover:text-white'">
-              <i v-if="loading && accionPendiente === 'out'" class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
+              <i v-if="loading && accionPendiente === 'out'"
+                class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
               </svg>
@@ -136,11 +140,7 @@
         </div>
 
         <!-- MARCACIÓN ECUADOR CON GPS — solo para usuarios Ecuador con permiso -->
-        <MarcacionAsistenciaEcuador
-          v-if="canMarcacionEcuador"
-          :isDark="isDark"
-          :employee="employee"
-        />
+        <MarcacionAsistenciaEcuador v-if="canMarcacionEcuador" :isDark="isDark" :employee="employee" />
 
         <!-- MENU DE DESARROLLO / ROLES COMPACTADO CORREGIDO PARA MODO CLARO -->
         <div v-if="puedeVerSuper || puedeVerAdmin || canVerSeriales"
@@ -207,7 +207,8 @@
               <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
                 <i class="fas fa-key text-blue-500 text-xs"></i>
               </div>
-              <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Cambiar contraseña</span>
+              <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Cambiar
+                contraseña</span>
             </div>
             <button @click="cerrarCambioPasswordM"
               class="w-7 h-7 rounded-lg flex items-center justify-center opacity-40 hover:opacity-100 transition-colors"
@@ -220,7 +221,8 @@
               Al establecer una contraseña personal, deberás usarla para ingresar en lugar de tu cédula.
             </p>
             <div class="space-y-1">
-              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Nueva contraseña</label>
+              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Nueva
+                contraseña</label>
               <div class="relative">
                 <input v-model="pwFormM.nueva" :type="pwFormM.showNueva ? 'text' : 'password'"
                   placeholder="Mínimo 6 caracteres"
@@ -234,7 +236,8 @@
               </div>
             </div>
             <div class="space-y-1">
-              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Confirmar contraseña</label>
+              <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Confirmar
+                contraseña</label>
               <div class="relative">
                 <input v-model="pwFormM.confirmar" :type="pwFormM.showConfirmar ? 'text' : 'password'"
                   placeholder="Repite la contraseña"
@@ -264,7 +267,8 @@
             </button>
             <button @click="guardarPasswordM" :disabled="pwFormM.loading"
               class="flex-1 h-9 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
-              <div v-if="pwFormM.loading" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <div v-if="pwFormM.loading"
+                class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span v-else><i class="fas fa-check mr-1"></i>Guardar</span>
             </button>
           </div>
