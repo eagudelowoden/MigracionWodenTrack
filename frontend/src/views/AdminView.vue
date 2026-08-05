@@ -92,11 +92,11 @@
         <button v-if="employee?.permisos?.['super.superadmin']" @click="router.push('/super-admin')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-shield-halved text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Super Admin</span>
         </button>
@@ -104,11 +104,11 @@
         <button @click="router.push('/marcacion')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-fingerprint text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Marcación</span>
         </button>
@@ -126,11 +126,11 @@
         <button @click="router.push('/super-admin')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-shield-halved text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Super Admin</span>
         </button>
@@ -138,11 +138,11 @@
         <button @click="router.push('/admin')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-user-shield text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Admin</span>
         </button>
@@ -150,11 +150,11 @@
         <button @click="router.push('/marcacion')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-fingerprint text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Marcación</span>
         </button>

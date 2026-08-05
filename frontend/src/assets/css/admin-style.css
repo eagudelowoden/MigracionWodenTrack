@@ -530,7 +530,7 @@ main.flex-1 {
   border-color: #15803d;
 }
 
-/* OUT (Salida) — negro plano */
+/* OUT (Salida) — azul claro en oscuro, negro en claro */
 .btn-header-smart.out {
   background: #111111;
   border-color: #111111;
@@ -540,6 +540,16 @@ main.flex-1 {
 .btn-header-smart.out:hover:not(:disabled) {
   background: #000000;
   border-color: #000000;
+}
+
+.theme-dark .btn-header-smart.out {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.theme-dark .btn-header-smart.out:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .btn-header-smart:active:not(:disabled) {
@@ -584,6 +594,11 @@ main.flex-1 {
   background: #111111;
   border-color: #111111;
   color: #ffffff;
+}
+
+.theme-dark .btn-header-smart.out.is-marcando:disabled {
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
 /* Ondas tipo gota de agua expandiéndose desde el centro del botón */
