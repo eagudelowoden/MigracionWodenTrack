@@ -42,9 +42,6 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
-  private readonly _REPORTE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-  private _reporteCache = new Map<string, { ts: number; data: any }>();
-
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -1799,6 +1796,7 @@ export class UsuariosService {
     segmentoId?: number,
     agruparLogs: boolean = true,
     onProgress?: (pct: number, msg: string) => void,
+    employeeId?: number,
   ) {
     const emit = onProgress ?? (() => {});
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
@@ -1814,22 +1812,6 @@ export class UsuariosService {
       }
     }
 
-    // ── Opción 3: Caché en memoria ────────────────────────────────────────────
-    const cacheKey = JSON.stringify({
-      soloHoy,
-      companyName,
-      startDate,
-      endDate,
-      departamentoName,
-      areaId,
-      segmentoId,
-      agruparLogs,
-    });
-    const cached = this._reporteCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
-      console.log('✅ Reporte servido desde caché en memoria');
-      return cached.data;
-    }
 
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
@@ -1843,10 +1825,23 @@ export class UsuariosService {
     const deptoTexto = departamentoName || 'Todos los departamentos';
 
     // 1. Filtro por estructura local (área/segmento)
-    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+    let employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
       areaId,
       segmentoId,
     );
+
+    // 1a. employeeId acota a UN solo empleado (ej. usuario sin área que ve solo
+    //     su propio registro). Se intersecta con el filtro de estructura si
+    //     ambos vienen — nunca lo amplía.
+    if (employeeId) {
+      employeeIdsPorEstructura =
+        employeeIdsPorEstructura === null
+          ? [employeeId]
+          : employeeIdsPorEstructura.includes(employeeId)
+            ? [employeeId]
+            : [];
+    }
+
     if (
       employeeIdsPorEstructura !== null &&
       employeeIdsPorEstructura.length === 0
@@ -2217,7 +2212,12 @@ export class UsuariosService {
     }
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-      domainLog.push(['company_id.name', '=', companyName]);
+      // OJO: antes filtraba por "company_id.name" (campo propio del log,
+      // llenado por el dispositivo biométrico al sincronizar) — si ese campo
+      // queda vacío o desincronizado en un registro puntual, el empleado
+      // desaparece del reporte aunque su ficha sí tenga la empresa correcta.
+      // Filtrar vía el empleado (como hr.attendance) es la fuente confiable.
+      domainLog.push(['employee_id.company_id.name', '=', companyName]);
     }
     if (
       departamentoName &&

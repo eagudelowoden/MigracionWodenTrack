@@ -108,6 +108,7 @@ async function bootstrap() {
           // no debe bloquear el bucle de descarga con awaits innecesarios.
           process.send?.({ type: 'progress', percent, message });
         },
+        msg.employeeId,
       );
 
       for (let i = 0; i < result.length; i += CHUNK_SIZE) {

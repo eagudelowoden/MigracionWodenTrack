@@ -37,7 +37,7 @@
                 :class="isDark ? 'text-white' : 'text-[#111827]'">Track</span></span>
           </div>
           <h1 class="text-2xl md:text-3xl font-bold tracking-tight">
-            Hola, <span class="font-normal text-lg md:text-2xl block md:inline"
+            Hola, {{ primerNombre }} <span class="font-normal text-lg md:text-2xl block md:inline"
               :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">selecciona tu espacio de trabajo</span>
           </h1>
         </div>
@@ -168,6 +168,14 @@ import { useAttendance } from '../../composables/UserLogica/useAttendance.js';
 const router = useRouter();
 const session = ref(null);
 const { isDark, toggleTheme } = useAttendance();
+
+// Nombre de pila para el saludo (último token del nombre completo, p. ej.
+// "AGUDELO PITA ELDER DANIEL" → "Daniel"), con formato Título.
+const primerNombre = computed(() => {
+  const partes = (session.value?.name || '').trim().split(/\s+/);
+  const nombre = partes[partes.length - 1] || '';
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+});
 
 const cardClass = computed(() =>
   isDark.value

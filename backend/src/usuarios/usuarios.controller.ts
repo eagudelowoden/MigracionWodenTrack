@@ -91,6 +91,7 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId: string,
     @Query('segmento_id') segmentoId: string,
+    @Query('employee_id') employeeId: string,
     @Query('agrupar') agrupar: string = 'true',
     @Res() res: Response,
   ) {
@@ -151,6 +152,7 @@ export class UsuariosController {
           departamento,
           areaId: areaId ? +areaId : undefined,
           segmentoId: segmentoId ? +segmentoId : undefined,
+          employeeId: employeeId ? +employeeId : undefined,
           agrupar: agrupar !== 'false',
         },
         (pct, msg) => send({ type: 'progress', percent: pct, message: msg }),
@@ -176,6 +178,7 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId: string,
     @Query('segmento_id') segmentoId: string,
+    @Query('employee_id') employeeId: string,
     @Query('agrupar') agrupar: string = 'true',
   ) {
     if (hoy !== 'true' && startDate && endDate) {
@@ -199,6 +202,8 @@ export class UsuariosController {
       areaId ? +areaId : undefined,
       segmentoId ? +segmentoId : undefined,
       agrupar !== 'false', // 👈 pasa true por defecto, false solo para Excel
+      undefined,
+      employeeId ? +employeeId : undefined,
     );
   }
 

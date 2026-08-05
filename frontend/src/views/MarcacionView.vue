@@ -26,9 +26,9 @@
             <i class="far fa-user-circle text-lg"></i>
           </div>
           <div class="space-y-0.5 text-left">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Sesión Operario</span>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Sesión {{ employee.job || 'Operario' }}</span>
             <h2 class="text-sm font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-[#111827]'">
-              {{ employee.name }}
+              Hola, {{ primerNombre }}
             </h2>
           </div>
         </div>
@@ -418,6 +418,14 @@ const router = useRouter();
 const { employee, currentTime, handleAttendance, logout, loading, isDark, toggleTheme } = useAttendance();
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+// Nombre de pila para el saludo (último token del nombre completo, p. ej.
+// "AGUDELO PITA ELDER DANIEL" → "Daniel"), con formato Título.
+const primerNombre = computed(() => {
+  const partes = (employee.value?.name || '').trim().split(/\s+/);
+  const nombre = partes[partes.length - 1] || '';
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+});
 
 // ── Permiso para ver el botón ──────────────────────────────────────────────
 const canRegistrarNovedad = computed(() =>
