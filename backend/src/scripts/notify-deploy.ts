@@ -18,8 +18,34 @@ const NOMBRE_AMBIENTE: Record<string, string> = {
   development: 'Desarrollo',
 };
 
-function badge(texto: string): string {
-  return `<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:999px;padding:4px 12px;margin:3px 4px 3px 0;font-size:12px;font-family:'SFMono-Regular',Consolas,monospace;">${texto}</span>`;
+// Grid de celdas reales (<table>) en vez de <span> con margin: los clientes de
+// correo (sobre todo Outlook) ignoran el margin en inline/inline-block, así
+// que los nombres quedaban pegados uno tras otro sin separación visual.
+const COLUMNAS_TABLA = 3;
+
+function tablaEsquemaHtml(tablas: string[]): string {
+  if (!tablas.length) {
+    return '<span style="color:#888;font-size:13px;">(sin detalle disponible)</span>';
+  }
+  const ordenadas = [...tablas].sort((a, b) => a.localeCompare(b));
+
+  const celda = (nombre: string) => `
+    <td style="padding:3px;">
+      <div style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:5px 8px;font-size:11px;font-family:'SFMono-Regular',Consolas,monospace;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nombre}</div>
+    </td>`;
+
+  const filas: string[] = [];
+  for (let i = 0; i < ordenadas.length; i += COLUMNAS_TABLA) {
+    const grupo = ordenadas.slice(i, i + COLUMNAS_TABLA);
+    const celdasFila = grupo.map(celda).join('');
+    const relleno = '<td style="padding:3px;"></td>'.repeat(COLUMNAS_TABLA - grupo.length);
+    filas.push(`<tr>${celdasFila}${relleno}</tr>`);
+  }
+
+  return `
+    <div style="font-size:12px;color:#166534;font-weight:600;margin-bottom:6px;">${tablas.length} tablas verificadas</div>
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">${filas.join('')}</table>
+  `;
 }
 
 async function main() {
@@ -36,9 +62,7 @@ async function main() {
   const ambiente = NOMBRE_AMBIENTE[NODE_ENV] || NODE_ENV;
 
   const reporte = leerReporteEsquema();
-  const tablasHtml = reporte?.tablas?.length
-    ? reporte.tablas.map(badge).join('')
-    : '<span style="color:#888;font-size:13px;">(sin detalle disponible)</span>';
+  const tablasHtml = tablaEsquemaHtml(reporte?.tablas ?? []);
 
   try {
     const transporter = nodemailer.createTransport({
