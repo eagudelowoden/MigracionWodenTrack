@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       # 1. Correr pruebas unitarias del backend — si algo falla, el job para
       #    aqui mismo y NADA de lo de abajo se ejecuta (ni build ni copia ni
@@ -132,7 +132,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       # 1. Correr pruebas unitarias del backend — si algo falla, el job para
       #    aqui mismo. No se despliega codigo que no pasa sus propias pruebas.
