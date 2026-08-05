@@ -419,11 +419,15 @@ const { employee, currentTime, handleAttendance, logout, loading, isDark, toggle
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Nombre de pila para el saludo (último token del nombre completo, p. ej.
-// "AGUDELO PITA ELDER DANIEL" → "Daniel"), con formato Título.
+// Primer nombre de pila para el saludo. Convención colombiana del nombre
+// completo: "Apellido1 Apellido2 Nombre1 [Nombre2]" (p. ej. "AGUDELO PITA
+// ELDER DANIEL" → "Elder"). Con 4+ palabras se asume 2 apellidos y se toma la
+// 3ra; con menos, se ajusta proporcionalmente.
 const primerNombre = computed(() => {
-  const partes = (employee.value?.name || '').trim().split(/\s+/);
-  const nombre = partes[partes.length - 1] || '';
+  const partes = (employee.value?.name || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '';
+  const idx = partes.length >= 3 ? 2 : partes.length - 1;
+  const nombre = partes[idx] || '';
   return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
 });
 
