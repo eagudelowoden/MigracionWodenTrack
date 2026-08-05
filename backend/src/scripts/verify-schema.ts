@@ -1,8 +1,7 @@
 import 'reflect-metadata';
-import * as fs from 'fs';
-import * as path from 'path';
 import { DataSource } from 'typeorm';
 import * as nodemailer from 'nodemailer';
+import { cargarEnvDelAmbiente, loadEntities, guardarReporteEsquema } from './shared/deploy-env';
 
 /**
  * Verifica ANTES de un despliegue que la base de datos real tenga todas las
@@ -15,59 +14,7 @@ import * as nodemailer from 'nodemailer';
  */
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
-
-function loadEnvFile(filePath: string) {
-  if (!fs.existsSync(filePath)) return false;
-  const content = fs.readFileSync(filePath, 'utf-8');
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
-    const eq = line.indexOf('=');
-    if (eq === -1) continue;
-    const key = line.slice(0, eq).trim();
-    let val = line.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-  return true;
-}
-
-// Misma lógica que ConfigModule.forRoot en app.module.ts: .env.${NODE_ENV} y
-// si no existe, cae a .env — resuelto relativo al directorio de trabajo,
-// igual que hace ConfigModule.
-const envEspecifico = path.resolve(process.cwd(), `.env.${NODE_ENV}`);
-if (!loadEnvFile(envEspecifico)) {
-  loadEnvFile(path.resolve(process.cwd(), '.env'));
-}
-
-function collectEntityFiles(dir: string, out: string[] = []): string[] {
-  for (const name of fs.readdirSync(dir)) {
-    const full = path.join(dir, name);
-    const stat = fs.statSync(full);
-    if (stat.isDirectory()) collectEntityFiles(full, out);
-    else if (name.endsWith('.entity.js')) out.push(full);
-  }
-  return out;
-}
-
-function loadEntities(): Function[] {
-  const distRoot = path.resolve(__dirname, '..'); // dist/ (este script vive en dist/scripts)
-  const files = collectEntityFiles(distRoot);
-  const entities: Function[] = [];
-  for (const file of files) {
-    const mod = require(file);
-    for (const key of Object.keys(mod)) {
-      const val = mod[key];
-      if (typeof val === 'function') entities.push(val);
-    }
-  }
-  return entities;
-}
+cargarEnvDelAmbiente(NODE_ENV);
 
 async function alertar(problemas: string[]) {
   if (!process.env.MAIL_USER || !process.env.MAIL_ALERT_TO) {
@@ -107,7 +54,7 @@ async function main() {
   console.log(`🔍 Verificando esquema de base de datos (NODE_ENV=${NODE_ENV})`);
   console.log(`🔌 Objetivo: ${process.env.DB_HOST}:${process.env.DB_PORT || 1433} / base: ${process.env.DB_NAME}`);
 
-  const entities = loadEntities();
+  const entities = loadEntities(__dirname);
   console.log(`   ${entities.length} entidades encontradas en dist/.`);
 
   const ds = new DataSource({
@@ -133,9 +80,11 @@ async function main() {
   }
 
   const problemas: string[] = [];
+  const tablasVerificadas: string[] = [];
 
   for (const meta of ds.entityMetadatas) {
     const tabla = meta.tableName;
+    tablasVerificadas.push(tabla);
 
     const existeTabla = await ds.query(
       `SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @0`,
@@ -168,6 +117,10 @@ async function main() {
     await alertar(problemas);
     process.exit(1);
   }
+
+  // Deja constancia de qué tablas se revisaron para que notify-deploy.ts
+  // pueda mostrarlas en el correo de éxito sin volver a conectarse a la BD.
+  guardarReporteEsquema(tablasVerificadas, NODE_ENV);
 
   console.log('✅ Esquema OK — todas las tablas y columnas esperadas existen. Se puede continuar el despliegue.');
   process.exit(0);
