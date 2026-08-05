@@ -206,7 +206,7 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
+      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó) -- PRUEBAS
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
