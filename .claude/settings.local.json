@@ -216,7 +216,11 @@
       "Bash(grep -E '^[0-9]+$')",
       "Read(//tmp/**)",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT COUNT\\(*\\) as total FROM usuarios_registrados WHERE area_id=15 AND is_active=1; SELECT COUNT\\(*\\) as total FROM usuarios_registrados WHERE is_active=1\" -W -s\"|\")",
-      "Bash(curl -s 'http://localhost:8082/usuarios/reporte-novedades?hoy=true&company=%28CO%29%20WODEN%20OPERATIVA%20COLOMBIA%20S.A.S' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -o /tmp/reporte.json -w 'HTTP %{http_code}\\\\n')"
+      "Bash(curl -s 'http://localhost:8082/usuarios/reporte-novedades?hoy=true&company=%28CO%29%20WODEN%20OPERATIVA%20COLOMBIA%20S.A.S' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -o /tmp/reporte.json -w 'HTTP %{http_code}\\\\n')",
+      "Bash(awk -F: '$1<652 && $1>600')",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre, identificacion, id_odoo, pais, departamento, area_id, segmento_id, is_active FROM usuarios_registrados WHERE identificacion = '1001057273'\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT modulos FROM usuarios_permisos WHERE usuario_id_odoo = 20719\" -W -s\"|\")",
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT id, nombre FROM maestro_segmentos WHERE id=1\" -W -s\"|\")"
     ]
   }
 }

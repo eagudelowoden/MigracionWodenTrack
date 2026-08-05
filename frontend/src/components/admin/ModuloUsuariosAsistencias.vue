@@ -478,6 +478,7 @@ const {
   clearFilters,
   selectedArea,
   selectedSegmento,
+  selectedEmployeeId,
   selectedCompany,
   errorMsg,
   chunkProgress,
@@ -527,16 +528,22 @@ onMounted(async () => {
         const perfil = await resp.json();
         userProfile.value = perfil;
 
-        // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
-        // Coordinador con coord.ver_segmento → también ve todo el segmento (sin ser responsable).
-        // Responsable de área → filtrar solo por área.
-        // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
+        // Por defecto SIEMPRE va acotado a su propia área Y segmento (AND en el
+        // backend → solo ve su equipo exacto). Responsable de segmento o
+        // coordinador con coord.ver_segmento son la ÚNICA excepción: ven TODO
+        // el segmento sin acotar por área.
         const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
         const esCoordSegmento = !esResponsableSegmento && session.permisos?.['coord.ver_segmento'] === true;
         if ((esResponsableSegmento || esCoordSegmento) && perfil.segmento?.id) {
           selectedSegmento.value = perfil.segmento.id;
         } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;
+          if (perfil.segmento?.id) selectedSegmento.value = perfil.segmento.id;
+        } else if (perfil.segmento?.id) {
+          // Tiene segmento pero NO área: filtrar solo por segmento lo mostraría
+          // a TODO el segmento sin quedar acotado por nada más. Sin área con la
+          // que intersectar, se restringe a que solo se vea a sí mismo.
+          selectedEmployeeId.value = idLogueado;
         }
       }
     } catch (e) {

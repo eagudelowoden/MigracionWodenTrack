@@ -1796,6 +1796,7 @@ export class UsuariosService {
     segmentoId?: number,
     agruparLogs: boolean = true,
     onProgress?: (pct: number, msg: string) => void,
+    employeeId?: number,
   ) {
     const emit = onProgress ?? (() => {});
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
@@ -1824,10 +1825,23 @@ export class UsuariosService {
     const deptoTexto = departamentoName || 'Todos los departamentos';
 
     // 1. Filtro por estructura local (área/segmento)
-    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+    let employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
       areaId,
       segmentoId,
     );
+
+    // 1a. employeeId acota a UN solo empleado (ej. usuario sin área que ve solo
+    //     su propio registro). Se intersecta con el filtro de estructura si
+    //     ambos vienen — nunca lo amplía.
+    if (employeeId) {
+      employeeIdsPorEstructura =
+        employeeIdsPorEstructura === null
+          ? [employeeId]
+          : employeeIdsPorEstructura.includes(employeeId)
+            ? [employeeId]
+            : [];
+    }
+
     if (
       employeeIdsPorEstructura !== null &&
       employeeIdsPorEstructura.length === 0

@@ -23,6 +23,7 @@ export function useCargarAsistencias() {
   const rawData = ref([]);
   const selectedArea = ref(null);
   const selectedSegmento = ref(null);
+  const selectedEmployeeId = ref(null);
   const filterHoy = ref(true);
   const abortController = ref(null);
   const errorMsg = ref("");
@@ -94,6 +95,8 @@ export function useCargarAsistencias() {
       if (selectedSegmento.value)
         url.searchParams.append("segmento_id", selectedSegmento.value);
     }
+    if (selectedEmployeeId.value)
+      url.searchParams.append("employee_id", selectedEmployeeId.value);
 
     return url.toString();
   };
@@ -502,6 +505,7 @@ export function useCargarAsistencias() {
     selectedCompany,
     selectedArea,
     selectedSegmento,
+    selectedEmployeeId,
     departments,
     errorMsg,
     chunkProgress,
