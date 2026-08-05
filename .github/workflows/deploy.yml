@@ -49,7 +49,25 @@ jobs:
           npm install
           npm run build:qa
 
-      # 4. Copiar backend compilado al servidor
+      # 4. Detener PM2 ANTES de copiar: en Windows no se puede sobrescribir un
+      #    archivo que el proceso viejo todavia tiene abierto (a diferencia de
+      #    Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
+      #    al extraer con "Refusing to overwrite archive" sobre el archivo que
+      #    justo estaba bloqueado. Silenciar el error si el proceso no existe
+      #    aun (primer despliegue).
+      - name: Detener PM2 TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
+            if ($p) { pm2 stop WodenTrackTest }"
+
+      # 5. Copiar backend compilado al servidor
       - name: Copiar Backend dist a servidor TEST
         uses: appleboy/scp-action@master
         with:
@@ -60,7 +78,7 @@ jobs:
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
 
-      # 5. Copiar frontend compilado al IIS
+      # 6. Copiar frontend compilado al IIS
       - name: Copiar Frontend dist a IIS TEST
         uses: appleboy/scp-action@master
         with:
@@ -71,8 +89,8 @@ jobs:
           target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
           strip_components: 2
 
-      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso.
-      #    Si falla, los pasos 7 y 8 (reiniciar PM2, avisar) nunca se ejecutan.
+      # 7. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      #    Si falla, los pasos 8 y 9 (reiniciar PM2, avisar) nunca se ejecutan.
       - name: Verificar esquema de base de datos TEST
         uses: appleboy/ssh-action@master
         with:
@@ -87,7 +105,7 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
+      # 8. Reiniciar PM2 en el servidor (solo si el paso 7 pasó)
       #    Se fija NODE_ENV=qa explícitamente antes de "pm2 start" porque el
       #    arranque en frío no tenía forma de saber qué .env.* cargar.
       - name: Reiniciar PM2 TEST
@@ -104,7 +122,7 @@ jobs:
             else { $env:NODE_ENV='qa'; pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
             pm2 save"
 
-      # 8. Avisar por correo que el despliegue terminó bien — solo se llega
+      # 9. Avisar por correo que el despliegue terminó bien — solo se llega
       #    aqui si TODO lo de arriba (pruebas, build, copia, esquema, PM2) pasó.
       - name: Notificar despliegue exitoso TEST
         uses: appleboy/ssh-action@master
