@@ -2217,7 +2217,12 @@ export class UsuariosService {
     }
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-      domainLog.push(['company_id.name', '=', companyName]);
+      // OJO: antes filtraba por "company_id.name" (campo propio del log,
+      // llenado por el dispositivo biométrico al sincronizar) — si ese campo
+      // queda vacío o desincronizado en un registro puntual, el empleado
+      // desaparece del reporte aunque su ficha sí tenga la empresa correcta.
+      // Filtrar vía el empleado (como hr.attendance) es la fuente confiable.
+      domainLog.push(['employee_id.company_id.name', '=', companyName]);
     }
     if (
       departamentoName &&
