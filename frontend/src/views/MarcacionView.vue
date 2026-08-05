@@ -26,9 +26,9 @@
             <i class="far fa-user-circle text-lg"></i>
           </div>
           <div class="space-y-0.5 text-left">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Hola,</span>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-[#e88710]">Sesión {{ employee.job || 'Operario' }}</span>
             <h2 class="text-sm font-bold tracking-tight" :class="isDark ? 'text-white' : 'text-[#111827]'">
-              {{ primerNombre }}
+              Hola, {{ primerNombre }}
             </h2>
           </div>
         </div>
