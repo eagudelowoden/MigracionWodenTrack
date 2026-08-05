@@ -224,7 +224,8 @@
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT slug, nombre, descripcion, grupo, grupo_label, orden, activo FROM modulos_disponibles WHERE slug IN \\('super.superadmin','admin.admin','admin.marcacion','admin.asistencias'\\) ORDER BY grupo, orden\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT grupo, grupo_label, COUNT\\(*\\) as total FROM modulos_disponibles GROUP BY grupo, grupo_label ORDER BY grupo\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT DISTINCT grupo, grupo_label, grupo_icon FROM modulos_disponibles ORDER BY grupo\" -W -s\"|\")",
-      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P V29kZW4uMjAyMw== -d WodenTrack -Q ' *)"
+      "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P V29kZW4uMjAyMw== -d WodenTrack -Q ' *)",
+      "Bash(xargs grep -n \"@Controller\\\\|@Get\\\\|jefe\")"
     ]
   }
 }
