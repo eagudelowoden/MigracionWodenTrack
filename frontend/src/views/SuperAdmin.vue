@@ -501,12 +501,29 @@ onUnmounted(() => {
 
       <div class="sa-divider"></div>
 
-      <!-- Dev Nav -->
+      <!-- Dev Nav: solo superadmin (root) -->
       <div v-if="isSA" class="px-2 pb-1 shrink-0">
         <p v-if="isSidebarOpen" class="sa-section-label">Dev Nav</p>
         <button v-for="d in [
           { path: '/super-admin', icon: 'fas fa-shield-halved', label: 'Super Admin' },
           { path: '/admin', icon: 'fas fa-user-shield', label: 'Admin' },
+          { path: '/marcacion', icon: 'fas fa-fingerprint', label: 'Marcación' },
+        ]" :key="d.path" @click="router.push(d.path)" :title="d.label" class="sa-dev-btn"
+          :class="!isSidebarOpen && 'lg:justify-center'">
+          <i :class="d.icon" class="text-[10px] shrink-0"></i>
+          <span v-if="isSidebarOpen">{{ d.label }}</span>
+        </button>
+      </div>
+
+      <!-- Otros accesos: usuarios que entran a Super Admin por un permiso de
+           módulo puntual (no son el root/isSuperAdmin) también necesitan una
+           forma de volver a Admin/Marcación. -->
+      <div v-else class="px-2 pb-1 shrink-0">
+        <p v-if="isSidebarOpen" class="sa-section-label">Otros accesos</p>
+        <button v-for="d in [
+          ...(employee?.role === 'admin' || employee?.permisos?.['admin.admin']
+            ? [{ path: '/admin', icon: 'fas fa-user-shield', label: 'Admin' }]
+            : []),
           { path: '/marcacion', icon: 'fas fa-fingerprint', label: 'Marcación' },
         ]" :key="d.path" @click="router.push(d.path)" :title="d.label" class="sa-dev-btn"
           :class="!isSidebarOpen && 'lg:justify-center'">

@@ -476,7 +476,7 @@ main.flex-1 {
   @apply h-16 flex items-center px-4 shrink-0;
 }
 /* Botones de Acción en Header */
-/* ─── BOTONES ENTRADA / SALIDA — Vercel premium con profundidad ─── */
+/* ─── BOTONES ENTRADA / SALIDA — plano, estilo Vercel ─── */
 .btn-header-smart {
   display: inline-flex;
   align-items: center;
@@ -488,26 +488,12 @@ main.flex-1 {
   font-weight: 500;
   letter-spacing: -0.005em;
   text-transform: none;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
   border: 1px solid;
   cursor: pointer;
   font-family: 'Geist', 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
-}
-
-/* Brillo sutil tipo Linear / Vercel — gradiente interno */
-.btn-header-smart::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%);
-  pointer-events: none;
-  transition: opacity 0.18s ease;
-}
-
-.btn-header-smart:hover:not(:disabled)::before {
-  opacity: 0.7;
 }
 
 .icon-box-smart {
@@ -532,42 +518,28 @@ main.flex-1 {
   z-index: 1;
 }
 
-/* IN (Entrada) — verde con depth */
+/* IN (Entrada) — verde plano */
 .btn-header-smart.in {
   background: #16a34a;
-  border-color: #15803d;
+  border-color: #16a34a;
   color: #ffffff;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
-    0 1px 2px 0 rgba(22, 163, 74, 0.25);
 }
 
 .btn-header-smart.in:hover:not(:disabled) {
   background: #15803d;
-  border-color: #166534;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
-    0 2px 6px 0 rgba(22, 163, 74, 0.35);
-  transform: translateY(-0.5px);
+  border-color: #15803d;
 }
 
-/* OUT (Salida) — rojo con depth */
+/* OUT (Salida) — negro plano */
 .btn-header-smart.out {
-  background: #dc2626;
-  border-color: #b91c1c;
+  background: #111111;
+  border-color: #111111;
   color: #ffffff;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
-    0 1px 2px 0 rgba(220, 38, 38, 0.25);
 }
 
 .btn-header-smart.out:hover:not(:disabled) {
-  background: #b91c1c;
-  border-color: #991b1b;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
-    0 2px 6px 0 rgba(220, 38, 38, 0.35);
-  transform: translateY(-0.5px);
+  background: #000000;
+  border-color: #000000;
 }
 
 .btn-header-smart:active:not(:disabled) {
@@ -580,14 +552,8 @@ main.flex-1 {
   background: transparent;
   color: #71717a;
   border-color: #222938;
-  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
-  filter: none;
-}
-
-.btn-header-smart:disabled::before {
-  opacity: 0;
 }
 
 .theme-light .btn-header-smart:disabled,
@@ -599,6 +565,65 @@ main.flex-1 {
 
 .btn-header-smart:disabled .icon-box-smart {
   background: transparent;
+}
+
+/* Estado "registrando" — se mantiene con su color (no fantasma) mientras
+   procesa, aunque esté :disabled igual que el botón hermano inactivo. */
+.btn-header-smart.is-marcando {
+  opacity: 1;
+  cursor: wait;
+}
+
+.btn-header-smart.in.is-marcando:disabled {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.btn-header-smart.out.is-marcando:disabled {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+
+/* Ondas tipo gota de agua expandiéndose desde el centro del botón */
+.btn-ripple {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.btn-ripple::before,
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  animation: ripple-wave 1.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  opacity: 0;
+}
+
+.btn-ripple::after {
+  animation-delay: 0.4s;
+}
+
+@keyframes ripple-wave {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(9);
+    opacity: 0;
+  }
 }
 .sidebar-header {
   @apply transition-all duration-300;

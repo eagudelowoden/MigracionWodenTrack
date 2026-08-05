@@ -1,7 +1,7 @@
 ﻿<template>
   <div v-if="employee"
     class="h-screen w-screen overflow-hidden flex flex-col items-center justify-between p-6 transition-colors duration-300 font-sans select-none relative"
-    :class="isDark ? 'bg-[#0B0F19] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
+    :class="isDark ? 'bg-[#171c27] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
 
     <!-- FONDO DE RESPLANDORES PREMIUM WODENTRACK -->
     <div class="absolute inset-0 z-0 pointer-events-none opacity-40">
@@ -65,17 +65,23 @@
         <div class="action-grid grid grid-cols-2 gap-3.5">
 
           <!-- ENTRADA -->
-          <button @click="handleAttendance('in')" :disabled="loading || employee.is_inside || employee.day_completed"
+          <button @click="marcar('in')" :disabled="loading || employee.is_inside || employee.day_completed"
             class="group p-5 rounded-2xl border text-left flex flex-col justify-between min-h-[125px] transition-all duration-300 relative overflow-hidden active:scale-[0.98] disabled:opacity-20 disabled:pointer-events-none"
-            :class="isDark
-              ? 'bg-[#161B26]/90 border-[#222938] hover:border-[#e88710] backdrop-blur-md'
-              : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400'">
+            :class="[isDark
+              ? 'bg-[#1c2230]/90 border-[#2a3142] hover:border-[#e88710] backdrop-blur-md'
+              : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400',
+              loading && accionPendiente === 'in' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
 
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors border"
+            <div v-if="loading && accionPendiente === 'in'" class="card-ripple" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors border relative z-10"
               :class="isDark
                 ? 'bg-[#0B0F19] border-[#222938] text-zinc-400 group-hover:bg-[#e88710] group-hover:border-[#e88710] group-hover:text-white'
                 : 'bg-[#F4F6FA] border-slate-100 text-zinc-600 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] group-hover:text-white'">
-              <svg v-if="employee.day_completed" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor"
+              <i v-if="loading && accionPendiente === 'in'" class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
+              <svg v-else-if="employee.day_completed" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor"
                 viewBox="0 0 24 24" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
@@ -84,10 +90,10 @@
               </svg>
             </div>
 
-            <div class="space-y-0.5 mt-4">
+            <div class="space-y-0.5 mt-4 relative z-10">
               <span class="block text-[11px] font-bold uppercase tracking-wider opacity-40">Registro</span>
               <span class="block text-sm font-bold" :class="isDark ? 'text-white' : 'text-[#111827]'">
-                {{ employee.day_completed ? 'Completado' : (employee.is_inside ? 'Dentro' : 'Entrada') }}
+                {{ loading && accionPendiente === 'in' ? 'Registrando…' : (employee.day_completed ? 'Completado' : (employee.is_inside ? 'Dentro' : 'Entrada')) }}
               </span>
               <span v-if="employee.hora_entrada" class="block text-[10px] font-semibold tabular-nums text-zinc-400">
                 {{ employee.hora_entrada }}
@@ -96,24 +102,32 @@
           </button>
 
           <!-- SALIDA -->
-          <button @click="handleAttendance('out')" :disabled="loading || !employee.is_inside || employee.day_completed"
+          <button @click="marcar('out')" :disabled="loading || !employee.is_inside || employee.day_completed"
             class="group p-5 rounded-2xl border text-left flex flex-col justify-between min-h-[125px] transition-all duration-300 relative overflow-hidden active:scale-[0.98] disabled:opacity-20 disabled:pointer-events-none"
-            :class="isDark
-              ? 'bg-[#161B26]/90 border-[#222938] hover:border-[#e88710] backdrop-blur-md'
-              : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400'">
+            :class="[isDark
+              ? 'bg-[#1c2230]/90 border-[#2a3142] hover:border-[#e88710] backdrop-blur-md'
+              : 'bg-white border-slate-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)] hover:border-slate-400',
+              loading && accionPendiente === 'out' ? '!opacity-100 !pointer-events-none border-[#e88710]' : '']">
 
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors border"
+            <div v-if="loading && accionPendiente === 'out'" class="card-ripple" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors border relative z-10"
               :class="isDark
                 ? 'bg-[#0B0F19] border-[#222938] text-zinc-400 group-hover:bg-[#e88710] group-hover:border-[#e88710] group-hover:text-white'
                 : 'bg-[#F4F6FA] border-slate-100 text-zinc-600 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] group-hover:text-white'">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <i v-if="loading && accionPendiente === 'out'" class="fas fa-circle-notch fa-spin text-[#e88710] text-sm"></i>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
               </svg>
             </div>
 
-            <div class="space-y-0.5 mt-4">
+            <div class="space-y-0.5 mt-4 relative z-10">
               <span class="block text-[11px] font-bold uppercase tracking-wider opacity-40">Registro</span>
-              <span class="block text-sm font-bold" :class="isDark ? 'text-white' : 'text-[#111827]'">Salida</span>
+              <span class="block text-sm font-bold" :class="isDark ? 'text-white' : 'text-[#111827]'">
+                {{ loading && accionPendiente === 'out' ? 'Registrando…' : 'Salida' }}
+              </span>
               <span v-if="employee.hora_salida" class="block text-[10px] font-semibold tabular-nums text-zinc-400">
                 {{ employee.hora_salida }}
               </span>
@@ -129,28 +143,32 @@
         />
 
         <!-- MENU DE DESARROLLO / ROLES COMPACTADO CORREGIDO PARA MODO CLARO -->
-        <div v-if="employee?.isSuperAdmin || canVerSeriales"
-          class="p-1 border rounded-xl flex items-center justify-around text-[10px] font-bold"
-          :class="isDark ? 'bg-[#161B26] border-[#222938] text-zinc-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'">
-          <template v-if="employee?.isSuperAdmin">
+        <div v-if="puedeVerSuper || puedeVerAdmin || canVerSeriales"
+          class="p-1.5 border rounded-xl flex items-center justify-around gap-1.5 text-[10px] font-bold"
+          :class="isDark ? 'bg-[#0d0f16] border-[#2a3142] text-zinc-300' : 'bg-slate-100 border-slate-200 text-slate-600 shadow-sm'">
+          <template v-if="puedeVerSuper">
             <button @click="router.push('/super-admin')"
-              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+              class="py-1.5 px-3 rounded-lg border-2 transition-all flex items-center gap-1 shadow-sm active:scale-[0.96]"
+              :class="isDark
+                ? 'bg-[#232b3d] border-[#3d4a63] hover:bg-[#2a3348] hover:border-[#e88710] hover:text-white'
+                : 'bg-white border-slate-300 hover:border-[#e88710] hover:bg-orange-50 hover:text-[#e88710]'">
               <i class="fas fa-shield-halved text-[9px] text-[#e88710]"></i> Super
             </button>
-            <span class="opacity-20">|</span>
+          </template>
+          <template v-if="puedeVerAdmin">
             <button @click="router.push('/admin')"
-              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+              class="py-1.5 px-3 rounded-lg border-2 transition-all flex items-center gap-1 shadow-sm active:scale-[0.96]"
+              :class="isDark
+                ? 'bg-[#232b3d] border-[#3d4a63] hover:bg-[#2a3348] hover:border-[#e88710] hover:text-white'
+                : 'bg-white border-slate-300 hover:border-[#e88710] hover:bg-orange-50 hover:text-[#e88710]'">
               <i class="fas fa-user-shield text-[9px] text-[#e88710]"></i> Admin
             </button>
-            <span class="opacity-20">|</span>
-            <button @click="router.push('/marcacion')"
-              class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
-              <i class="fas fa-fingerprint text-[9px] text-[#e88710]"></i> Marcación
-            </button>
-            <span class="opacity-20">|</span>
           </template>
           <button v-if="canVerSeriales" @click="router.push('/marcacion/seriales')"
-            class="py-1 px-3 rounded-lg hover:text-[#e88710] dark:hover:text-white transition-colors flex items-center gap-1">
+            class="py-1.5 px-3 rounded-lg border-2 transition-all flex items-center gap-1 shadow-sm active:scale-[0.96]"
+            :class="isDark
+              ? 'bg-[#232b3d] border-[#3d4a63] hover:bg-[#2a3348] hover:border-[#e88710] hover:text-white'
+              : 'bg-white border-slate-300 hover:border-[#e88710] hover:bg-orange-50 hover:text-[#e88710]'">
             <i class="fas fa-barcode text-[9px] text-[#e88710]"></i> Seriales
           </button>
         </div>
@@ -419,6 +437,17 @@ const { employee, currentTime, handleAttendance, logout, loading, isDark, toggle
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Qué tarjeta (entrada/salida) está en curso, para mostrar su propia animación.
+const accionPendiente = ref(null);
+const marcar = async (accion) => {
+  accionPendiente.value = accion;
+  try {
+    await handleAttendance(accion);
+  } finally {
+    accionPendiente.value = null;
+  }
+};
+
 // Primer nombre de pila para el saludo. Convención colombiana del nombre
 // completo: "Apellido1 Apellido2 Nombre1 [Nombre2]" (p. ej. "AGUDELO PITA
 // ELDER DANIEL" → "Elder"). Con 4+ palabras se asume 2 apellidos y se toma la
@@ -440,6 +469,20 @@ const canRegistrarNovedad = computed(() =>
 const canVerSeriales = computed(() =>
   employee.value?.isSuperAdmin ||
   employee.value?.permisos?.['admin.marcacion_seriales'] === true
+);
+
+// Con el permiso 'admin.admin' (Admin General) ya alcanza para ver el botón
+// de volver al panel admin, sin necesitar ser superadmin.
+const puedeVerAdmin = computed(() =>
+  employee.value?.isSuperAdmin ||
+  employee.value?.permisos?.['admin.admin'] === true
+);
+
+// Grupo "Acceso a Vistas": con el permiso 'super.superadmin' ya alcanza para
+// ver el botón de Super Admin, sin necesitar ser el superadmin raíz.
+const puedeVerSuper = computed(() =>
+  employee.value?.isSuperAdmin ||
+  employee.value?.permisos?.['super.superadmin'] === true
 );
 
 // Solo para usuarios Ecuador (por company o pais) con permiso ecuador.marcacion
