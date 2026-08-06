@@ -193,7 +193,7 @@ jobs:
           strip_components: 2
 
       # 5. Copiar frontend compilado al IIS
-      #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ
+      #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ, QA
       #    (index.html/assets junto a web.config), sin subcarpeta "dist".
       - name: Copiar Frontend dist a IIS PROD
         uses: appleboy/scp-action@master
