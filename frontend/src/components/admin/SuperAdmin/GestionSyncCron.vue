@@ -7,11 +7,18 @@
         <h2 class="gsc-title">Sincronización Automática</h2>
         <p class="gsc-subtitle">Sincroniza empleados de Odoo con la base de datos local de forma programada.</p>
       </div>
-      <button @click="ejecutarManual" :disabled="ejecutando || config?.ultimo_estado === 'running' || selectedPaises.length === 0"
-        class="gsc-btn-run">
-        <i class="fas" :class="ejecutando ? 'fa-spinner fa-spin' : 'fa-play'"></i>
-        {{ ejecutando ? 'Ejecutando...' : 'Ejecutar ahora' }}
-      </button>
+      <div class="gsc-header-actions">
+        <button v-if="config?.ultimo_estado === 'running'" @click="cancelarProceso"
+          :disabled="cancelando" class="gsc-btn-cancel">
+          <i class="fas" :class="cancelando ? 'fa-spinner fa-spin' : 'fa-ban'"></i>
+          {{ cancelando ? 'Cancelando...' : 'Cancelar proceso' }}
+        </button>
+        <button @click="ejecutarManual" :disabled="ejecutando || config?.ultimo_estado === 'running' || selectedPaises.length === 0"
+          class="gsc-btn-run">
+          <i class="fas" :class="ejecutando ? 'fa-spinner fa-spin' : 'fa-play'"></i>
+          {{ ejecutando ? 'Ejecutando...' : 'Ejecutar ahora' }}
+        </button>
+      </div>
     </div>
 
     <!-- ── Estado actual ────────────────────────────────────────────────────── -->
@@ -43,9 +50,9 @@
         <div class="gsc-card-label">Último resultado</div>
         <div class="gsc-card-value" v-if="config.ultimo_resumen">{{ config.ultimo_resumen }}</div>
         <div class="gsc-card-value gsc-text-muted" v-else>Sin ejecuciones</div>
-        <div class="gsc-error-msg" v-if="config.ultimo_error">
+        <button v-if="config.ultimo_error" class="gsc-error-msg gsc-error-btn" @click="verError(config.ultimo_error)">
           <i class="fas fa-triangle-exclamation"></i> {{ config.ultimo_error }}
-        </div>
+        </button>
       </div>
 
     </div>
@@ -214,15 +221,35 @@
               </span>
             </td>
             <td class="gsc-td-error">
-              <span v-if="log.error" :title="log.error" class="gsc-error-chip">
+              <button v-if="log.error" class="gsc-error-chip" @click="verError(log.error)">
                 <i class="fas fa-triangle-exclamation"></i> Ver
-              </span>
+              </button>
               <span v-else class="gsc-text-muted">—</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- ── Modal ver error completo ─────────────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="gsc-modal">
+        <div v-if="errorModal.visible" class="gsc-modal-overlay" @click.self="errorModal.visible = false">
+          <div class="gsc-modal">
+            <div class="gsc-modal-head">
+              <i class="fas fa-triangle-exclamation" style="color:#ef4444"></i>
+              <span>Detalle del error</span>
+              <button class="gsc-modal-close" @click="errorModal.visible = false">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+            <div class="gsc-modal-body">
+              <pre class="gsc-modal-pre">{{ errorModal.texto }}</pre>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
@@ -235,11 +262,28 @@ const props = defineProps({ isDark: Boolean });
 
 const {
   config, historial, paisesDisponibles, loading, ejecutando, error,
-  fetchConfig, guardarConfig, ejecutarAhora, fetchHistorial, fetchPaises,
+  fetchConfig, guardarConfig, ejecutarAhora, cancelarSync, fetchHistorial, fetchPaises,
   estadoColor, formatDuracion, formatFecha,
 } = useSyncCron();
 
 const savedMsg = ref(false);
+const cancelando = ref(false);
+const errorModal = ref({ visible: false, texto: '' });
+
+const verError = (texto) => {
+  errorModal.value = { visible: true, texto };
+};
+
+const cancelarProceso = async () => {
+  cancelando.value = true;
+  try {
+    await cancelarSync();
+  } catch (e) {
+    verError(e.message);
+  } finally {
+    cancelando.value = false;
+  }
+};
 const selectedPaises = ref([]);
 const dropdownOpen = ref(false);
 const dropdownRef = ref(null);
@@ -367,6 +411,31 @@ const labelEstado = (e) => {
   margin: 0;
 }
 
+.gsc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gsc-btn-cancel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,.4);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.gsc-btn-cancel:hover:not(:disabled) { background: rgba(239,68,68,.1); }
+.gsc-btn-cancel:disabled { opacity: .5; cursor: not-allowed; }
+
 .gsc-btn-run {
   display: flex;
   align-items: center;
@@ -429,6 +498,19 @@ const labelEstado = (e) => {
   color: #ef4444;
   margin-top: 2px;
 }
+.gsc-error-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.gsc-error-btn:hover { text-decoration: underline; }
 .gsc-text-muted { color: var(--text-soft) !important; }
 
 /* Status pill */
@@ -774,7 +856,64 @@ const labelEstado = (e) => {
 .gsc-error-chip {
   font-size: 10px;
   color: #ef4444;
-  cursor: help;
+  cursor: pointer;
   display: flex; align-items: center; gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
 }
+.gsc-error-chip:hover { text-decoration: underline; }
+
+/* Modal ver error */
+.gsc-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.55);
+  padding: 16px;
+}
+.gsc-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.4);
+}
+.gsc-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.gsc-modal-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+.gsc-modal-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.gsc-modal-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #ef4444;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.gsc-modal-enter-active, .gsc-modal-leave-active { transition: opacity .15s ease; }
+.gsc-modal-enter-from, .gsc-modal-leave-to { opacity: 0; }
 </style>

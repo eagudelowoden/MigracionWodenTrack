@@ -9,6 +9,7 @@ import {
   Param,
   BadRequestException,
   Patch,
+  Delete,
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -259,6 +260,11 @@ export class UsuariosController {
   @Patch('reportes-falla/:id/resolver')
   async resolverFalla(@Param('id') id: string) {
     return await this.usuariosService.resolverFalla(Number(id));
+  }
+
+  @Delete('reportes-falla/:id')
+  async eliminarFalla(@Param('id') id: string) {
+    return await this.usuariosService.eliminarFalla(Number(id));
   }
 
   @Get('attendance-status/:employee_id')

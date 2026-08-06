@@ -2876,6 +2876,13 @@ export class UsuariosService {
     return { status: 'success' };
   }
 
+  async eliminarFalla(id: number) {
+    const reporte = await this.reporteFallaRepo.findOne({ where: { id } });
+    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    await this.reporteFallaRepo.delete(id);
+    return { status: 'success' };
+  }
+
   async removerModuloPermiso(
     idOdoo: number,
     modulo: string,
