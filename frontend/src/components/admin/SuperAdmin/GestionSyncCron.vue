@@ -221,7 +221,7 @@
               </span>
             </td>
             <td class="gsc-td-error">
-              <button v-if="log.error" class="gsc-error-chip" @click="verError(log.error)">
+              <button v-if="log.error" class="gsc-error-chip" @click="verError(log.error, formatFecha(log.inicio))">
                 <i class="fas fa-triangle-exclamation"></i> Ver
               </button>
               <span v-else class="gsc-text-muted">—</span>
@@ -235,16 +235,33 @@
     <Teleport to="body">
       <Transition name="gsc-modal">
         <div v-if="errorModal.visible" class="gsc-modal-overlay" @click.self="errorModal.visible = false">
-          <div class="gsc-modal">
-            <div class="gsc-modal-head">
-              <i class="fas fa-triangle-exclamation" style="color:#ef4444"></i>
-              <span>Detalle del error</span>
-              <button class="gsc-modal-close" @click="errorModal.visible = false">
+          <div class="gsc-modal" :class="props.isDark ? 'gsc-modal-dark' : 'gsc-modal-light'" role="dialog" aria-modal="true">
+            <div class="gsc-modal-head" :class="props.isDark ? 'gsc-mhead-dark' : 'gsc-mhead-light'">
+              <div class="gsc-modal-icon">
+                <i class="fas fa-triangle-exclamation"></i>
+              </div>
+              <div class="gsc-modal-head-text">
+                <p class="gsc-modal-title" :class="props.isDark ? 'gsc-mtext-dark' : 'gsc-mtext-light'">Detalle del error</p>
+                <p class="gsc-modal-subtitle" v-if="errorModal.fecha">{{ errorModal.fecha }}</p>
+              </div>
+              <button class="gsc-modal-close" :class="props.isDark ? 'gsc-mclose-dark' : 'gsc-mclose-light'"
+                @click="errorModal.visible = false" aria-label="Cerrar">
                 <i class="fas fa-xmark"></i>
               </button>
             </div>
             <div class="gsc-modal-body">
-              <pre class="gsc-modal-pre">{{ errorModal.texto }}</pre>
+              <div class="gsc-modal-error-box" :class="props.isDark ? 'gsc-ebox-dark' : 'gsc-ebox-light'">
+                <pre class="gsc-modal-pre">{{ errorModal.texto }}</pre>
+              </div>
+            </div>
+            <div class="gsc-modal-foot" :class="props.isDark ? 'gsc-mfoot-dark' : 'gsc-mfoot-light'">
+              <span class="gsc-copy-feedback" v-if="errorCopiado"><i class="fas fa-check"></i> Copiado</span>
+              <button class="gsc-btn-ghost" :class="props.isDark ? 'gsc-ghost-dark' : 'gsc-ghost-light'" @click="copiarError">
+                <i class="fas fa-copy"></i> Copiar error
+              </button>
+              <button class="gsc-btn-close" @click="errorModal.visible = false">
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
@@ -268,10 +285,19 @@ const {
 
 const savedMsg = ref(false);
 const cancelando = ref(false);
-const errorModal = ref({ visible: false, texto: '' });
+const errorModal = ref({ visible: false, texto: '', fecha: '' });
+const errorCopiado = ref(false);
 
-const verError = (texto) => {
-  errorModal.value = { visible: true, texto };
+const verError = (texto, fecha = '') => {
+  errorModal.value = { visible: true, texto, fecha };
+};
+
+const copiarError = async () => {
+  try {
+    await navigator.clipboard.writeText(errorModal.value.texto || '');
+    errorCopiado.value = true;
+    setTimeout(() => { errorCopiado.value = false; }, 1800);
+  } catch { /* portapapeles no disponible */ }
 };
 
 const cancelarProceso = async () => {
@@ -868,52 +894,138 @@ const labelEstado = (e) => {
 .gsc-modal-overlay {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0,0,0,.55);
-  padding: 16px;
+  background: rgba(15,23,42,.6);
+  backdrop-filter: blur(2px);
+  padding: 20px;
 }
 .gsc-modal {
   width: 100%;
-  max-width: 520px;
-  max-height: 70vh;
+  max-width: 540px;
+  max-height: 78vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
 }
+.gsc-modal-light { background: #ffffff; border: 1px solid #e2e8f0; }
+.gsc-modal-dark  { background: #1e2a3a; border: 1px solid #3d4e61; }
+
 .gsc-modal-head {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-main);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid;
 }
-.gsc-modal-close {
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-soft);
+.gsc-mhead-light { border-color: #e2e8f0; }
+.gsc-mhead-dark  { border-color: #3d4e61; }
+.gsc-modal-icon {
+  width: 34px; height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(239,68,68,.12);
+  color: #ef4444;
   font-size: 14px;
 }
+.gsc-modal-head-text { flex: 1; min-width: 0; padding-top: 1px; }
+.gsc-modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.gsc-mtext-light { color: #1e293b; }
+.gsc-mtext-dark  { color: #f1f5f9; }
+.gsc-modal-subtitle {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.gsc-modal-close {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background .15s, color .15s;
+}
+.gsc-mclose-light { color: #64748b; }
+.gsc-mclose-light:hover { background: #f1f5f9; color: #1e293b; }
+.gsc-mclose-dark { color: #94a3b8; }
+.gsc-mclose-dark:hover { background: rgba(255,255,255,.08); color: #f1f5f9; }
+
 .gsc-modal-body {
-  padding: 14px 16px;
+  padding: 16px 20px;
   overflow-y: auto;
 }
+.gsc-modal-error-box {
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.gsc-ebox-light { background: #fef2f2; border: 1px solid #fecaca; }
+.gsc-ebox-dark  { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); }
 .gsc-modal-pre {
   margin: 0;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
-  line-height: 1.6;
-  color: #ef4444;
+  line-height: 1.7;
+  color: #dc2626;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.gsc-modal-enter-active, .gsc-modal-leave-active { transition: opacity .15s ease; }
+.gsc-ebox-dark .gsc-modal-pre { color: #fca5a5; }
+
+.gsc-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid;
+}
+.gsc-mfoot-light { border-color: #e2e8f0; }
+.gsc-mfoot-dark  { border-color: #3d4e61; }
+.gsc-copy-feedback {
+  margin-right: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: #22c55e;
+  display: flex; align-items: center; gap: 5px;
+}
+.gsc-btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.gsc-ghost-light { border-color: #e2e8f0; color: #1e293b; }
+.gsc-ghost-light:hover { border-color: #3b82f6; color: #3b82f6; }
+.gsc-ghost-dark { border-color: #3d4e61; color: #f1f5f9; }
+.gsc-ghost-dark:hover { border-color: #3b82f6; color: #3b82f6; }
+.gsc-btn-close {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.gsc-btn-close:hover { background: #dc2626; }
+
+.gsc-modal-enter-active, .gsc-modal-leave-active { transition: opacity .18s ease; }
 .gsc-modal-enter-from, .gsc-modal-leave-to { opacity: 0; }
+.gsc-modal-enter-active .gsc-modal, .gsc-modal-leave-active .gsc-modal { transition: transform .18s ease, opacity .18s ease; }
+.gsc-modal-enter-from .gsc-modal, .gsc-modal-leave-to .gsc-modal { transform: scale(.96) translateY(6px); opacity: 0; }
 </style>

@@ -225,7 +225,21 @@
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT grupo, grupo_label, COUNT\\(*\\) as total FROM modulos_disponibles GROUP BY grupo, grupo_label ORDER BY grupo\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P \"V29kZW4uMjAyMw==\" -d WodenTrack -Q \"SELECT DISTINCT grupo, grupo_label, grupo_icon FROM modulos_disponibles ORDER BY grupo\" -W -s\"|\")",
       "Bash(sqlcmd -S 3.133.217.145,1433 -U userwebapp -P V29kZW4uMjAyMw== -d WodenTrack -Q ' *)",
-      "Bash(xargs grep -n \"@Controller\\\\|@Get\\\\|jefe\")"
+      "Bash(xargs grep -n \"@Controller\\\\|@Get\\\\|jefe\")",
+      "Bash(ls -la \"C:/Users/e.agudelo/Downloads\" 2>/dev/null | tail -15)",
+      "Bash(node scripts/gen-brand-assets.js)",
+      "Bash(npx capacitor-assets *)",
+      "Bash(xargs grep -l \"splash\" -i)",
+      "Bash(xargs grep -ln \"icon-only\\\\|Logo\\\\b\")",
+      "Bash(cp resources/icon-only.png assets/icon-only.png)",
+      "Bash(cp resources/icon-foreground.png assets/icon-foreground.png)",
+      "Bash(cp resources/icon-background.png assets/icon-background.png)",
+      "Bash(cp resources/splash.png assets/splash.png)",
+      "Bash(cp resources/splash-dark.png assets/splash-dark.png)",
+      "Bash(rm -rf resources)",
+      "Bash(cd \"C:/Users/e.agudelo/Documents/Movil-Ionic/WodenTrack\" && mkdir -p resources-src && cp \"C:/Users/e.agudelo/Downloads/reloj.png\" resources-src/reloj-source.png)",
+      "Bash(node -e \"require\\('sharp'\\)\\('assets/icon/favicon.png'\\).metadata\\(\\).then\\(m=>console.log\\(m.width,m.height\\)\\)\")",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat {}')"
     ]
   }
 }
