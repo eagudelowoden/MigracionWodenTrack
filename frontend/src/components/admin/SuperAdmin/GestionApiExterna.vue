@@ -669,6 +669,19 @@ onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos()]);
 
 .api-card-body { padding: 14px; }
 
+/* ── LOADING / EMPTY ──────────────────────────────────────── */
+.api-loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 14px;
+  font-size: 14px;
+}
+.api-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 36px 14px;
+}
+.api-empty-icon { font-size: 24px; }
+.api-empty-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+
 .api-card-foot {
   padding: 10px 14px; border-top: 1px solid; display: flex; justify-content: flex-end;
 }

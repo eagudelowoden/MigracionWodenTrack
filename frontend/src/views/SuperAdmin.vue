@@ -396,6 +396,27 @@ const handleEscape = (e) => {
   }
 };
 
+// --- Entorno / base de datos activa (solo nombres, sin credenciales) ---
+const entornoInfo = ref({ entorno: null, database: null });
+
+const fetchEntorno = async () => {
+  try {
+    const base = API_URL.replace('/usuarios', '');
+    const res = await apiFetch(`${base}/entorno`);
+    entornoInfo.value = await res.json();
+  } catch (e) {
+    console.error('Error cargando info de entorno:', e);
+  }
+};
+
+const ENTORNO_LABELS = { production: 'Producción', qa: 'QA', development: 'Desarrollo' };
+const entornoLabel = computed(() => ENTORNO_LABELS[entornoInfo.value.entorno] || entornoInfo.value.entorno || '—');
+const entornoColor = computed(() => {
+  if (entornoInfo.value.entorno === 'production') return 'red';
+  if (entornoInfo.value.entorno === 'qa') return 'amber';
+  return 'emerald';
+});
+
 // --- Carga Inicial ---
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside, true);
@@ -404,6 +425,7 @@ onMounted(async () => {
     fetchDbUsuarios(),
     fetchOrganizacion(),
     fetchOdooUsuarios(),
+    fetchEntorno(),
   ]);
 });
 
@@ -555,7 +577,15 @@ onUnmounted(() => {
 
         <!-- Derecha: 1-Sistema Activo · 2-Tema · 3-Usuario (con dropdown) -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- 1. Ssistema activo -->
+          <!-- 1. Sistema activo: entorno (.env) + nombre de la BD, sin credenciales -->
+          <div v-if="entornoInfo.entorno" class="sa-env-chip" :class="[`sa-env-${entornoColor}`, isDark ? 'sa-env-dark' : 'sa-env-light']"
+            :title="`Entorno: ${entornoLabel} · Base de datos: ${entornoInfo.database || '—'}`">
+            <span class="sa-env-dot"></span>
+            <span class="sa-env-label">{{ entornoLabel }}</span>
+            <span class="sa-env-sep">·</span>
+            <i class="fas fa-database text-[9px] opacity-60"></i>
+            <span class="sa-env-db">{{ entornoInfo.database || '—' }}</span>
+          </div>
 
           <!-- 2. Toggle tema — solo ícono, sin texto -->
           <button @click="toggleTheme" class="sa-theme-btn" :class="isDark ? 'sa-theme-dark' : 'sa-theme-light'"
@@ -1346,6 +1376,47 @@ onUnmounted(() => {
     display: flex;
   }
 }
+
+.sa-env-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sa-env-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.sa-env-label { text-transform: uppercase; letter-spacing: .04em; }
+.sa-env-sep { opacity: .35; }
+.sa-env-db {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 600;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-env-red     { color: #ef4444; }
+.sa-env-amber   { color: #f59e0b; }
+.sa-env-emerald { color: #22c55e; }
+
+.sa-env-dark.sa-env-red     { background: rgba(239,68,68,.1);  border-color: rgba(239,68,68,.3); }
+.sa-env-dark.sa-env-amber   { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); }
+.sa-env-dark.sa-env-emerald { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); }
+.sa-env-light.sa-env-red     { background: #fef2f2; border-color: #fecaca; }
+.sa-env-light.sa-env-amber   { background: #fffbeb; border-color: #fde68a; }
+.sa-env-light.sa-env-emerald { background: #f0fdf4; border-color: #bbf7d0; }
+
+.sa-env-db { color: inherit; opacity: .85; }
 
 .sa-theme-btn {
   width: 32px;

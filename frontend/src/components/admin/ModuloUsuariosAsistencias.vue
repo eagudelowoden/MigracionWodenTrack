@@ -596,13 +596,27 @@ const formatSoloHora = (value) => {
 
 const getStatusClass = (status) => {
   if (!status || status.toUpperCase() === 'OK')
-    return 'bg-[#16a34a]/[0.10] text-[#16a34a] border-[#16a34a]/30 dark:text-[#4ade80]';
+    return props.isDark
+      ? 'bg-[#16a34a]/[0.10] text-[#4ade80] border-[#16a34a]/30'
+      : 'bg-[#16a34a]/[0.10] text-[#16a34a] border-[#16a34a]/30';
 
   const s = status.toUpperCase();
   if (s.includes('TARDE') || s.includes('INCUMPLIDO'))
-    return 'bg-[#dc2626]/[0.10] text-[#dc2626] border-[#dc2626]/30 dark:text-[#f87171]';
+    return props.isDark
+      ? 'bg-[#dc2626]/[0.10] text-[#f87171] border-[#dc2626]/30'
+      : 'bg-[#dc2626]/[0.10] text-[#dc2626] border-[#dc2626]/30';
 
-  return 'bg-[#3B82F6]/[0.10] text-[#3B82F6] border-[#3B82F6]/30 dark:text-[#60A5FA]';
+  // "N/A" no es un estado real (falta el dato), no un aviso: se muestra
+  // neutro en vez del azul informativo para no competir visualmente con
+  // estados como "NO PROGRAMADO".
+  if (s === 'N/A')
+    return props.isDark
+      ? 'bg-white/[0.04] text-slate-300 border-white/10'
+      : 'bg-slate-100 text-slate-500 border-slate-200';
+
+  return props.isDark
+    ? 'bg-[#3B82F6]/[0.10] text-[#60A5FA] border-[#3B82F6]/30'
+    : 'bg-[#3B82F6]/[0.10] text-[#3B82F6] border-[#3B82F6]/30';
 };
 
 const getFuenteClass = (fuente) => {

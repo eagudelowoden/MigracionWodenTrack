@@ -44,4 +44,9 @@ export class SuperAdminSolicitudesService {
   async countPendientes() {
     return this.repo.count({ where: { estado: 'pendiente' } });
   }
+
+  async eliminar(id: number) {
+    await this.repo.delete(id);
+    return { status: 'success' };
+  }
 }
