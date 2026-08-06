@@ -205,7 +205,7 @@ jobs:
           target: "C:/inetpub/wwwroot/WodenTrackPrd"
           strip_components: 2
 
-      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso. qa
       #    Si falta una tabla/columna, este paso termina en error y GitHub
       #    Actions NUNCA ejecuta los pasos 7 y 8 (reiniciar PM2, avisar) — el
       #    proceso viejo sigue corriendo tal cual, y llega un correo de alerta
