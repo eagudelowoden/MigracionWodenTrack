@@ -239,7 +239,8 @@
       "Bash(rm -rf resources)",
       "Bash(cd \"C:/Users/e.agudelo/Documents/Movil-Ionic/WodenTrack\" && mkdir -p resources-src && cp \"C:/Users/e.agudelo/Downloads/reloj.png\" resources-src/reloj-source.png)",
       "Bash(node -e \"require\\('sharp'\\)\\('assets/icon/favicon.png'\\).metadata\\(\\).then\\(m=>console.log\\(m.width,m.height\\)\\)\")",
-      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat {}')"
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat {}')",
+      "Bash(npx nest *)"
     ]
   }
 }

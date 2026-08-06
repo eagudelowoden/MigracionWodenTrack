@@ -32,7 +32,7 @@ export class ApkService {
     if (!fileExists) {
       return {
         exists: false,
-        version: this.configService.get<string>('APP_VERSION') || '1.0.0', // versión real aunque no haya archivo
+        version: this.configService.get<string>('APP_VERSION_APK') || '1.0.0', // versión real aunque no haya archivo
         size: "0",
         lastUpdate: null,
         downloadUrl: null,
@@ -44,7 +44,7 @@ export class ApkService {
 
     return {
       exists: true,
-      version: this.configService.get<string>('APP_VERSION') || '1.0.0',
+      version: this.configService.get<string>('APP_VERSION_APK') || '1.0.0',
       size: (stats.size / (1024 * 1024)).toFixed(2),
       lastUpdate: stats.mtime,
       downloadUrl: `${baseUrl}/apk/download`, // Aquí se usa tu variable del .env
