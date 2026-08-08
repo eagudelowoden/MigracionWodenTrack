@@ -19,6 +19,9 @@ export class ApkService {
     // Esto buscará VITE_API_URL en tu archivo .env del backend.
     const baseUrl = this.configService.get<string>('APP_BASE_URL') ||
                     'http://localhost:8082';
+    // Página pública de descarga (frontend), NO el endpoint crudo del archivo —
+    // así el navegador/WebView nunca navega a una URL con IP:puerto expuesta.
+    const frontendUrl = this.configService.get<string>('APP_FRONTEND_URL') || baseUrl;
 
     let changelog = ["Preparando nueva versión..."];
     if (fs.existsSync(this.jsonPath)) {
@@ -36,6 +39,7 @@ export class ApkService {
         size: "0",
         lastUpdate: null,
         downloadUrl: null,
+        downloadPageUrl: `${frontendUrl}/download`,
         changelog: ["El repositorio se está actualizando. Vuelve más tarde."]
       };
     }
@@ -48,6 +52,7 @@ export class ApkService {
       size: (stats.size / (1024 * 1024)).toFixed(2),
       lastUpdate: stats.mtime,
       downloadUrl: `${baseUrl}/apk/download`, // Aquí se usa tu variable del .env
+      downloadPageUrl: `${frontendUrl}/download`, // Página que abre la app móvil — nunca la URL cruda del archivo
       changelog
     };
   }
