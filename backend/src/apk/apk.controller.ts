@@ -20,7 +20,7 @@ export class ApkController {
   @Public()
   @Get('download')
   @Header('Content-Type', 'application/vnd.android.package-archive')
-  @Header('Content-Disposition', 'attachment; filename="app-debug.apk"')
+  @Header('Content-Disposition', 'attachment; filename="WodenTrack.apk"')
   download() {
     const filePath = this.apkService.getFilePath();
     const file = createReadStream(filePath);

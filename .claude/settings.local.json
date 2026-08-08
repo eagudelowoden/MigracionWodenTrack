@@ -244,7 +244,8 @@
       "Bash(cp assets/splash-icon.png android/app/src/main/res/drawable/w_icon.png)",
       "Bash(npm view *)",
       "Bash(npm search *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://18.217.246.39:8085/apk/info\" -UseBasicParsing)"
     ]
   }
 }
