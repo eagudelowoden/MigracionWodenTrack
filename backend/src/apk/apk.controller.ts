@@ -17,6 +17,12 @@ export class ApkController {
     return this.apkService.getApkInfo();
   }
 
+  // Historial de versiones subidas — útil para auditar qué se publicó y cuándo.
+  @Get('history')
+  getHistory() {
+    return this.apkService.getHistory();
+  }
+
   @Public()
   @Get('download')
   @Header('Content-Type', 'application/vnd.android.package-archive')
@@ -43,7 +49,8 @@ export class ApkController {
       },
     }),
   }))
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-    return { status: 'success', message: 'Archivo APK reemplazado correctamente' };
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    const entry = await this.apkService.registerUpload();
+    return { status: 'success', message: 'Archivo APK reemplazado correctamente', ...entry };
   }
 }

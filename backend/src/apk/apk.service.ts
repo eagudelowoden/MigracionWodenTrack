@@ -5,43 +5,91 @@ import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ApkParser = require('app-info-parser/src/apk');
 
+export interface ApkVersionEntry {
+  version: string;
+  versionCode: number;
+  uploadedAt: string;
+}
+
+interface ApkMeta {
+  current: ApkVersionEntry | null;
+  history: ApkVersionEntry[];
+}
+
 @Injectable()
 export class ApkService {
   private readonly folderPath = join(process.cwd(), 'uploads', 'apk');
   private readonly fileName = 'app-debug.apk';
   private readonly apkPath = join(this.folderPath, this.fileName);
   private readonly jsonPath = join(this.folderPath, 'changelog.json');
-
-  // Caché en memoria del versionName leído del .apk, para no descomprimirlo
-  // en cada request a /apk/info (se llama seguido, cada vez que la app vuelve
-  // a primer plano). Se invalida sola comparando mtime del archivo.
-  private versionCache: { mtimeMs: number; version: string } | null = null;
+  // Metadata persistida (versión actual + historial) — se escribe UNA vez al
+  // subir el archivo, no se vuelve a parsear el .apk en cada consulta.
+  private readonly metaPath = join(this.folderPath, 'apk-meta.json');
+  private readonly MAX_HISTORY = 20;
 
   constructor(private configService: ConfigService) {}
 
+  private readMeta(): ApkMeta {
+    if (!fs.existsSync(this.metaPath)) return { current: null, history: [] };
+    try {
+      return JSON.parse(fs.readFileSync(this.metaPath, 'utf8'));
+    } catch {
+      return { current: null, history: [] };
+    }
+  }
+
+  private writeMeta(meta: ApkMeta) {
+    fs.writeFileSync(this.metaPath, JSON.stringify(meta, null, 2));
+  }
+
   /**
-   * La versión "disponible" ya NO se lee de una variable .env — eso obligaba
-   * a reiniciar el servidor cada vez que se subía una APK nueva, y era fácil
-   * que quedara desincronizada del archivo real (justo la causa de los bugs
-   * de banner-que-no-se-va que estuvimos persiguiendo). Ahora se extrae
-   * directo del versionName empaquetado DENTRO del .apk que está en el
-   * servidor — siempre exacto, sin pasos manuales.
+   * Lee versionName/versionCode DENTRO del .apk que se acaba de subir y los
+   * guarda en apk-meta.json — la versión "actual" pasa a historial. Antes la
+   * versión "disponible" se leía de una variable .env, lo que obligaba a
+   * reiniciar el servidor cada vez que se subía una APK y era fácil que
+   * quedara desincronizada del archivo real (la causa de los bugs de
+   * banner-que-no-se-va que estuvimos persiguiendo). Ahora es automático:
+   * subir el archivo YA deja todo listo, sin pasos manuales.
+   */
+  async registerUpload(): Promise<ApkVersionEntry> {
+    const parser = new ApkParser(this.apkPath);
+    const result = await parser.parse();
+    const entry: ApkVersionEntry = {
+      version: result.versionName || this.configService.get<string>('APP_VERSION_APK') || '1.0.0',
+      versionCode: result.versionCode ?? 0,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    const meta = this.readMeta();
+    if (meta.current) meta.history.unshift(meta.current);
+    meta.current = entry;
+    meta.history = meta.history.slice(0, this.MAX_HISTORY);
+    this.writeMeta(meta);
+
+    return entry;
+  }
+
+  /**
+   * Respaldo para un .apk que ya estaba en el servidor ANTES de que
+   * existiera apk-meta.json (por ejemplo, subido a mano por SCP) — lo parsea
+   * una sola vez y se "autocura" guardando el meta para las próximas veces.
    */
   private async getInstalledApkVersion(): Promise<string> {
-    const stats = fs.statSync(this.apkPath);
-    if (this.versionCache && this.versionCache.mtimeMs === stats.mtimeMs) {
-      return this.versionCache.version;
-    }
+    const meta = this.readMeta();
+    if (meta.current) return meta.current.version;
+
     try {
-      const parser = new ApkParser(this.apkPath);
-      const result = await parser.parse();
-      const version = result.versionName || this.configService.get<string>('APP_VERSION_APK') || '1.0.0';
-      this.versionCache = { mtimeMs: stats.mtimeMs, version };
-      return version;
+      const entry = await this.registerUpload();
+      return entry.version;
     } catch (e) {
       console.error('Error al leer versionName del APK:', e.message);
       return this.configService.get<string>('APP_VERSION_APK') || '1.0.0';
     }
+  }
+
+  getHistory(): ApkVersionEntry[] {
+    const meta = this.readMeta();
+    return meta.current ? [meta.current, ...meta.history] : meta.history;
   }
 
   async getApkInfo() {

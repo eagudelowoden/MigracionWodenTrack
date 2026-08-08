@@ -245,7 +245,8 @@
       "Bash(npm view *)",
       "Bash(npm search *)",
       "Bash(npm uninstall *)",
-      "PowerShell(Invoke-WebRequest -Uri \"http://18.217.246.39:8085/apk/info\" -UseBasicParsing)"
+      "PowerShell(Invoke-WebRequest -Uri \"http://18.217.246.39:8085/apk/info\" -UseBasicParsing)",
+      "Bash(rm -f uploads/apk/apk-meta.json)"
     ]
   }
 }
