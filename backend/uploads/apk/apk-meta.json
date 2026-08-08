@@ -1,5 +1,9 @@
 {
-  "current": null,
+  "current": {
+    "version": "3.1.6",
+    "versionCode": 3,
+    "uploadedAt": "2026-08-08T16:49:35.022Z"
+  },
   "history": [
     {
       "version": "1.0",
