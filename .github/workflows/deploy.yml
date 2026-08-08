@@ -211,6 +211,24 @@ jobs:
           npm install
           npm run build
 
+      # 3b. Detener PM2 ANTES de copiar: en Windows no se puede sobrescribir un
+      #     archivo que el proceso viejo todavia tiene abierto (a diferencia de
+      #     Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
+      #     al extraer con "Refusing to overwrite archive" sobre el archivo que
+      #     justo estaba bloqueado — el mismo fix que ya tenia QA, aplicado
+      #     aca tras el error real en el deploy de produccion.
+      - name: Detener PM2 PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
+            if ($p) { pm2 stop WodenTrackPRD }"
+
       # 4. Copiar backend compilado al servidor
       #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
       - name: Copiar Backend dist a servidor PROD
