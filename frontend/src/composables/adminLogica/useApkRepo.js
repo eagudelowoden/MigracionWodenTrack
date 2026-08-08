@@ -34,6 +34,13 @@ export function useApkRepo() {
     window.location.href = `${API_URL}/apk/download`;
   };
 
+  const eliminarApk = async () => {
+    const res = await apiFetch(`${API_URL}/apk`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Error al eliminar el APK');
+    await fetchApkInfo();
+    return await res.json();
+  };
+
   // Funciones para SuperAdmin
   const subirApk = async (file) => {
     const formData = new FormData();
@@ -60,6 +67,7 @@ export function useApkRepo() {
     error,
     fetchApkInfo,
     descargarApk,
+    eliminarApk,
     subirApk,
     guardarNovedades
   };

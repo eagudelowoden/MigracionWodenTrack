@@ -143,6 +143,18 @@ export class ApkService {
     return this.apkPath;
   }
 
+  // Elimina el .apk publicado. El historial de versiones anteriores se
+  // conserva (es un registro/auditoría, no depende del archivo físico).
+  deleteApk() {
+    if (fs.existsSync(this.apkPath)) fs.unlinkSync(this.apkPath);
+
+    const meta = this.readMeta();
+    meta.current = null;
+    this.writeMeta(meta);
+
+    return { status: 'success', message: 'APK eliminada' };
+  }
+
   updateChangelog(notes: string[]) {
     if (!fs.existsSync(this.folderPath)) fs.mkdirSync(this.folderPath, { recursive: true });
     fs.writeFileSync(this.jsonPath, JSON.stringify(notes, null, 2));

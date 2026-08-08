@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseInterceptors, UploadedFile, StreamableFile, Header } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, UseInterceptors, UploadedFile, StreamableFile, Header } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { createReadStream } from 'fs';
@@ -52,5 +52,11 @@ export class ApkController {
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     const entry = await this.apkService.registerUpload();
     return { status: 'success', message: 'Archivo APK reemplazado correctamente', ...entry };
+  }
+
+  // ENDPOINT PARA ELIMINAR EL APK PUBLICADO
+  @Delete()
+  deleteApk() {
+    return this.apkService.deleteApk();
   }
 }
