@@ -78,6 +78,37 @@ jobs:
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
 
+      # 5b. Copiar package.json/package-lock.json — npm install (paso 5c) los
+      #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
+      #     junto a "dist", no adentro.
+      - name: Copiar package.json a servidor TEST
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/package.json,backend/package-lock.json"
+          target: "C:/Users/Administrator/Documents/WodenTrackTest"
+          strip_components: 1
+
+      # 5c. Instalar dependencias del backend en el servidor. El deploy solo
+      #     copiaba dist/ — node_modules del servidor quedaba congelado desde
+      #     la última vez que alguien corrió npm install a mano ahí, así que
+      #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND.
+      - name: Instalar dependencias backend TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            npm install --omit=dev;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
       # 6. Copiar frontend compilado al IIS
       - name: Copiar Frontend dist a IIS TEST
         uses: appleboy/scp-action@master
@@ -191,6 +222,37 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
+
+      # 4b. Copiar package.json/package-lock.json — npm install (paso 4c) los
+      #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
+      #     junto a "dist", no adentro.
+      - name: Copiar package.json a servidor PROD
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/package.json,backend/package-lock.json"
+          target: "C:/Users/Administrator/Documents/WodenTrack_Prd"
+          strip_components: 1
+
+      # 4c. Instalar dependencias del backend en el servidor. El deploy solo
+      #     copiaba dist/ — node_modules del servidor quedaba congelado desde
+      #     la última vez que alguien corrió npm install a mano ahí, así que
+      #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND.
+      - name: Instalar dependencias backend PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrack_Prd;
+            npm install --omit=dev;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
 
       # 5. Copiar frontend compilado al IIS
       #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ, QA
