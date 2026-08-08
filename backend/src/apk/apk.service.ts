@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, InternalServerErrorException } from '@ne
 import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import * as fs from 'fs';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ApkParser = require('app-info-parser/src/apk');
 
 @Injectable()
 export class ApkService {
@@ -10,11 +12,41 @@ export class ApkService {
   private readonly apkPath = join(this.folderPath, this.fileName);
   private readonly jsonPath = join(this.folderPath, 'changelog.json');
 
+  // Caché en memoria del versionName leído del .apk, para no descomprimirlo
+  // en cada request a /apk/info (se llama seguido, cada vez que la app vuelve
+  // a primer plano). Se invalida sola comparando mtime del archivo.
+  private versionCache: { mtimeMs: number; version: string } | null = null;
+
   constructor(private configService: ConfigService) {}
 
-  getApkInfo() {
+  /**
+   * La versión "disponible" ya NO se lee de una variable .env — eso obligaba
+   * a reiniciar el servidor cada vez que se subía una APK nueva, y era fácil
+   * que quedara desincronizada del archivo real (justo la causa de los bugs
+   * de banner-que-no-se-va que estuvimos persiguiendo). Ahora se extrae
+   * directo del versionName empaquetado DENTRO del .apk que está en el
+   * servidor — siempre exacto, sin pasos manuales.
+   */
+  private async getInstalledApkVersion(): Promise<string> {
+    const stats = fs.statSync(this.apkPath);
+    if (this.versionCache && this.versionCache.mtimeMs === stats.mtimeMs) {
+      return this.versionCache.version;
+    }
+    try {
+      const parser = new ApkParser(this.apkPath);
+      const result = await parser.parse();
+      const version = result.versionName || this.configService.get<string>('APP_VERSION_APK') || '1.0.0';
+      this.versionCache = { mtimeMs: stats.mtimeMs, version };
+      return version;
+    } catch (e) {
+      console.error('Error al leer versionName del APK:', e.message);
+      return this.configService.get<string>('APP_VERSION_APK') || '1.0.0';
+    }
+  }
+
+  async getApkInfo() {
     const fileExists = fs.existsSync(this.apkPath);
-    
+
     // EXPLICACIÓN: En lugar de import.meta.env, usamos configService.
     // Esto buscará VITE_API_URL en tu archivo .env del backend.
     const baseUrl = this.configService.get<string>('APP_BASE_URL') ||
@@ -45,10 +77,11 @@ export class ApkService {
     }
 
     const stats = fs.statSync(this.apkPath);
+    const version = await this.getInstalledApkVersion();
 
     return {
       exists: true,
-      version: this.configService.get<string>('APP_VERSION_APK') || '1.0.0',
+      version,
       size: (stats.size / (1024 * 1024)).toFixed(2),
       lastUpdate: stats.mtime,
       downloadUrl: `${baseUrl}/apk/download`, // Aquí se usa tu variable del .env
