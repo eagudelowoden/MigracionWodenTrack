@@ -31,7 +31,7 @@
             class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all flex items-center gap-1" :class="tabActiva === 'crudo'
               ? 'bg-amber-500 text-white'
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
-            <i class="fas fa-database text-[8px]"></i> Crudo
+            <i class="fas fa-database text-[8px]"></i> Datos Directos
           </button>
         </div>
       </div>
@@ -110,17 +110,18 @@
               ? 'bg-[#0B0F19] border-[#222938] text-[#f5f5f7] hover:text-white hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
             title="Buscar">
-            <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': tabActiva === 'crudo' ? loadingCrudo : loading }"></i>
+            <i class="fas fa-magnifying-glass text-[10px]"
+              :class="{ 'fa-spin': tabActiva === 'crudo' ? loadingCrudo : loading }"></i>
           </button>
 
-          <button
-            @click="tabActiva === 'crudo' ? crudoRef?.descargarCrudo() : downloadReport()"
+          <button @click="tabActiva === 'crudo' ? crudoRef?.descargarCrudo() : downloadReport()"
             :disabled="tabActiva === 'crudo' ? loadingCrudo : (loading || reportData.length === 0)"
             class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50"
             :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-            <i :class="(tabActiva === 'crudo' ? loadingCrudo : loading) ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <i :class="(tabActiva === 'crudo' ? loadingCrudo : loading) ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"
+              class="text-[10px]"></i>
             <span>Excel</span>
           </button>
         </div>
@@ -128,10 +129,9 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg"
-      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
-        ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
-        : 'bg-red-50 border-red-200 text-red-700'">
+    <div v-if="errorMsg" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+      ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+      : 'bg-red-50 border-red-200 text-red-700'">
       <i class="fas fa-circle-exclamation text-[11px]"></i>
       {{ errorMsg }}
     </div>

@@ -11,7 +11,7 @@
         </div>
         <div>
           <h2 class="text-[13px] font-semibold tracking-tight" :class="isDark ? 'text-white' : 'text-slate-900'">
-            Datos Crudos (Odoo)
+            Datos Directos (Odoo)
           </h2>
           <p class="text-[10px] leading-tight" :class="isDark ? 'text-slate-500' : 'text-slate-400'">
             <code>employee_id</code> directo, sin emparejar turnos ni cruzar mallas.
@@ -33,10 +33,12 @@
         <!-- Rango de fechas -->
         <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border transition-all"
           :class="[filterHoy ? 'opacity-40 pointer-events-none' : '', isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200']">
-          <input v-model="startDate" type="date" @change="filterHoy = false" class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+          <input v-model="startDate" type="date" @change="filterHoy = false"
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
             :class="isDark ? 'text-white' : 'text-slate-700'">
           <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
-          <input v-model="endDate" type="date" @change="filterHoy = false" class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
+          <input v-model="endDate" type="date" @change="filterHoy = false"
+            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
             :class="isDark ? 'text-white' : 'text-slate-700'">
         </div>
 
@@ -90,7 +92,7 @@
       <div class="flex flex-col items-center gap-3 py-20">
         <i class="fas fa-circle-notch fa-spin text-2xl" :class="isDark ? 'text-amber-400' : 'text-amber-500'"></i>
         <span class="text-[11px] font-medium" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
-          Descargando crudo de Odoo (sin cruces)…
+          Descargando Datos Directos…
         </span>
       </div>
     </div>
@@ -109,19 +111,19 @@
     <template v-else>
       <!-- Sub-tabs + descarga -->
       <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
-        :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
-        <button @click="crudoTab = 'attendances'; crudoPage = 1"
-          class="h-6 px-2.5 rounded-[4px] text-[10px] font-semibold transition-all"
-          :class="crudoTab === 'attendances' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
-          hr.attendance ({{ crudoData.attendancesCount }})
-        </button>
-        <button @click="crudoTab = 'logs'; crudoPage = 1"
-          class="h-6 px-2.5 rounded-[4px] text-[10px] font-semibold transition-all"
-          :class="crudoTab === 'logs' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
-          attendance.log ({{ crudoData.logsCount }})
-        </button>
-      </div>
+        <div class="flex items-center gap-0.5 p-0.5 rounded-md border w-fit"
+          :class="isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-slate-100 border-slate-200'">
+          <button @click="crudoTab = 'attendances'; crudoPage = 1"
+            class="h-6 px-2.5 rounded-[4px] text-[10px] font-semibold transition-all"
+            :class="crudoTab === 'attendances' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            Aplicación ({{ crudoData.attendancesCount }})
+          </button>
+          <button @click="crudoTab = 'logs'; crudoPage = 1"
+            class="h-6 px-2.5 rounded-[4px] text-[10px] font-semibold transition-all"
+            :class="crudoTab === 'logs' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            Biométrico ({{ crudoData.logsCount }})
+          </button>
+        </div>
 
         <button @click="descargarCrudo" :disabled="!crudoRowsActivas.length"
           class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none"
@@ -140,19 +142,39 @@
           <table class="w-full border-separate border-spacing-0">
             <thead class="sticky top-0 z-30">
               <tr class="bg-[#1e2538]">
-                <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">ID Odoo</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Employee ID</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Empleado</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Depto</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  ID Odoo</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  Employee ID</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  Empleado</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  Cédula</th>
+                <th
+                  class="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                  Depto</th>
                 <template v-if="crudoTab === 'attendances'">
-                  <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Check in</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Check out</th>
+                  <th
+                    class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Check in</th>
+                  <th
+                    class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Check out</th>
                 </template>
                 <template v-else>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Punching time</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Status</th>
-                  <th class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">Device</th>
+                  <th
+                    class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Punching time</th>
+                  <th
+                    class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Status</th>
+                  <th
+                    class="px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#f5f5f7] text-[#f5f5f7]">
+                    Device</th>
                 </template>
               </tr>
             </thead>
@@ -167,19 +189,41 @@
             <tbody v-else>
               <tr v-for="(row, i) in crudoRowsPaginadas" :key="row.id"
                 :class="[i % 2 !== 0 ? (isDark ? 'bg-white/[0.04]' : 'bg-slate-50') : 'bg-transparent']">
-                <td class="px-3 py-2 border-b text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.id }}</td>
-                <td class="px-3 py-2 border-b text-[11px] font-bold tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.employee_id }}</td>
-                <td class="px-3 py-2 border-b text-[11px] font-semibold" :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ row.empleado }}</td>
-                <td class="px-3 py-2 border-b text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.cedula || '—' }}</td>
-                <td class="px-3 py-2 border-b text-[11px]" :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.department_id }}</td>
+                <td class="px-3 py-2 border-b text-[11px] tabular-nums"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{ row.id }}
+                </td>
+                <td class="px-3 py-2 border-b text-[11px] font-bold tabular-nums"
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                    row.employee_id }}</td>
+                <td class="px-3 py-2 border-b text-[11px] font-semibold"
+                  :class="isDark ? 'border-[#222938] text-white' : 'border-slate-100 text-slate-900'">{{ row.empleado }}
+                </td>
+                <td class="px-3 py-2 border-b text-[11px] tabular-nums"
+                  :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.cedula
+                    || '—' }}
+                </td>
+                <td class="px-3 py-2 border-b text-[11px]"
+                  :class="isDark ? 'border-[#222938] text-slate-400' : 'border-slate-100 text-slate-500'">{{
+                    row.department_id }}
+                </td>
                 <template v-if="crudoTab === 'attendances'">
-                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.check_in || '—' }}</td>
-                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.check_out || '—' }}</td>
+                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.check_in || '—' }}</td>
+                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.check_out || '—' }}</td>
                 </template>
                 <template v-else>
-                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.punching_time || '—' }}</td>
-                  <td class="px-3 py-2 border-b text-center text-[11px]" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.status || '—' }}</td>
-                  <td class="px-3 py-2 border-b text-center text-[11px]" :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{ row.device || '—' }}</td>
+                  <td class="px-3 py-2 border-b text-center text-[11px] tabular-nums"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.punching_time || '—' }}</td>
+                  <td class="px-3 py-2 border-b text-center text-[11px]"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.status || '—' }}</td>
+                  <td class="px-3 py-2 border-b text-center text-[11px]"
+                    :class="isDark ? 'border-[#222938] text-slate-300' : 'border-slate-100 text-slate-700'">{{
+                      row.device || '—' }}</td>
                 </template>
               </tr>
             </tbody>
@@ -190,7 +234,8 @@
         <div v-if="crudoRowsActivas.length" class="px-3 py-2 border-t flex items-center justify-between"
           :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
           <span class="text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-            <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ crudoRowsActivas.length }}</span>
+            <span :class="isDark ? 'text-white font-medium' : 'text-slate-900 font-medium'">{{ crudoRowsActivas.length
+            }}</span>
             registros
           </span>
           <div class="flex items-center gap-1.5">
