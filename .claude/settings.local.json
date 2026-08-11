@@ -247,10 +247,7 @@
       "Bash(npm uninstall *)",
       "PowerShell(Invoke-WebRequest -Uri \"http://18.217.246.39:8085/apk/info\" -UseBasicParsing)",
       "Bash(rm -f uploads/apk/apk-meta.json)",
-      "Bash(python3 -c \"import yaml,sys; yaml.safe_load\\(open\\(r'C:/Users/e.agudelo/Documents/MigracionWodenTrack/.github/workflows/deploy.yml'\\)\\); print\\('YAML OK'\\)\")",
-      "Bash(python -c \"import yaml,sys; yaml.safe_load\\(open\\(r'C:/Users/e.agudelo/Documents/MigracionWodenTrack/.github/workflows/deploy.yml'\\)\\); print\\('YAML OK'\\)\")",
-      "Bash(curl -s -o /dev/null -w \"STATUS:%{http_code}\\\\n\" https://track.woden.com.co/download)",
-      "Bash(curl -s -o /dev/null -w \"STATUS:%{http_code}\\\\n\" https://track.woden.com.co)"
+      "Bash(awk '/router\\\\.push\\\\\\(.\\\\/novedad.\\\\\\)/{print NR\": \"$0}' src/views/MarcacionView.vue)"
     ]
   }
 }

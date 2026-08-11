@@ -139,6 +139,15 @@
           </button>
         </div>
 
+        <!-- NOVEDAD — permiso marcacion.novedad -->
+        <button v-if="canRegistrarNovedad" @click="showChoiceModal = true"
+          class="w-full py-3 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]"
+          :class="isDark
+            ? 'border-[#2a3142] text-zinc-400 hover:border-[#e88710] hover:text-[#e88710] hover:bg-[#e88710]/5'
+            : 'border-slate-300 text-slate-500 hover:border-[#2563EB] hover:text-[#2563EB] hover:bg-blue-50'">
+          <i class="fas fa-file-circle-plus text-[11px]"></i> Registrar Novedad
+        </button>
+
         <!-- MARCACIÓN ECUADOR CON GPS — solo para usuarios Ecuador con permiso -->
         <MarcacionAsistenciaEcuador v-if="canMarcacionEcuador" :isDark="isDark" :employee="employee" />
 
@@ -270,6 +279,54 @@
               <div v-if="pwFormM.loading"
                 class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span v-else><i class="fas fa-check mr-1"></i>Guardar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
+
+  <!-- ── Modal elección: Individual / Colectiva ─────────────────────────────── -->
+  <teleport to="body">
+    <transition name="fade">
+      <div v-if="showChoiceModal"
+        class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        @click.self="showChoiceModal = false">
+        <div class="w-full max-w-sm rounded-2xl border shadow-xl overflow-hidden"
+          :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-transparent'">
+
+          <div class="flex items-center justify-between px-5 py-4 border-b"
+            :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+            <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Registrar Novedad</span>
+            <button @click="showChoiceModal = false"
+              class="w-7 h-7 flex items-center justify-center rounded-full opacity-40 hover:opacity-100 hover:bg-zinc-500/10 transition-all">
+              <i class="fas fa-times text-xs"></i>
+            </button>
+          </div>
+
+          <div class="p-4 space-y-2.5">
+            <button @click="goIndividual"
+              class="w-full p-4 rounded-xl border text-left flex items-center gap-3 transition-all active:scale-[0.98]"
+              :class="isDark ? 'bg-[#0B0F19] border-[#222938] hover:border-[#e88710]' : 'bg-slate-50 border-slate-200 hover:border-[#2563EB]'">
+              <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+                <i class="fas fa-user text-sm"></i>
+              </div>
+              <div>
+                <span class="block text-xs font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Individual</span>
+                <span class="block text-[11px] opacity-60">Registra una novedad para ti mismo</span>
+              </div>
+            </button>
+
+            <button v-if="canNovedadColectiva" @click="openColectiva"
+              class="w-full p-4 rounded-xl border text-left flex items-center gap-3 transition-all active:scale-[0.98]"
+              :class="isDark ? 'bg-[#0B0F19] border-[#222938] hover:border-[#e88710]' : 'bg-slate-50 border-slate-200 hover:border-[#2563EB]'">
+              <div class="w-9 h-9 rounded-lg bg-[#e88710]/10 flex items-center justify-center text-[#e88710] shrink-0">
+                <i class="fas fa-users text-sm"></i>
+              </div>
+              <div>
+                <span class="block text-xs font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Colectiva</span>
+                <span class="block text-[11px] opacity-60">Aplica la misma novedad a varios empleados</span>
+              </div>
             </button>
           </div>
         </div>
@@ -468,6 +525,16 @@ const primerNombre = computed(() => {
 const canRegistrarNovedad = computed(() =>
   employee.value?.isSuperAdmin ||
   employee.value?.permisos?.['marcacion.novedad'] === true
+);
+
+// La opción "Colectiva" (aplicar la misma novedad a varios empleados a la
+// vez) requiere rol elevado de novedades — no basta con poder registrar la
+// propia, si no cualquiera con 'marcacion.novedad' podría editar novedades
+// de todo un equipo.
+const canNovedadColectiva = computed(() =>
+  employee.value?.isSuperAdmin ||
+  employee.value?.permisos?.['admin.novedades.admin'] === true ||
+  employee.value?.permisos?.['admin.novedades.rrhh'] === true
 );
 
 const canVerSeriales = computed(() =>

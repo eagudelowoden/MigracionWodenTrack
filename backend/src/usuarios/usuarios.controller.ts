@@ -364,6 +364,16 @@ export class UsuariosController {
     return await this.usuariosService.obtenerPermisosUsuario(Number(id_odoo));
   }
 
+  // Refresca el mapa de permisos { slug: boolean } de una sesión YA abierta —
+  // distinto del endpoint de arriba (que devuelve las filas crudas para la
+  // modal de SuperAdmin). Lo llama el frontend en cada carga de /marcacion
+  // para que un cambio de permiso hecho en SuperAdmin se refleje sin
+  // necesidad de cerrar sesión.
+  @Get('permisos-sesion/:id_odoo')
+  async getPermisosSesion(@Param('id_odoo') id_odoo: string) {
+    return await this.usuariosService.refrescarPermisos(Number(id_odoo));
+  }
+
   @Post('asignar-permiso')
   async asignarPermiso(
     @Body()
