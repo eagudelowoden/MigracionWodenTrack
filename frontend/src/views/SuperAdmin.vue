@@ -145,7 +145,7 @@ const TAB_PERMS = {
   sync: 'super.superadmin',
   cronhoras: 'super.superadmin',
   reporteworkers: 'super.superadmin',
-  datoscrudos: 'super.superadmin',
+  datoscrudos: 'super.datoscrudos',
 };
 
 // Solo el root (isSuperAdmin) ve todo. super.superadmin solo da entrada al panel.

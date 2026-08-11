@@ -1742,7 +1742,9 @@ export class UsuariosService {
     ]);
     marcar('contar', t0);
 
-    // 5. Descargar hr.attendance — CRUDO, sin mapear
+    // 5. Descargar hr.attendance — CRUDO, sin mapear. x_studio_cedula_codigo
+    // NO existe en este modelo (Odoo devuelve 500 "Invalid field" si se pide)
+    // — solo vive en attendance.log, ver más abajo.
     t0 = Date.now();
     const attFields = [
       'employee_id', 'check_in', 'check_out', 'department_id',
@@ -1757,17 +1759,20 @@ export class UsuariosService {
     t0 = Date.now();
     const logFields = [
       'employee_id', 'punching_time', 'status',
-      'x_studio_related_field_j40wn', 'device',
+      'x_studio_related_field_j40wn', 'device', 'x_studio_cedula_codigo',
     ];
     const logs = await this.odoo.searchReadAllWithProgress<any>(
       'attendance.log', domainLog, logFields, uid, () => {},
     );
     marcar('descargarLogs', t0);
 
-    // Aplanar para tabla: usamos employee_id (Odoo) directo — NO se resuelve
-    // cédula (eso requeriría otra llamada a Odoo, innecesaria para inspeccionar
-    // el dato crudo). La hora local es solo FORMATO (mismo conversor que usa el
-    // reporte real), no hay emparejamiento de turnos ni cruce con mallas.
+    // Aplanar para tabla: usamos employee_id (Odoo) directo. La cédula viene
+    // del propio campo Studio (x_studio_cedula_codigo) del registro de
+    // attendance.log, NO de una consulta aparte — no es un cruce, es un campo
+    // más del mismo registro. hr.attendance NO tiene este campo (Odoo lo
+    // rechaza), por eso ahí no se pide. La hora local es solo FORMATO (mismo
+    // conversor que usa el reporte real), no hay emparejamiento de turnos ni
+    // cruce con mallas.
     const toLocal = this.crearConvertidorLocal();
     const attendancesPlanas = attendances.map((a) => ({
       id: a.id,
@@ -1783,6 +1788,7 @@ export class UsuariosService {
       id: l.id,
       employee_id: l.employee_id?.[0] ?? null,
       empleado: l.employee_id?.[1] ?? 'Desconocido',
+      cedula: l.x_studio_cedula_codigo ?? null,
       department_id: l.x_studio_related_field_j40wn?.[1] ?? 'SIN DEPTO',
       punching_time: toLocal(l.punching_time),
       status: l.status ?? null,
