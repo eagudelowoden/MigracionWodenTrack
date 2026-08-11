@@ -204,44 +204,7 @@ export class UsuariosService {
     const esAdmin = tieneMandoGeneral || esTI;
     const rolAsignado = esAdmin ? 'admin' : 'user';
 
-    // 1. BUSCAR PERMISOS EN LA BASE DE DATOS LOCAL
-    const permisosDB = await this.permisoRepo.find({
-      where: { usuario_id_odoo: emp.id },
-    });
-
-    const mapaPermisos = permisosDB.reduce((acc, p) => {
-      acc[p.modulos] = p.nivel_acceso === 'admin';
-      return acc;
-    }, {});
-
-    // Auto-detectar si es responsable de segmento o área en la estructura local.
-    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
-    // para que un override manual (nivel_acceso='user') siempre prevalezca.
-    const [respSegmento, respArea] = await Promise.all([
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_segmentos s
-         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_areas a
-         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-    ]);
-
-    // Responsable de segmento → puede ver todas las novedades del segmento
-    if (
-      respSegmento.length > 0 &&
-      mapaPermisos['novedades.ver_segmento'] === undefined
-    ) {
-      mapaPermisos['novedades.ver_segmento'] = true;
-    }
-    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+    const mapaPermisos = await this.calcularPermisos(emp.id);
 
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
@@ -319,6 +282,63 @@ export class UsuariosService {
       permisos: mapaPermisos,
     };
   }
+
+  /**
+   * Mapa de permisos { slug: boolean } para un empleado — la misma lógica que
+   * corre en login() (extraída de ahí), incluyendo el auto-detectado de
+   * responsable de segmento. El frontend cachea `permisos` en localStorage al
+   * loguearse y NUNCA lo vuelve a pedir por su cuenta, así que si alguien
+   * cambia un permiso desde SuperAdmin mientras esa persona ya tiene sesión
+   * abierta, su navegador sigue viendo el permiso viejo hasta que este método
+   * se llame de nuevo (ver /usuarios/permisos-sesion/:id_odoo).
+   */
+  private async calcularPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    const permisosDB = await this.permisoRepo.find({
+      where: { usuario_id_odoo: idOdoo },
+    });
+
+    const mapaPermisos = permisosDB.reduce((acc, p) => {
+      acc[p.modulos] = p.nivel_acceso === 'admin';
+      return acc;
+    }, {});
+
+    // Auto-detectar si es responsable de segmento o área en la estructura local.
+    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
+    // para que un override manual (nivel_acceso='user') siempre prevalezca.
+    const [respSegmento, respArea] = await Promise.all([
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_segmentos s
+         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_areas a
+         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+    ]);
+
+    // Responsable de segmento → puede ver todas las novedades del segmento
+    if (
+      respSegmento.length > 0 &&
+      mapaPermisos['novedades.ver_segmento'] === undefined
+    ) {
+      mapaPermisos['novedades.ver_segmento'] = true;
+    }
+    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+
+    return mapaPermisos;
+  }
+
+  /** Recalcula y devuelve los permisos vigentes de un empleado — ver calcularPermisos(). */
+  async refrescarPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    return this.calcularPermisos(idOdoo);
+  }
+
   async asignarModuloPermiso(
     idOdoo: number,
     modulo: string,
