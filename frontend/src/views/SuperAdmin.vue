@@ -324,8 +324,17 @@ const showNotification = (msg, type = "success") => {
 };
 
 // SuperAdmin.vue — agrega estas funciones
+
+// Estado de guardado/confirmación POR permiso (no un solo valor global) — así
+// si el admin activa varios toggles seguidos antes de que el primero
+// termine, cada fila mantiene su propio spinner/check sin pisarse.
+const savingPermSlugs = ref(new Set());
+const permFeedback = reactive({}); // { [slug]: 'ok' | 'error' }
+
 const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
+  savingPermSlugs.value.add(slug);
+  delete permFeedback[slug];
   try {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const res = await apiFetch(`${API_URL}/asignar-permiso`, {
@@ -357,9 +366,14 @@ const togglePermisoLocal = async (user, slug) => {
       selectedUserPerms.value = { ...actualizado };
     }
 
+    permFeedback[slug] = 'ok';
     showNotification(`Permiso ${activo ? "asignado" : "removido"}`);
   } catch (e) {
+    permFeedback[slug] = 'error';
     showNotification("Error al actualizar permiso", "error");
+  } finally {
+    savingPermSlugs.value.delete(slug);
+    setTimeout(() => { delete permFeedback[slug]; }, 1800);
   }
 };
 
@@ -829,6 +843,7 @@ onUnmounted(() => {
     <!-- Panel de permisos -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
       :apiUrl="API_URL" :todosLosDepartamentos="departamentosUnicos"
+      :savingPermSlugs="savingPermSlugs" :permFeedback="permFeedback"
       @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
       @update-structure="updateUserStructure($event.user, $event.field)" />
   </div>
