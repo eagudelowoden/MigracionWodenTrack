@@ -10,6 +10,13 @@ import { OdooService } from '../odoo/odoo.service';
 import { MailService } from '../logsEmail/mail.service';
 import { SuperAdminCorreoService } from '../usuarios/superadmin-correo.service';
 import * as ExcelJS from 'exceljs';
+import {
+  MAX_TURNO_MS,
+  addUnDia,
+  buildAttendancePair,
+  validarParHrAttendance,
+  Punch,
+} from './attendance-pairing';
 
 function getFechaColombiaHoy(): string {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -53,24 +60,8 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
   return Math.max(0, Math.min(e1, e2) - Math.max(s1, s2));
 }
 
-// Duración máxima razonable de un turno (14h). Un emparejamiento entrada→salida
-// que supere esto es inválido: en realidad son la salida de un turno y la entrada
-// de otro (p. ej. 05:00 madrugada + 22:00 noche = 17h imposibles de un solo turno).
-const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
-
-// Ventana de gap plausible entre una entrada y su salida del día calendario
-// siguiente (turno que cruza medianoche), usada por el algoritmo canónico de
-// emparejamiento: mínimo 3h (turno real más corto) y máximo 18h (evita
-// emparejar con la entrada del turno nocturno del día después).
-const MIN_GAP_SALIDA_MS = 3 * 60 * 60 * 1000;
-const MAX_GAP_SALIDA_MS = 18 * 60 * 60 * 1000;
-
-// Suma un día calendario a una fecha 'YYYY-MM-DD' (sin componente de hora).
-function addUnDia(fecha: string): string {
-  const [a, m, d] = fecha.split('-').map(Number);
-  const dt = new Date(a, m - 1, d + 1);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-}
+// MAX_TURNO_MS y addUnDia viven en './attendance-pairing' (algoritmo canónico
+// de emparejamiento entrada/salida), importados arriba.
 
 // Minutos nocturnos en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
 // Usado para RNDF, HENO, HEFN. La jornada nocturna inicia a las 19:00 conforme
@@ -350,88 +341,10 @@ export class HorasExtraService {
     return js === 0 ? 6 : js - 1; // 0=Lun...6=Dom
   }
 
-  /**
-   * ALGORITMO CANÓNICO de emparejamiento entrada/salida a partir de
-   * marcaciones biométricas reales, ordenadas cronológicamente.
-   *
-   * Es la ÚNICA lógica del sistema responsable de decidir cuál marcación es
-   * la entrada y cuál es la salida. NO recibe ni consulta la malla/jornada
-   * programada en ningún punto — la malla representa lo programado, el
-   * biométrico representa lo que realmente ocurrió, y el orden siempre es:
-   * marcaciones → par entrada/salida → (recién ahí) comparar contra malla.
-   *
-   * Debe ser la única función usada tanto para construir pares desde
-   * `attendance.log` como para reconstruir un par de `hr.attendance` cuando
-   * este viene inválido/incompleto — nunca se debe "adivinar" la entrada o
-   * salida buscando una marcación cercana a la hora de la malla.
-   *
-   * Reglas:
-   *  - ≥2 marcaciones libres ese día con span < turno máximo (14h) → primera
-   *    = entrada, última = salida (turno completo dentro del mismo día).
-   *  - ≥2 marcaciones libres con span ≥ turno máximo → la última pertenece a
-   *    un turno nuevo que cruza medianoche (las anteriores son cola de un
-   *    turno previo); se busca la salida el día calendario siguiente.
-   *  - 1 sola marcación libre → es la entrada; se busca la salida el día
-   *    siguiente. Si no aparece, la marcación queda incompleta (no se
-   *    inventa una salida).
-   *  - 0 marcaciones libres ese día → no hay nada que construir (null).
-   *
-   * @param fecha               Fecha calendario (YYYY-MM-DD) de referencia.
-   * @param todasLasMarcaciones TODAS las marcaciones del empleado (varias
-   *                            fechas), ya ordenadas cronológicamente.
-   * @param consumidas          rawTime de marcaciones ya usadas como salida
-   *                            de un turno anterior (no deben reusarse).
-   */
-  private construirParEntradaSalida(
-    fecha: string,
-    todasLasMarcaciones: { localTime: string; rawTime: string; log: any }[],
-    consumidas: Set<string>,
-  ): {
-    checkIn: string;
-    checkOut: string | null;
-    entradaLog: any;
-    salidaConsumida: string | null;
-  } | null {
-    const dayPunches = todasLasMarcaciones.filter(
-      (p) => p.localTime.split(' ')[0] === fecha && !consumidas.has(p.rawTime),
-    );
-    if (!dayPunches.length) return null;
-
-    const primero = dayPunches[0];
-    const ultimo = dayPunches[dayPunches.length - 1];
-    const spanMs =
-      new Date(ultimo.rawTime).getTime() - new Date(primero.rawTime).getTime();
-
-    if (dayPunches.length >= 2 && spanMs < MAX_TURNO_MS) {
-      // Turno completo dentro del mismo día calendario.
-      return {
-        checkIn: primero.rawTime,
-        checkOut: spanMs >= 60_000 ? ultimo.rawTime : null,
-        entradaLog: primero.log,
-        salidaConsumida: null,
-      };
-    }
-
-    // Una sola marca libre, o ≥2 marcas cuyo span supera el turno máximo:
-    // la entrada real es la ÚLTIMA marca libre del día (si hay varias, las
-    // anteriores pertenecen a un turno previo que ya cruzó medianoche).
-    const entrada = dayPunches.length >= 2 ? ultimo : primero;
-    const siguiente = addUnDia(fecha);
-    const entradaMs = new Date(entrada.rawTime).getTime();
-    const salida = todasLasMarcaciones.find((p) => {
-      if (p.localTime.split(' ')[0] !== siguiente) return false;
-      if (consumidas.has(p.rawTime)) return false;
-      const gapMs = new Date(p.rawTime).getTime() - entradaMs;
-      return gapMs >= MIN_GAP_SALIDA_MS && gapMs <= MAX_GAP_SALIDA_MS;
-    });
-
-    return {
-      checkIn: entrada.rawTime,
-      checkOut: salida ? salida.rawTime : null,
-      entradaLog: entrada.log,
-      salidaConsumida: salida ? salida.rawTime : null,
-    };
-  }
+  // El algoritmo canónico de emparejamiento entrada/salida vive en
+  // `buildAttendancePair` (./attendance-pairing.ts), importado arriba — es
+  // una función pura, sin dependencias de esta clase, reutilizada tanto para
+  // agrupar attendance.log como para reparar pares inválidos de hr.attendance.
 
   // Tolerancia de 6 minutos para ignorar marcaciones mínimas
   private static readonly TOLERANCIA_MINS = 6;
@@ -1127,7 +1040,7 @@ export class HorasExtraService {
 
     // Recopilar TODOS los punches biométricos por empleado (se llena página a
     // página); se ordenan cronológicamente una vez completa la descarga.
-    const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
+    const allLogsByEmp = new Map<number, Punch[]>();
     const totalLog = await this.odoo.searchReadAllStream<any>(
       'attendance.log',
       domainLog,
@@ -1194,7 +1107,7 @@ export class HorasExtraService {
         const key = `${empId}_${fecha}`;
         if (grupos[key]) continue; // ya cubierto por hr.attendance
 
-        const par = this.construirParEntradaSalida(fecha, punches, consumedSalidaPunches);
+        const par = buildAttendancePair(fecha, punches, consumedSalidaPunches);
         if (!par) continue; // sin marcaciones libres ese día (ya consumidas por un turno anterior)
 
         if (par.salidaConsumida) {
@@ -1342,38 +1255,26 @@ export class HorasExtraService {
       // ── Reconstrucción con marcaciones reales cuando el par de hr.attendance
       // es inválido/incompleto ──────────────────────────────────────────────
       // hr.attendance puede traer check_in sin check_out, un check_out que no
-      // corresponde con el check_in (duración ≤ 0), o un "turno" absurdo (más
-      // de MAX_TURNO_MS — p. ej. registra 04:59→22:09 en vez de 22:09→05:00).
+      // corresponde con el check_in (duración ≤ 0), un "turno" absurdo (más de
+      // MAX_TURNO_MS — p. ej. registra 04:59→22:09 en vez de 22:09→05:00), o un
+      // par que ninguna marcación biométrica real respalda (`validarParHrAttendance`
+      // lo cruza contra attendance.log). Un par así NUNCA se usa tal cual.
       //
       // En cualquiera de esos casos NO se usa la malla para adivinar cuál
       // marcación es la entrada/salida: se reconstruye el par con el MISMO
-      // algoritmo canónico (`construirParEntradaSalida`) que ya se usa para
+      // algoritmo canónico (`buildAttendancePair`) que ya se usa para
       // attendance.log, aplicado sobre las marcaciones reales del empleado —
       // sin importar si el turno programado es nocturno, diurno o si no
       // tiene malla asignada (`turno` no participa en esta decisión).
       //
-      // Si ya existe un par válido (duración > 0 y ≤ MAX_TURNO_MS), NO se
-      // toca: un par ya construido correctamente a partir de marcaciones
-      // reales nunca debe reinterpretarse en función de la malla.
+      // Si el par ya es válido, NO se toca: un par correcto respaldado por
+      // marcaciones reales nunca debe reinterpretarse en función de la malla.
       if (allLogsByEmp.has(empId)) {
-        const fechaIn  = localIn  ? localIn.split(' ')[0]  : null;
-        const fechaOut = localOut ? localOut.split(' ')[0] : null;
-        let duracionMinsActual: number | null = null;
-        if (localIn && localOut) {
-          const inM = this.parseMinutos(localIn);
-          let outM  = this.parseMinutos(localOut);
-          if (fechaIn && fechaOut && fechaOut !== fechaIn) outM += 1440; // cruza medianoche
-          duracionMinsActual = outM - inM;
-        }
-        const parejaInvalida =
-          !localOut ||
-          duracionMinsActual === null ||
-          duracionMinsActual <= 0 ||
-          duracionMinsActual > MAX_TURNO_MS / 60000;
+        const punches = allLogsByEmp.get(empId)!;
+        const validacion = validarParHrAttendance(localIn, localOut, punches);
 
-        if (parejaInvalida) {
-          const punches = allLogsByEmp.get(empId)!;
-          const par = this.construirParEntradaSalida(fecha, punches, consumedSalidaPunches);
+        if (!validacion.valido) {
+          const par = buildAttendancePair(fecha, punches, consumedSalidaPunches);
           if (par) {
             localIn = this.toLocal(par.checkIn);
             localOut = par.checkOut ? this.toLocal(par.checkOut) : null;
