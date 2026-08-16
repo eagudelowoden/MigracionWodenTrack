@@ -89,6 +89,24 @@ describe('buildAttendancePair (algoritmo canónico de emparejamiento)', () => {
     expect(par!.ambiguo).toBe(false);
   });
 
+  it('Caso reportado ALTAMAR ARDILA 03/08/2026: varias marcaciones dentro de una misma jornada continua (pausas/cambios de zona) no deben partirse en turnos independientes', () => {
+    const marcaciones = [
+      punch('2026-08-03 06:45:37'),
+      punch('2026-08-03 09:30:51'),
+      punch('2026-08-03 09:58:45'),
+      punch('2026-08-03 12:00:10'),
+      punch('2026-08-03 12:58:49'),
+      punch('2026-08-03 16:31:00'),
+      punch('2026-08-04 06:44:14'), // entrada del día siguiente: no debe interferir
+    ];
+    const par = buildAttendancePair('2026-08-03', marcaciones, new Set());
+    // Los tres pares (06:45-09:30, 09:58-12:00, 12:58-16:31) cierran solos
+    // el mismo día → se fusionan en un solo turno, no se descartan los dos
+    // primeros quedándose solo con el más reciente (12:58->16:31).
+    expect(par!.checkIn).toBe('2026-08-03T06:45:37');
+    expect(par!.checkOut).toBe('2026-08-03T16:31:00');
+  });
+
   it('Caso 6: marcaciones duplicadas producen resultado determinístico', () => {
     const marcaciones = [
       punch('2026-07-02 22:00:00'),
