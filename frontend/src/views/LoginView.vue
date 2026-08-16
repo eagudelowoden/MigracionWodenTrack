@@ -35,17 +35,14 @@
     ============================================================= -->
     <main class="relative flex-1 flex items-center justify-center overflow-hidden px-4 py-6">
 
-      <!-- Fondo: líneas geométricas diagonales muy tenues, sin puntos/nodos -->
-      <div v-if="!isDark" class="absolute inset-0 pointer-events-none z-0" style="background:
-          radial-gradient(1100px 700px at 85% -10%, rgba(73,133,194,0.05), transparent 60%),
-          repeating-linear-gradient(135deg, rgba(16,46,74,0.05) 0px, rgba(16,46,74,0.05) 1px, transparent 1px, transparent 96px),
-          repeating-linear-gradient(45deg, rgba(16,46,74,0.035) 0px, rgba(16,46,74,0.035) 1px, transparent 1px, transparent 140px);">
-      </div>
-      <div v-else class="absolute inset-0 pointer-events-none z-0" style="background:
-          radial-gradient(1100px 700px at 85% -10%, rgba(76,122,184,0.09), transparent 60%),
-          repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 96px),
-          repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0px, rgba(255,255,255,0.022) 1px, transparent 1px, transparent 140px);">
-      </div>
+      <!-- Fondo: mallado disperso e irregular de líneas que se cruzan en ángulos
+           variados (estilo Kaspersky), muy tenue. Sin puntos/nodos/partículas. -->
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+          :stroke="isDark ? 'rgba(255,255,255,0.055)' : 'rgba(16,46,74,0.11)'" stroke-width="1"
+          vector-effect="non-scaling-stroke" />
+      </svg>
 
       <!-- ==========================================================
            LOGIN CARD
@@ -55,6 +52,10 @@
         :class="isDark
           ? 'bg-[#111C2E]/90 border-slate-800 shadow-[0_20px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl'
           : 'bg-white border-[#D7E0EA] shadow-[0_14px_35px_rgba(16,46,74,0.09)]'">
+
+        <!-- Acento superior sutil -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px rounded-full"
+          style="background: linear-gradient(90deg, transparent, rgba(255,84,0,.55), transparent);"></div>
 
         <!-- Encabezado -->
         <div class="text-center mb-7">
@@ -190,6 +191,23 @@ const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme }
 
 const appVersion = computed(() => localStorage.getItem('app_version') || '');
 const currentYear = new Date().getFullYear();
+
+// Mallado de fondo: segmentos largos en ángulos variados, dispersos por el
+// lienzo (viewBox 1440x900) para que se crucen ocasionalmente sin formar una
+// cuadrícula uniforme — el estilo debe leerse como líneas geométricas sueltas,
+// no como un patrón de hachurado repetido.
+const bgLines = [
+  { x1: -50, y1: 260, x2: 620, y2: 900 },
+  { x1: 180, y1: -50, x2: 760, y2: 520 },
+  { x1: 520, y1: 900, x2: 1180, y2: 140 },
+  { x1: 980, y1: -50, x2: 1490, y2: 480 },
+  { x1: -50, y1: 620, x2: 340, y2: 900 },
+  { x1: 760, y1: 900, x2: 1490, y2: 340 },
+  { x1: 300, y1: 700, x2: 700, y2: 260 },
+  { x1: 1150, y1: 900, x2: 1490, y2: 760 },
+  { x1: 60, y1: 820, x2: 420, y2: 500 },
+  { x1: 1080, y1: 0, x2: 760, y2: 380 },
+];
 </script>
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
