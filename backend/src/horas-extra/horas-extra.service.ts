@@ -1388,29 +1388,59 @@ export class HorasExtraService {
 
       // ── Turnos nocturnos: corregir con biométrico real ────────────────────────
       // hr.attendance puede tener entrada/salida mal asignadas para turnos que cruzan
-      // medianoche (ej. registra 04:59→22:09 en vez de 22:09→05:00).
-      // La fuente de verdad para nocturnos es el biométrico: entrada ≈ hora_inicio
-      // en `fecha` y salida ≈ hora_fin en `fecha+1`.
+      // medianoche (ej. registra 04:59→22:09 en vez de 22:09→05:00, un "turno" de
+      // 17h imposible). La fuente de verdad para nocturnos genuinos es el biométrico:
+      // entrada ≈ hora_inicio en `fecha` y salida ≈ hora_fin en `fecha+1`.
+      //
+      // IMPORTANTE: esta corrección solo debe activarse cuando el par actual es
+      // INVÁLIDO (sin salida, duración ≤ 0, o duración > turno máximo permitido).
+      // Si ya existe un par entrada/salida válido y con duración razonable (p. ej.
+      // el empleado tiene malla nocturna pero ese día realmente trabajó un turno
+      // diurno normal, ya bien emparejado), NO se debe tocar: la malla no puede
+      // usarse para "reinterpretar" cuál marcación es la entrada/salida real. De lo
+      // contrario una salida biométrica que caiga por casualidad cerca de la hora
+      // de inicio de la malla nocturna (p. ej. 21:55 vs malla 22:00) se confunde con
+      // la entrada nocturna y produce entrada=salida sobre la misma marcación.
       if (turno && esNocturnoTurno(turno) && allLogsByEmp.has(empId)) {
-        const inicioMins = Number(turno.hora_inicio) * 60;
-        const finMins    = Number(turno.hora_fin)    * 60;
-        const siguiente  = addUnDia(fecha);
-        const punches    = allLogsByEmp.get(empId)!;
+        const fechaIn  = localIn  ? localIn.split(' ')[0]  : null;
+        const fechaOut = localOut ? localOut.split(' ')[0] : null;
+        let duracionMinsActual: number | null = null;
+        if (localIn && localOut) {
+          const inM = this.parseMinutos(localIn);
+          let outM  = this.parseMinutos(localOut);
+          if (fechaIn && fechaOut && fechaOut !== fechaIn) outM += 1440; // cruza medianoche
+          duracionMinsActual = outM - inM;
+        }
+        const parejaInvalida =
+          !localOut ||
+          duracionMinsActual === null ||
+          duracionMinsActual <= 0 ||
+          duracionMinsActual > MAX_TURNO_MS / 60000;
 
-        const entradaBio = punches.find(p =>
-          p.localTime.split(' ')[0] === fecha &&
-          Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
-        );
-        const salidaBio = punches.find(p =>
-          p.localTime.split(' ')[0] === siguiente &&
-          Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
-        );
+        if (parejaInvalida) {
+          const inicioMins = Number(turno.hora_inicio) * 60;
+          const finMins    = Number(turno.hora_fin)    * 60;
+          const siguiente  = addUnDia(fecha);
+          const punches    = allLogsByEmp.get(empId)!;
 
-        if (entradaBio) {
-          localIn = entradaBio.localTime;
-          // Solo sobreescribir salida si el biométrico tiene la punch de salida;
-          // de lo contrario conservar el check_out de hr.attendance (ya asignado arriba).
-          if (salidaBio) localOut = salidaBio.localTime;
+          const entradaBio = punches.find(p =>
+            p.localTime.split(' ')[0] === fecha &&
+            Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
+          );
+          const salidaBio = punches.find(p =>
+            p.localTime.split(' ')[0] === siguiente &&
+            Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
+          );
+
+          if (entradaBio) {
+            localIn = entradaBio.localTime;
+            // Si no aparece una salida biométrica cerca del fin de la malla, no se
+            // reutiliza la salida anterior (era parte del par inválido que se está
+            // descartando): la marcación queda incompleta y se deja que el fallback
+            // biométrico general (más abajo) intente reconstruirla, o se conserva
+            // sin salida en vez de inventar una.
+            localOut = salidaBio ? salidaBio.localTime : null;
+          }
         }
       }
 
