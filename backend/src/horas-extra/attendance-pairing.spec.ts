@@ -74,6 +74,21 @@ describe('buildAttendancePair (algoritmo canónico de emparejamiento)', () => {
     expect(par!.ambiguo).toBe(true);
   });
 
+  it('Caso reportado ALARCON DUARTE 25/06/2026: marcaciones de reintento en los bordes (07:00,07:02,17:00,17:07) NO deben partirse en dos turnos de minutos', () => {
+    const marcaciones = [
+      punch('2026-06-25 07:00:00'),
+      punch('2026-06-25 07:02:00'),
+      punch('2026-06-25 17:00:00'),
+      punch('2026-06-25 17:07:00'),
+    ];
+    const par = buildAttendancePair('2026-06-25', marcaciones, new Set());
+    // Nunca debe perder la entrada real de la mañana ni devolver el turno
+    // de minutos (17:00->17:07) descartando 07:00-07:02.
+    expect(par!.checkIn).toBe('2026-06-25T07:00:00');
+    expect(par!.checkOut).toBe('2026-06-25T17:07:00');
+    expect(par!.ambiguo).toBe(false);
+  });
+
   it('Caso 6: marcaciones duplicadas producen resultado determinístico', () => {
     const marcaciones = [
       punch('2026-07-02 22:00:00'),
