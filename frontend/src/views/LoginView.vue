@@ -14,19 +14,12 @@
         Woden<span class="text-[#FF5400]">Track</span>
       </div>
 
-      <div class="flex items-center gap-4 sm:gap-5">
+      <div class="flex items-center">
         <button type="button" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'"
-          class="inline-flex items-center gap-1.5 text-xs transition-colors"
-          :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#31465D] hover:text-[#102E4A]'">
+          class="inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
+          :class="isDark ? 'bg-[#FF5400]/15 text-[#FF5400]' : 'bg-[#EEF4FB] text-[#102E4A] hover:bg-[#E3ECF7]'">
           <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-sm"></i>
-          <span class="hidden sm:inline">{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</span>
         </button>
-
-        <router-link to="/download" class="inline-flex items-center gap-1.5 text-xs transition-colors"
-          :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#31465D] hover:text-[#102E4A]'">
-          <i class="fab fa-android text-sm"></i>
-          <span class="hidden sm:inline">Descargar APK</span>
-        </router-link>
       </div>
     </header>
 
@@ -58,16 +51,7 @@
           style="background: linear-gradient(90deg, transparent, rgba(255,84,0,.55), transparent);"></div>
 
         <!-- Encabezado -->
-        <div class="text-center mb-7">
-          <div class="w-[46px] h-[46px] mx-auto mb-[15px] rounded-[13px] flex items-center justify-center"
-            :class="isDark ? 'bg-[#1B2B45]' : 'bg-[#EEF4FB]'">
-            <svg viewBox="0 0 24 24" class="w-[23px] h-[23px]" :class="isDark ? 'text-[#7CA6DA]' : 'text-[#102E4A]'"
-              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="3.2"></circle>
-              <path d="M5 20C5.7 16.7 8.1 15 12 15S18.3 16.7 19 20"></path>
-            </svg>
-          </div>
-
+        <div class="text-center mb-7 pt-1">
           <h1 class="text-[24px] sm:text-[25px] font-extrabold tracking-tight leading-tight"
             :class="isDark ? 'text-white' : 'text-[#10233A]'">
             Iniciar sesión
@@ -168,14 +152,31 @@
         <!-- Footer de la tarjeta -->
         <div class="w-full h-px my-[18px]" :class="isDark ? 'bg-slate-800' : 'bg-[#E7ECF2]'"></div>
 
-        <p class="text-center text-[10px] leading-relaxed" :class="isDark ? 'text-slate-500' : 'text-[#8998AA]'">
-          <template v-if="appVersion"><strong :class="isDark ? 'text-slate-300' : 'text-[#708298]'">Versión
-              {{ appVersion }}</strong>&nbsp;·&nbsp;</template>© {{ currentYear }} WodenTrack
-        </p>
+        <div class="flex items-center justify-between text-[11px] font-medium">
+          <router-link to="/download" class="inline-flex items-center gap-1.5 transition-colors"
+            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#31465D] hover:text-[#102E4A]'">
+            <svg viewBox="0 0 24 24" class="w-[14px] h-[14px]" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4V15"></path>
+              <path d="M7 11L12 16L17 11"></path>
+              <path d="M5 20H19"></path>
+            </svg>
+            Descargar APK
+          </router-link>
 
-        <div class="mt-[9px] flex items-center justify-center gap-1.5 text-[9px]"
+          <span class="inline-flex items-center gap-1.5" :class="isDark ? 'text-slate-400' : 'text-[#31465D]'">
+            <svg viewBox="0 0 24 24" class="w-[14px] h-[14px]" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3L19 6V11C19 15.5 16 19 12 21C8 19 5 15.5 5 11V6L12 3Z"></path>
+              <path d="M9 11.5L11 13.5L15 9.5"></path>
+            </svg>
+            Seguro
+          </span>
+        </div>
+
+        <div class="mt-[13px] flex items-center justify-center gap-1.5 text-[9px]"
           :class="isDark ? 'text-slate-500' : 'text-[#8D9BAA]'">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#FF5400]"></span>
           Conexión segura
         </div>
       </section>
@@ -184,30 +185,10 @@
 </template>
 <script setup>
 import '../assets/css/woden-style.css';
-import { computed } from 'vue';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
+import { bgLines } from '../utils/bgLines.js';
 
 const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme } = useAttendance();
-
-const appVersion = computed(() => localStorage.getItem('app_version') || '');
-const currentYear = new Date().getFullYear();
-
-// Mallado de fondo: segmentos largos en ángulos variados, dispersos por el
-// lienzo (viewBox 1440x900) para que se crucen ocasionalmente sin formar una
-// cuadrícula uniforme — el estilo debe leerse como líneas geométricas sueltas,
-// no como un patrón de hachurado repetido.
-const bgLines = [
-  { x1: -50, y1: 260, x2: 620, y2: 900 },
-  { x1: 180, y1: -50, x2: 760, y2: 520 },
-  { x1: 520, y1: 900, x2: 1180, y2: 140 },
-  { x1: 980, y1: -50, x2: 1490, y2: 480 },
-  { x1: -50, y1: 620, x2: 340, y2: 900 },
-  { x1: 760, y1: 900, x2: 1490, y2: 340 },
-  { x1: 300, y1: 700, x2: 700, y2: 260 },
-  { x1: 1150, y1: 900, x2: 1490, y2: 760 },
-  { x1: 60, y1: 820, x2: 420, y2: 500 },
-  { x1: 1080, y1: 0, x2: 760, y2: 380 },
-];
 </script>
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
