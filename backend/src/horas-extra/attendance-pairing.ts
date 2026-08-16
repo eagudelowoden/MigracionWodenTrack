@@ -34,6 +34,14 @@ export const MAX_GAP_SALIDA_MS = 18 * 60 * 60 * 1000;
 // distintos.
 export const DUPLICADO_MS = 60 * 1000;
 
+// Duración mínima para que un período emparejado por alternancia se
+// considere un turno real e independiente. Un "período" más corto que esto
+// (p. ej. 2 marcas separadas por 2-7 minutos) no es un turno en sí mismo —
+// es una marcación de entrada o de salida repetida (reintento del
+// dispositivo, doble tap) y debe fusionarse con el período adyacente en vez
+// de tratarse como un turno separado.
+export const MIN_PERIODO_PLAUSIBLE_MS = 30 * 60 * 1000;
+
 // Duración mínima para que un par cuente como "trabajado" (evita pares de
 // 0-1 segundo por doble-click/glitch del dispositivo).
 export const DURACION_MINIMA_MS = 60 * 1000;
@@ -131,7 +139,67 @@ function dividirEnPeriodos(dayPunches: Punch[]): Periodo[] {
     periodos.push({ in: actual, out: null });
     i += 1;
   }
-  return periodos;
+  return fusionarPeriodosCortos(periodos);
+}
+
+/**
+ * Fusiona un período CERRADO cuya duración es implausiblemente corta
+ * (< MIN_PERIODO_PLAUSIBLE_MS) con el período siguiente, extendiendo la
+ * entrada del período fusionado hasta la salida del siguiente.
+ *
+ * Por qué es necesario: el emparejamiento por alternancia por sí solo no
+ * distingue entre dos marcaciones que abren/cierran un turno real (p. ej.
+ * 21:55 cierre de turno diurno + 22:04 apertura de turno nocturno, 9 min de
+ * separación) y dos marcaciones que son simplemente un reintento del mismo
+ * evento de entrada o de salida (p. ej. 07:00 y 07:02, 2 min de separación,
+ * porque el dispositivo no leyó bien la primera vez). En ambos casos el gap
+ * entre marcas es corto, así que el gap por sí solo no alcanza para
+ * diferenciar los casos.
+ *
+ * La señal que sí los distingue es la duración del período resultante: un
+ * turno real dura horas; una marcación repetida produce un "período" de
+ * apenas minutos. Por eso, si un período cerrado dura menos de
+ * MIN_PERIODO_PLAUSIBLE_MS, no se lo trata como un turno independiente: se
+ * fusiona con el siguiente (su `in` pasa a ser la entrada real, y el
+ * siguiente período aporta la salida), siempre que el período fusionado
+ * siga siendo plausible (< MAX_TURNO_MS).
+ *
+ * Ejemplo (el caso que motivó esta función):
+ *   07:00, 07:02, 17:00, 17:07
+ *   → alternancia: [(07:00→07:02) 2min, (17:00→17:07) 7min]
+ *   → (07:00→07:02) es implausible como turno → se fusiona con el siguiente
+ *   → resultado: [(07:00→17:07)]
+ *
+ * Contraejemplo (NO debe fusionarse — son turnos reales distintos):
+ *   14:02, 21:55, 22:04 (+ 05:02 del día siguiente)
+ *   → alternancia: [(14:02→21:55) 7h53min, (22:04→…) abierto]
+ *   → 7h53min ya es un turno plausible → no se fusiona
+ */
+function fusionarPeriodosCortos(periodos: Periodo[]): Periodo[] {
+  if (periodos.length <= 1) return periodos;
+
+  const resultado: Periodo[] = [];
+  let actual = periodos[0];
+  for (let i = 1; i < periodos.length; i++) {
+    const siguiente = periodos[i];
+    const duracionActualMs = actual.out
+      ? new Date(actual.out.rawTime).getTime() - new Date(actual.in.rawTime).getTime()
+      : null;
+    const actualEsImplausible = duracionActualMs !== null && duracionActualMs < MIN_PERIODO_PLAUSIBLE_MS;
+
+    if (actualEsImplausible) {
+      const finSiguiente = siguiente.out ?? siguiente.in;
+      const spanFusionadoMs = new Date(finSiguiente.rawTime).getTime() - new Date(actual.in.rawTime).getTime();
+      if (spanFusionadoMs < MAX_TURNO_MS) {
+        actual = { in: actual.in, out: siguiente.out };
+        continue;
+      }
+    }
+    resultado.push(actual);
+    actual = siguiente;
+  }
+  resultado.push(actual);
+  return resultado;
 }
 
 /**
