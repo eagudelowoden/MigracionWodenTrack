@@ -33,7 +33,7 @@
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
-          :stroke="isDark ? 'rgba(255,255,255,0.055)' : 'rgba(16,46,74,0.11)'" stroke-width="1"
+          :stroke="isDark ? 'rgba(255,255,255,0.09)' : 'rgba(16,46,74,0.16)'" stroke-width="1"
           vector-effect="non-scaling-stroke" />
       </svg>
 
@@ -47,8 +47,8 @@
           : 'bg-white border-[#D7E0EA] shadow-[0_14px_35px_rgba(16,46,74,0.09)]'">
 
         <!-- Acento superior sutil -->
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px rounded-full"
-          style="background: linear-gradient(90deg, transparent, rgba(255,84,0,.55), transparent);"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-[2px] rounded-full"
+          style="background: linear-gradient(90deg, transparent, rgba(255,84,0,.9), transparent);"></div>
 
         <!-- Encabezado -->
         <div class="text-center mb-7 pt-1">

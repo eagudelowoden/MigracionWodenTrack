@@ -24,7 +24,7 @@
       <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
-          :stroke="isDark ? 'rgba(255,255,255,0.055)' : 'rgba(16,46,74,0.11)'" stroke-width="1"
+          :stroke="isDark ? 'rgba(255,255,255,0.09)' : 'rgba(16,46,74,0.16)'" stroke-width="1"
           vector-effect="non-scaling-stroke" />
       </svg>
 
