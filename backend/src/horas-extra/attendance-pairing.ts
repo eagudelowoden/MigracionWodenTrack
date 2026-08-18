@@ -36,7 +36,9 @@ export const DUPLICADO_MS = 60 * 1000;
 
 // Duración mínima para que un par cuente como "trabajado" (evita pares de
 // 0-1 segundo por doble-click/glitch del dispositivo).
+
 export const DURACION_MINIMA_MS = 60 * 1000;
+export const MIN_PERIODO_PLAUSIBLE_MS = 30 * 60 * 1000;
 
 /** Marcación biométrica cruda, ya resuelta a hora local además de UTC. */
 export interface Punch {
@@ -116,27 +118,35 @@ interface Periodo {
 function dividirEnPeriodos(dayPunches: Punch[]): Periodo[] {
   const periodos: Periodo[] = [];
   let i = 0;
+
   while (i < dayPunches.length) {
     const actual = dayPunches[i];
     const siguiente = dayPunches[i + 1];
+
     if (siguiente) {
       const spanMs =
         new Date(siguiente.rawTime).getTime() -
         new Date(actual.rawTime).getTime();
+
       if (spanMs < MAX_TURNO_MS) {
         periodos.push({
           in: actual,
           out: spanMs >= DURACION_MINIMA_MS ? siguiente : null,
         });
+
         i += 2;
         continue;
       }
     }
-    // Sin siguiente marca, o el span a la siguiente es absurdo: `actual`
-    // queda como período abierto (su salida se busca al día siguiente).
-    periodos.push({ in: actual, out: null });
+
+    periodos.push({
+      in: actual,
+      out: null,
+    });
+
     i += 1;
   }
+
   return fusionarPeriodosCerrados(periodos);
 }
 
@@ -210,7 +220,9 @@ export function buildAttendancePair(
   );
   if (!dayPunchesRaw.length) return null;
 
-  const dayPunches = dedupePunches(dayPunchesRaw);
+  const dayPunches = dedupePunches(
+    dayPunchesRaw.sort((a, b) => a.rawTime.localeCompare(b.rawTime)),
+  );
   const periodos = dividirEnPeriodos(dayPunches);
   const ambiguo = periodos.length > 1;
   const periodo = periodos[periodos.length - 1];
