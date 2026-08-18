@@ -79,6 +79,41 @@
 
       </nav>
 
+      <!-- Otros accesos: admins NO superadmin (superadmin ya tiene Dev Nav completo).
+           Marcación siempre disponible; Super Admin solo con el permiso 'super.superadmin'. -->
+      <div v-if="!employee?.isSuperAdmin" class="px-3 pb-2 space-y-1 border-t transition-colors"
+        :class="isDark ? 'border-[#222938]' : 'border-[#EAEAEA]'">
+
+        <p v-if="isSidebarOpen" class="px-2 pt-3 text-[9px] font-medium uppercase tracking-widest select-none"
+          :class="isDark ? 'text-[#888888]' : 'text-[#666666]'">
+          Otros accesos
+        </p>
+
+        <button v-if="employee?.permisos?.['super.superadmin']" @click="router.push('/super-admin')"
+          class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
+          :class="isDark
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
+            : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-shield-halved text-xs transition-colors"
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="capitalize">Super Admin</span>
+        </button>
+
+        <button @click="router.push('/marcacion')"
+          class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
+          :class="isDark
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
+            : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-fingerprint text-xs transition-colors"
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="capitalize">Marcación</span>
+        </button>
+      </div>
+
       <!-- Dev Nav: solo DESARROLLADOR -->
       <div v-if="employee?.isSuperAdmin" class="px-3 pb-2 space-y-1 border-t transition-colors"
         :class="isDark ? 'border-[#222938]' : 'border-[#EAEAEA]'">
@@ -91,11 +126,11 @@
         <button @click="router.push('/super-admin')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-shield-halved text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Super Admin</span>
         </button>
@@ -103,11 +138,11 @@
         <button @click="router.push('/admin')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-user-shield text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Admin</span>
         </button>
@@ -115,11 +150,11 @@
         <button @click="router.push('/marcacion')"
           class="w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-[11px] font-medium tracking-wide transition-all duration-150 group active:scale-[0.99]"
           :class="isDark
-            ? 'text-[#888888] hover:text-white hover:bg-[#161B26]'
+            ? 'text-white/80 hover:text-white hover:bg-[#161B26]'
             : 'text-[#666666] hover:text-black hover:bg-[#FAFAFA]'">
           <div class="flex items-center justify-center shrink-0 w-5">
             <i class="fas fa-fingerprint text-xs transition-colors"
-              :class="isDark ? 'text-[#0070f3] group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
+              :class="isDark ? 'text-white/80 group-hover:text-white' : 'text-[#1e2538] group-hover:text-black'"></i>
           </div>
           <span v-if="isSidebarOpen" class="capitalize">Marcación</span>
         </button>
@@ -165,15 +200,31 @@
 
           <!-- Botones Entrada/Salida -->
           <div class="flex items-center gap-1.5">
-            <button @click="handleAttendance('in')" :disabled="loading || employee?.is_inside || employee?.day_completed"
-              class="btn-header-smart in group">
-              <div class="icon-box-smart"><i class="fas fa-arrow-right-to-bracket"></i></div>
-              <span class="hidden md:inline">Entrada</span>
+            <button @click="marcar('in')"
+              :disabled="marcandoAsistencia || employee?.is_inside || employee?.day_completed"
+              class="btn-header-smart in group" :class="{ 'is-marcando': marcandoAsistencia && accionPendiente === 'in' }">
+              <span class="btn-ripple" v-if="marcandoAsistencia && accionPendiente === 'in'" aria-hidden="true"></span>
+              <template v-if="marcandoAsistencia && accionPendiente === 'in'">
+                <div class="icon-box-smart"><i class="fas fa-circle-notch fa-spin"></i></div>
+                <span class="hidden md:inline">Registrando…</span>
+              </template>
+              <template v-else>
+                <div class="icon-box-smart"><i class="fas fa-arrow-right-to-bracket"></i></div>
+                <span class="hidden md:inline">Entrada</span>
+              </template>
             </button>
-            <button @click="handleAttendance('out')" :disabled="loading || !employee?.is_inside || employee?.day_completed"
-              class="btn-header-smart out group">
-              <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
-              <span class="hidden md:inline">Salida</span>
+            <button @click="marcar('out')"
+              :disabled="marcandoAsistencia || !employee?.is_inside || employee?.day_completed"
+              class="btn-header-smart out group" :class="{ 'is-marcando': marcandoAsistencia && accionPendiente === 'out' }">
+              <span class="btn-ripple" v-if="marcandoAsistencia && accionPendiente === 'out'" aria-hidden="true"></span>
+              <template v-if="marcandoAsistencia && accionPendiente === 'out'">
+                <div class="icon-box-smart"><i class="fas fa-circle-notch fa-spin"></i></div>
+                <span class="hidden md:inline">Registrando…</span>
+              </template>
+              <template v-else>
+                <div class="icon-box-smart"><i class="fas fa-arrow-right-from-bracket"></i></div>
+                <span class="hidden md:inline">Salida</span>
+              </template>
             </button>
           </div>
           <!-- Chip usuario con dropdown -->
@@ -430,6 +481,7 @@ const {
   loading,
   isSidebarOpen,
   handleAttendance,
+  marcandoAsistencia,
   logout,
   isDark,
   toggleTheme,
@@ -439,6 +491,17 @@ const {
 
 // Expone employee a las vistas hijas (NovedadesPanelView lo inyecta)
 provide('adminEmployee', employee);
+
+// ── Entrada/Salida: qué botón está en curso, para mostrar su propio loading ──
+const accionPendiente = ref(null);
+const marcar = async (accion) => {
+  accionPendiente.value = accion;
+  try {
+    await handleAttendance(accion);
+  } finally {
+    accionPendiente.value = null;
+  }
+};
 
 // ── Chip usuario dropdown ─────────────────────────────────────────────────────
 const showUserMenu = ref(false);

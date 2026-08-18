@@ -9,6 +9,7 @@ import {
   Param,
   BadRequestException,
   Patch,
+  Delete,
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -91,6 +92,7 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId: string,
     @Query('segmento_id') segmentoId: string,
+    @Query('employee_id') employeeId: string,
     @Query('agrupar') agrupar: string = 'true',
     @Res() res: Response,
   ) {
@@ -151,6 +153,7 @@ export class UsuariosController {
           departamento,
           areaId: areaId ? +areaId : undefined,
           segmentoId: segmentoId ? +segmentoId : undefined,
+          employeeId: employeeId ? +employeeId : undefined,
           agrupar: agrupar !== 'false',
         },
         (pct, msg) => send({ type: 'progress', percent: pct, message: msg }),
@@ -176,6 +179,7 @@ export class UsuariosController {
     @Query('departamento') departamento: string,
     @Query('area_id') areaId: string,
     @Query('segmento_id') segmentoId: string,
+    @Query('employee_id') employeeId: string,
     @Query('agrupar') agrupar: string = 'true',
   ) {
     if (hoy !== 'true' && startDate && endDate) {
@@ -199,6 +203,8 @@ export class UsuariosController {
       areaId ? +areaId : undefined,
       segmentoId ? +segmentoId : undefined,
       agrupar !== 'false', // 👈 pasa true por defecto, false solo para Excel
+      undefined,
+      employeeId ? +employeeId : undefined,
     );
   }
 
@@ -254,6 +260,11 @@ export class UsuariosController {
   @Patch('reportes-falla/:id/resolver')
   async resolverFalla(@Param('id') id: string) {
     return await this.usuariosService.resolverFalla(Number(id));
+  }
+
+  @Delete('reportes-falla/:id')
+  async eliminarFalla(@Param('id') id: string) {
+    return await this.usuariosService.eliminarFalla(Number(id));
   }
 
   @Get('attendance-status/:employee_id')
@@ -351,6 +362,16 @@ export class UsuariosController {
   @Get('permisos/:id_odoo')
   async getPermisos(@Param('id_odoo') id_odoo: string) {
     return await this.usuariosService.obtenerPermisosUsuario(Number(id_odoo));
+  }
+
+  // Refresca el mapa de permisos { slug: boolean } de una sesión YA abierta —
+  // distinto del endpoint de arriba (que devuelve las filas crudas para la
+  // modal de SuperAdmin). Lo llama el frontend en cada carga de /marcacion
+  // para que un cambio de permiso hecho en SuperAdmin se refleje sin
+  // necesidad de cerrar sesión.
+  @Get('permisos-sesion/:id_odoo')
+  async getPermisosSesion(@Param('id_odoo') id_odoo: string) {
+    return await this.usuariosService.refrescarPermisos(Number(id_odoo));
   }
 
   @Post('asignar-permiso')
