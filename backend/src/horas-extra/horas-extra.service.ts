@@ -1091,6 +1091,21 @@ export class HorasExtraService {
       return det;
     };
 
+    // Fin programado (minutos desde medianoche) de la malla del empleado para
+    // `fecha`, o null si no tiene malla asignada ese día. Se le pasa a
+    // `buildAttendancePair` únicamente como señal auxiliar para distinguir un
+    // reintento de cierre de un turno nocturno real (ver doc de la función);
+    // no participa en ninguna otra decisión de pairing.
+    const finTurnoMinDelDia = (empId: number, fecha: string): number | null => {
+      const asigs = mallasMapEarly.get(empId) ?? [];
+      if (!asigs.length) return null;
+      const diaSemana = this.getDiaSemana(fecha);
+      const turno = getDetallesCached(empId, fecha)
+        .filter((d: any) => Number(d.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
+      return turno ? Number(turno.hora_fin) * 60 : null;
+    };
+
     // Agrupar biométrico usando el algoritmo CANÓNICO (construirParEntradaSalida):
     // decide entrada/salida solo a partir de las marcaciones reales, en orden
     // cronológico — la malla NO participa en esta decisión.
@@ -1107,7 +1122,12 @@ export class HorasExtraService {
         const key = `${empId}_${fecha}`;
         if (grupos[key]) continue; // ya cubierto por hr.attendance
 
-        const par = buildAttendancePair(fecha, punches, consumedSalidaPunches);
+        const par = buildAttendancePair(
+          fecha,
+          punches,
+          consumedSalidaPunches,
+          finTurnoMinDelDia(empId, fecha),
+        );
         if (!par) continue; // sin marcaciones libres ese día (ya consumidas por un turno anterior)
 
         if (par.salidaConsumida) {
@@ -1274,7 +1294,12 @@ export class HorasExtraService {
         const validacion = validarParHrAttendance(localIn, localOut, punches);
 
         if (!validacion.valido) {
-          const par = buildAttendancePair(fecha, punches, consumedSalidaPunches);
+          const par = buildAttendancePair(
+            fecha,
+            punches,
+            consumedSalidaPunches,
+            turno ? Number(turno.hora_fin) * 60 : null,
+          );
           if (par) {
             localIn = this.toLocal(par.checkIn);
             localOut = par.checkOut ? this.toLocal(par.checkOut) : null;
