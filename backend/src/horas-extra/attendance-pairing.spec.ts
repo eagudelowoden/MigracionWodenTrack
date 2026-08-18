@@ -89,6 +89,59 @@ describe('buildAttendancePair (algoritmo canónico de emparejamiento)', () => {
     expect(par!.ambiguo).toBe(false);
   });
 
+  it('Caso reportado ALARCON DUARTE en cascada (24-26/06/2026): un reintento de salida suelto (17:11) tras un turno cerrado NO debe robar la entrada del día siguiente cuando hay malla', () => {
+    const marcaciones = [
+      punch('2026-06-24 07:00:00'), punch('2026-06-24 17:00:00'), punch('2026-06-24 17:11:00'),
+      punch('2026-06-25 07:02:00'), punch('2026-06-25 17:00:00'), punch('2026-06-25 17:07:00'),
+      punch('2026-06-26 07:01:00'), punch('2026-06-26 16:00:00'),
+    ];
+    const finTurnoMin = 17 * 60; // malla 07:00 -> 17:00
+    const consumidas = new Set<string>();
+
+    const dia24 = buildAttendancePair('2026-06-24', marcaciones, consumidas, finTurnoMin);
+    expect(dia24!.checkIn).toBe('2026-06-24T07:00:00');
+    expect(dia24!.checkOut).toBe('2026-06-24T17:11:00');
+    expect(dia24!.ambiguo).toBe(false);
+    expect(dia24!.salidaConsumida).toBeNull();
+    if (dia24!.salidaConsumida) consumidas.add(dia24!.salidaConsumida);
+
+    // La entrada real del 25/06 debe seguir disponible (no fue robada por el 24/06).
+    const dia25 = buildAttendancePair('2026-06-25', marcaciones, consumidas, finTurnoMin);
+    expect(dia25!.checkIn).toBe('2026-06-25T07:02:00');
+    expect(dia25!.checkOut).toBe('2026-06-25T17:07:00');
+    if (dia25!.salidaConsumida) consumidas.add(dia25!.salidaConsumida);
+
+    const dia26 = buildAttendancePair('2026-06-26', marcaciones, consumidas, finTurnoMin);
+    expect(dia26!.checkIn).toBe('2026-06-26T07:01:00');
+    expect(dia26!.checkOut).toBe('2026-06-26T16:00:00');
+  });
+
+  it('Sin malla (finTurnoMin no aportado), el mismo caso conserva el comportamiento previo (búsqueda de salida al día siguiente)', () => {
+    const marcaciones = [
+      punch('2026-06-24 07:00:00'),
+      punch('2026-06-24 17:00:00'),
+      punch('2026-06-24 17:11:00'),
+      punch('2026-06-25 07:02:00'),
+    ];
+    const par = buildAttendancePair('2026-06-24', marcaciones, new Set());
+    expect(par!.checkIn).toBe('2026-06-24T17:11:00');
+    expect(par!.checkOut).toBe('2026-06-25T07:02:00');
+  });
+
+  it('Caso 5 con malla aportada NO debe fusionarse: la marca suelta (22:04) está lejos del fin programado (17:00), se preserva como turno nocturno real', () => {
+    const marcaciones = [
+      punch('2026-07-02 14:02:00'),
+      punch('2026-07-02 21:55:00'),
+      punch('2026-07-02 22:04:00'),
+      punch('2026-07-03 05:02:00'),
+    ];
+    const finTurnoMin = 17 * 60; // malla diurna 07:00 -> 17:00, no relacionada con 22:04
+    const par = buildAttendancePair('2026-07-02', marcaciones, new Set(), finTurnoMin);
+    expect(par!.checkIn).toBe('2026-07-02T22:04:00');
+    expect(par!.checkOut).toBe('2026-07-03T05:02:00');
+    expect(par!.ambiguo).toBe(true);
+  });
+
   it('Caso 6: marcaciones duplicadas producen resultado determinístico', () => {
     const marcaciones = [
       punch('2026-07-02 22:00:00'),

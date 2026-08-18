@@ -46,6 +46,20 @@ export const MIN_PERIODO_PLAUSIBLE_MS = 30 * 60 * 1000;
 // 0-1 segundo por doble-click/glitch del dispositivo).
 export const DURACION_MINIMA_MS = 60 * 1000;
 
+// Tolerancia para tratar una marca suelta (sin pareja, al final de las
+// marcaciones libres de un día) como un reintento del cierre del período
+// anterior en vez de como el inicio de un turno nuevo. Es una señal AUXILIAR
+// que solo se evalúa cuando el llamador aporta el fin programado de la malla
+// de ese día (`finTurnoMin`): si la marca suelta cae dentro de esta ventana
+// respecto al fin programado, se interpreta como reintento; si no se aporta
+// malla, o la marca está lejos del fin programado, esta regla no hace nada y
+// se preserva el comportamiento existente (búsqueda de salida al día
+// siguiente). Ver `buildAttendancePair` para el porqué de esta señal: sin
+// ella, un turno diurno cerrado (07:00→17:00) seguido de un reintento de
+// salida (17:11) es indistinguible, solo con timestamps, de un turno
+// nocturno real que abre pocos minutos después de cerrar el diurno.
+export const TOLERANCIA_MARCA_SUELTA_MS = 30 * 60 * 1000;
+
 /** Marcación biométrica cruda, ya resuelta a hora local además de UTC. */
 export interface Punch {
   /** Fecha+hora en horario local 'YYYY-MM-DD HH:mm:ss'. */
@@ -105,6 +119,13 @@ export function dedupePunches(punches: Punch[]): Punch[] {
 interface Periodo {
   in: Punch;
   out: Punch | null;
+}
+
+/** Minutos desde medianoche de la parte de hora de un `localTime` 'YYYY-MM-DD HH:mm:ss'. */
+function minutosDelDia(localTime: string): number {
+  const hhmmss = localTime.split(' ')[1] ?? '00:00:00';
+  const [h, m] = hhmmss.split(':').map(Number);
+  return h * 60 + m;
 }
 
 /**
@@ -218,21 +239,56 @@ function fusionarPeriodosCortos(periodos: Periodo[]): Periodo[] {
  *    par queda `incompleto = true` con `checkOut = null` — nunca se inventa.
  *  - Si no hay marcaciones libres ese día (todas ya consumidas por un turno
  *    anterior), devuelve `null`.
+ *
+ * `finTurnoMin` (opcional): minutos desde medianoche del fin programado de
+ * la malla para `fecha`, si el empleado tiene una asignada. Se usa
+ * ÚNICAMENTE como señal auxiliar para una situación puntual: un período
+ * cerrado y plausible seguido de una única marca suelta sin pareja. Con solo
+ * timestamps esa marca suelta es indistinguible entre "reintento del cierre"
+ * (p. ej. 17:00→17:11 tras un turno 07:00→17:00) y "inicio de un turno
+ * nocturno real" (p. ej. 21:55→22:04). Si la marca suelta está cerca del fin
+ * programado de la malla, se trata como reintento; si no se aporta
+ * `finTurnoMin`, esta señal no se evalúa y el comportamiento es idéntico al
+ * de antes (se sigue buscando salida al día siguiente). La malla NUNCA
+ * decide la entrada/salida en ningún otro punto de esta función.
  */
 export function buildAttendancePair(
   fecha: string,
   todasLasMarcaciones: Punch[],
   consumidas: Set<string>,
+  finTurnoMin?: number | null,
 ): AttendancePairResult | null {
   const dayPunchesRaw = todasLasMarcaciones.filter(
     (p) => p.localTime.split(' ')[0] === fecha && !consumidas.has(p.rawTime),
   );
   if (!dayPunchesRaw.length) return null;
 
-  const dayPunches = dedupePunches(dayPunchesRaw);
+  const dayPunches = dedupePunches(
+    dayPunchesRaw.slice().sort((a, b) => a.rawTime.localeCompare(b.rawTime)),
+  );
   const periodos = dividirEnPeriodos(dayPunches);
-  const ambiguo = periodos.length > 1;
-  const periodo = periodos[periodos.length - 1];
+  let ambiguo = periodos.length > 1;
+  let periodo = periodos[periodos.length - 1];
+
+  // Marca suelta al final: período cerrado + una marca sin pareja próxima al
+  // fin programado de la malla → reintento del cierre, no un turno nuevo.
+  if (ambiguo && periodo.out === null && finTurnoMin != null) {
+    const previo = periodos[periodos.length - 2];
+    if (previo.out) {
+      const gapMs =
+        new Date(periodo.in.rawTime).getTime() - new Date(previo.out.rawTime).getTime();
+      const distanciaFinTurnoMs =
+        Math.abs(minutosDelDia(periodo.in.localTime) - finTurnoMin) * 60 * 1000;
+      if (
+        gapMs >= 0 &&
+        gapMs < TOLERANCIA_MARCA_SUELTA_MS &&
+        distanciaFinTurnoMs < TOLERANCIA_MARCA_SUELTA_MS
+      ) {
+        periodo = { in: previo.in, out: periodo.in };
+        ambiguo = false;
+      }
+    }
+  }
 
   if (periodo.out) {
     return {
