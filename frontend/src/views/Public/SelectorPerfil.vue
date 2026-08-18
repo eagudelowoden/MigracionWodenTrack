@@ -37,7 +37,7 @@
                 :class="isDark ? 'text-white' : 'text-[#111827]'">Track</span></span>
           </div>
           <h1 class="text-2xl md:text-3xl font-bold tracking-tight">
-            Hola, <span class="font-normal text-lg md:text-2xl block md:inline"
+            Hola, {{ primerNombre }} <span class="font-normal text-lg md:text-2xl block md:inline"
               :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">selecciona tu espacio de trabajo</span>
           </h1>
         </div>
@@ -168,6 +168,18 @@ import { useAttendance } from '../../composables/UserLogica/useAttendance.js';
 const router = useRouter();
 const session = ref(null);
 const { isDark, toggleTheme } = useAttendance();
+
+// Primer nombre de pila para el saludo. Convención colombiana del nombre
+// completo: "Apellido1 Apellido2 Nombre1 [Nombre2]" (p. ej. "AGUDELO PITA
+// ELDER DANIEL" → "Elder"). Con 4+ palabras se asume 2 apellidos y se toma la
+// 3ra; con menos, se ajusta proporcionalmente.
+const primerNombre = computed(() => {
+  const partes = (session.value?.name || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '';
+  const idx = partes.length >= 3 ? 2 : partes.length - 1;
+  const nombre = partes[idx] || '';
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+});
 
 const cardClass = computed(() =>
   isDark.value

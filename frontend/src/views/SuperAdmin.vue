@@ -112,7 +112,7 @@ import GestionModulos from '../components/admin/SuperAdmin/GestionModulos.vue';
 import GestionParametrosHorasExtra from '../components/admin/SuperAdmin/GestionParametrosHorasExtra.vue';
 import ModuloReportesFalla from '../components/admin/ModuloReportesFalla.vue';
 import '../assets/css/admin-style.css';
-import '../assets/css/SuperAdmin.css';
+import '../assets/css/superAdmin.css';
 
 
 // --- 1. CONFIGURACIÓN ---
@@ -324,8 +324,17 @@ const showNotification = (msg, type = "success") => {
 };
 
 // SuperAdmin.vue — agrega estas funciones
+
+// Estado de guardado/confirmación POR permiso (no un solo valor global) — así
+// si el admin activa varios toggles seguidos antes de que el primero
+// termine, cada fila mantiene su propio spinner/check sin pisarse.
+const savingPermSlugs = ref(new Set());
+const permFeedback = reactive({}); // { [slug]: 'ok' | 'error' }
+
 const togglePermisoLocal = async (user, slug) => {
   const activo = !hasPerm(user, slug);
+  savingPermSlugs.value.add(slug);
+  delete permFeedback[slug];
   try {
     const session = JSON.parse(localStorage.getItem("user_session") || "{}");
     const res = await apiFetch(`${API_URL}/asignar-permiso`, {
@@ -357,9 +366,14 @@ const togglePermisoLocal = async (user, slug) => {
       selectedUserPerms.value = { ...actualizado };
     }
 
+    permFeedback[slug] = 'ok';
     showNotification(`Permiso ${activo ? "asignado" : "removido"}`);
   } catch (e) {
+    permFeedback[slug] = 'error';
     showNotification("Error al actualizar permiso", "error");
+  } finally {
+    savingPermSlugs.value.delete(slug);
+    setTimeout(() => { delete permFeedback[slug]; }, 1800);
   }
 };
 
@@ -396,6 +410,27 @@ const handleEscape = (e) => {
   }
 };
 
+// --- Entorno / base de datos activa (solo nombres, sin credenciales) ---
+const entornoInfo = ref({ entorno: null, database: null });
+
+const fetchEntorno = async () => {
+  try {
+    const base = API_URL.replace('/usuarios', '');
+    const res = await apiFetch(`${base}/entorno`);
+    entornoInfo.value = await res.json();
+  } catch (e) {
+    console.error('Error cargando info de entorno:', e);
+  }
+};
+
+const ENTORNO_LABELS = { production: 'Producción', qa: 'QA', development: 'Desarrollo' };
+const entornoLabel = computed(() => ENTORNO_LABELS[entornoInfo.value.entorno] || entornoInfo.value.entorno || '—');
+const entornoColor = computed(() => {
+  if (entornoInfo.value.entorno === 'production') return 'red';
+  if (entornoInfo.value.entorno === 'qa') return 'amber';
+  return 'emerald';
+});
+
 // --- Carga Inicial ---
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside, true);
@@ -404,6 +439,7 @@ onMounted(async () => {
     fetchDbUsuarios(),
     fetchOrganizacion(),
     fetchOdooUsuarios(),
+    fetchEntorno(),
   ]);
 });
 
@@ -501,12 +537,29 @@ onUnmounted(() => {
 
       <div class="sa-divider"></div>
 
-      <!-- Dev Nav -->
+      <!-- Dev Nav: solo superadmin (root) -->
       <div v-if="isSA" class="px-2 pb-1 shrink-0">
         <p v-if="isSidebarOpen" class="sa-section-label">Dev Nav</p>
         <button v-for="d in [
           { path: '/super-admin', icon: 'fas fa-shield-halved', label: 'Super Admin' },
           { path: '/admin', icon: 'fas fa-user-shield', label: 'Admin' },
+          { path: '/marcacion', icon: 'fas fa-fingerprint', label: 'Marcación' },
+        ]" :key="d.path" @click="router.push(d.path)" :title="d.label" class="sa-dev-btn"
+          :class="!isSidebarOpen && 'lg:justify-center'">
+          <i :class="d.icon" class="text-[10px] shrink-0"></i>
+          <span v-if="isSidebarOpen">{{ d.label }}</span>
+        </button>
+      </div>
+
+      <!-- Otros accesos: usuarios que entran a Super Admin por un permiso de
+           módulo puntual (no son el root/isSuperAdmin) también necesitan una
+           forma de volver a Admin/Marcación. -->
+      <div v-else class="px-2 pb-1 shrink-0">
+        <p v-if="isSidebarOpen" class="sa-section-label">Otros accesos</p>
+        <button v-for="d in [
+          ...(employee?.role === 'admin' || employee?.permisos?.['admin.admin']
+            ? [{ path: '/admin', icon: 'fas fa-user-shield', label: 'Admin' }]
+            : []),
           { path: '/marcacion', icon: 'fas fa-fingerprint', label: 'Marcación' },
         ]" :key="d.path" @click="router.push(d.path)" :title="d.label" class="sa-dev-btn"
           :class="!isSidebarOpen && 'lg:justify-center'">
@@ -538,7 +591,15 @@ onUnmounted(() => {
 
         <!-- Derecha: 1-Sistema Activo · 2-Tema · 3-Usuario (con dropdown) -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- 1. Ssistema activo -->
+          <!-- 1. Sistema activo: entorno (.env) + nombre de la BD, sin credenciales -->
+          <div v-if="entornoInfo.entorno" class="sa-env-chip" :class="[`sa-env-${entornoColor}`, isDark ? 'sa-env-dark' : 'sa-env-light']"
+            :title="`Entorno: ${entornoLabel} · Base de datos: ${entornoInfo.database || '—'}`">
+            <span class="sa-env-dot"></span>
+            <span class="sa-env-label">{{ entornoLabel }}</span>
+            <span class="sa-env-sep">·</span>
+            <i class="fas fa-database text-[9px] opacity-60"></i>
+            <span class="sa-env-db">{{ entornoInfo.database || '—' }}</span>
+          </div>
 
           <!-- 2. Toggle tema — solo ícono, sin texto -->
           <button @click="toggleTheme" class="sa-theme-btn" :class="isDark ? 'sa-theme-dark' : 'sa-theme-light'"
@@ -782,6 +843,7 @@ onUnmounted(() => {
     <!-- Panel de permisos -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
       :apiUrl="API_URL" :todosLosDepartamentos="departamentosUnicos"
+      :savingPermSlugs="savingPermSlugs" :permFeedback="permFeedback"
       @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
       @update-structure="updateUserStructure($event.user, $event.field)" />
   </div>
@@ -1329,6 +1391,47 @@ onUnmounted(() => {
     display: flex;
   }
 }
+
+.sa-env-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sa-env-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.sa-env-label { text-transform: uppercase; letter-spacing: .04em; }
+.sa-env-sep { opacity: .35; }
+.sa-env-db {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 600;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-env-red     { color: #ef4444; }
+.sa-env-amber   { color: #f59e0b; }
+.sa-env-emerald { color: #22c55e; }
+
+.sa-env-dark.sa-env-red     { background: rgba(239,68,68,.1);  border-color: rgba(239,68,68,.3); }
+.sa-env-dark.sa-env-amber   { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); }
+.sa-env-dark.sa-env-emerald { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); }
+.sa-env-light.sa-env-red     { background: #fef2f2; border-color: #fecaca; }
+.sa-env-light.sa-env-amber   { background: #fffbeb; border-color: #fde68a; }
+.sa-env-light.sa-env-emerald { background: #f0fdf4; border-color: #bbf7d0; }
+
+.sa-env-db { color: inherit; opacity: .85; }
 
 .sa-theme-btn {
   width: 32px;

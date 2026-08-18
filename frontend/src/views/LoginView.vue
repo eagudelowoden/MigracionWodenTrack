@@ -1,119 +1,195 @@
 <template>
-  <div
-    class="h-screen w-screen overflow-hidden flex items-center justify-center p-4 transition-colors duration-300 font-sans select-none relative"
-    :class="isDark ? 'bg-[#0B1120]' : 'bg-[#ECEFF5]'">
+  <div class="h-screen w-screen overflow-hidden flex flex-col font-sans select-none transition-colors duration-300"
+    :class="isDark ? 'bg-[#0B1120]' : 'bg-[#F7FAFD]'">
 
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div v-if="!isDark" class="absolute inset-0 transition-opacity duration-300" style="background: 
-          radial-gradient(circle at 90% 10%, #BAE6FD 0%, transparent 60%),
-          radial-gradient(circle at 10% 90%, #FFE4E6 0%, transparent 50%);">
+    <!-- ============================================================
+         HEADER
+    ============================================================= -->
+    <header
+      class="w-full h-[60px] shrink-0 px-4 sm:px-6 flex items-center justify-between border-b relative z-10 transition-colors duration-300"
+      :class="isDark ? 'bg-[#0F172A]/95 border-slate-800' : 'bg-white/97 border-[#E2E8F0]'">
+
+      <div class="inline-flex items-center text-[16px] sm:text-[17px] font-extrabold tracking-tight"
+        :class="isDark ? 'text-white' : 'text-[#102E4A]'">
+        Woden<span class="text-[#FF5400]">Track</span>
       </div>
 
-      <div v-if="isDark" class="absolute inset-0 transition-opacity duration-300" style="background: 
-          radial-gradient(circle at 90% 10%, #0C4A6E 0%, transparent 50%),
-          radial-gradient(circle at 10% 90%, #1E1B4B 0%, transparent 45%);">
+      <div class="flex items-center">
+        <button type="button" @click="toggleTheme" :aria-label="isDark ? 'Modo claro' : 'Modo oscuro'"
+          class="inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
+          :class="isDark ? 'bg-[#FF5400]/15 text-[#FF5400]' : 'bg-[#EEF4FB] text-[#102E4A] hover:bg-[#E3ECF7]'">
+          <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="text-sm"></i>
+        </button>
       </div>
+    </header>
 
-      <div class="absolute inset-0 opacity-[0.02] dark:opacity-[0.04]"
-        style="background-image: radial-gradient(#111827 1px, transparent 1px); background-size: 24px 24px;">
-      </div>
-    </div>
+    <!-- ============================================================
+         CONTENIDO PRINCIPAL
+    ============================================================= -->
+    <main class="relative flex-1 flex items-center justify-center overflow-hidden px-4 py-6">
 
-    <div class="w-full max-w-sm rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 border z-10"
-      :class="isDark
-        ? 'bg-[#1E293B]/80 border-slate-700/50 backdrop-blur-xl shadow-[0_25px_60px_rgba(0,0,0,0.45)]'
-        : 'bg-white/95 border-slate-200/80 shadow-[0_20px_40px_rgba(15,23,42,0.06)] backdrop-blur-md'">
-      <div>
-        <div class="flex justify-end mb-4">
-          <i class="fa-solid fa-shield-halved text-xs opacity-40"
-            :class="isDark ? 'text-slate-400' : 'text-slate-600'"></i>
-        </div>
+      <!-- Fondo: mallado disperso e irregular de líneas que se cruzan en ángulos
+           variados (estilo Kaspersky), muy tenue. Sin puntos/nodos/partículas. -->
+      <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+          :stroke="isDark ? 'rgba(255,255,255,0.09)' : 'rgba(16,46,74,0.16)'" stroke-width="1"
+          vector-effect="non-scaling-stroke" />
+      </svg>
 
-        <div class="mb-8 text-left">
-          <h1 class="text-2xl font-bold tracking-tight mb-1" :class="isDark ? 'text-white' : 'text-[#111827]'">
-            Bienvenido a <span class="text-[#e88710] font-extrabold ml-0.5">WodenTrack</span>
+      <!-- ==========================================================
+           LOGIN CARD
+      =========================================================== -->
+      <section aria-label="Inicio de sesión"
+        class="relative z-10 w-full max-w-[400px] rounded-[17px] border p-7 sm:p-8 transition-colors duration-300"
+        :class="isDark
+          ? 'bg-[#111C2E]/90 border-slate-800 shadow-[0_20px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl'
+          : 'bg-white border-[#D7E0EA] shadow-[0_14px_35px_rgba(16,46,74,0.09)]'">
+
+        <!-- Acento superior sutil -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-[2px] rounded-full"
+          style="background: linear-gradient(90deg, transparent, rgba(255,84,0,.9), transparent);"></div>
+
+        <!-- Encabezado -->
+        <div class="text-center mb-7 pt-1">
+          <h1 class="text-[24px] sm:text-[25px] font-extrabold tracking-tight leading-tight"
+            :class="isDark ? 'text-white' : 'text-[#10233A]'">
+            Iniciar sesión
           </h1>
-          <p class="text-xs font-normal" :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
+          <p class="mt-[7px] text-[12px] sm:text-[13px]" :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
             Identifícate para continuar
           </p>
         </div>
 
-        <div class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="block text-xs font-medium"
-              :class="isDark ? 'text-slate-300' : 'text-slate-700'">Usuario</label>
-            <input v-model="form.usuario" type="text" placeholder="Ingresa tu usuario"
-              class="w-full h-11 rounded-xl px-4 text-xs font-medium transition-all duration-150 outline-none border"
-              :class="isDark
-                ? 'bg-[#0B1120]/60 border-slate-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                : 'bg-white border-slate-300 text-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600'"
-              @keyup.enter="handleLogin" autocomplete="off">
+        <!-- Formulario -->
+        <div class="space-y-[16px]">
+
+          <!-- Usuario -->
+          <div>
+            <label for="username" class="block mb-[7px] text-xs font-semibold"
+              :class="isDark ? 'text-slate-300' : 'text-[#31445A]'">Usuario</label>
+            <div class="relative">
+              <span class="absolute left-[14px] top-1/2 -translate-y-1/2 w-[17px] h-[17px] pointer-events-none"
+                :class="isDark ? 'text-slate-500' : 'text-[#8AA0B7]'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="3.5"></circle>
+                  <path d="M5 20C5.7 16.8 8.2 15 12 15S18.3 16.8 19 20"></path>
+                </svg>
+              </span>
+              <input id="username" v-model="form.usuario" type="text" placeholder="Ingresa tu usuario"
+                autocomplete="username" @keyup.enter="handleLogin"
+                class="w-full h-[47px] px-[42px] rounded-[10px] border text-[13px] outline-none transition-all duration-150"
+                :class="isDark
+                  ? 'bg-[#0B1120]/60 border-slate-700 text-white placeholder:text-slate-500 focus:border-[#4C7AB8] focus:ring-2 focus:ring-[#4C7AB8]/20'
+                  : 'bg-[#FCFDFE] border-[#D7E0EA] text-[#10233A] placeholder:text-[#9AAABD] hover:border-[#C5D1DE] focus:bg-white focus:border-[#8CA8C7] focus:ring-2 focus:ring-[#102E4A]/[0.07]'">
+            </div>
           </div>
 
-          <div class="space-y-1.5">
-            <label class="block text-xs font-medium"
-              :class="isDark ? 'text-slate-300' : 'text-slate-700'">Contraseña</label>
+          <!-- Contraseña -->
+          <div>
+            <label for="password" class="block mb-[7px] text-xs font-semibold"
+              :class="isDark ? 'text-slate-300' : 'text-[#31445A]'">Contraseña</label>
             <div class="relative">
-              <input v-model="form.password" :type="showPassword ? 'text' : 'password'"
-                placeholder="Ingresa tu contraseña"
-                class="w-full h-11 rounded-xl pl-4 pr-12 text-xs font-medium transition-all duration-150 outline-none border"
+              <span class="absolute left-[14px] top-1/2 -translate-y-1/2 w-[17px] h-[17px] pointer-events-none"
+                :class="isDark ? 'text-slate-500' : 'text-[#8AA0B7]'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                  <path d="M8 10V7A4 4 0 0 1 16 7V10"></path>
+                </svg>
+              </span>
+              <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'"
+                placeholder="Ingresa tu contraseña" autocomplete="current-password" @keyup.enter="handleLogin"
+                class="w-full h-[47px] pl-[42px] pr-[42px] rounded-[10px] border text-[13px] outline-none transition-all duration-150"
                 :class="isDark
-                  ? 'bg-[#0B1120]/60 border-slate-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                  : 'bg-white border-slate-300 text-[#111827] focus:border-blue-600 focus:ring-1 focus:ring-blue-600'"
-                @keyup.enter="handleLogin">
-              <button @click="showPassword = !showPassword" type="button"
-                class="absolute right-4 top-1/2 -translate-y-1/2 transition-opacity duration-150 opacity-40 hover:opacity-100"
-                :class="isDark ? 'text-white' : 'text-slate-600'">
-                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-xs"></i>
+                  ? 'bg-[#0B1120]/60 border-slate-700 text-white placeholder:text-slate-500 focus:border-[#4C7AB8] focus:ring-2 focus:ring-[#4C7AB8]/20'
+                  : 'bg-[#FCFDFE] border-[#D7E0EA] text-[#10233A] placeholder:text-[#9AAABD] hover:border-[#C5D1DE] focus:bg-white focus:border-[#8CA8C7] focus:ring-2 focus:ring-[#102E4A]/[0.07]'">
+
+              <button type="button" @click="showPassword = !showPassword"
+                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-[30px] h-[30px] rounded-[7px] flex items-center justify-center transition-colors"
+                :class="isDark ? 'text-slate-500 hover:text-white hover:bg-white/5' : 'text-[#8AA0B7] hover:text-[#102E4A] hover:bg-[#EEF4FB]'">
+                <svg v-if="!showPassword" viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2.5 12S6 5.5 12 5.5S21.5 12 21.5 12S18 18.5 12 18.5S2.5 12 2.5 12Z"></path>
+                  <circle cx="12" cy="12" r="2.8"></circle>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor"
+                  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2.5 12S6 5.5 12 5.5S21.5 12 21.5 12S18 18.5 12 18.5S2.5 12 2.5 12Z"></path>
+                  <circle cx="12" cy="12" r="2.8"></circle>
+                  <path d="M3 3L21 21"></path>
+                </svg>
               </button>
             </div>
           </div>
 
           <Transition name="fade">
             <p v-if="message.text && message.type === 'error'"
-              class="text-xs font-medium text-rose-500 pt-1 flex items-center gap-1.5 justify-center">
+              class="text-xs font-medium text-rose-500 flex items-center gap-1.5 justify-center">
               <i class="fas fa-circle-exclamation"></i> {{ message.text }}
             </p>
           </Transition>
         </div>
-      </div>
 
-      <div class="mt-8 space-y-5">
-        <button @click="handleLogin" :disabled="loading"
-          class="w-full h-11 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed shadow-md shadow-blue-600/10 dark:shadow-none">
+        <!-- Botón -->
+        <button type="button" @click="handleLogin" :disabled="loading"
+          class="mt-6 w-full h-[47px] rounded-[10px] text-white text-[13px] font-bold flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-80 disabled:cursor-not-allowed"
+          :class="isDark ? 'bg-[#1B4A8A] hover:bg-[#173F75]' : 'bg-[#102E4A] hover:bg-[#0B263E]'"
+          style="box-shadow: 0 6px 14px rgba(16,46,74,.17)">
           <template v-if="!loading">
-            <i class="fas fa-arrow-right-to-bracket text-[12px]"></i>
-            <span>Continuar</span>
+            <span>Ingresar</span>
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12H19"></path>
+              <path d="M13 6L19 12L13 18"></path>
+            </svg>
           </template>
           <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
         </button>
 
-        <div class="border-t" :class="isDark ? 'border-slate-700/60' : 'border-slate-200'"></div>
+        <!-- Footer de la tarjeta -->
+        <div class="w-full h-px my-[18px]" :class="isDark ? 'bg-slate-800' : 'bg-[#E7ECF2]'"></div>
 
-        <div class="flex items-center justify-between text-[11px] font-medium px-0.5">
-          <button @click="toggleTheme" class="transition-colors flex items-center gap-1.5"
-            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-blue-600'">
-            <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
-            <span>{{ isDark ? 'Modo Claro' : 'Modo Oscuro' }}</span>
-          </button>
-
-          <router-link to="/download" class="transition-colors flex items-center gap-1.5"
-            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-blue-600'">
-            <i class="fab fa-android"></i>
-            <span>Descargar APK</span>
+        <div class="flex items-center justify-between text-[11px] font-medium">
+          <router-link to="/download" class="inline-flex items-center gap-1.5 transition-colors"
+            :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#31465D] hover:text-[#102E4A]'">
+            <svg viewBox="0 0 24 24" class="w-[14px] h-[14px]" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4V15"></path>
+              <path d="M7 11L12 16L17 11"></path>
+              <path d="M5 20H19"></path>
+            </svg>
+            Descargar APK
           </router-link>
-        </div>
-      </div>
 
-    </div>
+          <span class="inline-flex items-center gap-1.5" :class="isDark ? 'text-slate-400' : 'text-[#31465D]'">
+            <svg viewBox="0 0 24 24" class="w-[14px] h-[14px]" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3L19 6V11C19 15.5 16 19 12 21C8 19 5 15.5 5 11V6L12 3Z"></path>
+              <path d="M9 11.5L11 13.5L15 9.5"></path>
+            </svg>
+            Seguro
+          </span>
+        </div>
+
+        <div class="mt-[13px] flex items-center justify-center gap-1.5 text-[9px]"
+          :class="isDark ? 'text-slate-500' : 'text-[#8D9BAA]'">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#FF5400]"></span>
+          Conexión segura
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 <script setup>
 import '../assets/css/woden-style.css';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
+import { bgLines } from '../utils/bgLines.js';
+
 const { form, loading, showPassword, handleLogin, message, isDark, toggleTheme } = useAttendance();
 </script>
-
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap');
 </style>

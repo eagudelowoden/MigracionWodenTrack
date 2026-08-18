@@ -42,9 +42,6 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
-  private readonly _REPORTE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-  private _reporteCache = new Map<string, { ts: number; data: any }>();
-
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -207,44 +204,7 @@ export class UsuariosService {
     const esAdmin = tieneMandoGeneral || esTI;
     const rolAsignado = esAdmin ? 'admin' : 'user';
 
-    // 1. BUSCAR PERMISOS EN LA BASE DE DATOS LOCAL
-    const permisosDB = await this.permisoRepo.find({
-      where: { usuario_id_odoo: emp.id },
-    });
-
-    const mapaPermisos = permisosDB.reduce((acc, p) => {
-      acc[p.modulos] = p.nivel_acceso === 'admin';
-      return acc;
-    }, {});
-
-    // Auto-detectar si es responsable de segmento o área en la estructura local.
-    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
-    // para que un override manual (nivel_acceso='user') siempre prevalezca.
-    const [respSegmento, respArea] = await Promise.all([
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_segmentos s
-         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_areas a
-         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-    ]);
-
-    // Responsable de segmento → puede ver todas las novedades del segmento
-    if (
-      respSegmento.length > 0 &&
-      mapaPermisos['novedades.ver_segmento'] === undefined
-    ) {
-      mapaPermisos['novedades.ver_segmento'] = true;
-    }
-    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+    const mapaPermisos = await this.calcularPermisos(emp.id);
 
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
@@ -322,6 +282,63 @@ export class UsuariosService {
       permisos: mapaPermisos,
     };
   }
+
+  /**
+   * Mapa de permisos { slug: boolean } para un empleado — la misma lógica que
+   * corre en login() (extraída de ahí), incluyendo el auto-detectado de
+   * responsable de segmento. El frontend cachea `permisos` en localStorage al
+   * loguearse y NUNCA lo vuelve a pedir por su cuenta, así que si alguien
+   * cambia un permiso desde SuperAdmin mientras esa persona ya tiene sesión
+   * abierta, su navegador sigue viendo el permiso viejo hasta que este método
+   * se llame de nuevo (ver /usuarios/permisos-sesion/:id_odoo).
+   */
+  private async calcularPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    const permisosDB = await this.permisoRepo.find({
+      where: { usuario_id_odoo: idOdoo },
+    });
+
+    const mapaPermisos = permisosDB.reduce((acc, p) => {
+      acc[p.modulos] = p.nivel_acceso === 'admin';
+      return acc;
+    }, {});
+
+    // Auto-detectar si es responsable de segmento o área en la estructura local.
+    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
+    // para que un override manual (nivel_acceso='user') siempre prevalezca.
+    const [respSegmento, respArea] = await Promise.all([
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_segmentos s
+         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_areas a
+         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+    ]);
+
+    // Responsable de segmento → puede ver todas las novedades del segmento
+    if (
+      respSegmento.length > 0 &&
+      mapaPermisos['novedades.ver_segmento'] === undefined
+    ) {
+      mapaPermisos['novedades.ver_segmento'] = true;
+    }
+    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+
+    return mapaPermisos;
+  }
+
+  /** Recalcula y devuelve los permisos vigentes de un empleado — ver calcularPermisos(). */
+  async refrescarPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    return this.calcularPermisos(idOdoo);
+  }
+
   async asignarModuloPermiso(
     idOdoo: number,
     modulo: string,
@@ -1799,6 +1816,7 @@ export class UsuariosService {
     segmentoId?: number,
     agruparLogs: boolean = true,
     onProgress?: (pct: number, msg: string) => void,
+    employeeId?: number,
   ) {
     const emit = onProgress ?? (() => {});
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
@@ -1814,22 +1832,6 @@ export class UsuariosService {
       }
     }
 
-    // ── Opción 3: Caché en memoria ────────────────────────────────────────────
-    const cacheKey = JSON.stringify({
-      soloHoy,
-      companyName,
-      startDate,
-      endDate,
-      departamentoName,
-      areaId,
-      segmentoId,
-      agruparLogs,
-    });
-    const cached = this._reporteCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
-      console.log('✅ Reporte servido desde caché en memoria');
-      return cached.data;
-    }
 
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
@@ -1843,10 +1845,23 @@ export class UsuariosService {
     const deptoTexto = departamentoName || 'Todos los departamentos';
 
     // 1. Filtro por estructura local (área/segmento)
-    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+    let employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
       areaId,
       segmentoId,
     );
+
+    // 1a. employeeId acota a UN solo empleado (ej. usuario sin área que ve solo
+    //     su propio registro). Se intersecta con el filtro de estructura si
+    //     ambos vienen — nunca lo amplía.
+    if (employeeId) {
+      employeeIdsPorEstructura =
+        employeeIdsPorEstructura === null
+          ? [employeeId]
+          : employeeIdsPorEstructura.includes(employeeId)
+            ? [employeeId]
+            : [];
+    }
+
     if (
       employeeIdsPorEstructura !== null &&
       employeeIdsPorEstructura.length === 0
@@ -2217,7 +2232,12 @@ export class UsuariosService {
     }
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-      domainLog.push(['company_id.name', '=', companyName]);
+      // OJO: antes filtraba por "company_id.name" (campo propio del log,
+      // llenado por el dispositivo biométrico al sincronizar) — si ese campo
+      // queda vacío o desincronizado en un registro puntual, el empleado
+      // desaparece del reporte aunque su ficha sí tenga la empresa correcta.
+      // Filtrar vía el empleado (como hr.attendance) es la fuente confiable.
+      domainLog.push(['employee_id.company_id.name', '=', companyName]);
     }
     if (
       departamentoName &&
@@ -2873,6 +2893,13 @@ export class UsuariosService {
     if (!reporte) throw new NotFoundException('Reporte no encontrado');
     reporte.resuelto = true;
     await this.reporteFallaRepo.save(reporte);
+    return { status: 'success' };
+  }
+
+  async eliminarFalla(id: number) {
+    const reporte = await this.reporteFallaRepo.findOne({ where: { id } });
+    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    await this.reporteFallaRepo.delete(id);
     return { status: 'success' };
   }
 

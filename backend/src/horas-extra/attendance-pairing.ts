@@ -34,14 +34,6 @@ export const MAX_GAP_SALIDA_MS = 18 * 60 * 60 * 1000;
 // distintos.
 export const DUPLICADO_MS = 60 * 1000;
 
-// Duración mínima para que un período emparejado por alternancia se
-// considere un turno real e independiente. Un "período" más corto que esto
-// (p. ej. 2 marcas separadas por 2-7 minutos) no es un turno en sí mismo —
-// es una marcación de entrada o de salida repetida (reintento del
-// dispositivo, doble tap) y debe fusionarse con el período adyacente en vez
-// de tratarse como un turno separado.
-export const MIN_PERIODO_PLAUSIBLE_MS = 30 * 60 * 1000;
-
 // Duración mínima para que un par cuente como "trabajado" (evita pares de
 // 0-1 segundo por doble-click/glitch del dispositivo).
 export const DURACION_MINIMA_MS = 60 * 1000;
@@ -109,7 +101,8 @@ export function dedupePunches(punches: Punch[]): Punch[] {
   for (let i = 1; i < punches.length; i++) {
     const anterior = resultado[resultado.length - 1];
     const actual = punches[i];
-    const gapMs = new Date(actual.rawTime).getTime() - new Date(anterior.rawTime).getTime();
+    const gapMs =
+      new Date(actual.rawTime).getTime() - new Date(anterior.rawTime).getTime();
     if (gapMs < DUPLICADO_MS) continue; // duplicado: se descarta
     resultado.push(actual);
   }
@@ -148,9 +141,14 @@ function dividirEnPeriodos(dayPunches: Punch[]): Periodo[] {
     const actual = dayPunches[i];
     const siguiente = dayPunches[i + 1];
     if (siguiente) {
-      const spanMs = new Date(siguiente.rawTime).getTime() - new Date(actual.rawTime).getTime();
+      const spanMs =
+        new Date(siguiente.rawTime).getTime() -
+        new Date(actual.rawTime).getTime();
       if (spanMs < MAX_TURNO_MS) {
-        periodos.push({ in: actual, out: spanMs >= DURACION_MINIMA_MS ? siguiente : null });
+        periodos.push({
+          in: actual,
+          out: spanMs >= DURACION_MINIMA_MS ? siguiente : null,
+        });
         i += 2;
         continue;
       }
@@ -160,67 +158,50 @@ function dividirEnPeriodos(dayPunches: Punch[]): Periodo[] {
     periodos.push({ in: actual, out: null });
     i += 1;
   }
-  return fusionarPeriodosCortos(periodos);
+  return fusionarPeriodosCerrados(periodos);
 }
 
 /**
- * Fusiona un período CERRADO cuya duración es implausiblemente corta
- * (< MIN_PERIODO_PLAUSIBLE_MS) con el período siguiente, extendiendo la
- * entrada del período fusionado hasta la salida del siguiente.
+ * Si TODOS los períodos del día quedaron CERRADOS (cada uno con entrada y
+ * salida, ambas ese mismo día calendario), los fusiona en uno solo: entrada
+ * = la más temprana, salida = la más tardía. Si el resultado no cabe como un
+ * turno plausible (≥ MAX_TURNO_MS), o si algún período quedó ABIERTO (sin
+ * salida ese día), no se toca nada.
  *
- * Por qué es necesario: el emparejamiento por alternancia por sí solo no
- * distingue entre dos marcaciones que abren/cierran un turno real (p. ej.
- * 21:55 cierre de turno diurno + 22:04 apertura de turno nocturno, 9 min de
- * separación) y dos marcaciones que son simplemente un reintento del mismo
- * evento de entrada o de salida (p. ej. 07:00 y 07:02, 2 min de separación,
- * porque el dispositivo no leyó bien la primera vez). En ambos casos el gap
- * entre marcas es corto, así que el gap por sí solo no alcanza para
- * diferenciar los casos.
+ * Por qué es correcto: un período que queda ABIERTO ese día es la única
+ * señal legítima de un turno que cruza medianoche (su salida hay que
+ * buscarla al día siguiente). Si, en cambio, el último período del día
+ * cierra solo (tiene su propia salida ese mismo día), eso es evidencia de
+ * que NO hay ningún turno nocturno en juego — todas las marcas del día
+ * pertenecen a una misma jornada continua con pausas en el medio (almuerzo,
+ * cambios de zona, reintentos del dispositivo), no a turnos distintos.
  *
- * La señal que sí los distingue es la duración del período resultante: un
- * turno real dura horas; una marcación repetida produce un "período" de
- * apenas minutos. Por eso, si un período cerrado dura menos de
- * MIN_PERIODO_PLAUSIBLE_MS, no se lo trata como un turno independiente: se
- * fusiona con el siguiente (su `in` pasa a ser la entrada real, y el
- * siguiente período aporta la salida), siempre que el período fusionado
- * siga siendo plausible (< MAX_TURNO_MS).
+ * Ejemplo real (el que motivó esta función — 6 marcas, 3 pares, todos
+ * cerrados el mismo día):
+ *   06:45, 09:30, 09:58, 12:00, 12:58, 16:31
+ *   → alternancia: [(06:45→09:30), (09:58→12:00), (12:58→16:31)]
+ *   → los tres cierran el mismo día → se fusionan → resultado: (06:45→16:31)
  *
- * Ejemplo (el caso que motivó esta función):
- *   07:00, 07:02, 17:00, 17:07
- *   → alternancia: [(07:00→07:02) 2min, (17:00→17:07) 7min]
- *   → (07:00→07:02) es implausible como turno → se fusiona con el siguiente
- *   → resultado: [(07:00→17:07)]
- *
- * Contraejemplo (NO debe fusionarse — son turnos reales distintos):
+ * Contraejemplo (NO debe fusionarse — hay un turno nocturno real):
  *   14:02, 21:55, 22:04 (+ 05:02 del día siguiente)
- *   → alternancia: [(14:02→21:55) 7h53min, (22:04→…) abierto]
- *   → 7h53min ya es un turno plausible → no se fusiona
+ *   → alternancia: [(14:02→21:55) cerrado, (22:04→…) ABIERTO ese día]
+ *   → el último período no cierra solo → no se fusiona, se deja para
+ *     resolverlo con la búsqueda de salida al día siguiente
  */
-function fusionarPeriodosCortos(periodos: Periodo[]): Periodo[] {
+function fusionarPeriodosCerrados(periodos: Periodo[]): Periodo[] {
   if (periodos.length <= 1) return periodos;
 
-  const resultado: Periodo[] = [];
-  let actual = periodos[0];
-  for (let i = 1; i < periodos.length; i++) {
-    const siguiente = periodos[i];
-    const duracionActualMs = actual.out
-      ? new Date(actual.out.rawTime).getTime() - new Date(actual.in.rawTime).getTime()
-      : null;
-    const actualEsImplausible = duracionActualMs !== null && duracionActualMs < MIN_PERIODO_PLAUSIBLE_MS;
+  const todosCerrados = periodos.every((p) => p.out !== null);
+  if (!todosCerrados) return periodos;
 
-    if (actualEsImplausible) {
-      const finSiguiente = siguiente.out ?? siguiente.in;
-      const spanFusionadoMs = new Date(finSiguiente.rawTime).getTime() - new Date(actual.in.rawTime).getTime();
-      if (spanFusionadoMs < MAX_TURNO_MS) {
-        actual = { in: actual.in, out: siguiente.out };
-        continue;
-      }
-    }
-    resultado.push(actual);
-    actual = siguiente;
-  }
-  resultado.push(actual);
-  return resultado;
+  const primero = periodos[0];
+  const ultimo = periodos[periodos.length - 1];
+  const spanTotalMs =
+    new Date(ultimo.out!.rawTime).getTime() -
+    new Date(primero.in.rawTime).getTime();
+  if (spanTotalMs >= MAX_TURNO_MS) return periodos;
+
+  return [{ in: primero.in, out: ultimo.out }];
 }
 
 /**
@@ -382,13 +363,20 @@ export function validarParHrAttendance(
     // El respaldo se valida por proximidad usando `localTime` (hora local)
     // de las marcaciones — `localIn`/`localOut` también vienen en hora local.
     const inRespaldado = ventana.some(
-      (p) => Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - inMs) <= toleranciaMatchMs,
+      (p) =>
+        Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - inMs) <=
+        toleranciaMatchMs,
     );
     const outRespaldado = ventana.some(
-      (p) => Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - outMs) <= toleranciaMatchMs,
+      (p) =>
+        Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - outMs) <=
+        toleranciaMatchMs,
     );
     if (!inRespaldado && !outRespaldado) {
-      return { valido: false, motivo: 'no coincide con ninguna marcación biométrica cercana' };
+      return {
+        valido: false,
+        motivo: 'no coincide con ninguna marcación biométrica cercana',
+      };
     }
   }
 

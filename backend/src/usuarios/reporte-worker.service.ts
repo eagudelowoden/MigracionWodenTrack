@@ -11,6 +11,7 @@ export interface ReporteWorkerParams {
   departamento?: string;
   areaId?: number;
   segmentoId?: number;
+  employeeId?: number;
   agrupar: boolean;
 }
 

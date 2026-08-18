@@ -27,6 +27,12 @@ export class SuperAdminSyncCronController {
     return this.svc.ejecutarSync('manual');
   }
 
+  /** POST /usuarios/sync-cron/cancelar — cancelar sincronización en curso */
+  @Post('cancelar')
+  async cancelar() {
+    return this.svc.cancelarSync();
+  }
+
   /** GET /usuarios/sync-cron/historial — últimas N ejecuciones */
   @Get('historial')
   async getHistorial(@Query('limit') limit?: string) {

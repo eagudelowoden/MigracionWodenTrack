@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { SuperAdminSolicitudesService } from './superadmin-solicitudes.service';
 
 @Controller('usuarios/superadmin/solicitudes')
@@ -32,5 +32,10 @@ export class SuperAdminSolicitudesController {
     @Body() body: { estado: 'aprobado' | 'rechazado'; atendido_por: string },
   ) {
     return this.svc.atender(+id, body.estado, body.atendido_por);
+  }
+
+  @Delete(':id')
+  eliminar(@Param('id') id: string) {
+    return this.svc.eliminar(+id);
   }
 }
