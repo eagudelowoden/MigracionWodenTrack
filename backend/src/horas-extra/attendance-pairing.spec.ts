@@ -247,6 +247,38 @@ describe('validarParHrAttendance', () => {
     expect(r.valido).toBe(false);
   });
 
+  it('Caso reportado ALARCON DUARTE 25-26/06/2026: hr.attendance cruzado (17:07->07:02 del día siguiente) se rechaza aunque ambos extremos sean marcaciones reales, porque el 25/06 solo ya arma un turno cerrado y sin ambigüedad (07:11->17:07)', () => {
+    const marcaciones = [
+      punch('2026-06-25 07:11:09'),
+      punch('2026-06-25 17:07:55'),
+      punch('2026-06-26 07:02:28'),
+      punch('2026-06-26 16:00:30'),
+    ];
+    // hr.attendance trae el par cruzado: cierre del 25/06 -> apertura del 26/06.
+    const r = validarParHrAttendance(
+      '2026-06-25 17:07:55',
+      '2026-06-26 07:02:28',
+      marcaciones,
+    );
+    expect(r.valido).toBe(false);
+    expect(r.motivo).toMatch(/contradice/);
+  });
+
+  it('El mismo caso, con hr.attendance correcto (07:11->17:07), se acepta', () => {
+    const marcaciones = [
+      punch('2026-06-25 07:11:09'),
+      punch('2026-06-25 17:07:55'),
+      punch('2026-06-26 07:02:28'),
+      punch('2026-06-26 16:00:30'),
+    ];
+    const r = validarParHrAttendance(
+      '2026-06-25 07:11:09',
+      '2026-06-25 17:07:55',
+      marcaciones,
+    );
+    expect(r.valido).toBe(true);
+  });
+
   it('rechaza un par internamente válido pero que ninguna marcación biométrica respalda', () => {
     // hr.attendance dice 08:00->17:00, pero las marcaciones reales de ese día
     // están en otro horario completamente distinto.
