@@ -430,8 +430,15 @@ export class HorasExtraService {
           result.hedo = toHex(minsDiurno(inMins, outMins));
           result.heno = toHex(minsNocturno(inMins, outMins));
         } else {
+          // dentroEnd usa finEfectivo (shiftEnd + retrasoMins), NO el shiftEnd
+          // original: mientras la persona no haya terminado de reponer su
+          // atraso, todo lo que trabaja sigue siendo jornada ORDINARIA (nada
+          // de extra) — así que si esas horas "ordinarias, solo que tarde"
+          // caen de noche, deben llevar recargo nocturno (RN, Ley 2466/2025)
+          // igual que si hubiera llegado a tiempo. Antes esto se limitaba al
+          // shiftEnd original y perdía el recargo de la porción repuesta.
           const dentroStart = Math.max(inMins, shiftStart);
-          const dentroEnd   = Math.min(outMins, shiftEnd);
+          const dentroEnd   = Math.min(outMins, finEfectivo);
           if (dentroEnd > dentroStart) {
             result.rn = toHex(minsRN(dentroStart, dentroEnd));
           }
@@ -440,6 +447,9 @@ export class HorasExtraService {
             result.hedo += toHex(minsDiurno(inMins, extraEnd));
             result.heno += toHex(minsNocturno(inMins, extraEnd));
           }
+          // Extra (HEDO/HENO) solo empieza DESPUÉS de terminar de reponer el
+          // atraso (finEfectivo) — recién ahí la persona está trabajando más
+          // allá de su jornada ordinaria.
           if (outMins > finEfectivo + TOLERANCIA) {
             const extraStart = Math.max(inMins, finEfectivo);
             result.hedo += toHex(minsDiurno(extraStart, outMins));
@@ -558,9 +568,12 @@ export class HorasExtraService {
         result.heno += toHex(minsNocturno(wStart, wEnd));
         return;
       }
-      // Recargo nocturno dentro del turno → RN (19:00-06:00)
+      // Recargo nocturno dentro del turno → RN (19:00-06:00). dentroEnd usa
+      // finEfectivo (no turnoEnd): mientras no termine de reponer el atraso
+      // sigue siendo jornada ordinaria, así que su porción nocturna lleva RN
+      // igual que si hubiera llegado a tiempo (ver nota en calcularCategorias).
       const dentroStart = Math.max(wStart, turnoStart!);
-      const dentroEnd   = Math.min(wEnd,   turnoEnd!);
+      const dentroEnd   = Math.min(wEnd, finEfectivo ?? turnoEnd!);
       if (dentroEnd > dentroStart) {
         result.rn += toHex(minsRN(dentroStart, dentroEnd));
       }
@@ -572,7 +585,8 @@ export class HorasExtraService {
           result.heno += toHex(minsNocturno(wStart, extraEnd));
         }
       }
-      // Extra después del fin efectivo → HEDO + HENO
+      // Extra después del fin efectivo → HEDO + HENO (recién ahí es jornada
+      // más allá de lo ordinario, ya repuesto el atraso si lo había).
       if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
         const extraStart = Math.max(wStart, finEfectivo);
         if (wEnd > extraStart) {

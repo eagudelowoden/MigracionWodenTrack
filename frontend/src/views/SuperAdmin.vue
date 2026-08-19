@@ -579,9 +579,6 @@ onUnmounted(() => {
       <header class="sa-header" :class="isDark ? 'sa-header-dark' : 'sa-header-light'">
         <!-- Izquierda: breadcrumb -->
         <div class="flex items-center gap-2 min-w-0">
-          <span class="relative flex h-2 w-2 shrink-0">
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
           <span class="sa-breadcrumb-root" :class="isDark ? 'text-white/40' : 'text-slate-400'">WodenAdmin</span>
           <i class="fas fa-chevron-right text-[7px] opacity-20 shrink-0"></i>
           <span class="sa-breadcrumb-page" :class="isDark ? 'text-white' : 'text-slate-800'">
@@ -594,10 +591,8 @@ onUnmounted(() => {
           <!-- 1. Sistema activo: entorno (.env) + nombre de la BD, sin credenciales -->
           <div v-if="entornoInfo.entorno" class="sa-env-chip" :class="[`sa-env-${entornoColor}`, isDark ? 'sa-env-dark' : 'sa-env-light']"
             :title="`Entorno: ${entornoLabel} · Base de datos: ${entornoInfo.database || '—'}`">
-            <span class="sa-env-dot"></span>
             <span class="sa-env-label">{{ entornoLabel }}</span>
-            <span class="sa-env-sep">·</span>
-            <i class="fas fa-database text-[9px] opacity-60"></i>
+            <span class="sa-env-sep"></span>
             <span class="sa-env-db">{{ entornoInfo.database || '—' }}</span>
           </div>
 
@@ -628,24 +623,24 @@ onUnmounted(() => {
 
             <!-- Dropdown -->
             <Transition name="dropdown">
-              <div v-if="showUserMenu" class="absolute right-0 top-full mt-2 w-44 rounded-xl border py-1 z-50 shadow-xl"
-                :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-                <div class="px-3 py-2 border-b" :class="isDark ? 'border-white/[0.06]' : 'border-slate-100'">
+              <div v-if="showUserMenu" class="absolute right-0 top-full mt-2 w-44 rounded-xl py-1 z-50"
+                :class="isDark ? 'bg-[#111C2E] shadow-[0_10px_28px_rgba(0,0,0,0.35)]' : 'bg-white shadow-[0_8px_24px_rgba(16,46,74,0.08)]'">
+                <div class="px-3 py-2 border-b" :class="isDark ? 'border-white/[0.06]' : 'border-[#EEF2F6]'">
                   <p class="text-[9px] font-bold uppercase tracking-widest opacity-40"
-                    :class="isDark ? 'text-white' : 'text-slate-500'">{{ displayRole }}</p>
-                  <p class="text-[11px] font-bold mt-0.5" :class="isDark ? 'text-white' : 'text-slate-800'">{{
+                    :class="isDark ? 'text-white' : 'text-[#64748B]'">{{ displayRole }}</p>
+                  <p class="text-[11px] font-bold mt-0.5" :class="isDark ? 'text-white' : 'text-[#10233A]'">{{
                     displayName
                     }}</p>
                 </div>
                 <button @click="showUserMenu = false; showCambioPasswordSA = true"
-                  class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-all"
-                  :class="isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]' : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'">
+                  class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-colors"
+                  :class="isDark ? 'text-slate-400 hover:text-white hover:bg-white/[0.04]' : 'text-[#31445A] hover:text-[#102E4A] hover:bg-[#F7FAFD]'">
                   <i class="fas fa-key text-[10px]"></i>
                   Cambiar contraseña
                 </button>
-                <div class="h-px mx-2 my-1" :class="isDark ? 'bg-[#222938]' : 'bg-slate-100'"></div>
+                <div class="h-px mx-2 my-1" :class="isDark ? 'bg-[#1e293b]' : 'bg-[#EEF2F6]'"></div>
                 <button @click="confirmarLogout"
-                  class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-400 hover:bg-rose-500/10 transition-all">
+                  class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-rose-500 hover:bg-rose-500/10 transition-colors">
                   <i class="fas fa-arrow-right-from-bracket text-[10px]"></i>
                   Cerrar sesión
                 </button>
@@ -805,41 +800,39 @@ onUnmounted(() => {
       </transition>
     </teleport>
 
-    <!-- ── Modal confirmación logout (AWS Console style) ──────────────────── -->
+    <!-- ── Modal confirmación logout (estilo WodenTrack) ───────────────────── -->
     <Transition name="logout-fade">
       <div v-if="showLogoutModal"
         class="fixed inset-0 z-[200] flex items-center justify-center p-4"
-        style="background: rgba(0,0,0,0.7)"
+        style="background: rgba(16,46,74,0.45)"
         @click.self="showLogoutModal = false">
 
         <Transition name="logout-pop" appear>
-          <div v-if="showLogoutModal" class="aws-modal" :class="isDark ? 'aws-dark' : 'aws-light'">
+          <div v-if="showLogoutModal" class="wt-modal" :class="isDark ? 'wt-modal-dark' : 'wt-modal-light'">
 
-            <!-- Header AWS style -->
-            <div class="aws-modal-header">
-              <span class="aws-modal-title">Cerrar sesión</span>
-              <button @click="showLogoutModal = false" class="aws-modal-close" aria-label="Cerrar">
-                <i class="fas fa-times" style="font-size:12px"></i>
-              </button>
+            <!-- Icono -->
+            <div class="wt-modal-icon" :class="isDark ? 'wt-modal-icon-dark' : 'wt-modal-icon-light'">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <path d="M16 17L21 12L16 7"></path>
+                <path d="M21 12H9"></path>
+              </svg>
             </div>
 
-            <!-- Body -->
-            <div class="aws-modal-body">
-              <div class="aws-alert-row">
-                <i class="fas fa-circle-exclamation aws-alert-icon"></i>
-                <p class="aws-alert-text">
-                  ¿Está seguro de que desea cerrar la sesión?<br>
-                  <span class="aws-alert-sub">Se perderá el acceso a la consola hasta que inicie sesión de nuevo.</span>
-                </p>
-              </div>
-            </div>
+            <!-- Texto -->
+            <p class="wt-modal-title" :class="isDark ? 'text-white' : 'text-[#10233A]'">Cerrar sesión</p>
+            <p class="wt-modal-text" :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
+              ¿Confirmas que quieres cerrar la sesión? Necesitarás iniciar sesión de nuevo para volver a la consola.
+            </p>
 
-            <!-- Footer -->
-            <div class="aws-modal-footer">
-              <button @click="showLogoutModal = false" class="aws-btn-secondary">
+            <!-- Acciones -->
+            <div class="wt-modal-actions">
+              <button @click="showLogoutModal = false" class="wt-modal-btn"
+                :class="isDark ? 'wt-modal-btn-secondary-dark' : 'wt-modal-btn-secondary-light'">
                 Cancelar
               </button>
-              <button @click="doLogout" class="aws-btn-danger">
+              <button @click="doLogout" class="wt-modal-btn wt-modal-btn-danger">
                 Cerrar sesión
               </button>
             </div>
@@ -938,8 +931,8 @@ onUnmounted(() => {
 }
 
 .sa-sidebar-dark {
-  background: #161B26;
-  border-color: #222938;
+  background: #0B1120;
+  border-color: #1e293b;
 }
 
 .sa-sidebar-light {
@@ -965,7 +958,7 @@ onUnmounted(() => {
 .sa-collapse-btn {
   position: absolute;
   right: -13px;
-  top: 28px;
+  top: 13px;
   z-index: 60;
   width: 26px;
   height: 26px;
@@ -995,12 +988,14 @@ onUnmounted(() => {
   color: #102E4A;
 }
 
-/* Brand */
+/* Brand — misma altura que .sa-header (52px) para que la línea divisoria
+   entre sidebar y header quede perfectamente alineada, sin escalón. */
 .sa-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 14px 14px;
+  height: 52px;
+  padding: 0 14px;
   flex-shrink: 0;
 }
 
@@ -1356,8 +1351,8 @@ onUnmounted(() => {
 }
 
 .sa-header-dark {
-  background: #161B26;
-  border-color: #222938;
+  background: #0B1120;
+  border-color: #1e293b;
 }
 
 .sa-header-light {
@@ -1399,23 +1394,21 @@ onUnmounted(() => {
 .sa-env-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: 8px;
+  padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid;
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
 }
-.sa-env-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+.sa-env-label { text-transform: uppercase; letter-spacing: .05em; }
+.sa-env-sep {
+  width: 1px;
+  height: 10px;
   flex-shrink: 0;
+  background: currentColor;
+  opacity: .25;
 }
-.sa-env-label { text-transform: uppercase; letter-spacing: .04em; }
-.sa-env-sep { opacity: .35; }
 .sa-env-db {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-weight: 600;
@@ -1428,12 +1421,12 @@ onUnmounted(() => {
 .sa-env-amber   { color: #f59e0b; }
 .sa-env-emerald { color: #22c55e; }
 
-.sa-env-dark.sa-env-red     { background: rgba(239,68,68,.1);  border-color: rgba(239,68,68,.3); }
-.sa-env-dark.sa-env-amber   { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); }
-.sa-env-dark.sa-env-emerald { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); }
-.sa-env-light.sa-env-red     { background: #fef2f2; border-color: #fecaca; }
-.sa-env-light.sa-env-amber   { background: #fffbeb; border-color: #fde68a; }
-.sa-env-light.sa-env-emerald { background: #f0fdf4; border-color: #bbf7d0; }
+.sa-env-dark.sa-env-red     { background: rgba(239,68,68,.10); }
+.sa-env-dark.sa-env-amber   { background: rgba(245,158,11,.10); }
+.sa-env-dark.sa-env-emerald { background: rgba(74,222,128,.10); }
+.sa-env-light.sa-env-red     { background: rgba(239,68,68,.08); }
+.sa-env-light.sa-env-amber   { background: rgba(245,158,11,.08); }
+.sa-env-light.sa-env-emerald { background: rgba(22,163,74,.08); }
 
 .sa-env-db { color: inherit; opacity: .85; }
 
@@ -1441,7 +1434,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  border: 1px solid;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1450,7 +1443,6 @@ onUnmounted(() => {
 }
 
 .sa-theme-dark {
-  border-color: #222938;
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1459,7 +1451,6 @@ onUnmounted(() => {
 }
 
 .sa-theme-light {
-  border-color: #D7E0EA;
   background: #EEF4FB;
 }
 
@@ -1471,20 +1462,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 5px 12px 5px 5px;
   border-radius: 12px;
-  border: 1px solid;
+  border: none;
   cursor: pointer;
+  background: transparent;
+  transition: background-color .15s;
 }
 
-.sa-user-dark {
-  border-color: #222938;
-  background: rgba(255, 255, 255, 0.04);
+.sa-user-dark:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.sa-user-light {
-  border-color: #D7E0EA;
-  background: #fff;
+.sa-user-light:hover {
+  background: #F7FAFD;
 }
 
 .sa-user-avatar {
@@ -1602,160 +1593,103 @@ onUnmounted(() => {
   transform: translateY(-6px);
 }
 
-/* ── AWS Console Modal ───────────────────────────────────────────────────── */
-.aws-modal {
+/* ── Modal de confirmación (cerrar sesión) — estilo WodenTrack ───────────── */
+.wt-modal {
   width: 100%;
-  max-width: 380px;
-  border-radius: 2px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-  font-family: "Amazon Ember", "Helvetica Neue", Arial, sans-serif;
-  overflow: hidden;
+  max-width: 340px;
+  border-radius: 14px;
+  border: 1px solid;
+  padding: 24px 22px 20px;
+  text-align: center;
 }
 
-/* Light mode (AWS default) */
-.aws-light {
+.wt-modal-light {
   background: #ffffff;
-  border: 1px solid #aab7b8;
-}
-.aws-light .aws-modal-header {
-  background: #232f3e;
-  color: #ffffff;
-}
-.aws-light .aws-modal-body {
-  background: #ffffff;
-  border-bottom: 1px solid #eaeded;
-}
-.aws-light .aws-alert-text {
-  color: #16191f;
-}
-.aws-light .aws-alert-sub {
-  color: #687078;
-}
-.aws-light .aws-modal-footer {
-  background: #f2f3f3;
-  border-top: 1px solid #eaeded;
-}
-.aws-light .aws-btn-secondary {
-  background: #ffffff;
-  border: 1px solid #aab7b8;
-  color: #16191f;
-}
-.aws-light .aws-btn-secondary:hover {
-  background: #f2f3f3;
-  border-color: #879596;
-}
-.aws-light .aws-btn-danger {
-  background: #d13212;
-  border: 1px solid #a82d0e;
-  color: #ffffff;
-}
-.aws-light .aws-btn-danger:hover {
-  background: #ba2d0e;
+  border-color: #D7E0EA;
+  box-shadow: 0 10px 30px rgba(16, 46, 74, 0.12);
 }
 
-/* Dark mode adaptation */
-.aws-dark {
-  background: #1a2332;
-  border: 1px solid #3d4e61;
-}
-.aws-dark .aws-modal-header {
-  background: #0f1923;
-  color: #ffffff;
-}
-.aws-dark .aws-modal-body {
-  background: #1a2332;
-  border-bottom: 1px solid #3d4e61;
-}
-.aws-dark .aws-alert-text {
-  color: #d5dbdb;
-}
-.aws-dark .aws-alert-sub {
-  color: #8d9a9a;
-}
-.aws-dark .aws-modal-footer {
-  background: #111e2b;
-  border-top: 1px solid #3d4e61;
-}
-.aws-dark .aws-btn-secondary {
-  background: transparent;
-  border: 1px solid #3d4e61;
-  color: #d5dbdb;
-}
-.aws-dark .aws-btn-secondary:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: #6a8194;
-}
-.aws-dark .aws-btn-danger {
-  background: #d13212;
-  border: 1px solid #a82d0e;
-  color: #ffffff;
-}
-.aws-dark .aws-btn-danger:hover {
-  background: #ba2d0e;
+.wt-modal-dark {
+  background: #111C2E;
+  border-color: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
-.aws-modal-header {
+.wt-modal-icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  justify-content: center;
 }
-.aws-modal-title {
-  font-size: 13px;
+
+.wt-modal-icon-light {
+  background: #FEF1EC;
+  color: #FF5400;
+}
+
+.wt-modal-icon-dark {
+  background: rgba(255, 84, 0, 0.12);
+  color: #FF9A66;
+}
+
+.wt-modal-title {
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
-.aws-modal-close {
-  background: none;
-  border: none;
-  color: #aab7b8;
-  cursor: pointer;
-  padding: 2px 4px;
-  line-height: 1;
-  transition: color .15s;
+
+.wt-modal-text {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
-.aws-modal-close:hover {
-  color: #ffffff;
-}
-.aws-modal-body {
-  padding: 18px 16px;
-}
-.aws-alert-row {
+
+.wt-modal-actions {
+  margin-top: 20px;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.aws-alert-icon {
-  color: #FF9900;
-  font-size: 18px;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-.aws-alert-text {
-  font-size: 13px;
-  line-height: 1.55;
-  margin: 0;
-}
-.aws-alert-sub {
-  font-size: 12px;
-  display: block;
-  margin-top: 4px;
-}
-.aws-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
   gap: 8px;
-  padding: 10px 16px;
 }
-.aws-btn-secondary,
-.aws-btn-danger {
-  font-size: 12px;
+
+.wt-modal-btn {
+  flex: 1;
+  height: 40px;
+  border-radius: 9px;
+  border: none;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 5px 14px;
-  border-radius: 2px;
   cursor: pointer;
-  transition: background .15s, border-color .15s;
-  letter-spacing: 0.02em;
+  transition: background-color .15s, color .15s;
+}
+
+.wt-modal-btn-secondary-light {
+  background: #F7FAFD;
+  border: 1px solid #D7E0EA;
+  color: #10233A;
+}
+
+.wt-modal-btn-secondary-light:hover {
+  background: #EEF4FB;
+}
+
+.wt-modal-btn-secondary-dark {
+  background: transparent;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+}
+
+.wt-modal-btn-secondary-dark:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.wt-modal-btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.wt-modal-btn-danger:hover {
+  background: #b91c1c;
 }
 </style>
