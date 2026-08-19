@@ -53,9 +53,13 @@ jobs:
       #    archivo que el proceso viejo todavia tiene abierto (a diferencia de
       #    Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
       #    al extraer con "Refusing to overwrite archive" sobre el archivo que
-      #    justo estaba bloqueado. Silenciar el error si el proceso no existe
-      #    aun (primer despliegue). Se detiene tambien el worker (mismo motivo,
+      #    justo estaba bloqueado. Se detiene tambien el worker (mismo motivo,
       #    y para que dist/worker.js tampoco quede bloqueado al copiar).
+      #    Se revisa cada proceso POR SEPARADO (comparación exacta via jlist):
+      #    "pm2 stop A B" sale con código de error si CUALQUIERA de los dos
+      #    nombres no existe (aunque sí pare el que sí existe), y eso tumbaba
+      #    todo el step en el primer despliegue tras agregar el worker, cuando
+      #    WodenTrackTest-Worker todavía no existía en el servidor.
       - name: Detener PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -65,8 +69,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
-            if ($p) { pm2 stop WodenTrackTest WodenTrackTest-Worker }"
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 stop WodenTrackTest };
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 stop WodenTrackTest-Worker };
+            exit 0"
 
       # 5. Copiar backend compilado al servidor
       - name: Copiar Backend dist a servidor TEST
@@ -226,7 +232,9 @@ jobs:
       # 3b. Detener PM2 ANTES de copiar (mismo motivo que en TEST: Windows no
       #     deja sobrescribir un archivo que el proceso viejo todavia tiene
       #     abierto). Ahora que WodenTrackPRD-Worker es un proceso PM2 propio,
-      #     dist/worker.js tambien queda bloqueado mientras corre.
+      #     dist/worker.js tambien queda bloqueado mientras corre. Se revisa
+      #     cada proceso por separado (ver nota en "Detener PM2 TEST": "pm2
+      #     stop A B" falla entero si alguno de los dos no existe todavía).
       - name: Detener PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -236,8 +244,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
-            if ($p) { pm2 stop WodenTrackPRD WodenTrackPRD-Worker }"
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD' }) { pm2 stop WodenTrackPRD };
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD-Worker' }) { pm2 stop WodenTrackPRD-Worker };
+            exit 0"
 
       # 4. Copiar backend compilado al servidor
       #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
