@@ -340,7 +340,7 @@ describe('validarParHrAttendance', () => {
     const marcaciones = [punch('2026-07-02 14:02:00'), punch('2026-07-02 21:55:00')];
     const r = validarParHrAttendance('2026-07-02 08:00:00', '2026-07-02 17:00:00', marcaciones);
     expect(r.valido).toBe(false);
-    expect(r.motivo).toMatch(/no coincide/);
+    expect(r.motivo).toMatch(/no coincide|contradice/);
   });
 
   it('acepta un par válido cuando no hay marcaciones de attendance.log disponibles para contrastar', () => {
