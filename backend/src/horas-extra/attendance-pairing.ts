@@ -354,8 +354,11 @@ export function buildAttendancePair(
       if (!esNocturnoReal) {
         const primerCerrado = cerrados[0];
         const distanciaFinTurnoMs =
-          Math.abs(minutosDelDia(periodo.in.localTime) - finTurnoMin) * 60 * 1000;
-        const esSalidaTardia = distanciaFinTurnoMs <= DISTANCIA_FIN_TURNO_SALIDA_MS;
+          Math.abs(minutosDelDia(periodo.in.localTime) - finTurnoMin) *
+          60 *
+          1000;
+        const esSalidaTardia =
+          distanciaFinTurnoMs <= DISTANCIA_FIN_TURNO_SALIDA_MS;
 
         return {
           checkIn: primerCerrado.in.rawTime,
@@ -402,6 +405,18 @@ export interface ValidacionHrAttendance {
  *    hr.attendance tienen una marcación real cercana que los respalda — si
  *    hr.attendance afirma un par que NINGUNA marcación biométrica real
  *    respalda, se considera contradicho y por lo tanto inválido.
+ *  - si las marcaciones de `attendance.log` del día de check_in, POR SÍ
+ *    SOLAS, ya arman un turno cerrado y sin ambigüedad (`buildAttendancePair`
+ *    no necesita ambigüedad ni día siguiente para resolverlo), ese resultado
+ *    es la verdad de referencia: si hr.attendance no coincide con él, se
+ *    considera contradicho. Esto detecta el caso en que Odoo ya trae
+ *    check_in/check_out mal emparejados de fábrica — p. ej. cruzando el
+ *    cierre de un día con la apertura del siguiente (17:07 del día 1 →
+ *    07:02 del día 2) — aunque cada extremo individualmente SÍ corresponda a
+ *    una marcación real (solo que de dos eventos físicos distintos). El
+ *    chequeo anterior (al menos un lado respaldado) no detecta esto porque
+ *    ambos lados están "respaldados", solo que por marcaciones que no van
+ *    juntas.
  *
  * localIn/localOut deben venir en horario LOCAL 'YYYY-MM-DD HH:mm:ss'
  * (mismo formato que `Punch.localTime`).
@@ -461,32 +476,44 @@ export function validarParHrAttendance(
       };
     }
 
-    const inPunch = marcacionesLogDelEmpleado.find(
-      (p) => p.rawTime === parCanonico.checkIn,
+    // Verdad de referencia: si las marcaciones del día de check_in, solas,
+    // ya arman un turno cerrado y no ambiguo, hr.attendance debe coincidir.
+    const reconstruido = buildAttendancePair(
+      fechaIn,
+      marcacionesLogDelEmpleado,
+      new Set(),
     );
-    const outPunch = parCanonico.checkOut
-      ? marcacionesLogDelEmpleado.find(
-          (p) => p.rawTime === parCanonico.checkOut,
-        )
-      : null;
-
-    const inCoincide =
-      !!inPunch &&
-      Math.abs(
-        new Date(inPunch.localTime.replace(' ', 'T')).getTime() - inMs,
-      ) <= toleranciaMatchMs;
-    const outCoincide =
-      !parCanonico.checkOut ||
-      (!!outPunch &&
-        Math.abs(
-          new Date(outPunch.localTime.replace(' ', 'T')).getTime() - outMs,
-        ) <= toleranciaMatchMs);
-
-    if (!inCoincide || !outCoincide) {
-      return {
-        valido: false,
-        motivo: 'no coincide con el par canónico de marcaciones biométricas',
-      };
+    if (
+      reconstruido &&
+      !reconstruido.ambiguo &&
+      !reconstruido.incompleto &&
+      reconstruido.checkOut
+    ) {
+      const punchIn = marcacionesLogDelEmpleado.find(
+        (p) => p.rawTime === reconstruido.checkIn,
+      );
+      const punchOut = marcacionesLogDelEmpleado.find(
+        (p) => p.rawTime === reconstruido.checkOut,
+      );
+      const reconstruidoInMs = punchIn
+        ? new Date(punchIn.localTime.replace(' ', 'T')).getTime()
+        : null;
+      const reconstruidoOutMs = punchOut
+        ? new Date(punchOut.localTime.replace(' ', 'T')).getTime()
+        : null;
+      const coincideIn =
+        reconstruidoInMs !== null &&
+        Math.abs(reconstruidoInMs - inMs) <= toleranciaMatchMs;
+      const coincideOut =
+        reconstruidoOutMs !== null &&
+        Math.abs(reconstruidoOutMs - outMs) <= toleranciaMatchMs;
+      if (!coincideIn || !coincideOut) {
+        return {
+          valido: false,
+          motivo:
+            'contradice el turno único y cerrado que arman las marcaciones de ese día por sí solas',
+        };
+      }
     }
   }
 
