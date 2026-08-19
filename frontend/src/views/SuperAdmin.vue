@@ -84,6 +84,7 @@ const MODULE_LABELS = {
   reporteworkers: 'Workers de Reporte de Asistencias',
   datoscrudos: 'Datos Crudos (Odoo)',
 };
+import { bgLines } from '../utils/bgLines.js';
 import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
@@ -463,7 +464,7 @@ onUnmounted(() => {
     <!-- Hamburguesa móvil -->
     <button v-if="!isSidebarOpen" @click="isSidebarOpen = true"
       class="lg:hidden fixed top-4 left-4 z-[60] w-9 h-9 rounded-xl flex items-center justify-center text-white"
-      style="background:#3b82f6">
+      style="background:#102E4A">
       <i class="fas fa-bars text-sm"></i>
     </button>
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="lg:hidden fixed inset-0 bg-black/60 z-[45]"></div>
@@ -485,9 +486,9 @@ onUnmounted(() => {
         </div>
         <div v-if="isSidebarOpen">
           <p class="sa-brand-name" :class="isDark ? 'text-white' : 'text-slate-800'">
-            Super<span style="color:#3b82f6">Admin</span>
+            Woden<span style="color:#FF5400">Track</span>
           </p>
-          <p class="sa-brand-sub">Consola</p>
+          <p class="sa-brand-sub">Consola Admin</p>
         </div>
       </div>
 
@@ -524,8 +525,8 @@ onUnmounted(() => {
                   <div v-if="currentTab === key" class="sa-nav-bar"></div>
                   <div class="sa-nav-icon">
                     <i :class="item.icon" :style="isDark
-                      ? (currentTab === key ? 'color:#e2e8f0' : 'color:#8b9ab4')
-                      : (currentTab === key ? 'color:#0f172a' : 'color:#334155')"></i>
+                      ? (currentTab === key ? 'color:#FF9A66' : 'color:#8b9ab4')
+                      : (currentTab === key ? 'color:#102E4A' : 'color:#64748B')"></i>
                   </div>
                   <span v-if="isSidebarOpen" class="sa-nav-label">{{ item.label }}</span>
                 </button>
@@ -579,7 +580,6 @@ onUnmounted(() => {
         <!-- Izquierda: breadcrumb -->
         <div class="flex items-center gap-2 min-w-0">
           <span class="relative flex h-2 w-2 shrink-0">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span class="sa-breadcrumb-root" :class="isDark ? 'text-white/40' : 'text-slate-400'">WodenAdmin</span>
@@ -613,7 +613,7 @@ onUnmounted(() => {
             <button @click="showUserMenu = !showUserMenu" class="sa-user-chip"
               :class="isDark ? 'sa-user-dark' : 'sa-user-light'">
               <div class="sa-user-avatar">
-                <span class="text-[10px] font-black" style="color:#3b82f6">
+                <span class="text-[10px] font-black" :style="isDark ? 'color:#FF9A66' : 'color:#102E4A'">
                   {{ displayName.charAt(0) }}
                 </span>
               </div>
@@ -658,10 +658,19 @@ onUnmounted(() => {
       <!-- Área de contenido -->
       <div class="sa-content" :class="isDark ? 'sa-content-dark' : 'sa-content-light'">
 
+        <!-- Fondo: mallado geométrico muy sutil (mismo estilo del login).
+             Decoración secundaria, detrás de las tarjetas — el contenido
+             sigue siendo el protagonista. -->
+        <svg class="sa-content-bg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+            :stroke="isDark ? 'rgba(255,255,255,0.035)' : 'rgba(16,46,74,0.05)'" stroke-width="1"
+            vector-effect="non-scaling-stroke" />
+        </svg>
+
         <!-- Módulos de contenido normal -->
         <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras', 'reporteworkers']"
           :key="tab">
-          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card animate-fade-in"
+          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
             <GestionDashboard v-if="tab === 'stats'" :isDark="isDark" />
             <GestionApk v-if="tab === 'apk'" :isDark="isDark" @success="showNotification($event)"
@@ -688,7 +697,7 @@ onUnmounted(() => {
         <template
           v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos']"
           :key="tab">
-          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full animate-fade-in"
+          <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
             <GestionMallas v-if="tab === 'mallas'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
@@ -864,8 +873,8 @@ onUnmounted(() => {
 }
 
 .sa-light {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #F7FAFD;
+  color: #10233A;
 }
 
 /* ══ TOAST ══ */
@@ -935,8 +944,7 @@ onUnmounted(() => {
 
 .sa-sidebar-light {
   background: #fff;
-  border-color: #e2e8f0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+  border-color: #D7E0EA;
 }
 
 .sa-sidebar-open {
@@ -967,8 +975,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all .2s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  transition: border-color .15s, color .15s;
 }
 
 .sa-collapse-dark {
@@ -979,14 +986,13 @@ onUnmounted(() => {
 
 .sa-collapse-light {
   background: #fff;
-  border-color: #cbd5e1;
-  color: #64748b;
+  border-color: #D7E0EA;
+  color: #64748B;
 }
 
 .sa-collapse-btn:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+  border-color: #102E4A;
+  color: #102E4A;
 }
 
 /* Brand */
@@ -1006,8 +1012,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  background: #102E4A;
 }
 
 .sa-brand-name {
@@ -1036,7 +1041,7 @@ onUnmounted(() => {
 }
 
 .sa-light .sa-divider {
-  background: #f1f5f9;
+  background: #E5EBF2;
 }
 
 /* Nav */
@@ -1128,7 +1133,7 @@ onUnmounted(() => {
 }
 
 .sa-sidebar-light .sa-nav-group-divider {
-  background: #e2e8f0;
+  background: #D7E0EA;
 }
 
 .sa-nav-group:first-child .sa-nav-group-divider {
@@ -1157,15 +1162,15 @@ onUnmounted(() => {
   color: #ffffff;
 }
 
-/* Activo light: gris claro sobre sidebar blanco */
+/* Activo light: azul muy claro de marca sobre sidebar blanco */
 .sa-nav-active-light {
-  background: #f4f4f5;
-  color: #09090b;
+  background: #EEF4FB;
+  color: #102E4A;
 }
 
 .sa-nav-idle-dark {
   color: #888888;
-  transition: all 0.2s ease;
+  transition: background-color .15s, color .15s;
 }
 
 .sa-nav-idle-dark:hover {
@@ -1174,16 +1179,16 @@ onUnmounted(() => {
 }
 
 .sa-nav-idle-light {
-  color: #6b7280;
-  transition: all 0.2s ease;
+  color: #64748B;
+  transition: background-color .15s, color .15s;
 }
 
 .sa-nav-idle-light:hover {
-  background: #fafafa;
-  color: #09090b;
+  background: #F7FAFD;
+  color: #10233A;
 }
 
-/* Línea vertical 2px azul de marca — Geist style, sin glow */
+/* Línea vertical 2px naranja de marca — acento del item activo, sin glow */
 .sa-nav-bar {
   position: absolute;
   left: 0;
@@ -1192,7 +1197,7 @@ onUnmounted(() => {
   width: 2px;
   height: 18px;
   border-radius: 0;
-  background: #3b82f6;
+  background: #FF5400;
 }
 
 .sa-nav-icon {
@@ -1357,8 +1362,7 @@ onUnmounted(() => {
 
 .sa-header-light {
   background: #fff;
-  border-color: #e2e8f0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border-color: #E5EBF2;
 }
 
 .sa-breadcrumb-root {
@@ -1455,12 +1459,12 @@ onUnmounted(() => {
 }
 
 .sa-theme-light {
-  border-color: #e2e8f0;
-  background: #f8fafc;
+  border-color: #D7E0EA;
+  background: #EEF4FB;
 }
 
 .sa-theme-light:hover {
-  background: #e2e8f0;
+  background: #E3ECF7;
 }
 
 .sa-user-chip {
@@ -1479,9 +1483,8 @@ onUnmounted(() => {
 }
 
 .sa-user-light {
-  border-color: #e2e8f0;
+  border-color: #D7E0EA;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .sa-user-avatar {
@@ -1489,14 +1492,22 @@ onUnmounted(() => {
   height: 24px;
   border-radius: 8px;
   flex-shrink: 0;
-  background: rgba(59, 130, 246, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.sa-light .sa-user-avatar {
+  background: #EEF4FB;
+}
+
+.sa-dark .sa-user-avatar {
+  background: rgba(255, 148, 77, 0.15);
+}
+
 /* ══ CONTENIDO ══ */
 .sa-content {
+  position: relative;
   flex: 1;
   min-height: 0;
   padding: 16px;
@@ -1511,12 +1522,25 @@ onUnmounted(() => {
 }
 
 .sa-content-light {
-  background: #f1f5f9;
+  background: #F7FAFD;
+}
+
+/* Mallado geométrico de fondo — decoración secundaria, muy sutil, detrás de
+   las tarjetas (que son opacas y siguen siendo el protagonista). */
+.sa-content-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ══ CARD / CONTAINER MÓDULOS ══ */
 /* Todos los cards llenan el área de contenido */
 .sa-card {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   border-radius: 14px;
@@ -1538,9 +1562,9 @@ onUnmounted(() => {
 }
 
 .sa-card-light {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  background: #fff;
+  border-color: #D7E0EA;
+  box-shadow: 0 8px 24px rgba(16, 46, 74, 0.06);
 }
 
 /* Dropdown usuario */

@@ -160,6 +160,61 @@ describe('buildAttendancePair (algoritmo canónico de emparejamiento)', () => {
     expect(par!.ambiguo).toBe(true);
   });
 
+  it('Caso AYALA JARAMILLO (empId 20270, 25-26/06/2026): una marca suelta 2h26m después del cierre NO debe reemplazar el turno cerrado ni robarle la entrada al día siguiente', () => {
+    const marcaciones = [
+      punch('2026-06-25 09:52:16'),
+      punch('2026-06-25 17:13:53'),
+      punch('2026-06-25 19:40:14'), // marca suelta: ruido, no un turno nocturno
+      punch('2026-06-26 09:53:47'),
+      punch('2026-06-26 16:35:18'),
+    ];
+    const finTurnoMin = 16 * 60; // malla 07:00 -> 16:00
+
+    const dia25 = buildAttendancePair('2026-06-25', marcaciones, new Set(), finTurnoMin);
+    expect(dia25!.checkIn).toBe('2026-06-25T09:52:16');
+    expect(dia25!.checkOut).toBe('2026-06-25T17:13:53');
+    expect(dia25!.salidaConsumida).toBeNull();
+
+    // La entrada real del 26/06 debe seguir intacta (no fue robada por la
+    // marca suelta del 25/06 a las 19:40).
+    const dia26 = buildAttendancePair('2026-06-26', marcaciones, new Set(), finTurnoMin);
+    expect(dia26!.checkIn).toBe('2026-06-26T09:53:47');
+    expect(dia26!.checkOut).toBe('2026-06-26T16:35:18');
+  });
+
+  it('Caso ALTAMAR ARDILA (empId 20235, 06/08/2026): 5 marcaciones con pausas deben fusionarse en primera entrada -> última salida, aunque la última quede "suelta" por ser cantidad impar', () => {
+    const marcaciones = [
+      punch('2026-08-06 06:52:48'),
+      punch('2026-08-06 09:59:38'),
+      punch('2026-08-06 11:59:38'),
+      punch('2026-08-06 12:54:34'),
+      punch('2026-08-06 16:32:10'),
+    ];
+    const finTurnoMin = 16 * 60; // malla 07:00 -> 16:00
+    const par = buildAttendancePair('2026-08-06', marcaciones, new Set(), finTurnoMin);
+    expect(par!.checkIn).toBe('2026-08-06T06:52:48');
+    expect(par!.checkOut).toBe('2026-08-06T16:32:10');
+    expect(par!.incompleto).toBe(false);
+    expect(par!.salidaConsumida).toBeNull();
+  });
+
+  it('Caso AYALA sigue correcto con 3+ períodos: la marca suelta lejos de finTurnoMin no debe "robarse" el período de la mitad ni perder la primera entrada del día', () => {
+    // Variante de AYALA con un período EXTRA al inicio, para blindar contra el
+    // bug donde el fallback tomaba `periodos[length-2]` (el del medio) en vez
+    // de fusionar desde el PRIMER período cerrado del día.
+    const marcaciones = [
+      punch('2026-06-25 05:00:00'),
+      punch('2026-06-25 06:00:00'), // primer período cerrado, corto
+      punch('2026-06-25 09:52:16'),
+      punch('2026-06-25 17:13:53'), // segundo período cerrado (el turno real)
+      punch('2026-06-25 19:40:14'), // marca suelta: ruido
+    ];
+    const finTurnoMin = 16 * 60;
+    const par = buildAttendancePair('2026-06-25', marcaciones, new Set(), finTurnoMin);
+    expect(par!.checkIn).toBe('2026-06-25T05:00:00');
+    expect(par!.checkOut).toBe('2026-06-25T17:13:53');
+  });
+
   it('Caso 6: marcaciones duplicadas producen resultado determinístico', () => {
     const marcaciones = [
       punch('2026-07-02 22:00:00'),
@@ -259,5 +314,34 @@ describe('validarParHrAttendance', () => {
   it('acepta un par válido cuando no hay marcaciones de attendance.log disponibles para contrastar', () => {
     const r = validarParHrAttendance('2026-07-02 08:00:00', '2026-07-02 17:00:00', []);
     expect(r.valido).toBe(true);
+  });
+
+  it('Caso ALARCON DUARTE (empId 20228, 25-26/06/2026): rechaza un hr.attendance que combina la salida del 25/06 con la entrada del 26/06 como si fuera un mismo par nocturno', () => {
+    const marcaciones = [
+      punch('2026-06-25 07:11:09'),
+      punch('2026-06-25 17:07:55'),
+      punch('2026-06-26 07:02:28'),
+      punch('2026-06-26 16:00:30'),
+    ];
+    // hr.attendance (mal formado en Odoo) declara: check_in = salida real del
+    // 25/06, check_out = entrada real del 26/06 — un "turno nocturno" de
+    // ~13h54m que en realidad son dos jornadas diurnas distintas.
+    const r = validarParHrAttendance(
+      '2026-06-25 17:07:55',
+      '2026-06-26 07:02:28',
+      marcaciones,
+    );
+    expect(r.valido).toBe(false);
+
+    // El par canónico para el 25/06 debe ser la propia jornada del 25/06.
+    const dia25 = buildAttendancePair('2026-06-25', marcaciones, new Set());
+    expect(dia25!.checkIn).toBe('2026-06-25T07:11:09');
+    expect(dia25!.checkOut).toBe('2026-06-25T17:07:55');
+
+    // Y el par canónico para el 26/06 debe seguir intacto, sin haber perdido
+    // su entrada (07:02:28) a manos del 25/06.
+    const dia26 = buildAttendancePair('2026-06-26', marcaciones, new Set());
+    expect(dia26!.checkIn).toBe('2026-06-26T07:02:28');
+    expect(dia26!.checkOut).toBe('2026-06-26T16:00:30');
   });
 });

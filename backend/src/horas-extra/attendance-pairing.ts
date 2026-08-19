@@ -53,6 +53,25 @@ export const DURACION_MINIMA_MS = 60 * 1000;
 // nocturno real que abre pocos minutos después de cerrar el diurno.
 export const TOLERANCIA_MARCA_SUELTA_MS = 30 * 60 * 1000;
 
+// Duración máxima plausible para el "turno" que formaría una marca suelta al
+// cruzar con una salida del día calendario siguiente, cuando esa marca suelta
+// viene DESPUÉS de un turno ya cerrado ese mismo día y hay malla disponible
+// para contrastar. Por encima de esto (p. ej. 14h13m) es evidencia de que la
+// marca suelta es ruido (doble scan, reintento tardío, etc.) y no el inicio
+// de un turno nocturno real — un turno nocturno real cruzando medianoche cae
+// muy por debajo de este umbral (ver `MIN_GAP_SALIDA_MS`/`MAX_GAP_SALIDA_MS`,
+// que permiten hasta 18h porque cubren el caso SIN turno cerrado previo; acá
+// el turno cerrado previo ya es evidencia fuerte de cuál es la jornada real).
+export const UMBRAL_TURNO_LARGO_MS = 12 * 60 * 60 * 1000;
+
+// Qué tan lejos puede caer una marca suelta (sin pareja) respecto al fin
+// programado de la malla para seguir considerándose "la salida real del día,
+// nada más que tarde" en vez de un evento desconectado del resto de la
+// jornada. Deliberadamente más ancho que `TOLERANCIA_MARCA_SUELTA_MS` (que es
+// para el reintento INMEDIATO de cierre): acá cubre una salida
+// legítimamente tardía (p. ej. 32 min después de la hora de salida).
+export const DISTANCIA_FIN_TURNO_SALIDA_MS = 2 * 60 * 60 * 1000;
+
 /** Marcación biométrica cruda, ya resuelta a hora local además de UTC. */
 export interface Punch {
   /** Fecha+hora en horario local 'YYYY-MM-DD HH:mm:ss'. */
@@ -302,6 +321,56 @@ export function buildAttendancePair(
     return gapMs >= MIN_GAP_SALIDA_MS && gapMs <= MAX_GAP_SALIDA_MS;
   });
 
+  // Marca suelta TARDÍA (no alcanza a ser "reintento de cierre" arriba) que
+  // viene después de AL MENOS UN turno ya cerrado ese mismo día, con malla
+  // disponible. Dos señales, en orden:
+  //
+  //  1) Si cruzando al día siguiente arma un turno de duración plausible
+  //     (<= UMBRAL_TURNO_LARGO_MS), es un turno nocturno real: no se toca
+  //     nada acá, se sigue con el comportamiento normal más abajo.
+  //  2) Si no (no encuentra salida, o el cruce da un turno absurdamente
+  //     largo), esta marca suelta es o bien la salida REAL del día (llegó
+  //     tarde a la hora de salida) o ruido desconectado del resto de la
+  //     jornada — se decide por su cercanía a `finTurnoMin`:
+  //       - Cerca (<= DISTANCIA_FIN_TURNO_SALIDA_MS): es la salida real,
+  //         tarde. Se fusiona TODA la jornada — primera entrada del día
+  //         hasta esta marca — igual que haría `fusionarPeriodosCerrados`
+  //         si esta marca hubiera cerrado con pareja.
+  //       - Lejos: es ruido (doble scan sin relación, reintento tardío,
+  //         etc.). Se descarta y queda el/los turno(s) YA CERRADOS de ese
+  //         día (fusionados entre sí si hay más de uno).
+  //     En ambos casos NUNCA se deja que esta marca le robe la entrada real
+  //     del día siguiente (no se marca nada como consumido).
+  if (ambiguo && finTurnoMin != null) {
+    const cerrados = periodos.slice(0, -1);
+    const ultimoCerrado = cerrados[cerrados.length - 1];
+    if (ultimoCerrado?.out) {
+      const duracionCruceMs = salida
+        ? new Date(salida.rawTime).getTime() - entradaMs
+        : null;
+      const esNocturnoReal =
+        duracionCruceMs !== null && duracionCruceMs <= UMBRAL_TURNO_LARGO_MS;
+
+      if (!esNocturnoReal) {
+        const primerCerrado = cerrados[0];
+        const distanciaFinTurnoMs =
+          Math.abs(minutosDelDia(periodo.in.localTime) - finTurnoMin) * 60 * 1000;
+        const esSalidaTardia = distanciaFinTurnoMs <= DISTANCIA_FIN_TURNO_SALIDA_MS;
+
+        return {
+          checkIn: primerCerrado.in.rawTime,
+          checkOut: esSalidaTardia
+            ? periodo.in.rawTime
+            : ultimoCerrado.out.rawTime,
+          entradaLog: primerCerrado.in.log,
+          salidaConsumida: null,
+          incompleto: false,
+          ambiguo: false,
+        };
+      }
+    }
+  }
+
   return {
     checkIn: periodo.in.rawTime,
     checkOut: salida ? salida.rawTime : null,
@@ -364,28 +433,59 @@ export function validarParHrAttendance(
 
   // Cruce contra attendance.log: si hay marcaciones reales disponibles para
   // este empleado en la ventana relevante, el check_in/check_out declarado
-  // debe estar respaldado por al menos una marcación cercana.
+  // debe corresponder al MISMO par que produce el algoritmo canónico
+  // (`buildAttendancePair`) para el día de `check_in`.
+  //
+  // No basta con que cada extremo, por separado, tenga alguna marcación
+  // cercana: eso permite que hr.attendance combine la SALIDA real de un
+  // turno con la ENTRADA real del turno del día siguiente como si fueran un
+  // mismo par (ambos extremos existen de verdad en attendance.log, solo que
+  // pertenecen a dos jornadas distintas). El único juez de qué marcación es
+  // pareja de cuál es `buildAttendancePair`; aquí solo se verifica que el
+  // par declarado coincida con lo que ese algoritmo determina de forma
+  // independiente.
   const ventana = marcacionesLogDelEmpleado.filter((p) => {
     const f = p.localTime.split(' ')[0];
     return f === fechaIn || f === fechaOut;
   });
   if (ventana.length) {
-    // El respaldo se valida por proximidad usando `localTime` (hora local)
-    // de las marcaciones — `localIn`/`localOut` también vienen en hora local.
-    const inRespaldado = ventana.some(
-      (p) =>
-        Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - inMs) <=
-        toleranciaMatchMs,
+    const parCanonico = buildAttendancePair(
+      fechaIn,
+      marcacionesLogDelEmpleado,
+      new Set(),
     );
-    const outRespaldado = ventana.some(
-      (p) =>
-        Math.abs(new Date(p.localTime.replace(' ', 'T')).getTime() - outMs) <=
-        toleranciaMatchMs,
-    );
-    if (!inRespaldado && !outRespaldado) {
+    if (!parCanonico) {
       return {
         valido: false,
         motivo: 'no coincide con ninguna marcación biométrica cercana',
+      };
+    }
+
+    const inPunch = marcacionesLogDelEmpleado.find(
+      (p) => p.rawTime === parCanonico.checkIn,
+    );
+    const outPunch = parCanonico.checkOut
+      ? marcacionesLogDelEmpleado.find(
+          (p) => p.rawTime === parCanonico.checkOut,
+        )
+      : null;
+
+    const inCoincide =
+      !!inPunch &&
+      Math.abs(
+        new Date(inPunch.localTime.replace(' ', 'T')).getTime() - inMs,
+      ) <= toleranciaMatchMs;
+    const outCoincide =
+      !parCanonico.checkOut ||
+      (!!outPunch &&
+        Math.abs(
+          new Date(outPunch.localTime.replace(' ', 'T')).getTime() - outMs,
+        ) <= toleranciaMatchMs);
+
+    if (!inCoincide || !outCoincide) {
+      return {
+        valido: false,
+        motivo: 'no coincide con el par canónico de marcaciones biométricas',
       };
     }
   }

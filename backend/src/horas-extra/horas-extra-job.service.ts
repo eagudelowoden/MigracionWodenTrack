@@ -73,6 +73,8 @@ export class HorasExtraJobService {
       solicitado_por: opts.solicitadoPor ?? params.calculado_por ?? null,
       intentos: 0,
       max_intentos: 3,
+      created_at: new Date(),
+      updated_at: new Date(),
     });
     const guardado = await this.jobRepo.save(job);
     this.logger.log(`Job #${guardado.id} encolado (${tipo}).`);
