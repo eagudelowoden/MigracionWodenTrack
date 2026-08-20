@@ -16,23 +16,29 @@ import { cargarEnvDelAmbiente, loadEntities, guardarReporteEsquema } from './sha
 const NODE_ENV = process.env.NODE_ENV || 'development';
 cargarEnvDelAmbiente(NODE_ENV);
 
+// Cuenta INDEPENDIENTE de MAIL_USER/MAIL_PASS (la que usa mail.service.ts para
+// alertas del sistema): así, si una cuenta se queda sin acceso (contraseña
+// vencida, bloqueo de Microsoft 365, etc.), no se cae la otra. DEPLOY_MAIL_USER
+// cae a MAIL_USER solo si no está configurada (compatibilidad hacia atrás).
 async function alertar(problemas: string[]) {
-  if (!process.env.MAIL_USER || !process.env.MAIL_ALERT_TO) {
-    console.log('📧 MAIL_USER/MAIL_ALERT_TO no configurados — omitiendo alerta por correo.');
+  const mailUser = process.env.DEPLOY_MAIL_USER || process.env.MAIL_USER;
+  const mailPass = process.env.DEPLOY_MAIL_PASS || process.env.MAIL_PASS;
+  if (!mailUser || !mailPass || !process.env.MAIL_ALERT_TO) {
+    console.log('📧 DEPLOY_MAIL_USER/DEPLOY_MAIL_PASS/MAIL_ALERT_TO no configurados — omitiendo alerta por correo.');
     return;
   }
   try {
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST || 'smtp.office365.com',
-      port: Number(process.env.MAIL_PORT) || 587,
+      host: process.env.DEPLOY_MAIL_HOST || process.env.MAIL_HOST || 'smtp.office365.com',
+      port: Number(process.env.DEPLOY_MAIL_PORT || process.env.MAIL_PORT) || 587,
       secure: false,
       requireTLS: true,
-      auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+      auth: { user: mailUser, pass: mailPass },
       tls: { rejectUnauthorized: false },
     });
     const lista = problemas.map((p) => `<li>${p}</li>`).join('');
     await transporter.sendMail({
-      from: `"Despliegue WodenTrack" <${process.env.MAIL_USER}>`,
+      from: `"Despliegue WodenTrack" <${mailUser}>`,
       to: process.env.MAIL_ALERT_TO,
       subject: `🚫 Despliegue detenido (${NODE_ENV}) — esquema de base de datos incompleto`,
       html: `

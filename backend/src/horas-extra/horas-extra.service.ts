@@ -1343,6 +1343,39 @@ export class HorasExtraService {
       const cargo =
         cargoOdooMap.get(empId) || cargoLocalMap.get(cedula) || null;
 
+      // ── Camino de respaldo ────────────────────────────────────────────────
+      // Cuando no hay malla, o cuando la entrada real llega MÁS DE 5 HORAS
+      // después del inicio programado (tan lejos que ya no tiene sentido
+      // medir tardanza/reposición contra ESA malla — a esa altura es
+      // prácticamente un turno aparte), la jornada ordinaria deja de anclarse
+      // a la malla y pasa a anclarse a la entrada real: límite = entrada +
+      // HORAS_EFECTIVAS_DEFAULT. Las horas dentro de esa ventana se siguen
+      // clasificando por franja horaria igual que siempre (RN si caen de
+      // noche, 19:00-06:00) — el recargo nocturno nunca se salta, esté en el
+      // camino que esté. Lo que exceda esa ventana es excedente y pasa por
+      // las reglas normales de HEDO/HENO más abajo (nunca autopago).
+      //
+      // NO aplica en festivo/domingo (`esFestivo`/`esFestivoEntreSemana`):
+      // esos días ya se calculan aparte (todo el tiempo trabajado es extra
+      // festivo) y no tienen concepto de "jornada ordinaria que cumplir".
+      const UMBRAL_CAMINO_RESPALDO_MINS = 5 * 60;
+      const HORAS_EFECTIVAS_DEFAULT = 7;
+      let turnoEfectivo = turno;
+      let enCaminoRespaldo = false;
+      if (!esFestivo && !esFestivoEntreSemana && localIn) {
+        const inMinsLocal = this.parseMinutos(localIn);
+        const llegoMuyTarde =
+          !!turno &&
+          inMinsLocal > Number(turno.hora_inicio) * 60 + UMBRAL_CAMINO_RESPALDO_MINS;
+        if (!turno || llegoMuyTarde) {
+          enCaminoRespaldo = true;
+          turnoEfectivo = {
+            hora_inicio: inMinsLocal / 60,
+            hora_fin: (inMinsLocal + HORAS_EFECTIVAS_DEFAULT * 60) / 60,
+          };
+        }
+      }
+
       // Siempre calcular si hay entrada y salida:
       //  - Con turno → RN dentro del turno + HEDO/HENO/HEFD/HEFN extras
       //  - Sin turno en festivo/domingo → HEFD/HEFN (todo el tiempo trabajado es extra festivo)
@@ -1350,9 +1383,11 @@ export class HorasExtraService {
       // Reposición por llegada tardía: si entró más de TOLERANCIA minutos después
       // del inicio del turno, debe reponer ese tiempo al final antes de contar extras.
       // Tolerancia = 6 min (llegar hasta 6 min tarde se acepta sin reposición).
+      // No aplica en el camino de respaldo: el turno efectivo ya arranca
+      // exactamente en la entrada real, así que no existe tardanza que reponer.
       const TOLERANCIA_REPOS = HorasExtraService.TOLERANCIA_MINS;
       let retrasoMins = 0;
-      if (turnoParaClasificar && localIn) {
+      if (!enCaminoRespaldo && turnoParaClasificar && localIn) {
         const shiftStartMins = Number(turnoParaClasificar.hora_inicio) * 60;
         const inMinsLocal    = this.parseMinutos(localIn);
         if (inMinsLocal > shiftStartMins + TOLERANCIA_REPOS) {
@@ -1363,7 +1398,7 @@ export class HorasExtraService {
       const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
         ? this.calcularCategorias(
-            localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins,
+            localIn, localOut, turnoEfectivo, esFestivo, esFestivoSiguiente, retrasoMins,
             esFestivoEntreSemana, esFestivoEntreSemanaSiguiente,
           )
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };
