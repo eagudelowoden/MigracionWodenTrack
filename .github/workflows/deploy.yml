@@ -69,9 +69,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$procs = pm2 jlist | ConvertFrom-Json;
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 stop WodenTrackTest };
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 stop WodenTrackTest-Worker };
+            "pm2 describe WodenTrackTest *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest };
+            pm2 describe WodenTrackTest-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest-Worker };
             exit 0"
 
       # 5. Copiar backend compilado al servidor
@@ -162,12 +163,13 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$procs = pm2 jlist | ConvertFrom-Json;
+            "pm2 describe WodenTrackTest *> $null; $existeApi = ($LASTEXITCODE -eq 0);
             $env:NODE_ENV='qa'; $env:HX_NO_SPAWN='1';
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 restart WodenTrackTest --update-env }
+            if ($existeApi) { pm2 restart WodenTrackTest --update-env }
             else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             $env:HX_NO_SPAWN=$null; $env:HX_WORKER='1';
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 restart WodenTrackTest-Worker --update-env }
+            pm2 describe WodenTrackTest-Worker *> $null; $existeWorker = ($LASTEXITCODE -eq 0);
+            if ($existeWorker) { pm2 restart WodenTrackTest-Worker --update-env }
             else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\worker.js --name WodenTrackTest-Worker --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             pm2 save"
 
@@ -244,9 +246,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$procs = pm2 jlist | ConvertFrom-Json;
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD' }) { pm2 stop WodenTrackPRD };
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD-Worker' }) { pm2 stop WodenTrackPRD-Worker };
+            "pm2 describe WodenTrackPRD *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD };
+            pm2 describe WodenTrackPRD-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD-Worker };
             exit 0"
 
       # 4. Copiar backend compilado al servidor
@@ -341,10 +344,11 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$procs = pm2 jlist | ConvertFrom-Json;
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD' }) { pm2 restart WodenTrackPRD --update-env }
+            "pm2 describe WodenTrackPRD *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 restart WodenTrackPRD --update-env }
             else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD };
-            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD-Worker' }) { pm2 restart WodenTrackPRD-Worker --update-env }
+            pm2 describe WodenTrackPRD-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 restart WodenTrackPRD-Worker --update-env }
             else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD-Worker };
             pm2 save"
 
