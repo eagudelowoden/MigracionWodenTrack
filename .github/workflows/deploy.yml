@@ -279,7 +279,7 @@ jobs:
       #     la última vez que alguien corrió npm install a mano ahí, así que
       #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
       #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND. PRUEBAS TEST
-      
+
       - name: Instalar dependencias backend PROD
         uses: appleboy/ssh-action@master
         with:
@@ -331,7 +331,7 @@ jobs:
       #    substring: "WodenTrackPRD" también aparece dentro de
       #    "WodenTrackPRD-Worker") para no dejar el worker sin reiniciar en
       #    despliegues normales (cuando la API ya existía y solo hacía falta
-      #    el "restart", el worker nunca se arrancaba).
+      #    el "restart", el worker nunca se arrancaba). Desplegarqa
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
