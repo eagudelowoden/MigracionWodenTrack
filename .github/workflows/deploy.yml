@@ -165,10 +165,10 @@ jobs:
             "$procs = pm2 jlist | ConvertFrom-Json;
             $env:NODE_ENV='qa'; $env:HX_NO_SPAWN='1';
             if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 restart WodenTrackTest --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             $env:HX_NO_SPAWN=$null; $env:HX_WORKER='1';
             if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 restart WodenTrackTest-Worker --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\worker.js --name WodenTrackTest-Worker };
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\worker.js --name WodenTrackTest-Worker --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             pm2 save"
 
       # 9. Avisar por correo que el despliegue terminó bien — solo se llega
