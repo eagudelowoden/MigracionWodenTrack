@@ -75,6 +75,7 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest-Worker };
             $distPath = 'C:\Users\Administrator\Documents\WodenTrackTest\dist';
             if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
+            New-Item -ItemType Directory -Force -Path $distPath | Out-Null;
             exit 0"
 
       # 5. Copiar backend compilado al servidor
@@ -87,6 +88,7 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
+          debug: true
 
       # 5b. Copiar package.json/package-lock.json — npm install (paso 5c) los
       #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
@@ -254,6 +256,7 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD-Worker };
             $distPath = 'C:\Users\Administrator\Documents\WodenTrack_Prd\dist';
             if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
+            New-Item -ItemType Directory -Force -Path $distPath | Out-Null;
             exit 0"
 
       # 4. Copiar backend compilado al servidor
@@ -267,6 +270,7 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
+          debug: true
 
       # 4b. Copiar package.json/package-lock.json — npm install (paso 4c) los
       #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
