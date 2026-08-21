@@ -200,6 +200,10 @@ const selectRole = (path) => router.push(path);
 </script>
 
 <style scoped>
+/* Bloque <style> de un SFC = su propio contexto de PostCSS, separado de
+   style.css — en Tailwind v4 hace falta @reference para que @apply funcione. */
+@reference "tailwindcss";
+
 .role-card {
   @apply backdrop-blur-xl p-8 rounded-3xl flex flex-col items-center gap-5 transition-all duration-500 border relative overflow-hidden;
 }

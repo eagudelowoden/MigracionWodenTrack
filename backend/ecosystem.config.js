@@ -1,11 +1,19 @@
 /**
  * Configuración de PM2 para la API WodenTrack — PRODUCCIÓN.
  *
- * Un solo proceso: `WodenTrackPRD` (la API NestJS). El cálculo de horas extra
- * se procesa con el modelo de WORKER ON-DEMAND que ya funciona: la API lanza un
- * worker detached por cada job (con su propio --max-old-space-size, definido en
- * horas-extra-cron.service.ts) y ese worker muere solo al terminar. Por eso NO
- * hay un worker demonio aquí ni se usa HX_NO_SPAWN.
+ * DOS procesos: `WodenTrackPRD` (la API NestJS) y `WodenTrackPRD-Worker` (el
+ * worker de cálculo de horas extra, como demonio PM2 persistente).
+ *
+ * Antes el worker se lanzaba ON-DEMAND (detached, un proceso nuevo por cada
+ * job) y NO era un proceso PM2 — quedaba invisible para `pm2 list`, y sobre
+ * todo, un `pm2 restart` (deploy) nunca lo tocaba: si un job estaba en curso
+ * (o el proceso quedaba vivo por algún motivo) seguía corriendo con el
+ * código VIEJO indefinidamente, sin que ningún despliegue lo renovara. Ahora
+ * es un proceso PM2 más: el deploy lo reinicia junto con la API, siempre con
+ * el build nuevo. `HX_NO_SPAWN=1` en la API evita que, ADEMÁS, se sigan
+ * lanzando workers on-demand por cada job — con el demonio persistente ya
+ * alcanza, y tener los dos a la vez generaba una carrera entre workers con
+ * código distinto (justo el bug que motivó este cambio).
  *
  * NO usamos cluster a propósito: el cron, los WebSockets (socket.io) y los
  * guards en memoria (marcación / control de carga) asumen instancia única.
@@ -13,7 +21,7 @@
  *
  * ── Despliegue en el servidor (dentro de la carpeta del backend) ──────────────
  *   npm run build:prod
- *   npm run verify:schema:prod && pm2 delete WodenTrackPRD && pm2 start ecosystem.config.js && pm2 save
+ *   npm run verify:schema:prod && pm2 delete WodenTrackPRD WodenTrackPRD-Worker && pm2 start ecosystem.config.js && pm2 save
  *
  *   El "&&" es la protección: si verify:schema:prod encuentra una tabla o
  *   columna faltante en la base de datos, termina con código de salida 1 y
@@ -26,11 +34,12 @@
  *   pm2 startup                       # (una vez) que arranque al reiniciar Windows
  *
  * ── Reinicio normal (releyendo variables de entorno) ──────────────────────────
- *   pm2 restart WodenTrackPRD --update-env
+ *   pm2 restart WodenTrackPRD WodenTrackPRD-Worker --update-env
  *
  * ── Comandos útiles ───────────────────────────────────────────────────────────
  *   pm2 status
  *   pm2 logs WodenTrackPRD
+ *   pm2 logs WodenTrackPRD-Worker
  *   pm2 env <id>                      # ver NODE_OPTIONS / env del proceso
  */
 module.exports = {
@@ -50,8 +59,11 @@ module.exports = {
       node_args: '--max-old-space-size=3072',
 
       // El código carga .env.${NODE_ENV} → esto hace que lea .env.production.
+      // HX_NO_SPAWN=1: con el worker demonio de abajo ya corriendo, la API
+      // NO debe además lanzar workers on-demand por cada job.
       env: {
         NODE_ENV: 'production',
+        HX_NO_SPAWN: '1',
       },
 
       // ── Auto-recuperación (red de seguridad de último recurso) ─────────────
@@ -73,6 +85,37 @@ module.exports = {
 
       // Da 5 s para cerrar conexiones en curso al reiniciar/desplegar.
       kill_timeout: 5000,
+    },
+    {
+      name: 'WodenTrackPRD-Worker',
+      script: 'dist/worker.js',
+      cwd: __dirname,
+
+      exec_mode: 'fork',
+      instances: 1,
+      watch: false,
+
+      // Mismo heap que la API: procesa los mismos datasets grandes de Odoo.
+      node_args: '--max-old-space-size=3072',
+
+      env: {
+        NODE_ENV: 'production',
+        HX_WORKER: '1',
+      },
+
+      autorestart: true,
+      max_memory_restart: '3000M',
+      exp_backoff_restart_delay: 200,
+      max_restarts: 15,
+
+      time: true,
+      merge_logs: true,
+      out_file: './logs/wodentrack-worker-out.log',
+      error_file: './logs/wodentrack-worker-error.log',
+
+      // Más margen que la API: no queremos cortar un cálculo de horas extra
+      // en curso a mitad de camino.
+      kill_timeout: 10000,
     },
   ],
 };

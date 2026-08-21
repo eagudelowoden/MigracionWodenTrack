@@ -53,8 +53,13 @@ jobs:
       #    archivo que el proceso viejo todavia tiene abierto (a diferencia de
       #    Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
       #    al extraer con "Refusing to overwrite archive" sobre el archivo que
-      #    justo estaba bloqueado. Silenciar el error si el proceso no existe
-      #    aun (primer despliegue).
+      #    justo estaba bloqueado. Se detiene tambien el worker (mismo motivo,
+      #    y para que dist/worker.js tampoco quede bloqueado al copiar).
+      #    Se revisa cada proceso POR SEPARADO (comparación exacta via jlist):
+      #    "pm2 stop A B" sale con código de error si CUALQUIERA de los dos
+      #    nombres no existe (aunque sí pare el que sí existe), y eso tumbaba
+      #    todo el step en el primer despliegue tras agregar el worker, cuando
+      #    WodenTrackTest-Worker todavía no existía en el servidor.
       - name: Detener PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -64,8 +69,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
-            if ($p) { pm2 stop WodenTrackTest }"
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 stop WodenTrackTest };
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 stop WodenTrackTest-Worker };
+            exit 0"
 
       # 5. Copiar backend compilado al servidor
       - name: Copiar Backend dist a servidor TEST
@@ -139,6 +146,13 @@ jobs:
       # 8. Reiniciar PM2 en el servidor (solo si el paso 7 pasó)
       #    Se fija NODE_ENV=qa explícitamente antes de "pm2 start" porque el
       #    arranque en frío no tenía forma de saber qué .env.* cargar.
+      #    Ahora también maneja WodenTrackTest-Worker (el worker de horas
+      #    extra) como proceso PM2 propio, para que cada deploy lo renueve
+      #    igual que a la API — antes se lanzaba on-demand y quedaba
+      #    invisible para PM2, así que un despliegue nunca lo tocaba y podía
+      #    seguir corriendo código viejo indefinidamente.
+      #    HX_NO_SPAWN=1 en la API evita que, además, siga lanzando workers
+      #    on-demand por cada job ahora que hay un worker demonio.
       - name: Reiniciar PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -148,9 +162,13 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
-            if ($p) { pm2 restart WodenTrackTest --update-env }
-            else { $env:NODE_ENV='qa'; pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            $env:NODE_ENV='qa'; $env:HX_NO_SPAWN='1';
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest' }) { pm2 restart WodenTrackTest --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
+            $env:HX_NO_SPAWN=$null; $env:HX_WORKER='1';
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackTest-Worker' }) { pm2 restart WodenTrackTest-Worker --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\worker.js --name WodenTrackTest-Worker --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             pm2 save"
 
       # 9. Avisar por correo que el despliegue terminó bien — solo se llega
@@ -211,12 +229,12 @@ jobs:
           npm install
           npm run build
 
-      # 3b. Detener PM2 ANTES de copiar: en Windows no se puede sobrescribir un
-      #     archivo que el proceso viejo todavia tiene abierto (a diferencia de
-      #     Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
-      #     al extraer con "Refusing to overwrite archive" sobre el archivo que
-      #     justo estaba bloqueado — el mismo fix que ya tenia QA, aplicado
-      #     aca tras el error real en el deploy de produccion.
+      # 3b. Detener PM2 ANTES de copiar (mismo motivo que en TEST: Windows no
+      #     deja sobrescribir un archivo que el proceso viejo todavia tiene
+      #     abierto). Ahora que WodenTrackPRD-Worker es un proceso PM2 propio,
+      #     dist/worker.js tambien queda bloqueado mientras corre. Se revisa
+      #     cada proceso por separado (ver nota en "Detener PM2 TEST": "pm2
+      #     stop A B" falla entero si alguno de los dos no existe todavía).
       - name: Detener PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -226,8 +244,10 @@ jobs:
           command_timeout: 2m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
-            if ($p) { pm2 stop WodenTrackPRD }"
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD' }) { pm2 stop WodenTrackPRD };
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD-Worker' }) { pm2 stop WodenTrackPRD-Worker };
+            exit 0"
 
       # 4. Copiar backend compilado al servidor
       #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
@@ -258,7 +278,8 @@ jobs:
       #     copiaba dist/ — node_modules del servidor quedaba congelado desde
       #     la última vez que alguien corrió npm install a mano ahí, así que
       #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
-      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND.
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND. PRUEBAS TEST
+
       - name: Instalar dependencias backend PROD
         uses: appleboy/ssh-action@master
         with:
@@ -304,7 +325,13 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó) -- PRUEBAS
+      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
+      #    ecosystem.config.js define DOS procesos (API + Worker) — hay que
+      #    revisar cada uno por separado (comparación EXACTA de nombre, no
+      #    substring: "WodenTrackPRD" también aparece dentro de
+      #    "WodenTrackPRD-Worker") para no dejar el worker sin reiniciar en
+      #    despliegues normales (cuando la API ya existía y solo hacía falta
+      #    el "restart", el worker nunca se arrancaba). Desplegarqa
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -314,9 +341,11 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
-            if ($p) { pm2 restart WodenTrackPRD --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js };
+            "$procs = pm2 jlist | ConvertFrom-Json;
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD' }) { pm2 restart WodenTrackPRD --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD };
+            if ($procs | Where-Object { $_.name -eq 'WodenTrackPRD-Worker' }) { pm2 restart WodenTrackPRD-Worker --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD-Worker };
             pm2 save"
 
       # 8. Avisar por correo que el despliegue terminó bien — solo se llega
