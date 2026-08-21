@@ -73,6 +73,8 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest };
             pm2 describe WodenTrackTest-Worker *> $null;
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest-Worker };
+            Start-Sleep -Seconds 5;
+            Remove-Item -Recurse -Force 'C:\Users\Administrator\Documents\WodenTrackTest\dist' -ErrorAction SilentlyContinue;
             exit 0"
 
       # 5. Copiar backend compilado al servidor
@@ -250,6 +252,8 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD };
             pm2 describe WodenTrackPRD-Worker *> $null;
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD-Worker };
+            Start-Sleep -Seconds 5;
+            Remove-Item -Recurse -Force 'C:\Users\Administrator\Documents\WodenTrack_Prd\dist' -ErrorAction SilentlyContinue;
             exit 0"
 
       # 4. Copiar backend compilado al servidor
