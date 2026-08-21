@@ -278,7 +278,8 @@ jobs:
       #     copiaba dist/ — node_modules del servidor quedaba congelado desde
       #     la última vez que alguien corrió npm install a mano ahí, así que
       #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
-      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND.
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND. PRUEBAS TEST
+      
       - name: Instalar dependencias backend PROD
         uses: appleboy/ssh-action@master
         with:
