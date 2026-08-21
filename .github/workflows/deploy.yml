@@ -73,8 +73,8 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest };
             pm2 describe WodenTrackTest-Worker *> $null;
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest-Worker };
-            Start-Sleep -Seconds 5;
-            Remove-Item -Recurse -Force 'C:\Users\Administrator\Documents\WodenTrackTest\dist' -ErrorAction SilentlyContinue;
+            $distPath = 'C:\Users\Administrator\Documents\WodenTrackTest\dist';
+            if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
             exit 0"
 
       # 5. Copiar backend compilado al servidor
@@ -252,8 +252,8 @@ jobs:
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD };
             pm2 describe WodenTrackPRD-Worker *> $null;
             if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD-Worker };
-            Start-Sleep -Seconds 5;
-            Remove-Item -Recurse -Force 'C:\Users\Administrator\Documents\WodenTrack_Prd\dist' -ErrorAction SilentlyContinue;
+            $distPath = 'C:\Users\Administrator\Documents\WodenTrack_Prd\dist';
+            if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
             exit 0"
 
       # 4. Copiar backend compilado al servidor
