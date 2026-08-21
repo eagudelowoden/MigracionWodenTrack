@@ -256,10 +256,16 @@ const empresaSel = ref('Todas');
 let autoRefreshTimer = null;
 
 // Muestra a qué fechas equivale "Días a recalcular": desde (hoy - N) hasta ayer.
+// "Hoy" se calcula en hora Colombia (igual que fechaColombia() en el backend),
+// no con la fecha local del navegador — si no, cerca de medianoche esta vista
+// previa podría mostrar un día distinto al que el cron realmente recalcula.
 const rangoCron = computed(() => {
   const dias = Number(config.value?.dias_ventana) || 0;
+  const hoyBogota = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
+  );
   const fmt = (offset) => {
-    const d = new Date();
+    const d = new Date(hoyBogota);
     d.setDate(d.getDate() - offset);
     return d.toLocaleDateString('es-CO', {
       day: '2-digit', month: '2-digit', year: 'numeric',
@@ -280,7 +286,10 @@ const flash = (msg, error = false) => {
 const formatFecha = (f) => {
   if (!f) return '—';
   try {
+    // timeZone fijo: sin esto, se muestra en la zona horaria del navegador/
+    // dispositivo desde donde se está viendo la pantalla, no en hora Colombia.
     return new Date(f).toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });

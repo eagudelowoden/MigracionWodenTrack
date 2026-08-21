@@ -78,6 +78,30 @@
     </div>
   </Transition>
 
+  <!-- Sesión expirada por inactividad -->
+  <Transition name="fade">
+    <div v-if="sesionExpirada" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden"
+      style="background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);">
+      <div class="flex flex-col items-center gap-6 p-8 rounded-3xl border shadow-2xl max-w-sm w-full text-center"
+        :class="isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'">
+        <div class="flex flex-col items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center"
+            :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-500'">
+            <i class="fas fa-clock text-lg"></i>
+          </div>
+          <h2 class="text-lg font-black" :class="isDark ? 'text-white' : 'text-slate-900'">Tu sesión expiró</h2>
+          <p class="text-xs leading-relaxed" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+            Por seguridad, cerramos tu sesión tras un tiempo sin actividad. Ingresa de nuevo para continuar.
+          </p>
+        </div>
+        <button @click="cerrarAviso"
+          class="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-black uppercase text-xs tracking-wider hover:bg-blue-500 transition-all">
+          Ingresar de nuevo
+        </button>
+      </div>
+    </div>
+  </Transition>
+
   <main :class="{ 'pt-10 transition-all': anuncioSuperior || backendCaido }">
     <router-view />
   </main>
@@ -91,7 +115,7 @@ import { useInactividad } from './composables/useInactividad';
 import { useAttendance } from './composables/UserLogica/useAttendance.js';
 
 const { isDark } = useAttendance();
-useInactividad(10);
+const { sesionExpirada, cerrarAviso } = useInactividad(10);
 
 const nuevaActualizacion = ref(false);
 const anuncioInferior = ref(null);

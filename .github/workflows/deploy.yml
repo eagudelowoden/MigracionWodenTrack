@@ -3,15 +3,15 @@ name: Deploy WodenTrack V2
 on:
   push:
     branches:
-      - main
-      - test
+      - dagudelo/production
+      - dagudelo/qa
 
 jobs:
   # ─────────────────────────────────────────────
-  # DESPLIEGUE A TEST  (rama: test)
+  # DESPLIEGUE A TEST/QA  (rama: dagudelo/qa)
   # ─────────────────────────────────────────────
   deploy-test:
-    if: github.ref == 'refs/heads/test'
+    if: github.ref == 'refs/heads/dagudelo/qa'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codigo
@@ -20,23 +20,65 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      # 1. Compilar backend QA
-      - name: Compilar Backend QA
+      # 1. Correr pruebas unitarias del backend — si algo falla, el job para
+      #    aqui mismo y NADA de lo de abajo se ejecuta (ni build ni copia ni
+      #    reinicio). No se despliega codigo que no pasa sus propias pruebas.
+      - name: Pruebas unitarias Backend
         run: |
           cd backend
           npm install
+          npm test
+
+      # 2. Compilar backend QA
+      - name: Compilar Backend QA
+        run: |
+          cd backend
           npm run build:qa
 
-      # 2. Compilar frontend QA
+      # 3. Compilar frontend QA
+      #    frontend/.env.qa esta en .gitignore — el runner no lo tiene, hay
+      #    que escribirlo desde un secret antes de compilar (igual que prod).
+      - name: Escribir .env.qa del frontend
+        run: echo "${{ secrets.FRONTEND_ENV_QA }}" > frontend/.env.qa
+
       - name: Compilar Frontend QA
         run: |
           cd frontend
           npm install
           npm run build:qa
 
-      # 3. Copiar backend compilado al servidor
+      # 4. Detener PM2 ANTES de copiar: en Windows no se puede sobrescribir un
+      #    archivo que el proceso viejo todavia tiene abierto (a diferencia de
+      #    Linux). Si no se detiene primero, el tar de Windows (bsdtar) falla
+      #    al extraer con "Refusing to overwrite archive" sobre el archivo que
+      #    justo estaba bloqueado. Se detiene tambien el worker (mismo motivo,
+      #    y para que dist/worker.js tampoco quede bloqueado al copiar).
+      #    Se revisa cada proceso POR SEPARADO (comparación exacta via jlist):
+      #    "pm2 stop A B" sale con código de error si CUALQUIERA de los dos
+      #    nombres no existe (aunque sí pare el que sí existe), y eso tumbaba
+      #    todo el step en el primer despliegue tras agregar el worker, cuando
+      #    WodenTrackTest-Worker todavía no existía en el servidor.
+      - name: Detener PM2 TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "pm2 describe WodenTrackTest *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest };
+            pm2 describe WodenTrackTest-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackTest-Worker };
+            $distPath = 'C:\Users\Administrator\Documents\WodenTrackTest\dist';
+            if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
+            New-Item -ItemType Directory -Force -Path $distPath | Out-Null;
+            exit 0"
+
+      # 5. Copiar backend compilado al servidor
       - name: Copiar Backend dist a servidor TEST
         uses: appleboy/scp-action@master
         with:
@@ -46,9 +88,40 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrackTest/dist"
           strip_components: 2
-          overwrite: true
+          debug: true
 
-      # 4. Copiar frontend compilado al IIS
+      # 5b. Copiar package.json/package-lock.json — npm install (paso 5c) los
+      #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
+      #     junto a "dist", no adentro.
+      - name: Copiar package.json a servidor TEST
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/package.json,backend/package-lock.json"
+          target: "C:/Users/Administrator/Documents/WodenTrackTest"
+          strip_components: 1
+
+      # 5c. Instalar dependencias del backend en el servidor. El deploy solo
+      #     copiaba dist/ — node_modules del servidor quedaba congelado desde
+      #     la última vez que alguien corrió npm install a mano ahí, así que
+      #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND.
+      - name: Instalar dependencias backend TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            npm install --omit=dev;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
+      # 6. Copiar frontend compilado al IIS
       - name: Copiar Frontend dist a IIS TEST
         uses: appleboy/scp-action@master
         with:
@@ -58,10 +131,9 @@ jobs:
           source: "frontend/dist/*"
           target: "C:/inetpub/wwwroot/WodenTrackTest/dist"
           strip_components: 2
-          overwrite: true
 
-      # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
-      #    Si falla, el paso 6 (reiniciar PM2) nunca se ejecuta.
+      # 7. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      #    Si falla, los pasos 8 y 9 (reiniciar PM2, avisar) nunca se ejecutan.
       - name: Verificar esquema de base de datos TEST
         uses: appleboy/ssh-action@master
         with:
@@ -76,7 +148,16 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 6. Reiniciar PM2 en el servidor (solo si el paso 5 pasó)
+      # 8. Reiniciar PM2 en el servidor (solo si el paso 7 pasó)
+      #    Se fija NODE_ENV=qa explícitamente antes de "pm2 start" porque el
+      #    arranque en frío no tenía forma de saber qué .env.* cargar.
+      #    Ahora también maneja WodenTrackTest-Worker (el worker de horas
+      #    extra) como proceso PM2 propio, para que cada deploy lo renueve
+      #    igual que a la API — antes se lanzaba on-demand y quedaba
+      #    invisible para PM2, así que un despliegue nunca lo tocaba y podía
+      #    seguir corriendo código viejo indefinidamente.
+      #    HX_NO_SPAWN=1 en la API evita que, además, siga lanzando workers
+      #    on-demand por cada job ahora que hay un worker demonio.
       - name: Reiniciar PM2 TEST
         uses: appleboy/ssh-action@master
         with:
@@ -86,16 +167,36 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackTest';
-            if ($p) { pm2 restart WodenTrackTest --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest };
+            "pm2 describe WodenTrackTest *> $null; $existeApi = ($LASTEXITCODE -eq 0);
+            $env:NODE_ENV='qa'; $env:HX_NO_SPAWN='1';
+            if ($existeApi) { pm2 restart WodenTrackTest --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\main.js --name WodenTrackTest --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
+            $env:HX_NO_SPAWN=$null; $env:HX_WORKER='1';
+            pm2 describe WodenTrackTest-Worker *> $null; $existeWorker = ($LASTEXITCODE -eq 0);
+            if ($existeWorker) { pm2 restart WodenTrackTest-Worker --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrackTest\\dist\\worker.js --name WodenTrackTest-Worker --cwd C:\\Users\\Administrator\\Documents\\WodenTrackTest };
             pm2 save"
 
+      # 9. Avisar por correo que el despliegue terminó bien — solo se llega
+      #    aqui si TODO lo de arriba (pruebas, build, copia, esquema, PM2) pasó.
+      - name: Notificar despliegue exitoso TEST
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrackTest;
+            $env:NODE_ENV='qa';
+            node dist\\scripts\\notify-deploy.js"
+
   # ─────────────────────────────────────────────
-  # DESPLIEGUE A PRODUCCION  (rama: main)
+  # DESPLIEGUE A PRODUCCION  (rama: dagudelo/production)
   # ─────────────────────────────────────────────
   deploy-prod:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/dagudelo/production'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codigo
@@ -104,23 +205,61 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      # 1. Compilar backend PROD
-      - name: Compilar Backend PROD
+      # 1. Correr pruebas unitarias del backend — si algo falla, el job para
+      #    aqui mismo. No se despliega codigo que no pasa sus propias pruebas.
+      - name: Pruebas unitarias Backend
         run: |
           cd backend
           npm install
+          npm test
+
+      # 2. Compilar backend PROD
+      - name: Compilar Backend PROD
+        run: |
+          cd backend
           npm run build:prod
 
-      # 2. Compilar frontend PROD
+      # 3. Compilar frontend PROD
+      #    Vite incrusta las VITE_* en el bundle en tiempo de compilacion (no
+      #    en runtime), y .env.production del frontend esta en .gitignore, asi
+      #    que el runner de GitHub no lo tiene — hay que escribirlo desde un
+      #    secret antes de compilar, o VITE_API_URL queda undefined.
+      - name: Escribir .env.production del frontend
+        run: echo "${{ secrets.FRONTEND_ENV_PRODUCTION }}" > frontend/.env.production
+
       - name: Compilar Frontend PROD
         run: |
           cd frontend
           npm install
           npm run build
 
-      # 3. Copiar backend compilado al servidor
+      # 3b. Detener PM2 ANTES de copiar (mismo motivo que en TEST: Windows no
+      #     deja sobrescribir un archivo que el proceso viejo todavia tiene
+      #     abierto). Ahora que WodenTrackPRD-Worker es un proceso PM2 propio,
+      #     dist/worker.js tambien queda bloqueado mientras corre. Se revisa
+      #     cada proceso por separado (ver nota en "Detener PM2 TEST": "pm2
+      #     stop A B" falla entero si alguno de los dos no existe todavía).
+      - name: Detener PM2 PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "pm2 describe WodenTrackPRD *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD };
+            pm2 describe WodenTrackPRD-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 stop WodenTrackPRD-Worker };
+            $distPath = 'C:\Users\Administrator\Documents\WodenTrack_Prd\dist';
+            if (Test-Path $distPath) { for ($i = 0; $i -lt 6; $i++) { try { Remove-Item -Recurse -Force $distPath -ErrorAction Stop; break } catch { Start-Sleep -Seconds 3 } } };
+            New-Item -ItemType Directory -Force -Path $distPath | Out-Null;
+            exit 0"
+
+      # 4. Copiar backend compilado al servidor
       #    OJO: la carpeta real en el servidor es WodenTrack_Prd (no WodenTrackV2).
       - name: Copiar Backend dist a servidor PROD
         uses: appleboy/scp-action@master
@@ -131,11 +270,43 @@ jobs:
           source: "backend/dist/*"
           target: "C:/Users/Administrator/Documents/WodenTrack_Prd/dist"
           strip_components: 2
-          overwrite: true
+          debug: true
 
-      # 4. Copiar frontend compilado al IIS
-      #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ
-      #    (index.html/assets junto a web.config), sin subcarpeta "dist".
+      # 4b. Copiar package.json/package-lock.json — npm install (paso 4c) los
+      #     necesita para saber qué instalar. Van en la RAÍZ del servidor,
+      #     junto a "dist", no adentro.
+      - name: Copiar package.json a servidor PROD
+        uses: appleboy/scp-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/package.json,backend/package-lock.json"
+          target: "C:/Users/Administrator/Documents/WodenTrack_Prd"
+          strip_components: 1
+
+      # 4c. Instalar dependencias del backend en el servidor. El deploy solo
+      #     copiaba dist/ — node_modules del servidor quedaba congelado desde
+      #     la última vez que alguien corrió npm install a mano ahí, así que
+      #     cualquier dependencia nueva agregada al repo (ej. app-info-parser)
+      #     nunca llegaba sola y el proceso reventaba con MODULE_NOT_FOUND. PRUEBAS TEST
+
+      - name: Instalar dependencias backend PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrack_Prd;
+            npm install --omit=dev;
+            if ($LASTEXITCODE -ne 0) { exit 1 }"
+
+      # 5. Copiar frontend compilado al IIS
+      #    OJO: la carpeta real es WodenTrackPrd y los archivos van en la RAÍZ, QA
+      #    (index.html/assets junto a web.config), sin subcarpeta "dist". QA
       - name: Copiar Frontend dist a IIS PROD
         uses: appleboy/scp-action@master
         with:
@@ -145,13 +316,12 @@ jobs:
           source: "frontend/dist/*"
           target: "C:/inetpub/wwwroot/WodenTrackPrd"
           strip_components: 2
-          overwrite: true
 
-      # 5. Verificar esquema de base de datos ANTES de reiniciar el proceso.
+      # 6. Verificar esquema de base de datos ANTES de reiniciar el proceso. qa
       #    Si falta una tabla/columna, este paso termina en error y GitHub
-      #    Actions NUNCA ejecuta el paso 6 (reiniciar PM2) — el proceso viejo
-      #    sigue corriendo tal cual, y llega un correo de alerta (MAIL_ALERT_TO)
-      #    con el detalle de qué falta en la base de datos.
+      #    Actions NUNCA ejecuta los pasos 7 y 8 (reiniciar PM2, avisar) — el
+      #    proceso viejo sigue corriendo tal cual, y llega un correo de alerta
+      #    (MAIL_ALERT_TO) con el detalle de qué falta en la base de datos.
       - name: Verificar esquema de base de datos PROD
         uses: appleboy/ssh-action@master
         with:
@@ -166,7 +336,13 @@ jobs:
             node dist\\scripts\\verify-schema.js;
             if ($LASTEXITCODE -ne 0) { exit 1 }"
 
-      # 6. Reiniciar PM2 en el servidor (solo si el paso 5 pasó)
+      # 7. Reiniciar PM2 en el servidor (solo si el paso 6 pasó)
+      #    ecosystem.config.js define DOS procesos (API + Worker) — hay que
+      #    revisar cada uno por separado (comparación EXACTA de nombre, no
+      #    substring: "WodenTrackPRD" también aparece dentro de
+      #    "WodenTrackPRD-Worker") para no dejar el worker sin reiniciar en
+      #    despliegues normales (cuando la API ya existía y solo hacía falta
+      #    el "restart", el worker nunca se arrancaba). Desplegarqa
       - name: Reiniciar PM2 PROD
         uses: appleboy/ssh-action@master
         with:
@@ -176,7 +352,25 @@ jobs:
           command_timeout: 5m
           script: >-
             powershell -NoProfile -ExecutionPolicy Bypass -Command
-            "$p = pm2 list --no-color 2>&1 | Select-String 'WodenTrackPRD';
-            if ($p) { pm2 restart WodenTrackPRD --update-env }
-            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js };
+            "pm2 describe WodenTrackPRD *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 restart WodenTrackPRD --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD };
+            pm2 describe WodenTrackPRD-Worker *> $null;
+            if ($LASTEXITCODE -eq 0) { pm2 restart WodenTrackPRD-Worker --update-env }
+            else { pm2 start C:\\Users\\Administrator\\Documents\\WodenTrack_Prd\\ecosystem.config.js --only WodenTrackPRD-Worker };
             pm2 save"
+
+      # 8. Avisar por correo que el despliegue terminó bien — solo se llega
+      #    aqui si TODO lo de arriba (pruebas, build, copia, esquema, PM2) pasó.
+      - name: Notificar despliegue exitoso PROD
+        uses: appleboy/ssh-action@master
+        with:
+          host: 18.217.246.39
+          username: Administrator
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: >-
+            powershell -NoProfile -ExecutionPolicy Bypass -Command
+            "cd C:\\Users\\Administrator\\Documents\\WodenTrack_Prd;
+            $env:NODE_ENV='production';
+            node dist\\scripts\\notify-deploy.js"

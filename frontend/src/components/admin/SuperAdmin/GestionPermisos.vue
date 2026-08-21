@@ -114,14 +114,24 @@
                                                 {{ MODULO_LABELS[slug]?.desc ?? 'Acceso al módulo' }}
                                             </p>
                                         </div>
-                                        <label class="gp-toggle">
-                                            <input type="checkbox" :checked="hasPerm(slug)"
-                                                @change="emit('toggle-perm', { user: modelValue, slug })"
-                                                class="gp-toggle-input">
-                                            <span class="gp-toggle-track">
-                                                <span class="gp-toggle-thumb"></span>
-                                            </span>
-                                        </label>
+                                        <div class="gp-toggle-slot">
+                                            <i v-if="savingPermSlugs.has(slug)"
+                                                class="fas fa-circle-notch fa-spin gp-perm-spinner"></i>
+                                            <Transition v-else name="fade" mode="out-in">
+                                                <span v-if="permFeedback[slug]" class="gp-perm-feedback"
+                                                    :class="permFeedback[slug] === 'ok' ? 'is-ok' : 'is-err'">
+                                                    <i class="fas" :class="permFeedback[slug] === 'ok' ? 'fa-check' : 'fa-times'"></i>
+                                                </span>
+                                                <label v-else class="gp-toggle">
+                                                    <input type="checkbox" :checked="hasPerm(slug)"
+                                                        @change="emit('toggle-perm', { user: modelValue, slug })"
+                                                        class="gp-toggle-input">
+                                                    <span class="gp-toggle-track">
+                                                        <span class="gp-toggle-thumb"></span>
+                                                    </span>
+                                                </label>
+                                            </Transition>
+                                        </div>
                                     </li>
                                 </ul>
                             </Transition>
@@ -190,6 +200,11 @@ const props = defineProps({
     segmentos: Array,
     todosLosDepartamentos: Array,
     apiUrl: String,
+    // Set<string> de slugs guardándose ahora mismo, y { [slug]: 'ok'|'error' }
+    // con el resultado — el padre es quien hace el fetch real, esto solo
+    // pinta el estado en la fila correspondiente mientras dura.
+    savingPermSlugs: { type: Set, default: () => new Set() },
+    permFeedback: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['update:modelValue', 'toggle-perm', 'update-structure']);
@@ -839,6 +854,44 @@ const guardarDeptos = async () => {
 
 .gp-toggle-input:checked + .gp-toggle-track .gp-toggle-thumb {
     transform: translateX(14px);
+}
+
+/* Slot fijo de 32x18 (mismo tamaño del toggle) para que no salte el layout
+   al alternar entre toggle / spinner / check-x mientras se guarda. */
+.gp-toggle-slot {
+    width: 32px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gp-perm-spinner {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.gp-perm-feedback {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.gp-perm-feedback.is-ok {
+    background: var(--on-soft);
+    color: var(--on-text);
+}
+
+.gp-perm-feedback.is-err {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--danger);
 }
 
 /* ══════════════════════════════════════════════════════════════════

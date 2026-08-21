@@ -10,6 +10,13 @@ import { OdooService } from '../odoo/odoo.service';
 import { MailService } from '../logsEmail/mail.service';
 import { SuperAdminCorreoService } from '../usuarios/superadmin-correo.service';
 import * as ExcelJS from 'exceljs';
+import {
+  MAX_TURNO_MS,
+  addUnDia,
+  buildAttendancePair,
+  validarParHrAttendance,
+  Punch,
+} from './attendance-pairing';
 
 function getFechaColombiaHoy(): string {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -53,10 +60,8 @@ function overlap(s1: number, e1: number, s2: number, e2: number): number {
   return Math.max(0, Math.min(e1, e2) - Math.max(s1, s2));
 }
 
-// Duración máxima razonable de un turno (14h). Un emparejamiento entrada→salida
-// que supere esto es inválido: en realidad son la salida de un turno y la entrada
-// de otro (p. ej. 05:00 madrugada + 22:00 noche = 17h imposibles de un solo turno).
-const MAX_TURNO_MS = 14 * 60 * 60 * 1000;
+// MAX_TURNO_MS y addUnDia viven en './attendance-pairing' (algoritmo canónico
+// de emparejamiento entrada/salida), importados arriba.
 
 // Minutos nocturnos en el rango [start, end] (19:00-06:00 = 1140-1440 y 0-360)
 // Usado para RNDF, HENO, HEFN. La jornada nocturna inicia a las 19:00 conforme
@@ -336,6 +341,11 @@ export class HorasExtraService {
     return js === 0 ? 6 : js - 1; // 0=Lun...6=Dom
   }
 
+  // El algoritmo canónico de emparejamiento entrada/salida vive en
+  // `buildAttendancePair` (./attendance-pairing.ts), importado arriba — es
+  // una función pura, sin dependencias de esta clase, reutilizada tanto para
+  // agrupar attendance.log como para reparar pares inválidos de hr.attendance.
+
   // Tolerancia de 6 minutos para ignorar marcaciones mínimas
   private static readonly TOLERANCIA_MINS = 6;
 
@@ -420,8 +430,15 @@ export class HorasExtraService {
           result.hedo = toHex(minsDiurno(inMins, outMins));
           result.heno = toHex(minsNocturno(inMins, outMins));
         } else {
+          // dentroEnd usa finEfectivo (shiftEnd + retrasoMins), NO el shiftEnd
+          // original: mientras la persona no haya terminado de reponer su
+          // atraso, todo lo que trabaja sigue siendo jornada ORDINARIA (nada
+          // de extra) — así que si esas horas "ordinarias, solo que tarde"
+          // caen de noche, deben llevar recargo nocturno (RN, Ley 2466/2025)
+          // igual que si hubiera llegado a tiempo. Antes esto se limitaba al
+          // shiftEnd original y perdía el recargo de la porción repuesta.
           const dentroStart = Math.max(inMins, shiftStart);
-          const dentroEnd   = Math.min(outMins, shiftEnd);
+          const dentroEnd   = Math.min(outMins, finEfectivo);
           if (dentroEnd > dentroStart) {
             result.rn = toHex(minsRN(dentroStart, dentroEnd));
           }
@@ -430,6 +447,9 @@ export class HorasExtraService {
             result.hedo += toHex(minsDiurno(inMins, extraEnd));
             result.heno += toHex(minsNocturno(inMins, extraEnd));
           }
+          // Extra (HEDO/HENO) solo empieza DESPUÉS de terminar de reponer el
+          // atraso (finEfectivo) — recién ahí la persona está trabajando más
+          // allá de su jornada ordinaria.
           if (outMins > finEfectivo + TOLERANCIA) {
             const extraStart = Math.max(inMins, finEfectivo);
             result.hedo += toHex(minsDiurno(extraStart, outMins));
@@ -548,9 +568,12 @@ export class HorasExtraService {
         result.heno += toHex(minsNocturno(wStart, wEnd));
         return;
       }
-      // Recargo nocturno dentro del turno → RN (19:00-06:00)
+      // Recargo nocturno dentro del turno → RN (19:00-06:00). dentroEnd usa
+      // finEfectivo (no turnoEnd): mientras no termine de reponer el atraso
+      // sigue siendo jornada ordinaria, así que su porción nocturna lleva RN
+      // igual que si hubiera llegado a tiempo (ver nota en calcularCategorias).
       const dentroStart = Math.max(wStart, turnoStart!);
-      const dentroEnd   = Math.min(wEnd,   turnoEnd!);
+      const dentroEnd   = Math.min(wEnd, finEfectivo ?? turnoEnd!);
       if (dentroEnd > dentroStart) {
         result.rn += toHex(minsRN(dentroStart, dentroEnd));
       }
@@ -562,7 +585,8 @@ export class HorasExtraService {
           result.heno += toHex(minsNocturno(wStart, extraEnd));
         }
       }
-      // Extra después del fin efectivo → HEDO + HENO
+      // Extra después del fin efectivo → HEDO + HENO (recién ahí es jornada
+      // más allá de lo ordinario, ya repuesto el atraso si lo había).
       if (finEfectivo !== null && wEnd > finEfectivo + TOLERANCIA) {
         const extraStart = Math.max(wStart, finEfectivo);
         if (wEnd > extraStart) {
@@ -1030,7 +1054,7 @@ export class HorasExtraService {
 
     // Recopilar TODOS los punches biométricos por empleado (se llena página a
     // página); se ordenan cronológicamente una vez completa la descarga.
-    const allLogsByEmp = new Map<number, { localTime: string; rawTime: string; log: any }[]>();
+    const allLogsByEmp = new Map<number, Punch[]>();
     const totalLog = await this.odoo.searchReadAllStream<any>(
       'attendance.log',
       domainLog,
@@ -1067,8 +1091,8 @@ export class HorasExtraService {
 
     // Helpers disponibles en todo el método
     // Cache de resolverDetallesParaFecha por empId+fecha: se resuelve una vez
-    // durante el agrupado biométrico (getTurnoParaFecha) y se reutiliza al
-    // construir el HoraExtra final del mismo grupo, en vez de recalcularlo.
+    // (al clasificar el HoraExtra final del grupo) y se reutiliza si se
+    // vuelve a consultar la misma fecha.
     const detallesCache = new Map<string, any[]>();
     const getDetallesCached = (empId: number, fecha: string): any[] => {
       const key = `${empId}_${fecha}`;
@@ -1080,26 +1104,29 @@ export class HorasExtraService {
       }
       return det;
     };
-    const getTurnoParaFecha = (empId: number, fecha: string): any | null => {
-      const det = getDetallesCached(empId, fecha);
-      const dia = this.getDiaSemana(fecha);
-      return det
-        .filter((d: any) => Number(d.dia_semana) === dia)
-        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0] ?? null;
-    };
-    const esNocturnoTurno = (t: any | null): boolean =>
-      t !== null && Number(t.hora_fin) < Number(t.hora_inicio);
-    const addUnDia = (fecha: string): string => {
-      const [a, m, d] = fecha.split('-').map(Number);
-      const dt = new Date(a, m - 1, d + 1);
-      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+
+    // Fin programado (minutos desde medianoche) de la malla del empleado para
+    // `fecha`, o null si no tiene malla asignada ese día. Se le pasa a
+    // `buildAttendancePair` únicamente como señal auxiliar para distinguir un
+    // reintento de cierre de un turno nocturno real (ver doc de la función);
+    // no participa en ninguna otra decisión de pairing.
+    const finTurnoMinDelDia = (empId: number, fecha: string): number | null => {
+      const asigs = mallasMapEarly.get(empId) ?? [];
+      if (!asigs.length) return null;
+      const diaSemana = this.getDiaSemana(fecha);
+      const turno = getDetallesCached(empId, fecha)
+        .filter((d: any) => Number(d.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
+      return turno ? Number(turno.hora_fin) * 60 : null;
     };
 
-    // Agrupar biométrico: turno nocturno → empareja entrada(día N) con salida(día N+1)
-    const processedSalidaKeys = new Set<string>(); // keys ya consumidos como salida nocturna
+    // Agrupar biométrico usando el algoritmo CANÓNICO (construirParEntradaSalida):
+    // decide entrada/salida solo a partir de las marcaciones reales, en orden
+    // cronológico — la malla NO participa en esta decisión.
+    const processedSalidaKeys = new Set<string>(); // keys ya consumidos como salida de un turno anterior
     // Marcaciones (rawTime) ya usadas como salida de un turno anterior. Sirve para
     // NO reusar el punch de madrugada como si fuera una entrada del día siguiente,
-    // sin perder una entrada vespertina real de ese mismo día (turno nocturno extra).
+    // sin perder una entrada vespertina real de ese mismo día (turno extra).
     const consumedSalidaPunches = new Set<string>();
 
     for (const [empId, punches] of allLogsByEmp) {
@@ -1109,160 +1136,35 @@ export class HorasExtraService {
         const key = `${empId}_${fecha}`;
         if (grupos[key]) continue; // ya cubierto por hr.attendance
 
-        const turno = getTurnoParaFecha(empId, fecha);
-
-        // Marcaciones de ESTE día que aún no fueron consumidas como salida de un
-        // turno nocturno anterior (excluye la marcación de madrugada del turno previo).
-        const dayPunchesLibres = punches.filter(
-          (p) =>
-            p.localTime.split(' ')[0] === fecha &&
-            !consumedSalidaPunches.has(p.rawTime),
+        const par = buildAttendancePair(
+          fecha,
+          punches,
+          consumedSalidaPunches,
+          finTurnoMinDelDia(empId, fecha),
         );
+        if (!par) continue; // sin marcaciones libres ese día (ya consumidas por un turno anterior)
 
-        // Si este día solo fue la "salida" (madrugada) del turno nocturno anterior y
-        // no tiene turno nocturno propio, lo saltamos SOLO si no quedan marcaciones
-        // libres. Si quedan (p. ej. una entrada vespertina de un turno nocturno extra
-        // en sábado/domingo), seguimos procesando para no perder ese turno.
-        if (
-          processedSalidaKeys.has(key) &&
-          !esNocturnoTurno(turno) &&
-          dayPunchesLibres.length === 0
-        )
-          continue;
-
-        // ── Regla "primera marcación = entrada, última = salida" ─────────────────
-        // Si hay ≥ 2 marcaciones libres en el día y el span entre primera y última
-        // es MENOR a 14h, todo ocurrió dentro del mismo turno (aunque la malla
-        // diga nocturno): primera = entrada, última = salida.
-        // Si hay 1 sola marcación libre o el span ≥ 14h, el turno cruza medianoche
-        // y se aplica la lógica nocturna para buscar salida en `fecha+1`.
-        if (dayPunchesLibres.length >= 2) {
-          const primeroLibre = dayPunchesLibres[0];
-          const ultimoLibre  = dayPunchesLibres[dayPunchesLibres.length - 1];
-          const spanLibreMs  = new Date(ultimoLibre.rawTime).getTime()
-                             - new Date(primeroLibre.rawTime).getTime();
-
-          if (spanLibreMs < MAX_TURNO_MS) {
-            // Turno completo dentro del mismo día
-            const nombre = primeroLibre.log.employee_id?.[1] || 'Desconocido';
-            const dept   = primeroLibre.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
-            grupos[key] = {
-              empId, nombre, dept, fecha,
-              records: [{
-                employee_id: [empId, nombre],
-                check_in:  primeroLibre.rawTime,
-                check_out: spanLibreMs >= 60_000 ? ultimoLibre.rawTime : null,
-                department_id: null,
-              }],
-            };
-            continue;
-          }
-          // span ≥ 14h: el primer punch pertenece al turno anterior y el último es
-          // la entrada del turno nocturno propio → continúa con la lógica nocturna.
-        }
-
-        if (esNocturnoTurno(turno)) {
-          // Turno nocturno: entrada ≈ hora_inicio en `fecha`, salida en `fecha+1`
-          const inicioMins = Number(turno.hora_inicio) * 60;
-          const siguiente  = addUnDia(fecha);
-
-          const entrada = punches.find(p =>
-            p.localTime.split(' ')[0] === fecha &&
-            Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
-          );
-
-          if (entrada) {
-            // Salida: primer punch del día siguiente con gap entre 3h y 18h desde
-            // la entrada. No se busca "cerca del fin_turno" porque las horas extra
-            // extienden la salida real más allá del horario programado.
-            // Regla: gap ≥ 3h (turno mínimo real) y ≤ 18h (evita pairing con
-            // el turno nocturno del día siguiente ~22h después).
-            const entradaMs = new Date(entrada.rawTime).getTime();
-            const salida = punches.find(p => {
-              if (p.localTime.split(' ')[0] !== siguiente) return false;
-              const gapMs = new Date(p.rawTime).getTime() - entradaMs;
-              return gapMs >= 3 * 3_600_000 && gapMs <= 18 * 3_600_000;
-            });
-
-            const keySig = `${empId}_${siguiente}`;
-            // Marcar el día siguiente como "consumido" como salida de este turno y
-            // recordar la marcación exacta para no reusarla como entrada del día sig.
-            if (salida && !grupos[keySig]) {
-              processedSalidaKeys.add(keySig);
-              consumedSalidaPunches.add(salida.rawTime);
-            }
-
-            const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
-            const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
-
-            grupos[key] = {
-              empId, nombre, dept, fecha,
-              records: [{
-                employee_id: [empId, nombre],
-                check_in:  entrada.rawTime,
-                check_out: salida?.rawTime ?? null,
-                department_id: null,
-              }],
-            };
-            continue; // Procesado como nocturno: no caer en la rama diurna.
-          }
-          // No encontró punch en la ventana nocturna: el empleado realmente trabajó
-          // en horario diferente a su malla. Caer a la rama diurna para no perder
-          // esas marcaciones (p. ej. turno 22:00-06:00 pero punches a las 05:xx y 15:xx).
-        }
-
-        {
-          // Turno diurno, sin turno asignado (FEST/libre), o nocturno sin entrada en ventana.
-          const dayPunches = dayPunchesLibres;
-          if (!dayPunches.length) continue;
-
-          const primero   = dayPunches[0];
-          const ultimoDay = dayPunches[dayPunches.length - 1];
-          const spanMs = new Date(ultimoDay.rawTime).getTime() - new Date(primero.rawTime).getTime();
-
-          // span > 14h → primera = salida del turno anterior, última = entrada del turno nocturno nuevo.
-          const entrada = spanMs > MAX_TURNO_MS ? ultimoDay : primero;
-
-          // Buscar salida el día siguiente con gap 3h-18h desde la entrada.
-          // Aplica a días FEST/libre sin malla (no llegan al bloque nocturno) y a
-          // nocturno sin entrada en ventana que cayó aquí.
-          const siguiente  = addUnDia(fecha);
-          const entradaMs  = new Date(entrada.rawTime).getTime();
-          const salidaSig  = punches.find(p => {
-            if (p.localTime.split(' ')[0] !== siguiente) return false;
-            if (consumedSalidaPunches.has(p.rawTime)) return false;
-            const gapMs = new Date(p.rawTime).getTime() - entradaMs;
-            return gapMs >= 3 * 3_600_000 && gapMs <= 18 * 3_600_000;
-          });
-
+        if (par.salidaConsumida) {
+          const siguiente = addUnDia(fecha);
           const keySig = `${empId}_${siguiente}`;
-          if (salidaSig && !grupos[keySig]) {
+          if (!grupos[keySig]) {
             processedSalidaKeys.add(keySig);
-            consumedSalidaPunches.add(salidaSig.rawTime);
+            consumedSalidaPunches.add(par.salidaConsumida);
           }
-
-          // check_out: salida del día siguiente (turno cruza medianoche) o, si span ≤ 14h
-          // y hay ≥2 marcaciones en el mismo día, la última del día.
-          const checkOut: string | null =
-            salidaSig
-              ? salidaSig.rawTime
-              : (spanMs <= MAX_TURNO_MS && dayPunches.length > 1 && spanMs >= 60_000
-                  ? ultimoDay.rawTime
-                  : null);
-
-          const nombre = entrada.log.employee_id?.[1] || 'Desconocido';
-          const dept   = entrada.log.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
-
-          grupos[key] = {
-            empId, nombre, dept, fecha,
-            records: [{
-              employee_id: [empId, nombre],
-              check_in:  entrada.rawTime,
-              check_out: checkOut,
-              department_id: null,
-            }],
-          };
         }
+
+        const nombre = par.entradaLog?.employee_id?.[1] || 'Desconocido';
+        const dept   = par.entradaLog?.x_studio_related_field_j40wn?.[1] || 'SIN DEPTO';
+
+        grupos[key] = {
+          empId, nombre, dept, fecha,
+          records: [{
+            employee_id: [empId, nombre],
+            check_in:  par.checkIn,
+            check_out: par.checkOut,
+            department_id: null,
+          }],
+        };
       }
     }
 
@@ -1372,12 +1274,10 @@ export class HorasExtraService {
       // NOTA: ya no se hace `continue` por falta de malla ni por día sin turno.
       // El registro siempre se incluye; las horas extra se calculan solo cuando corresponde.
 
-      // `turno` se conserva tal cual para la corrección biométrica de turnos
-      // nocturnos (más abajo), que solo necesita ubicar la punch real cercana
-      // a la hora de la malla. Para clasificación de horas y para mostrar la
-      // "Jornada" en el reporte, en cambio, un festivo entre semana invalida
-      // el turno: todo el tiempo trabajado pasa a ser extra (HEDO/HENO u
-      // HEFD/HEFN según corresponda), no recargo dentro de turno (RN/RNDF/RDDF).
+      // Para clasificación de horas y para mostrar la "Jornada" en el reporte,
+      // un festivo entre semana invalida el turno: todo el tiempo trabajado
+      // pasa a ser extra (HEDO/HENO u HEFD/HEFN según corresponda), no recargo
+      // dentro de turno (RN/RNDF/RDDF).
       const turnoParaClasificar = esFestivoEntreSemana ? null : turno;
 
       // ── Entrada / salida desde hr.attendance (o biométrico sintético) ────────
@@ -1386,71 +1286,50 @@ export class HorasExtraService {
         ? this.toLocal(ultimoConSalida.check_out)
         : null;
 
-      // ── Turnos nocturnos: corregir con biométrico real ────────────────────────
-      // hr.attendance puede tener entrada/salida mal asignadas para turnos que cruzan
-      // medianoche (ej. registra 04:59→22:09 en vez de 22:09→05:00).
-      // La fuente de verdad para nocturnos es el biométrico: entrada ≈ hora_inicio
-      // en `fecha` y salida ≈ hora_fin en `fecha+1`.
-      if (turno && esNocturnoTurno(turno) && allLogsByEmp.has(empId)) {
-        const inicioMins = Number(turno.hora_inicio) * 60;
-        const finMins    = Number(turno.hora_fin)    * 60;
-        const siguiente  = addUnDia(fecha);
-        const punches    = allLogsByEmp.get(empId)!;
-
-        const entradaBio = punches.find(p =>
-          p.localTime.split(' ')[0] === fecha &&
-          Math.abs(this.parseMinutos(p.localTime) - inicioMins) <= 180,
-        );
-        const salidaBio = punches.find(p =>
-          p.localTime.split(' ')[0] === siguiente &&
-          Math.abs(this.parseMinutos(p.localTime) - finMins) <= 180,
-        );
-
-        if (entradaBio) {
-          localIn = entradaBio.localTime;
-          // Solo sobreescribir salida si el biométrico tiene la punch de salida;
-          // de lo contrario conservar el check_out de hr.attendance (ya asignado arriba).
-          if (salidaBio) localOut = salidaBio.localTime;
-        }
-      }
-
-      // ── Fallback biométrico general ───────────────────────────────────────────
-      // Si después de la corrección nocturna todavía no hay salida, intentar
-      // reconstruirla desde attendance.log sin importar el tipo de turno.
+      // ── Reconstrucción con marcaciones reales cuando el par de hr.attendance
+      // es inválido/incompleto ──────────────────────────────────────────────
+      // hr.attendance puede traer check_in sin check_out, un check_out que no
+      // corresponde con el check_in (duración ≤ 0), un "turno" absurdo (más de
+      // MAX_TURNO_MS — p. ej. registra 04:59→22:09 en vez de 22:09→05:00), o un
+      // par que ninguna marcación biométrica real respalda (`validarParHrAttendance`
+      // lo cruza contra attendance.log). Un par así NUNCA se usa tal cual.
       //
-      //  1. Turno DIURNO (o sin turno): buscar la última punch del mismo día
-      //     que sea al menos 10 minutos posterior a la entrada.
-      //  2. Turno NOCTURNO sin malla / sin turno definido pero entrada ≥ 19:00:
-      //     buscar la primera punch del día siguiente con hora ≤ 08:00.
-      if (!localOut && localIn && allLogsByEmp.has(empId)) {
-        const inFecha  = localIn.split(' ')[0];
-        const inMins   = this.parseMinutos(localIn);
-        const punches  = allLogsByEmp.get(empId)!;
-        const MAX_MIN  = MAX_TURNO_MS / 60000; // 840 min (14h)
+      // En cualquiera de esos casos NO se usa la malla para adivinar cuál
+      // marcación es la entrada/salida: se reconstruye el par con el MISMO
+      // algoritmo canónico (`buildAttendancePair`) que ya se usa para
+      // attendance.log, aplicado sobre las marcaciones reales del empleado —
+      // sin importar si el turno programado es nocturno, diurno o si no
+      // tiene malla asignada (`turno` no participa en esta decisión).
+      //
+      // Si el par ya es válido, NO se toca: un par correcto respaldado por
+      // marcaciones reales nunca debe reinterpretarse en función de la malla.
+      if (allLogsByEmp.has(empId)) {
+        const punches = allLogsByEmp.get(empId)!;
+        const validacion = validarParHrAttendance(localIn, localOut, punches);
 
-        // 1. Misma fecha: última punch posterior a la entrada (≥ 10 min después)
-        //    y que NO genere un turno imposible (> 14h). Si la única "salida" del
-        //    día está a más de 14h, en realidad es la entrada de un turno nocturno
-        //    distinto → no la usamos aquí (se cae al caso 2).
-        const salidaMismoDia = [...punches]
-          .filter(p =>
-            p.localTime.split(' ')[0] === inFecha &&
-            this.parseMinutos(p.localTime) >= inMins + 10 &&
-            this.parseMinutos(p.localTime) - inMins <= MAX_MIN,
-          )
-          .at(-1); // la más tardía del día válida
-
-        if (salidaMismoDia) {
-          localOut = salidaMismoDia.localTime;
-        } else if (inMins >= 1140) {
-          // 2. Entrada nocturna (≥ 19:00, jornada nocturna Ley 2466/2025) sin salida
-          //    ese día → buscar la salida en la madrugada del día siguiente (≤ 08:00).
-          const siguiente    = addUnDia(inFecha);
-          const salidaSigDia = punches.find(p =>
-            p.localTime.split(' ')[0] === siguiente &&
-            this.parseMinutos(p.localTime) <= 480, // ≤ 08:00
+        if (!validacion.valido) {
+          const par = buildAttendancePair(
+            fecha,
+            punches,
+            consumedSalidaPunches,
+            turno ? Number(turno.hora_fin) * 60 : null,
           );
-          if (salidaSigDia) localOut = salidaSigDia.localTime;
+          if (par) {
+            localIn = this.toLocal(par.checkIn);
+            localOut = par.checkOut ? this.toLocal(par.checkOut) : null;
+            if (par.salidaConsumida) {
+              const siguiente = addUnDia(fecha);
+              const keySig = `${empId}_${siguiente}`;
+              if (!grupos[keySig]) {
+                processedSalidaKeys.add(keySig);
+                consumedSalidaPunches.add(par.salidaConsumida);
+              }
+            }
+          }
+          // Si el algoritmo canónico tampoco encuentra marcaciones libres ese
+          // día (p. ej. no hay filas de attendance.log para esa fecha), se
+          // conserva el par original de hr.attendance tal cual, aunque sea
+          // inválido — no hay mejor información disponible y no se inventa.
         }
       }
 
@@ -1464,6 +1343,39 @@ export class HorasExtraService {
       const cargo =
         cargoOdooMap.get(empId) || cargoLocalMap.get(cedula) || null;
 
+      // ── Camino de respaldo ────────────────────────────────────────────────
+      // Cuando no hay malla, o cuando la entrada real llega MÁS DE 5 HORAS
+      // después del inicio programado (tan lejos que ya no tiene sentido
+      // medir tardanza/reposición contra ESA malla — a esa altura es
+      // prácticamente un turno aparte), la jornada ordinaria deja de anclarse
+      // a la malla y pasa a anclarse a la entrada real: límite = entrada +
+      // HORAS_EFECTIVAS_DEFAULT. Las horas dentro de esa ventana se siguen
+      // clasificando por franja horaria igual que siempre (RN si caen de
+      // noche, 19:00-06:00) — el recargo nocturno nunca se salta, esté en el
+      // camino que esté. Lo que exceda esa ventana es excedente y pasa por
+      // las reglas normales de HEDO/HENO más abajo (nunca autopago).
+      //
+      // NO aplica en festivo/domingo (`esFestivo`/`esFestivoEntreSemana`):
+      // esos días ya se calculan aparte (todo el tiempo trabajado es extra
+      // festivo) y no tienen concepto de "jornada ordinaria que cumplir".
+      const UMBRAL_CAMINO_RESPALDO_MINS = 5 * 60;
+      const HORAS_EFECTIVAS_DEFAULT = 7;
+      let turnoEfectivo = turno;
+      let enCaminoRespaldo = false;
+      if (!esFestivo && !esFestivoEntreSemana && localIn) {
+        const inMinsLocal = this.parseMinutos(localIn);
+        const llegoMuyTarde =
+          !!turno &&
+          inMinsLocal > Number(turno.hora_inicio) * 60 + UMBRAL_CAMINO_RESPALDO_MINS;
+        if (!turno || llegoMuyTarde) {
+          enCaminoRespaldo = true;
+          turnoEfectivo = {
+            hora_inicio: inMinsLocal / 60,
+            hora_fin: (inMinsLocal + HORAS_EFECTIVAS_DEFAULT * 60) / 60,
+          };
+        }
+      }
+
       // Siempre calcular si hay entrada y salida:
       //  - Con turno → RN dentro del turno + HEDO/HENO/HEFD/HEFN extras
       //  - Sin turno en festivo/domingo → HEFD/HEFN (todo el tiempo trabajado es extra festivo)
@@ -1471,9 +1383,11 @@ export class HorasExtraService {
       // Reposición por llegada tardía: si entró más de TOLERANCIA minutos después
       // del inicio del turno, debe reponer ese tiempo al final antes de contar extras.
       // Tolerancia = 6 min (llegar hasta 6 min tarde se acepta sin reposición).
+      // No aplica en el camino de respaldo: el turno efectivo ya arranca
+      // exactamente en la entrada real, así que no existe tardanza que reponer.
       const TOLERANCIA_REPOS = HorasExtraService.TOLERANCIA_MINS;
       let retrasoMins = 0;
-      if (turnoParaClasificar && localIn) {
+      if (!enCaminoRespaldo && turnoParaClasificar && localIn) {
         const shiftStartMins = Number(turnoParaClasificar.hora_inicio) * 60;
         const inMinsLocal    = this.parseMinutos(localIn);
         if (inMinsLocal > shiftStartMins + TOLERANCIA_REPOS) {
@@ -1484,7 +1398,7 @@ export class HorasExtraService {
       const debeCalcularExtras = true;
       const categorias = debeCalcularExtras
         ? this.calcularCategorias(
-            localIn, localOut, turno, esFestivo, esFestivoSiguiente, retrasoMins,
+            localIn, localOut, turnoEfectivo, esFestivo, esFestivoSiguiente, retrasoMins,
             esFestivoEntreSemana, esFestivoEntreSemanaSiguiente,
           )
         : { rn: 0, rndf: 0, rddf: 0, hedo: 0, heno: 0, hefd: 0, hefn: 0 };

@@ -1,0 +1,19 @@
+{
+  "current": {
+    "version": "3.1.6",
+    "versionCode": 3,
+    "uploadedAt": "2026-08-08T16:49:35.022Z"
+  },
+  "history": [
+    {
+      "version": "1.0",
+      "versionCode": 1,
+      "uploadedAt": "2026-08-08T16:31:10.143Z"
+    },
+    {
+      "version": "1.0",
+      "versionCode": 1,
+      "uploadedAt": "2026-08-08T16:31:09.417Z"
+    }
+  ]
+}

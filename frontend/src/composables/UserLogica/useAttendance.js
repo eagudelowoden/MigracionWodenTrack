@@ -162,6 +162,25 @@ export function useAttendance() {
     apkUpdate.value = null;
   };
 
+  // Los permisos se calculan UNA vez en el login y quedan cacheados en
+  // user_session — si un admin cambia un permiso mientras esta persona ya
+  // tiene sesión abierta, su navegador nunca se enteraba (no había forma de
+  // que se refrescara solo, había que cerrar sesión). Esto los refresca en
+  // cada carga de /marcacion sin necesidad de volver a loguearse.
+  const refreshPermisos = async (empId) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/permisos-sesion/${empId}`);
+      if (!res.ok) return;
+      const permisos = await res.json();
+      if (employee.value) {
+        employee.value.permisos = permisos;
+        localStorage.setItem("user_session", JSON.stringify(employee.value));
+      }
+    } catch (e) {
+      // Fallo silencioso — el usuario sigue viendo los permisos cacheados
+    }
+  };
+
   // action: 'in' | 'out'
   const handleAttendance = async (action) => {
     if (loading.value || !employee.value) return;
@@ -242,12 +261,14 @@ export function useAttendance() {
 
       employee.value = userData;
 
-      // Sincronizar estado real con Odoo, cargar malla y verificar APK en paralelo
+      // Sincronizar estado real con Odoo, cargar malla, verificar APK y
+      // refrescar permisos en paralelo
       if (userData.employee_id) {
         await Promise.allSettled([
           syncEstado(userData.employee_id),
           fetchMalla(userData.employee_id),
           checkApkUpdate(),
+          refreshPermisos(userData.employee_id),
         ]);
       }
     }

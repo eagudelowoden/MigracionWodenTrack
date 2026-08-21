@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Única personalización que tenía tailwind.config.js (v3): la fuente por
+   defecto. En v4 el theme se declara en CSS con @theme en vez del JS config. */
+@theme {
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+}
 
 :root {
   /* --- COLORES MAESTROS (Cámbialos aquí) --- */
