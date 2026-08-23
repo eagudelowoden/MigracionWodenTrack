@@ -23,6 +23,7 @@ import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponib
 import { WfsmModule } from './wfsm/wfsm.module';
 import { MarcacionEcuadorModule } from './marcacion-ecuador/marcacion-ecuador.module';
 import { CargaModule } from './common/carga/carga.module';
+import { DashboardAsistenciaModule } from './dashboard-asistencia/dashboard-asistencia.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { CargaModule } from './common/carga/carga.module';
     SistemaConfigModule,
     ApiExternaModule,
     HorasExtraModule,
+    DashboardAsistenciaModule,
     ScheduleModule.forRoot(),
     RecordatoriosModule,
     ModulosDisponiblesModule,

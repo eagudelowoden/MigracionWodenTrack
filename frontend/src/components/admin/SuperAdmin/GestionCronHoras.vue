@@ -53,7 +53,7 @@
     </p>
 
     <!-- Config -->
-    <div v-if="config" class="rounded-xl border p-5 space-y-4"
+    <div v-if="config" class="rounded-2xl border shadow-sm p-5 space-y-4"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <!-- Activo -->
@@ -164,7 +164,7 @@
     </div>
 
     <!-- Historial de corridas -->
-    <div class="rounded-xl border overflow-hidden"
+    <div class="rounded-2xl border shadow-sm overflow-hidden"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <div class="flex items-center justify-between px-5 py-3 border-b"
         :class="isDark ? 'border-[#222938]' : 'border-slate-200'">

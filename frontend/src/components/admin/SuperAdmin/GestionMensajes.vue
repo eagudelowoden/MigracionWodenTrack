@@ -7,7 +7,7 @@
       <div class="flex flex-col gap-2 overflow-hidden">
 
         <!-- Encabezado destinatarios -->
-        <div class="px-3 py-2.5 rounded-xl border shrink-0 flex items-center justify-between"
+        <div class="px-3 py-2.5 rounded-2xl border shadow-sm shrink-0 flex items-center justify-between"
           :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
           <div class="flex items-center gap-2">
             <div class="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -25,7 +25,7 @@
 
         <!-- Formulario agregar destinatario por cédula -->
         <div v-if="mostrarAgregar"
-          class="px-3 py-3 rounded-xl border shrink-0"
+          class="px-3 py-3 rounded-2xl border shadow-sm shrink-0"
           :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
           <div class="flex flex-col gap-2">
             <!-- Búsqueda por cédula -->
@@ -64,7 +64,7 @@
         </div>
 
         <!-- Lista destinatarios -->
-        <div class="flex-1 min-h-0 rounded-xl border overflow-y-auto"
+        <div class="flex-1 min-h-0 rounded-2xl border shadow-sm overflow-y-auto"
           :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
           <div v-if="!destinatarios.length" class="flex flex-col items-center justify-center h-full gap-2 py-8">
             <i class="fas fa-user-plus text-3xl opacity-10" :class="isDark ? 'text-white' : 'text-slate-400'"></i>
@@ -108,7 +108,7 @@
       </div>
 
       <!-- ── Panel derecho: chat ────────────────────────────────── -->
-      <div class="flex flex-col rounded-xl border overflow-hidden"
+      <div class="flex flex-col rounded-2xl border shadow-sm overflow-hidden"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
 
         <!-- Estado vacío -->

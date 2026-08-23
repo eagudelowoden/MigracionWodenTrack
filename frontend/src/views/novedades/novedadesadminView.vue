@@ -6,7 +6,7 @@
     <div v-else class="w-full h-full animate-fade-in transition-colors duration-500 flex flex-col gap-1.5">
 
       <!-- Header -->
-      <div class="flex items-center gap-2 px-3 py-2 rounded-md border shrink-0"
+      <div class="flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-sm shrink-0"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <div class="flex items-center gap-2 shrink-0">
@@ -46,7 +46,7 @@
       <div class="flex-1 flex gap-1.5 overflow-hidden min-h-0">
 
         <!-- Formulario -->
-        <div class="flex flex-col overflow-hidden rounded-md border transition-all duration-300 w-full"
+        <div class="flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 w-full"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
           <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
@@ -57,14 +57,10 @@
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
-                <div
-                  class="flex items-center gap-2.5 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
-                  :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-                  <i class="fas fa-user-circle text-[#3B82F6]/60 text-xs"></i>
-                  <input type="text" v-model="form.nombre" placeholder="Nombre completo..." required
-                    class="bg-transparent w-full font-semibold outline-none placeholder:text-slate-500 text-xs"
-                    :class="isDark ? 'text-white' : 'text-slate-800'" />
-                </div>
+                <IconField>
+                  <InputIcon class="pi pi-user" />
+                  <InputText v-model="form.nombre" placeholder="Nombre completo..." required class="w-full" />
+                </IconField>
               </div>
 
               <!-- Jefe de área -->
@@ -93,28 +89,20 @@
                 <div class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
-                  <div
-                    class="flex items-center gap-2 px-3 py-2 rounded-lg border focus-within:ring-1 focus-within:ring-[#3B82F6]/30 transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-                    <i class="fas fa-id-card text-[#3B82F6]/60 text-xs"></i>
-                    <input type="number" v-model="form.cedula" placeholder="N° identificación..." required
-                      class="bg-transparent w-full font-semibold outline-none placeholder:text-slate-500 text-xs"
-                      :class="isDark ? 'text-white' : 'text-slate-800'" />
-                  </div>
+                  <IconField>
+                    <InputIcon class="pi pi-id-card" />
+                    <InputText v-model="form.cedula" placeholder="N° identificación..." required class="w-full" />
+                  </IconField>
                 </div>
                 <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
-                  <input type="date" v-model="form.fechaInicio" required
-                    class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#222938] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+                  <DatePicker v-model="fechaInicioObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
                 </div>
                 <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
-                  <input type="date" v-model="form.fechaFin" required
-                    class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                    :class="isDark ? 'bg-[#161B26] border-[#222938] text-white [color-scheme:dark]' : 'bg-white border-slate-200 text-slate-800'" />
+                  <DatePicker v-model="fechaFinObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
                 </div>
               </div>
 
@@ -122,22 +110,16 @@
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Descripción</label>
-                <textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
-                  class="px-3 py-2.5 rounded-lg border text-xs font-medium outline-none resize-none transition-all placeholder:text-slate-500"
-                  :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
-                </textarea>
+                <Textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
+                  class="w-full" />
               </div>
 
               <!-- Tipificación -->
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipificación</label>
-                <select v-model="form.tipificacion" required
-                  class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all"
-                  :class="isDark ? 'bg-[#161B26] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-800'">
-                  <option value="" disabled>Seleccione el tipo de novedad...</option>
-                  <option v-for="tip in TIPIFICACIONES" :key="tip" :value="tip">{{ tip }}</option>
-                </select>
+                <Select v-model="form.tipificacion" :options="TIPIFICACIONES" required
+                  placeholder="Seleccione el tipo de novedad..." class="w-full" />
               </div>
 
               <!-- Último Día Trabajado (solo Renuncia) -->
@@ -146,9 +128,8 @@
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                     <i class="fas fa-calendar-xmark mr-1"></i>Último Día Trabajado
                   </label>
-                  <input type="date" v-model="form.ultimoDiaTrabajado" required
-                    class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30"
-                    :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white [color-scheme:dark]' : 'bg-white border-amber-400/50 text-slate-800'" />
+                  <DatePicker v-model="ultimoDiaTrabajadoObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+                    required class="w-full" />
                 </div>
               </transition>
 
@@ -160,36 +141,28 @@
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-tag mr-1"></i>Descuento
                     </label>
-                    <input type="text" v-model="form.renunciaDescuento" placeholder="Valor descuento..."
-                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
-                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                    <InputText v-model="form.renunciaDescuento" placeholder="Valor descuento..." class="w-full" />
                   </div>
                   <!-- Comisiones -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-coins mr-1"></i>Comisiones
                     </label>
-                    <input type="text" v-model="form.renunciaComisiones" placeholder="Valor comisiones..."
-                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
-                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                    <InputText v-model="form.renunciaComisiones" placeholder="Valor comisiones..." class="w-full" />
                   </div>
                   <!-- Horas Extra -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-clock mr-1"></i>Horas Extra
                     </label>
-                    <input type="text" v-model="form.renunciaHorasExtra" placeholder="Valor horas extra..."
-                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
-                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                    <InputText v-model="form.renunciaHorasExtra" placeholder="Valor horas extra..." class="w-full" />
                   </div>
                   <!-- Transporte -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-bus mr-1"></i>Transporte
                     </label>
-                    <input type="text" v-model="form.renunciaTransporte" placeholder="Valor transporte..."
-                      class="px-3 py-2 rounded-lg border text-xs font-semibold outline-none transition-all ring-1 ring-amber-500/30 placeholder:text-slate-500"
-                      :class="isDark ? 'bg-[#161B26] border-amber-500/40 text-white' : 'bg-white border-amber-400/50 text-slate-800'" />
+                    <InputText v-model="form.renunciaTransporte" placeholder="Valor transporte..." class="w-full" />
                   </div>
                 </div>
               </transition>
@@ -283,7 +256,13 @@
 
 <script setup>
 import { apiFetch } from '@/utils/apiFetch.js';
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Select from 'primevue/select';
+import DatePicker from 'primevue/datepicker';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import MisAprobacionesView from './MisAprobacionesView.vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
 import { useNovedades as useNovedadesUsuario } from '../../composables/adminLogica/useNovedadesUsuario';
@@ -304,6 +283,31 @@ const form = ref({
   nombre: '', cedula: '', descripcion: '', tipificacion: '',
   fechaInicio: '', fechaFin: '', ultimoDiaTrabajado: '',
   renunciaDescuento: '', renunciaComisiones: '', renunciaHorasExtra: '', renunciaTransporte: '',
+});
+
+// ── Puentes PrimeVue: form.fechaInicio/fechaFin/ultimoDiaTrabajado son
+// strings "YYYY-MM-DD" (se envían tal cual al backend en handleSubmit) —
+// DatePicker trabaja con Date/null.
+function strToDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function dateToStr(d) {
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const fechaInicioObj = computed({
+  get: () => strToDate(form.value.fechaInicio),
+  set: (d) => { form.value.fechaInicio = dateToStr(d); },
+});
+const fechaFinObj = computed({
+  get: () => strToDate(form.value.fechaFin),
+  set: (d) => { form.value.fechaFin = dateToStr(d); },
+});
+const ultimoDiaTrabajadoObj = computed({
+  get: () => strToDate(form.value.ultimoDiaTrabajado),
+  set: (d) => { form.value.ultimoDiaTrabajado = dateToStr(d); },
 });
 
 const TIPIFICACIONES = [

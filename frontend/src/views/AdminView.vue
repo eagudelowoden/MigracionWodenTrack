@@ -77,6 +77,19 @@
             class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.dashboard_asistencia']"
+          @click="router.push('/admin/dashboard-asistencia')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="route.path === '/admin/dashboard-asistencia'
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Dashboard Asistencia</span>
+          <div v-if="route.path === '/admin/dashboard-asistencia'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
+        </button>
+
       </nav>
 
       <!-- Otros accesos: admins NO superadmin (superadmin ya tiene Dev Nav completo).

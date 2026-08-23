@@ -72,6 +72,12 @@ const routes = [
         component: () => import("../views/novedades/NovedadesPanelView.vue"),
       },
       {
+        path: "dashboard-asistencia",
+        name: "AdminDashboardAsistencia",
+        meta: { permiso: "admin.dashboard_asistencia" },
+        component: () => import("../components/admin/ModuloDashboardAsistencia.vue"),
+      },
+      {
         path: "cargue-horas-ch",
         name: "CargueHorasCH",
         meta: { permiso: "horas.ver_cargue_ch" },

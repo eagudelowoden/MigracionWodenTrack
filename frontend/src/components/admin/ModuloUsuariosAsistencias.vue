@@ -2,7 +2,7 @@
   <div class="novedades-container-main h-full animate-in fade-in duration-500 flex flex-col gap-2">
 
     <!-- Toolbar (Vercel compacto) -->
-    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-2xl border shadow-sm"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex items-center gap-2">
@@ -52,46 +52,27 @@
         </button>
 
         <!-- Rango de fechas -->
-        <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border transition-all" :class="[
-          filterHoy ? 'opacity-40 pointer-events-none' : '',
-          isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'
-        ]">
-          <input v-model="startDate" type="date" @change="filterHoy = false"
-            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
-            :class="isDark ? 'text-white' : 'text-slate-700'">
-          <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
-          <input v-model="endDate" type="date" @change="filterHoy = false"
-            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
-            :class="isDark ? 'text-white' : 'text-slate-700'">
+        <div class="flex items-center gap-1.5 transition-all" :class="filterHoy ? 'opacity-40 pointer-events-none' : ''">
+          <DatePicker v-model="startDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+            inputClass="!h-7 !text-[11px] !w-[104px] !py-0" />
+          <span class="text-[10px] opacity-40" :class="isDark ? 'text-white' : 'text-slate-500'">→</span>
+          <DatePicker v-model="endDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+            inputClass="!h-7 !text-[11px] !w-[104px] !py-0" />
         </div>
 
         <!-- Departamento -->
         <template v-if="hasPerm('admin.filtro_departamento') || hasPerm('admin.ver_todo')">
-          <div class="relative">
-            <select v-model="selectedDepartment"
-              class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-36 transition-all"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-              <option value="">Todos los departamentos</option>
-              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-            </select>
-            <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-              :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          </div>
+          <Select v-model="departamentoSelectValue" :options="departments" filter showClear
+            placeholder="Todos los departamentos" inputClass="!h-7 !text-[11px]" style="width: 170px" />
         </template>
 
         <!-- Search -->
-        <div class="relative">
-          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-            :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          <input v-model="search" type="text" placeholder="Nombre o cédula…"
+        <IconField>
+          <InputIcon class="pi pi-search text-[10px]" />
+          <InputText v-model="search" placeholder="Nombre o cédula…"
             @keyup.enter="tabActiva === 'crudo' ? fetchCrudoDiagnostico() : fetchReporte()"
-            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-44 transition-all"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-              : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-        </div>
+            class="!h-7 !text-[11px]" style="width: 176px" />
+        </IconField>
 
         <!-- Acciones -->
         <div class="flex items-center gap-1.5 border-l pl-1.5 ml-0.5"
@@ -129,7 +110,7 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg" class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+    <div v-if="errorMsg" class="px-3 py-2 rounded-xl text-[11px] font-medium flex items-center gap-2 border" :class="isDark
       ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
       : 'bg-red-50 border-red-200 text-red-700'">
       <i class="fas fa-circle-exclamation text-[11px]"></i>
@@ -138,7 +119,7 @@
 
     <!-- Tabla -->
     <div v-if="tabActiva === 'odoo'"
-      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      class="table-wrapper flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -320,7 +301,7 @@
 
     <!-- ── TABLA MARCACIONES ECUADOR GPS ─────────────────────────────────── -->
     <div v-if="tabActiva === 'ecuador'"
-      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      class="table-wrapper flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -469,6 +450,11 @@
 import { apiFetch } from '@/utils/apiFetch.js';
 import axios from 'axios';
 import { onMounted, watch, ref, computed } from 'vue';
+import DatePicker from 'primevue/datepicker';
+import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
 import GestionDatosCrudos from './SuperAdmin/GestionDatosCrudos.vue';
@@ -506,6 +492,33 @@ const {
   loadingCrudo,
   fetchCrudoDiagnostico,
 } = cargarAsistencias;
+
+// ── Puentes PrimeVue ──────────────────────────────────────────────────────
+// startDate/endDate/selectedDepartment son strings (los consume tal cual el
+// composable compartido y GestionDatosCrudos vía :sharedState) — DatePicker y
+// Select de PrimeVue trabajan con Date/null, así que se traducen acá sin
+// tocar el tipo real de esos refs.
+function strToDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function dateToStr(d) {
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const startDateObj = computed({
+  get: () => strToDate(startDate.value),
+  set: (d) => { startDate.value = dateToStr(d); filterHoy.value = false; },
+});
+const endDateObj = computed({
+  get: () => strToDate(endDate.value),
+  set: (d) => { endDate.value = dateToStr(d); filterHoy.value = false; },
+});
+const departamentoSelectValue = computed({
+  get: () => selectedDepartment.value || null,
+  set: (v) => { selectedDepartment.value = v || ''; },
+});
 
 const crudoRef = ref(null);
 

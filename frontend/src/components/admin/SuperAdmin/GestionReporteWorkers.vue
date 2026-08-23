@@ -30,7 +30,7 @@
     </div>
 
     <!-- Tabla de activos -->
-    <div class="rounded-xl border overflow-hidden"
+    <div class="rounded-2xl border shadow-sm overflow-hidden"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <div class="flex items-center justify-between px-5 py-3 border-b"
         :class="isDark ? 'border-[#222938]' : 'border-slate-200'">

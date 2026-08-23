@@ -488,17 +488,21 @@ main.flex-1 {
   gap: 6px;
   height: 28px;
   padding: 0 11px;
+  outline: none;
   border-radius: 6px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.005em;
   text-transform: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
   border: 1px solid;
   cursor: pointer;
   font-family: 'Geist', 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
+  /* Relieve sutil (highlight arriba + sombra abajo) para que el botón se
+     sienta "con volumen" en vez de plano, en todos sus estados/colores. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .icon-box-smart {
@@ -557,9 +561,23 @@ main.flex-1 {
   border-color: #2563eb;
 }
 
+/* .theme-dark .btn-header-smart.out (arriba) tiene MÁS especificidad que
+   .btn-header-smart:disabled (3 clases vs. 2) — sin este override, el azul
+   le gana al gris "fantasma" aunque el botón esté deshabilitado. Repite el
+   mismo estilo fantasma genérico, con especificidad suficiente para ganarle. */
+.theme-dark .btn-header-smart.out:disabled {
+  background: transparent;
+  border-color: #222938;
+  color: #71717a;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
 .btn-header-smart:active:not(:disabled) {
   transform: scale(0.97);
   transition-duration: 0.08s;
+  /* Al presionar, el relieve se "hunde": se invierte el highlight superior. */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* Estado Desactivado (Vercel ghost) */
@@ -569,6 +587,7 @@ main.flex-1 {
   border-color: #222938;
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .theme-light .btn-header-smart:disabled,

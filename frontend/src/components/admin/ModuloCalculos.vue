@@ -147,7 +147,7 @@
       </button>
 
       <!-- ── Toolbar con filtros (Vercel) ───────────────────────────────── -->
-      <div class="rounded-md border" :class="isDark ? 'bg-[#273045] border-[#222938]' : 'bg-white border-slate-200'">
+      <div class="rounded-2xl border shadow-sm" :class="isDark ? 'bg-[#273045] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Sección filtros -->
         <div class="flex flex-wrap items-end gap-3 px-3 py-2.5">
@@ -157,22 +157,16 @@
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">
               Desde
             </label>
-            <input type="date" v-model="startDate"
-              class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+            <DatePicker v-model="startDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+              inputClass="!h-7 !text-[11px] !py-0 !w-[104px]" />
           </div>
 
           <div class="flex flex-col gap-1">
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Hasta
             </label>
-            <input type="date" v-model="endDate"
-              class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
+            <DatePicker v-model="endDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+              inputClass="!h-7 !text-[11px] !py-0 !w-[104px]" />
           </div>
 
           <!-- Separador visual -->
@@ -183,15 +177,10 @@
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Nombre / Cédula
             </label>
-            <div class="relative">
-              <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-                :class="isDark ? 'text-[#ffffff]' : 'text-slate-400'"></i>
-              <input v-model="filterNombre" type="text" placeholder="Buscar…"
-                class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 transition-all"
-                :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                  : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-            </div>
+            <IconField>
+              <InputIcon class="pi pi-search text-[10px]" />
+              <InputText v-model="filterNombre" placeholder="Buscar…" class="!h-7 !text-[11px]" style="width: 160px" />
+            </IconField>
           </div>
 
           <!-- Cargo -->
@@ -199,18 +188,8 @@
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Cargo
             </label>
-            <div class="relative">
-              <select v-model="filterCargo"
-                class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none w-40 cursor-pointer transition-all"
-                :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-                <option value="">Todos</option>
-                <option v-for="c in opcionesCargos" :key="c" :value="c">{{ c }}</option>
-              </select>
-              <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-                :class="isDark ? 'text-[#ffffff]' : 'text-slate-400'"></i>
-            </div>
+            <Select v-model="filterCargoValue" :options="opcionesCargos" filter showClear placeholder="Todos"
+              inputClass="!h-7 !text-[11px]" style="width: 160px" />
           </div>
 
           <!-- Departamento -->
@@ -218,18 +197,8 @@
             <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ffffff]' : 'text-slate-500'">
               Departamento
             </label>
-            <div class="relative">
-              <select v-model="filterDepartamento"
-                class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none w-44 cursor-pointer transition-all"
-                :class="isDark
-                  ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                  : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-                <option value="">Todos</option>
-                <option v-for="d in opcionesDepartamentos" :key="d" :value="d">{{ d }}</option>
-              </select>
-              <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-                :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-            </div>
+            <Select v-model="filterDepartamentoValue" :options="opcionesDepartamentos" filter showClear placeholder="Todos"
+              inputClass="!h-7 !text-[11px]" style="width: 176px" />
           </div>
 
           <!-- Toggle solo extras -->
@@ -258,7 +227,7 @@
     </div> -->
 
       <!-- ── Tabla (Vercel) ─────────────────────────────────────────────────── -->
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Overlay de carga centrado -->
@@ -759,7 +728,7 @@
           </div>
 
           <!-- Card principal -->
-          <div class="flex-1 rounded-md border flex flex-col overflow-hidden"
+          <div class="flex-1 rounded-2xl border shadow-sm flex flex-col overflow-hidden"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
             <!-- Drop zone -->
@@ -832,20 +801,18 @@
         <template v-else-if="activeCargueView === 'historial'">
 
           <!-- Toolbar -->
-          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
+          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-2xl border shadow-sm"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
             <div class="flex flex-col gap-1">
               <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Desde</label>
-              <input type="date" v-model="cargueStartDate"
-                class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-                :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6]'" />
+              <DatePicker v-model="cargueStartDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+                inputClass="!h-7 !text-[11px] !py-0 !w-[104px]" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-[10px] font-medium" :class="isDark ? 'text-[#ecedef]' : 'text-slate-500'">Hasta</label>
-              <input type="date" v-model="cargueEndDate"
-                class="h-7 px-2.5 text-[11px] font-medium rounded-[5px] border outline-none transition-all"
-                :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6]' : 'bg-white border-slate-200 text-slate-800 focus:border-[#3B82F6]'" />
+              <DatePicker v-model="cargueEndDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+                inputClass="!h-7 !text-[11px] !py-0 !w-[104px]" />
             </div>
             <button @click="handleCargarLotes" :disabled="cargueIsLoadingLotes"
               class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
@@ -872,7 +839,7 @@
           </div>
 
           <!-- Tabla de lotes -->
-          <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
+          <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
             <Transition name="fade-chip">
@@ -1085,7 +1052,7 @@
         </div>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Overlay carga / procesando -->
@@ -1476,7 +1443,7 @@
         </div>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Overlay carga / notificando -->
@@ -1617,7 +1584,7 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
         <Transition name="fade-chip">
@@ -2543,6 +2510,11 @@ const vClickOutside = {
   unmounted(el) { document.removeEventListener('click', el._clickOutsideHandler); },
 };
 import axios from 'axios';
+import DatePicker from 'primevue/datepicker';
+import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 import ComparativoHorasModal from './ComparativoHorasModal.vue';
@@ -2655,6 +2627,35 @@ const {
   clearSelection,
 } = useReporteMallas();
 
+// ── Puentes PrimeVue: startDate/endDate son strings "YYYY-MM-DD" que consume
+// el composable; DatePicker trabaja con Date/null. filterCargo/filterDepartamento
+// son strings "" para "Todos"; Select usa null para mostrar el placeholder.
+function strToDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function dateToStr(d) {
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const startDateObj = computed({
+  get: () => strToDate(startDate.value),
+  set: (d) => { startDate.value = dateToStr(d); },
+});
+const endDateObj = computed({
+  get: () => strToDate(endDate.value),
+  set: (d) => { endDate.value = dateToStr(d); },
+});
+const filterCargoValue = computed({
+  get: () => filterCargo.value || null,
+  set: (v) => { filterCargo.value = v || ''; },
+});
+const filterDepartamentoValue = computed({
+  get: () => filterDepartamento.value || null,
+  set: (v) => { filterDepartamento.value = v || ''; },
+});
+
 // ── Filtro de fecha tipo Excel (columna Fecha, tabla de Resultados) ─────────
 const mostrarFiltroFecha = ref(false);
 const busquedaFiltroFecha = ref('');
@@ -2755,6 +2756,15 @@ const {
   importResultado,
   importarExcel,
 } = useCargueHoras();
+
+const cargueStartDateObj = computed({
+  get: () => strToDate(cargueStartDate.value),
+  set: (d) => { cargueStartDate.value = dateToStr(d); },
+});
+const cargueEndDateObj = computed({
+  get: () => strToDate(cargueEndDate.value),
+  set: (d) => { cargueEndDate.value = dateToStr(d); },
+});
 
 const archivoSeleccionado = ref(null);
 const isDragOver = ref(false);

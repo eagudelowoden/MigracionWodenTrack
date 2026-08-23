@@ -11,6 +11,10 @@ export function useAttendance() {
   const form = reactive({ usuario: "", password: "" });
   const message = reactive({ text: "", type: "" });
   const isDark = ref(localStorage.getItem("theme") !== "light");
+  // Sincroniza <html class="dark"> con el estado propio de la app — PrimeVue
+  // (darkModeSelector: '.dark' en main.js) lo necesita para pintar sus
+  // componentes (DatePicker, Select, etc.) en modo oscuro/claro correctamente.
+  document.documentElement.classList.toggle("dark", isDark.value);
 
   // Estado de malla del día y actualización de APK
   const malla = ref(null);
@@ -23,6 +27,7 @@ export function useAttendance() {
   const toggleTheme = () => {
     isDark.value = !isDark.value;
     localStorage.setItem("theme", isDark.value ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", isDark.value);
   };
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
