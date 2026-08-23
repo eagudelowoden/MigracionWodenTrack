@@ -1,12 +1,61 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import { DashboardAsistenciaService } from './dashboard-asistencia.service';
-import { Pesado } from '../common/carga/pesado.decorator';
+import { AsistenciaResumenCronService } from './asistencia-resumen-cron.service';
 
 @Controller('dashboard-asistencia')
 export class DashboardAsistenciaController {
-  constructor(private readonly service: DashboardAsistenciaService) {}
+  constructor(
+    private readonly service: DashboardAsistenciaService,
+    private readonly resumenCron: AsistenciaResumenCronService,
+  ) {}
 
-  @Pesado()
+  @Get('resumen-cron/config')
+  async obtenerConfigCron() {
+    const config = await this.resumenCron.obtenerConfig();
+    return {
+      ...config,
+      proximaEjecucion: this.resumenCron.proximaEjecucion(),
+      procesando: this.resumenCron.estaProcesando(),
+    };
+  }
+
+  @Put('resumen-cron/config')
+  actualizarConfigCron(
+    @Body()
+    dto: {
+      hora?: number;
+      minuto?: number;
+      activo?: boolean;
+      dias_ventana?: number;
+      company?: string;
+      rango_fijo_desde?: string | null;
+      rango_fijo_hasta?: string | null;
+    },
+  ) {
+    return this.resumenCron.actualizarConfig(dto);
+  }
+
+  @Post('resumen-cron/ejecutar-ahora')
+  ejecutarAhoraCron(@Body() dto: { startDate?: string; endDate?: string; company?: string }) {
+    return this.resumenCron.ejecutarAhora(dto);
+  }
+
+  @Get('resumen-cron/estado')
+  estadoCron() {
+    return { procesando: this.resumenCron.estaProcesando() };
+  }
+
+  @Get('resumen-cron/logs')
+  obtenerLogsCron(@Query('limit') limit?: string) {
+    return this.resumenCron.obtenerLogs(limit ? Number(limit) : 20);
+  }
+
+  /** Botón de emergencia si "Procesando…" se queda pegado (worker colgado). */
+  @Post('resumen-cron/forzar-liberar')
+  forzarLiberarCron() {
+    return this.resumenCron.forzarLiberar();
+  }
+
   @Get('ranking-tardanzas')
   rankingTardanzas(
     @Query('startDate') startDate: string,
@@ -17,7 +66,6 @@ export class DashboardAsistenciaController {
     return this.service.rankingTardanzas(startDate, endDate, departamento, company);
   }
 
-  @Pesado()
   @Get('cumplimiento-por-area')
   cumplimientoPorArea(
     @Query('startDate') startDate: string,
@@ -27,7 +75,6 @@ export class DashboardAsistenciaController {
     return this.service.cumplimientoPorArea(startDate, endDate, company);
   }
 
-  @Pesado()
   @Get('tendencia-mensual')
   tendenciaMensual(
     @Query('startDate') startDate: string,
@@ -41,5 +88,92 @@ export class DashboardAsistenciaController {
   @Get('departamentos')
   departamentos(@Query('company') company?: string) {
     return this.service.departamentos(company);
+  }
+
+  @Get('detalle-dia')
+  detalleDia(
+    @Query('fecha') fecha: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.detalleDia(fecha, departamento, company);
+  }
+
+  @Get('estado-asistencia')
+  estadoAsistencia(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.estadoAsistencia(startDate, endDate, departamento, company);
+  }
+
+  @Get('tardanzas-por-area')
+  tardanzasPorArea(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.tardanzasPorArea(startDate, endDate, company);
+  }
+
+  @Get('tardanzas-por-dia')
+  tardanzasPorDia(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.tardanzasPorDia(startDate, endDate, departamento, company);
+  }
+
+  @Get('distribucion-minutos-tardanza')
+  distribucionMinutosTardanza(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.distribucionMinutosTardanza(startDate, endDate, departamento, company);
+  }
+
+  @Get('personas-atencion')
+  personasAtencion(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.personasAtencion(startDate, endDate, departamento, company);
+  }
+
+  @Get('personas-puntuales')
+  personasPuntuales(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.personasPuntuales(startDate, endDate, departamento, company);
+  }
+
+  @Get('calidad-marcaciones')
+  calidadMarcaciones(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.calidadMarcaciones(startDate, endDate, departamento, company);
+  }
+
+  @Get('horas-extra-por-area')
+  horasExtraPorArea(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.horasExtraPorArea(startDate, endDate, company);
   }
 }

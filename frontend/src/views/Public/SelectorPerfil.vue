@@ -3,23 +3,13 @@
     class="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden transition-colors duration-300 select-none"
     :class="isDark ? 'bg-[#1a1f35] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
 
-    <!-- FONDO UNIFICADO WODENTRACK -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <!-- Patrón de cuadrícula/puntos sutil -->
-      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
-        style="background-image: radial-gradient(#111827 1px, transparent 1px); background-size: 24px 24px;">
-      </div>
-
-      <!-- Resplandor 1: Azul institucional (Arriba a la izquierda) -->
-      <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-blue-500/10' : 'bg-blue-400/20'">
-      </div>
-
-      <!-- Resplandor 2: Naranja WodenTrack (Abajo a la derecha) -->
-      <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-[#e88710]/10' : 'bg-[#e88710]/15'">
-      </div>
-    </div>
+    <!-- Fondo: mallado disperso e irregular de líneas que se cruzan en ángulos
+         variados (estilo Kaspersky, igual que LoginView.vue), muy tenue. -->
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+        :stroke="isDark ? 'rgba(255,255,255,0.09)' : 'rgba(16,46,74,0.16)'" stroke-width="1"
+        vector-effect="non-scaling-stroke" /></svg>
 
     <!-- CONTENEDOR PRINCIPAL -->
     <div class="max-w-4xl w-full space-y-10 relative z-10 py-6">
@@ -164,6 +154,7 @@
 import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import { useAttendance } from '../../composables/UserLogica/useAttendance.js';
+import { bgLines } from '../../utils/bgLines.js';
 
 const router = useRouter();
 const session = ref(null);

@@ -78,54 +78,29 @@
       <div v-if="activeTab === 'calculos'" class="flex items-center gap-1.5">
 
         <!-- Toggle decimales / horas cerradas -->
-        <button @click="mostrarDecimales = !mostrarDecimales"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
-          :class="mostrarDecimales
-            ? (isDark ? 'bg-[#3B82F6]/15 border-[#3B82F6]/60 text-[#60A5FA]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/40 text-[#2563eb]')
-            : (isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800')"
-          :title="mostrarDecimales ? 'Mostrando medias horas (0.5). Clic para ver horas cerradas' : 'Mostrando horas cerradas (7). Clic para ver medias horas'">
-          <i class="fas fa-toggle-on text-[11px]" :class="mostrarDecimales ? '' : 'opacity-40 rotate-180'"></i>
-          <span>{{ mostrarDecimales ? 'Minutos' : 'Horas' }}</span>
-        </button>
+        <ToggleButton v-model="mostrarDecimales" onLabel="Minutos" offLabel="Horas" onIcon="pi pi-clock" offIcon="pi pi-clock"
+          size="small"
+          :title="mostrarDecimales ? 'Mostrando medias horas (0.5). Clic para ver horas cerradas' : 'Mostrando horas cerradas (7). Clic para ver medias horas'" />
 
-        <!-- Exportar -->
-        <button @click="handleExportar" :disabled="isExporting || !registros.length"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
-            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
-          <i :class="isExporting ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
-          <span>{{ isExporting ? 'Exportando…' : 'Exportar' }}</span>
-        </button>
+        <!-- Exportar — inverso: fondo blanco/letras negras en oscuro, fondo negro/letras blancas en claro -->
+        <Button @click="handleExportar" :disabled="isExporting || !registros.length"
+          :label="isExporting ? 'Exportando…' : 'Exportar'" :icon="isExporting ? 'pi pi-spin pi-spinner' : 'pi pi-file-excel'"
+          size="small" :class="isDark ? '!bg-white !text-black !border-white' : '!bg-black !text-white !border-black'" />
 
-        <!-- Consultar (lee el snapshot que dejó el cron en calculados_extras) -->
-        <button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'
-            : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60'">
-          <i :class="isCalculating ? 'fas fa-spinner fa-spin' : 'fas fa-magnifying-glass'" class="text-[10px]"></i>
-          <span>{{ isCalculating ? 'Consultando…' : 'Consultar' }}</span>
-        </button>
+        <!-- Consultar — mismo estilo inverso que Exportar -->
+        <Button @click="handleCalcular" :disabled="isCalculating || isSaving || isLoading"
+          :label="isCalculating ? 'Consultando…' : 'Consultar'" :icon="isCalculating ? 'pi pi-spin pi-spinner' : 'pi pi-search'"
+          size="small" :class="isDark ? '!bg-white !text-black !border-white' : '!bg-black !text-white !border-black'" />
 
-
-        <!-- Guardar (solo registros seleccionados) -->
-        <button @click="handleGuardar" :disabled="isSaving || isCalculating || !selectedRecords.length"
+        <!-- Guardar (solo registros seleccionados) — verde, letras blancas -->
+        <Button @click="handleGuardar" :disabled="isSaving || isCalculating || !selectedRecords.length"
           :title="!selectedRecords.length ? 'Selecciona al menos un registro para guardar' : ''"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563EB] hover:border-[#2563EB]">
-          <i :class="isSaving ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'" class="text-[10px]"></i>
-          <span v-if="isSaving">Guardando…</span>
-          <span v-else>Guardar ({{ selectedRecords.length }})</span>
-        </button>
+          :label="isSaving ? 'Guardando…' : `Guardar (${selectedRecords.length})`"
+          :icon="isSaving ? 'pi pi-spin pi-spinner' : 'pi pi-save'" severity="success" size="small" />
 
         <!-- Maximizar: muestra la tabla en pantalla completa -->
-        <button @click="tablaMaximizada = true" title="Ampliar a pantalla completa"
-          class="flex items-center justify-center h-7 w-7 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
-          :class="isDark
-            ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white hover:border-[#3B82F6]/40'
-            : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'">
-          <i class="fas fa-expand text-[10px]"></i>
-        </button>
+        <Button @click="tablaMaximizada = true" title="Ampliar a pantalla completa" icon="pi pi-window-maximize"
+          severity="secondary" outlined size="small" />
       </div>
     </div>
 
@@ -290,18 +265,18 @@
 
             <!-- Encabezado uniforme -->
             <thead class="sticky top-0 z-30">
-              <tr class="bg-[#1e2538]">
+              <tr class="bg-[#161B26]">
                 <!-- Checkbox select-all -->
-                <th rowspan="2" class="px-2 py-1.5 text-center border-b border-r w-8 border-[#f5f5f7]">
+                <th rowspan="2" class="px-2 py-1.5 text-center border-b border-r w-8 border-white/10">
                   <input type="checkbox" :checked="isAllFilteredSelected" :indeterminate="isIndeterminate"
                     @change="toggleAllFiltered" class="w-3.5 h-3.5 cursor-pointer accent-[#3B82F6]" />
                 </th>
                 <th colspan="2"
-                  class="px-3 py-1.5 text-left text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-left text-[10px] font-medium tracking-wide border-b border-r border-white/10 text-white">
                   Colaborador
                 </th>
                 <th
-                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7] relative">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-white/10 text-white relative">
                   <span class="inline-flex items-center gap-1.5">
                     Fecha
                     <button type="button" @click.stop="mostrarFiltroFecha ? cerrarFiltroFecha() : abrirFiltroFecha()"
@@ -365,32 +340,32 @@
                   </div>
                 </th>
                 <th colspan="2"
-                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-white/10 text-white">
                   Jornada
                 </th>
                 <th colspan="2"
-                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r border-white/10 text-white">
                   Tiempo laborado
                 </th>
                 <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                  class="px-2 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-2 py-1.5 text-center text-[10px] font-medium tracking-wide border-b border-r w-12 border-white/10 text-white">
                   {{ col }}
                 </th>
                 <th
-                  class="px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b w-20 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="sticky right-0 z-40 px-3 py-1.5 text-center text-[10px] font-medium tracking-wide border-b w-20 border-white/10 text-white bg-[#161B26]">
                   Aprobar
                 </th>
               </tr>
-              <tr class="bg-[#1e2538]">
-                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r w-28 border-[#f5f5f7] text-[#f5f5f7]">Cédula</th>
-                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">Nombre</th>
-                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-24 border-[#f5f5f7] text-[#f5f5f7]"></th>
-                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Inicio</th>
-                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Fin</th>
-                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Entrada</th>
-                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-[#f5f5f7] text-[#f5f5f7]">Salida</th>
-                <th v-for="_ in 7" :key="_" class="px-2 py-1 text-center text-[9px] font-normal border-b border-r border-[#f5f5f7] text-[#f5f5f7]">hrs</th>
-                <th class="px-3 py-1 border-b" :class="isDark ? 'border-[#f5f5f7]' : 'border-slate-200'"></th>
+              <tr class="bg-[#161B26]">
+                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r w-28 border-white/10 text-white">Cédula</th>
+                <th class="px-3 py-1 text-left text-[9px] font-normal border-b border-r border-white/10 text-white">Nombre</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-24 border-white/10 text-white"></th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-white/10 text-white">Inicio</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-white/10 text-white">Fin</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-white/10 text-white">Entrada</th>
+                <th class="px-3 py-1 text-center text-[9px] font-normal border-b border-r w-20 border-white/10 text-white">Salida</th>
+                <th v-for="_ in 7" :key="_" class="px-2 py-1 text-center text-[9px] font-normal border-b border-r border-white/10 text-white">hrs</th>
+                <th class="sticky right-0 z-40 px-3 py-1 border-b bg-[#161B26]" :class="isDark ? 'border-white/10' : 'border-slate-200'"></th>
               </tr>
             </thead>
 
@@ -529,7 +504,9 @@
                   <td colspan="16" class="px-4 py-2 text-[10px] font-medium border-b" :class="isDark
                     ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]'
                     : 'bg-slate-100 border-slate-200 text-slate-700'">
-                    <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                    <span class="sticky left-4 inline-block">
+                      <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                    </span>
                   </td>
                 </tr>
 
@@ -600,28 +577,22 @@
                     {{ fmtCalculo(item.data[col]) }}
                   </td>
 
-                  <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <td class="sticky right-0 z-10 px-2 py-2 border-b text-center" :class="[
+                    isDark ? 'border-[#222938]' : 'border-slate-100',
+                    idx % 2 !== 0
+                      ? (isDark ? 'bg-white/[0.03]' : 'bg-slate-50/60')
+                      : (isDark ? 'bg-[#161B26]' : 'bg-white'),
+                    isDark ? 'group-hover:bg-white/[0.06]' : 'group-hover:bg-white/[0.03]'
+                  ]">
                     <div class="flex items-center justify-center gap-1">
-                      <button @click="abrirModalAprobar(item.data, true)" :disabled="!item.data.id"
-                        :title="!item.data.id ? 'Guarda los registros primero' : ''"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
-                        :class="item.data.aprobado === true
-                          ? 'bg-[#16a34a] border-[#16a34a] text-white'
-                          : (isDark
-                            ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40'
-                            : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')">
-                        <i class="fas fa-check text-[9px]"></i>
-                      </button>
-                      <button @click="abrirModalAprobar(item.data, false)" :disabled="!item.data.id"
-                        :title="!item.data.id ? 'Guarda los registros primero' : ''"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border disabled:opacity-30 disabled:cursor-not-allowed"
-                        :class="item.data.aprobado === false
-                          ? 'bg-[#dc2626] border-[#dc2626] text-white'
-                          : (isDark
-                            ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
-                            : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')">
-                        <i class="fas fa-times text-[9px]"></i>
-                      </button>
+                      <Button @click="abrirModalAprobar(item.data, true)" :disabled="!item.data.id"
+                        :title="!item.data.id ? 'Guarda los registros primero' : ''" icon="pi pi-check" rounded size="small"
+                        :severity="item.data.aprobado === true ? 'success' : 'secondary'"
+                        :outlined="item.data.aprobado !== true" />
+                      <Button @click="abrirModalAprobar(item.data, false)" :disabled="!item.data.id"
+                        :title="!item.data.id ? 'Guarda los registros primero' : ''" icon="pi pi-times" rounded size="small"
+                        :severity="item.data.aprobado === false ? 'danger' : 'secondary'"
+                        :outlined="item.data.aprobado !== false" />
                     </div>
                   </td>
                 </tr>
@@ -631,7 +602,7 @@
                   <td colspan="8" class="px-3 py-2 border-b border-r text-[10px] font-medium" :class="isDark
                     ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]'
                     : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                    Subtotal — {{ item.data.nombre }}
+                    <span class="sticky left-3 inline-block">Subtotal — {{ item.data.nombre }}</span>
                   </td>
                   <td v-for="col in COLS_HX" :key="col"
                     class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold" :class="isDark
@@ -639,8 +610,8 @@
                       : 'bg-blue-50/50 border-slate-200 text-blue-700'">
                     {{ fmtCalculo(item.data.subtotales[col]) }}
                   </td>
-                  <td class="border-b"
-                    :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938]' : 'bg-blue-50/50 border-slate-200'">
+                  <td class="sticky right-0 z-10 border-b"
+                    :class="isDark ? 'bg-[#1e293b] border-[#222938]' : 'bg-blue-100 border-slate-200'">
                   </td>
                 </tr>
 
@@ -657,24 +628,14 @@
             {{ totalRegistros === 1 ? 'registro' : 'registros' }}
           </span>
           <div class="flex items-center gap-1.5">
-            <button @click="currentPage--" :disabled="currentPage === 1"
-              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-              :class="isDark
-                ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-              <i class="fas fa-chevron-left text-[9px]"></i>
-            </button>
+            <Button @click="currentPage--" :disabled="currentPage === 1" icon="pi pi-chevron-left"
+              severity="secondary" outlined size="small" />
             <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
               :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
               {{ currentPage }} / {{ totalPages }}
             </div>
-            <button @click="currentPage++" :disabled="currentPage >= totalPages"
-              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-              :class="isDark
-                ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-              <i class="fas fa-chevron-right text-[9px]"></i>
-            </button>
+            <Button @click="currentPage++" :disabled="currentPage >= totalPages" icon="pi pi-chevron-right"
+              severity="secondary" outlined size="small" />
           </div>
         </div>
       </div>
@@ -709,16 +670,11 @@
         <template v-if="activeCargueView === 'upload'">
 
           <!-- Toolbar -->
-          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-md border"
+          <div class="flex items-center gap-2 flex-wrap p-2.5 rounded-2xl border shadow-sm"
             :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-            <button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
-              class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 border"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-              <i :class="isExportingPlantilla ? 'fas fa-spinner fa-spin' : 'fas fa-download'" class="text-[10px]"></i>
-              Descargar plantilla
-            </button>
+            <Button @click="handleDescargarPlantilla" :disabled="isExportingPlantilla"
+              label="Descargar plantilla" :icon="isExportingPlantilla ? 'pi pi-spin pi-spinner' : 'pi pi-download'"
+              severity="secondary" outlined size="small" />
             <div class="flex-1 flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-[5px] border min-w-[280px]"
               :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#888888]' : 'bg-slate-50 border-slate-200 text-slate-500'">
               <i class="fas fa-circle-info text-[10px] text-[#3B82F6]"></i>
@@ -764,12 +720,8 @@
                 </p>
               </div>
 
-              <button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null"
-                class="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors" :class="isDark
-                  ? 'border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#f87171]/40'
-                  : 'border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300'">
-                <i class="fas fa-times mr-1 text-[9px]"></i>Quitar
-              </button>
+              <Button v-if="archivoSeleccionado" @click.stop="archivoSeleccionado = null" label="Quitar"
+                icon="pi pi-times" severity="danger" text size="small" />
             </div>
 
             <!-- Mensajes de estado -->
@@ -787,11 +739,9 @@
             <!-- Footer -->
             <div class="px-4 py-2.5 border-t flex items-center justify-end"
               :class="isDark ? 'border-[#222938] bg-[#0B0F19]/40' : 'border-slate-200 bg-slate-50/60'">
-              <button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40 bg-[#3B82F6] hover:bg-[#2563EB] text-white">
-                <i :class="isUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'" class="text-[10px]"></i>
-                {{ isUploading ? 'Guardando…' : 'Guardar cargue' }}
-              </button>
+              <Button @click="handleSubirExcel" :disabled="!archivoSeleccionado || isUploading"
+                :label="isUploading ? 'Guardando…' : 'Guardar cargue'"
+                :icon="isUploading ? 'pi pi-spin pi-spinner' : 'pi pi-cloud-upload'" size="small" />
             </div>
           </div>
         </template>
@@ -814,23 +764,14 @@
               <DatePicker v-model="cargueEndDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
                 inputClass="!h-7 !text-[11px] !py-0 !w-[104px]" />
             </div>
-            <button @click="handleCargarLotes" :disabled="cargueIsLoadingLotes"
-              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
-              :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
-              <i :class="cargueIsLoadingLotes ? 'fas fa-spinner fa-spin' : 'fas fa-arrows-rotate'"
-                class="text-[10px]"></i>
-              Buscar
-            </button>
+            <Button @click="handleCargarLotes" :disabled="cargueIsLoadingLotes" label="Buscar" class="self-end"
+              :icon="cargueIsLoadingLotes ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'" severity="secondary" outlined size="small" />
 
             <!-- Notificar seleccionados -->
-            <button v-if="lotesSeleccionadosCargue.size > 0" @click="handleNotificarLotesSeleccionados"
-              :disabled="notificandoLotesMasivo"
-              class="self-end flex items-center gap-1.5 h-7 px-3 rounded-[5px] text-[11px] font-medium transition-all disabled:opacity-40 border"
-              :class="isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'">
-              <i :class="notificandoLotesMasivo ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'"
-                class="text-[9px]"></i>
-              {{ notificandoLotesMasivo ? 'Enviando…' : `Notificar (${lotesSeleccionadosCargue.size})` }}
-            </button>
+            <Button v-if="lotesSeleccionadosCargue.size > 0" @click="handleNotificarLotesSeleccionados"
+              :disabled="notificandoLotesMasivo" class="self-end"
+              :label="notificandoLotesMasivo ? 'Enviando…' : `Notificar (${lotesSeleccionadosCargue.size})`"
+              :icon="notificandoLotesMasivo ? 'pi pi-spin pi-spinner' : 'pi pi-send'" severity="success" outlined size="small" />
 
             <span class="self-end text-[11px] ml-auto" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
               <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ cargueGruposLotes.length
@@ -886,29 +827,29 @@
             <div v-else class="flex-1 overflow-y-auto">
               <table class="w-full border-separate border-spacing-0 text-[11px]">
                 <thead class="sticky top-0 z-10">
-                  <tr class="bg-[#1e2538]">
+                  <tr class="bg-[#161B26]">
                     <th class="w-9 px-3 py-2.5 border-b border-[#2a3245]">
                       <input type="checkbox" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer"
                         :checked="cargueGruposLotes.length > 0 && lotesSeleccionadosCargue.size === cargueGruposLotes.length"
                         @change="toggleSelectAllLotes" />
                     </th>
                     <th
-                      class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                       Período</th>
                     <th
-                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                       Origen</th>
                     <th
-                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                       Registros</th>
                     <th
-                      class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                       Cargado por</th>
                     <th
-                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                       Fecha cargue</th>
                     <th
-                      class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                      class="sticky right-0 z-40 px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white bg-[#161B26]">
                       Acciones</th>
                   </tr>
                 </thead>
@@ -958,23 +899,21 @@
                       {{ fmtDatetimeLote(lote.created_at) }}
                     </td>
 
-                    <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'"
-                      @click.stop>
+                    <td class="sticky right-0 z-10 px-3 py-3 border-b" :class="[
+                      isDark ? 'border-[#222938]' : 'border-slate-100',
+                      lotesSeleccionadosCargue.has(lote.lote_id)
+                        ? (isDark ? 'bg-[#1c2942]' : 'bg-blue-50')
+                        : (idx % 2 !== 0 ? (isDark ? 'bg-[#181f2e]' : 'bg-slate-50') : (isDark ? 'bg-[#161B26]' : 'bg-white'))
+                    ]" @click.stop>
                       <div class="flex items-center justify-center gap-1.5">
                         <!-- Ver registros -->
-                        <button @click="abrirRegistrosCargue(lote)"
-                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
-                          :class="isDark ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10' : 'border-blue-300 text-blue-700 hover:bg-blue-50'">
-                          <i class="fas fa-table text-[9px]"></i> Ver registros
-                        </button>
-                        <button @click="handleNotificarLoteIndividual(lote)"
+                        <Button @click="abrirRegistrosCargue(lote)" label="Ver registros" icon="pi pi-table"
+                          severity="info" outlined size="small" />
+                        <Button @click="handleNotificarLoteIndividual(lote)"
                           :disabled="notificandoLoteIdCargue === lote.lote_id"
-                          class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all disabled:opacity-40"
-                          :class="isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'">
-                          <i :class="notificandoLoteIdCargue === lote.lote_id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"
-                            class="text-[9px]"></i>
-                          {{ notificandoLoteIdCargue === lote.lote_id ? 'Enviando…' : 'Notificar' }}
-                        </button>
+                          :label="notificandoLoteIdCargue === lote.lote_id ? 'Enviando…' : 'Notificar'"
+                          :icon="notificandoLoteIdCargue === lote.lote_id ? 'pi pi-spin pi-spinner' : 'pi pi-envelope'"
+                          severity="success" outlined size="small" />
                       </div>
                     </td>
                   </tr>
@@ -1006,49 +945,27 @@
         <div class="ml-auto flex items-center gap-1.5 flex-wrap">
           <!-- Acciones masivas: solo visibles cuando hay selección -->
           <template v-if="selectedGuardados.size > 0">
-            <!-- Limpiar -->
-            <button @click="clearSeleccionGuardados"
-              class="h-7 px-2 rounded-[5px] border text-[11px] font-medium transition-all"
-              :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
-              <i class="fas fa-xmark text-[9px]"></i> Limpiar
-            </button>
-            <!-- Aprobar seleccionados -->
-            <button @click="aprobarSeleccionadosGuardados(true)" :disabled="bulkGuardandoAprobacion"
-              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
-              :class="isDark ? 'bg-[#16a34a]/10 border-[#16a34a]/40 text-[#4ade80] hover:bg-[#16a34a]/20' : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'">
-              <i :class="bulkGuardandoAprobacion ? 'fas fa-spinner fa-spin' : 'fas fa-check'" class="text-[9px]"></i>
-              Aprobar ({{ selectedGuardados.size }})
-            </button>
-            <!-- Rechazar seleccionados -->
-            <button @click="aprobarSeleccionadosGuardados(false)" :disabled="bulkGuardandoAprobacion"
-              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
-              :class="isDark ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#f87171] hover:bg-[#dc2626]/20' : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'">
-              <i class="fas fa-times text-[9px]"></i>
-              Rechazar ({{ selectedGuardados.size }})
-            </button>
-            <!-- Eliminar seleccionados -->
-            <button @click="eliminarSeleccionadosGuardados" :disabled="bulkEliminandoGuardados"
-              class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all disabled:opacity-40"
-              :class="isDark ? 'bg-[#dc2626]/10 border-[#dc2626]/40 text-[#f87171] hover:bg-[#dc2626]/20' : 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'">
-              <i :class="bulkEliminandoGuardados ? 'fas fa-spinner fa-spin' : 'fas fa-trash'" class="text-[9px]"></i>
-              Eliminar ({{ selectedGuardados.size }})
-            </button>
+            <Button @click="clearSeleccionGuardados" label="Limpiar" icon="pi pi-times"
+              severity="secondary" text size="small" />
+            <Button @click="aprobarSeleccionadosGuardados(true)" :disabled="bulkGuardandoAprobacion"
+              :label="`Aprobar (${selectedGuardados.size})`" :icon="bulkGuardandoAprobacion ? 'pi pi-spin pi-spinner' : 'pi pi-check'"
+              severity="success" outlined size="small" />
+            <Button @click="aprobarSeleccionadosGuardados(false)" :disabled="bulkGuardandoAprobacion"
+              :label="`Rechazar (${selectedGuardados.size})`" icon="pi pi-times"
+              severity="danger" outlined size="small" />
+            <Button @click="eliminarSeleccionadosGuardados" :disabled="bulkEliminandoGuardados"
+              :label="`Eliminar (${selectedGuardados.size})`" :icon="bulkEliminandoGuardados ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"
+              severity="danger" outlined size="small" />
           </template>
 
           <!-- Obs. grupal por fecha -->
-          <button v-if="fechasUnicasGuardados.length" @click="abrirObsGrupal()"
-            class="h-7 px-3 rounded-[5px] border text-[11px] font-medium flex items-center gap-1.5 transition-all"
-            :class="isDark ? 'bg-[#161B26] border-amber-500/30 text-amber-400 hover:bg-amber-500/10' : 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50'"
-            title="Agregar observación/justificación a todos los registros de una fecha">
-            <i class="fas fa-pen-to-square text-[9px]"></i> Obs. por fecha
-          </button>
+          <Button v-if="fechasUnicasGuardados.length" @click="abrirObsGrupal()" label="Obs. por fecha"
+            icon="pi pi-pencil" severity="warn" outlined size="small"
+            title="Agregar observación/justificación a todos los registros de una fecha" />
 
           <!-- Buscar -->
-          <button @click="handleTabGuardados" :disabled="isLoadingGuardados" title="Buscar"
-            class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
-            :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-            <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': isLoadingGuardados }"></i>
-          </button>
+          <Button @click="handleTabGuardados" :disabled="isLoadingGuardados" title="Buscar"
+            :icon="isLoadingGuardados ? 'pi pi-spin pi-spinner' : 'pi pi-search'" severity="secondary" outlined size="small" />
         </div>
       </div>
 
@@ -1125,44 +1042,44 @@
         <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
-              <tr class="bg-[#1e2538]">
+              <tr class="bg-[#161B26]">
                 <!-- Checkbox seleccionar todos -->
-                <th class="px-3 py-2 text-center border-b border-r border-[#f5f5f7] w-8">
+                <th class="px-3 py-2 text-center border-b border-r border-white/10 w-8">
                   <input type="checkbox" :checked="allGuardadosSelected" :indeterminate="someGuardadosSelected"
                     @change="toggleAllGuardados" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                 </th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Cédula</th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Nombre</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Fecha</th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Departamento</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white w-20">
                   Entrada</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-20">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white w-20">
                   Salida</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white w-24">
                   T. Laborado</th>
                 <th v-for="col in COLS_HX" :key="col"
-                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-white/10 text-white">
                   {{ col.toUpperCase() }}
                 </th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-24">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white w-24">
                   Estado</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7] w-32">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white w-32">
                   Actividad</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-28">
+                <th class="sticky right-0 z-40 px-3 py-2 text-center text-[10px] font-medium border-b border-white/10 text-white w-28 bg-[#161B26]">
                   Acciones</th>
               </tr>
             </thead>
@@ -1173,7 +1090,9 @@
                 <tr v-if="item.tipo === 'empresa'">
                   <td colspan="18" class="px-4 py-2 text-[10px] font-medium border-b"
                     :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0]' : 'bg-slate-100 border-slate-200 text-slate-700'">
-                    <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                    <span class="sticky left-4 inline-block">
+                      <i class="fas fa-building mr-2 opacity-60 text-[#3B82F6]"></i>{{ item.data.empresa }}
+                    </span>
                   </td>
                 </tr>
 
@@ -1272,71 +1191,50 @@
                   <td class="px-2 py-2 border-b border-r text-center"
                     :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                     <template v-if="tieneExtras(item.data)">
-                      <button v-if="item.data.actividad" @click="abrirModalActividad(item.data)"
-                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-all"
-                        title="Ver / editar actividad">
-                        <i class="fas fa-check text-[8px]"></i>Justificado
-                      </button>
-                      <button v-else @click="abrirModalActividad(item.data)"
-                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all animate-pulse"
-                        title="Agregar actividad requerida">
-                        <i class="fas fa-triangle-exclamation text-[8px]"></i>Sin justificación
-                      </button>
+                      <Button v-if="item.data.actividad" @click="abrirModalActividad(item.data)"
+                        label="Justificado" icon="pi pi-check" severity="success" size="small" rounded
+                        title="Ver / editar actividad" />
+                      <Button v-else @click="abrirModalActividad(item.data)"
+                        label="Sin justificación" icon="pi pi-exclamation-triangle" severity="warn" size="small" rounded
+                        title="Agregar actividad requerida" />
                     </template>
                     <span v-else class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-slate-300'">—</span>
                   </td>
 
                   <!-- Acciones -->
-                  <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                  <td class="sticky right-0 z-10 px-2 py-2 border-b text-center" :class="[
+                    isDark ? 'border-[#222938]' : 'border-slate-100',
+                    selectedGuardados.has(item.data.id)
+                      ? (isDark ? 'bg-[#1c2942]' : 'bg-blue-50')
+                      : editandoId === item.data.id
+                        ? (isDark ? 'bg-[#1a2740]' : 'bg-blue-50')
+                        : idx % 2 !== 0
+                          ? (isDark ? 'bg-[#181f2e]' : 'bg-slate-50')
+                          : (isDark ? 'bg-[#161B26]' : 'bg-white')
+                  ]">
                     <!-- Modo edición: guardar / cancelar -->
                     <div v-if="editandoId === item.data.id" class="flex items-center justify-center gap-1">
-                      <button @click="guardarHorasInline(item.data)" :disabled="guardandoHoras"
-                        class="h-6 px-2 rounded-[4px] text-[9px] font-semibold flex items-center gap-1 transition-all border bg-[#3B82F6] border-[#3B82F6] text-white hover:bg-[#2563eb] disabled:opacity-50">
-                        <i :class="guardandoHoras ? 'fas fa-spinner fa-spin' : 'fas fa-floppy-disk'"
-                          class="text-[8px]"></i>
-                        Guardar
-                      </button>
-                      <button @click="cancelarEdicion"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                        :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-400 hover:text-slate-700'">
-                        <i class="fas fa-xmark text-[9px]"></i>
-                      </button>
+                      <Button @click="guardarHorasInline(item.data)" :disabled="guardandoHoras" label="Guardar"
+                        :icon="guardandoHoras ? 'pi pi-spin pi-spinner' : 'pi pi-save'" size="small" />
+                      <Button @click="cancelarEdicion" icon="pi pi-times" severity="secondary" outlined
+                        rounded size="small" />
                     </div>
                     <!-- Modo normal: aprobar / rechazar / editar / eliminar -->
                     <div v-else class="flex items-center justify-center gap-1">
-                      <button
+                      <Button
                         @click="tieneExtras(item.data) && !item.data.actividad ? mostrarToastJustificacion(item.data) : abrirModalAprobar(item.data, true)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                        :class="item.data.aprobado === true
-                          ? 'bg-[#16a34a] border-[#16a34a] text-white'
-                          : tieneExtras(item.data) && !item.data.actividad
-                            ? (isDark ? 'border-amber-500/40 text-amber-400/50 cursor-not-allowed' : 'border-amber-300 text-amber-300 cursor-not-allowed')
-                            : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#4ade80] hover:border-[#16a34a]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#16a34a] hover:border-[#16a34a]/40')"
-                        :title="tieneExtras(item.data) && !item.data.actividad ? 'Agrega actividad antes de aprobar' : 'Aprobar'">
-                        <i class="fas fa-check text-[9px]"></i>
-                      </button>
-                      <button @click="abrirModalAprobar(item.data, false)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border"
-                        :class="item.data.aprobado === false
-                          ? 'bg-[#dc2626] border-[#dc2626] text-white'
-                          : (isDark ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40' : 'bg-transparent border-slate-200 text-slate-400 hover:text-[#dc2626] hover:border-[#dc2626]/40')"
-                        title="Rechazar">
-                        <i class="fas fa-times text-[9px]"></i>
-                      </button>
-                      <button @click="iniciarEdicion(item.data)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
-                          ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#60A5FA] hover:border-[#3B82F6]/40'
-                          : 'bg-transparent border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-300'"
-                        title="Editar horas">
-                        <i class="fas fa-pen text-[9px]"></i>
-                      </button>
-                      <button @click="abrirModalEliminar(item.data)"
-                        class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
-                          ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
-                          : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
-                        title="Eliminar registro">
-                        <i class="fas fa-trash text-[9px]"></i>
-                      </button>
+                        icon="pi pi-check" rounded size="small"
+                        :severity="item.data.aprobado === true ? 'success' : (tieneExtras(item.data) && !item.data.actividad ? 'warn' : 'secondary')"
+                        :outlined="item.data.aprobado !== true"
+                        :disabled="tieneExtras(item.data) && !item.data.actividad"
+                        :title="tieneExtras(item.data) && !item.data.actividad ? 'Agrega actividad antes de aprobar' : 'Aprobar'" />
+                      <Button @click="abrirModalAprobar(item.data, false)" icon="pi pi-times" rounded size="small"
+                        :severity="item.data.aprobado === false ? 'danger' : 'secondary'"
+                        :outlined="item.data.aprobado !== false" title="Rechazar" />
+                      <Button @click="iniciarEdicion(item.data)" icon="pi pi-pencil" severity="secondary" outlined
+                        rounded size="small" title="Editar horas" />
+                      <Button @click="abrirModalEliminar(item.data)" icon="pi pi-trash" severity="danger" outlined
+                        rounded size="small" title="Eliminar registro" />
                     </div>
                   </td>
                 </tr>
@@ -1345,7 +1243,7 @@
                 <tr v-else-if="item.tipo === 'subtotal'">
                   <td colspan="8" class="px-3 py-2 border-b border-r text-[10px] font-medium"
                     :class="isDark ? 'bg-[#3B82F6]/[0.06] border-[#222938] text-[#60A5FA]' : 'bg-blue-50/50 border-slate-200 text-blue-700'">
-                    Subtotal — {{ item.data.nombre }}
+                    <span class="sticky left-3 inline-block">Subtotal — {{ item.data.nombre }}</span>
                   </td>
                   <td v-for="col in COLS_HX" :key="col"
                     class="px-2 py-2 border-b border-r text-center text-[11px] font-semibold"
@@ -1370,20 +1268,14 @@
             registros
           </span>
           <div class="flex items-center gap-1.5">
-            <button @click="currentPageGuardados--" :disabled="currentPageGuardados === 1"
-              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-              :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-700'">
-              <i class="fas fa-chevron-left text-[9px]"></i>
-            </button>
+            <Button @click="currentPageGuardados--" :disabled="currentPageGuardados === 1" icon="pi pi-chevron-left"
+              severity="secondary" outlined size="small" />
             <div class="h-7 px-3 flex items-center rounded-[5px] text-[11px] font-medium border"
               :class="isDark ? 'bg-[#0B0F19] border-[#222938] text-white' : 'bg-white border-slate-200 text-slate-900'">
               {{ currentPageGuardados }} / {{ totalPagesGuardados }}
             </div>
-            <button @click="currentPageGuardados++" :disabled="currentPageGuardados >= totalPagesGuardados"
-              class="w-7 h-7 flex items-center justify-center rounded-[5px] border transition-all disabled:opacity-30"
-              :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#E2E8F0] hover:border-[#3B82F6]/40' : 'bg-white border-slate-200 text-slate-700'">
-              <i class="fas fa-chevron-right text-[9px]"></i>
-            </button>
+            <Button @click="currentPageGuardados++" :disabled="currentPageGuardados >= totalPagesGuardados"
+              icon="pi pi-chevron-right" severity="secondary" outlined size="small" />
           </div>
         </div>
       </div>
@@ -1404,42 +1296,17 @@
           </span>
         </span>
         <div class="ml-auto flex items-center gap-1.5">
-          <!-- Limpiar selección -->
-          <button v-if="selectedNovedades.size" @click="clearSeleccionNovedades"
-            class="h-7 px-2 rounded-[5px] border text-[11px] font-medium transition-all"
-            :class="isDark ? 'border-[#222938] text-[#888888] hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-800'">
-            <i class="fas fa-xmark text-[9px]"></i> Limpiar
-          </button>
-          <!-- Importar desde Excel -->
-          <button @click="showImportModal = true"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98]"
-            :class="isDark
-              ? 'bg-[#161B26] border-blue-500/30 text-blue-400 hover:bg-blue-500/[0.06] hover:border-blue-500/60'
-              : 'bg-white border-blue-400/40 text-blue-700 hover:bg-blue-50 hover:border-blue-400'">
-            <i class="fas fa-file-import text-[10px]"></i>
-            Importar Excel
-          </button>
-          <!-- Descargar Excel -->
-          <button @click="handleDescargarNovedades" :disabled="isExportingNovedades || !novedadesAprobadas.length"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-            :class="isDark
-              ? 'bg-[#161B26] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/[0.06] hover:border-emerald-500/60'
-              : 'bg-white border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-500'">
-            <i :class="isExportingNovedades ? 'fas fa-spinner fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
-            {{ isExportingNovedades ? 'Descargando…' : 'Descargar Excel' }}
-          </button>
-          <!-- Notificar -->
-          <button @click="abrirVistaPrevia" :disabled="isNotifying || !novedadesAprobadas.length"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-40"
-            :class="selectedNovedades.size
-              ? (isDark ? 'bg-[#3B82F6]/15 border-[#3B82F6]/60 text-[#60A5FA]' : 'bg-[#3B82F6]/10 border-[#3B82F6]/40 text-[#2563eb]')
-              : (isDark ? 'bg-[#161B26] border-[#3B82F6]/30 text-[#E2E8F0] hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60' : 'bg-white border-[#3B82F6]/30 text-slate-700 hover:bg-[#3B82F6]/[0.05] hover:border-[#3B82F6]/60')">
-            <i :class="isNotifying ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'" class="text-[10px]"></i>
-            {{ isNotifying ? 'Enviando…' : selectedNovedades.size ? `Notificar (${selectedNovedades.size})` :
-              'Notificar'
-              +
-              'todos' }}
-          </button>
+          <Button v-if="selectedNovedades.size" @click="clearSeleccionNovedades" label="Limpiar" icon="pi pi-times"
+            severity="secondary" text size="small" />
+          <Button @click="showImportModal = true" label="Importar Excel" icon="pi pi-file-import"
+            severity="info" outlined size="small" />
+          <Button @click="handleDescargarNovedades" :disabled="isExportingNovedades || !novedadesAprobadas.length"
+            :label="isExportingNovedades ? 'Descargando…' : 'Descargar Excel'"
+            :icon="isExportingNovedades ? 'pi pi-spin pi-spinner' : 'pi pi-file-excel'"
+            severity="success" outlined size="small" />
+          <Button @click="abrirVistaPrevia" :disabled="isNotifying || !novedadesAprobadas.length"
+            :label="isNotifying ? 'Enviando…' : selectedNovedades.size ? `Ver vista previa (${selectedNovedades.size})` : 'Ver vista previa'"
+            :icon="isNotifying ? 'pi pi-spin pi-spinner' : 'pi pi-eye'" severity="info" size="small" />
         </div>
       </div>
 
@@ -1478,34 +1345,34 @@
         <div v-else class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-30">
-              <tr class="bg-[#1e2538]">
+              <tr class="bg-[#161B26]">
                 <!-- Checkbox seleccionar todos -->
-                <th class="px-3 py-2 text-center border-b border-r border-[#f5f5f7] w-8">
+                <th class="px-3 py-2 text-center border-b border-r border-white/10 w-8">
                   <input type="checkbox"
                     :checked="selectedNovedades.size === novedadesAprobadas.length && novedadesAprobadas.length > 0"
                     :indeterminate="selectedNovedades.size > 0 && selectedNovedades.size < novedadesAprobadas.length"
                     @change="toggleAllNovedades" class="w-3.5 h-3.5 rounded accent-[#3B82F6] cursor-pointer" />
                 </th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Cédula</th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Nombre</th>
                 <th
-                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-center text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Fecha</th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Departamento</th>
                 <th v-for="col in ['RN', 'RNDF', 'RDDF', 'HEDO', 'HENO', 'HEFD', 'HEFN']" :key="col"
-                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-2 py-2 text-center text-[10px] font-medium border-b border-r w-12 border-white/10 text-white">
                   {{ col }}
                 </th>
                 <th
-                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-[#f5f5f7] text-[#f5f5f7]">
+                  class="px-3 py-2 text-left text-[10px] font-medium border-b border-r border-white/10 text-white">
                   Observación</th>
-                <th class="px-3 py-2 text-center text-[10px] font-medium border-b border-[#f5f5f7] text-[#f5f5f7] w-20">
+                <th class="sticky right-0 z-40 px-3 py-2 text-center text-[10px] font-medium border-b border-white/10 text-white w-20 bg-[#161B26]">
                   Acciones</th>
               </tr>
             </thead>
@@ -1543,22 +1410,17 @@
                   {{ r.observacion || '—' }}
                 </td>
                 <!-- Acciones: deshacer aprobación / eliminar -->
-                <td class="px-2 py-2 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+                <td class="sticky right-0 z-10 px-2 py-2 border-b text-center" :class="[
+                  isDark ? 'border-[#222938]' : 'border-slate-100',
+                  selectedNovedades.has(r.id)
+                    ? (isDark ? 'bg-[#1c2942]' : 'bg-blue-50')
+                    : idx % 2 !== 0 ? (isDark ? 'bg-[#181f2e]' : 'bg-slate-50') : (isDark ? 'bg-[#161B26]' : 'bg-white')
+                ]">
                   <div class="flex items-center justify-center gap-1">
-                    <button @click="handleDeshacerAprobacion(r.id)"
-                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
-                        ? 'bg-transparent border-[#222938] text-[#888888] hover:text-amber-400 hover:border-amber-500/40'
-                        : 'bg-transparent border-slate-200 text-slate-400 hover:text-amber-600 hover:border-amber-400'"
-                      title="Deshacer aprobación">
-                      <i class="fas fa-rotate-left text-[9px]"></i>
-                    </button>
-                    <button @click="abrirModalEliminar(r)"
-                      class="w-6 h-6 rounded-[4px] flex items-center justify-center transition-all border" :class="isDark
-                        ? 'bg-transparent border-[#222938] text-[#888888] hover:text-[#f87171] hover:border-[#dc2626]/40'
-                        : 'bg-transparent border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300'"
-                      title="Eliminar registro">
-                      <i class="fas fa-trash text-[9px]"></i>
-                    </button>
+                    <Button @click="handleDeshacerAprobacion(r.id)" icon="pi pi-undo" severity="warn" outlined
+                      rounded size="small" title="Deshacer aprobación" />
+                    <Button @click="abrirModalEliminar(r)" icon="pi pi-trash" severity="danger" outlined
+                      rounded size="small" title="Eliminar registro" />
                   </div>
                 </td>
               </tr>
@@ -1577,11 +1439,8 @@
           <span class="font-semibold" :class="isDark ? 'text-white' : 'text-slate-800'">{{ historial.length }}</span>
           registro(s) notificados en el rango
         </span>
-        <button @click="cargarHistorial(props.company)" :disabled="isLoadingHistorial"
-          class="ml-auto h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all disabled:opacity-40"
-          :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#888888] hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">
-          <i class="fas fa-arrows-rotate text-[10px]" :class="{ 'fa-spin': isLoadingHistorial }"></i>
-        </button>
+        <Button @click="cargarHistorial(props.company)" :disabled="isLoadingHistorial" class="ml-auto"
+          :icon="isLoadingHistorial ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'" severity="secondary" outlined size="small" />
       </div>
 
       <div class="flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
@@ -1617,14 +1476,14 @@
         <div v-else class="flex-1 overflow-y-auto">
           <table class="w-full border-separate border-spacing-0 text-[11px]">
             <thead class="sticky top-0 z-10">
-              <tr class="bg-[#1e2538]">
-                <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+              <tr class="bg-[#161B26]">
+                <th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                   Período</th>
-                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                   Empleados</th>
-                <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="px-3 py-2.5 text-left text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white">
                   Notificado por</th>
-                <th class="px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-[#f5f5f7]">
+                <th class="sticky right-0 z-40 px-3 py-2.5 text-center text-[10px] font-medium uppercase tracking-wide border-b border-[#2a3245] text-white bg-[#161B26]">
                   Acciones</th>
               </tr>
             </thead>
@@ -1650,14 +1509,10 @@
                   </td>
                   <!-- Empleados (clic para expandir) -->
                   <td class="px-3 py-3 border-b text-center" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                    <button @click="toggleLoteEmpleados(loteKey)"
-                      class="inline-flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-semibold transition-all"
-                      :class="loteExpandido === loteKey
-                        ? (isDark ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-blue-50 border-blue-300 text-blue-700')
-                        : (isDark ? 'border-[#2a3245] text-white hover:border-blue-500/40' : 'border-slate-200 text-slate-800 hover:border-blue-300')">
-                      {{ grupoRows.length }}
-                      <i class="fas text-[9px]" :class="loteExpandido === loteKey ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                    </button>
+                    <Button @click="toggleLoteEmpleados(loteKey)" :label="String(grupoRows.length)"
+                      :icon="loteExpandido === loteKey ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" iconPos="right"
+                      :severity="loteExpandido === loteKey ? undefined : 'secondary'"
+                      :outlined="loteExpandido !== loteKey" size="small" />
                   </td>
                   <!-- Notificado por -->
                   <td class="px-3 py-3 border-b"
@@ -1665,22 +1520,18 @@
                     {{ grupoRows[0]?.calculado_por || '—' }}
                   </td>
                   <!-- Acciones -->
-                  <td class="px-3 py-3 border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'" @click.stop>
+                  <td class="sticky right-0 z-10 px-3 py-3 border-b"
+                    :class="isDark ? 'border-[#222938] bg-[#161B26]' : 'border-slate-100 bg-white'" @click.stop>
                     <div class="flex items-center justify-center gap-1.5">
                       <!-- Reenviar correo -->
-                      <button @click="reenviarNotificacionHistorial(loteKey, grupoRows)"
+                      <Button @click="reenviarNotificacionHistorial(loteKey, grupoRows)"
                         :disabled="renotificandoKey === loteKey"
-                        class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all disabled:opacity-40"
-                        :class="isDark ? 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'">
-                        <i class="fas text-[9px]" :class="renotificandoKey === loteKey ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
-                        {{ renotificandoKey === loteKey ? 'Enviando…' : 'Reenviar' }}
-                      </button>
+                        :label="renotificandoKey === loteKey ? 'Enviando…' : 'Reenviar'"
+                        :icon="renotificandoKey === loteKey ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+                        severity="success" outlined size="small" />
                       <!-- Comparativo vs sistema -->
-                      <button v-if="loteKey !== 'sin_lote'" @click="abrirComparativoHistorial(loteKey, grupoRows)"
-                        class="flex items-center gap-1 h-6 px-2.5 rounded-[4px] border text-[10px] font-medium transition-all"
-                        :class="isDark ? 'border-violet-500/30 text-violet-400 hover:bg-violet-500/10' : 'border-violet-300 text-violet-700 hover:bg-violet-50'">
-                        <i class="fas fa-code-compare text-[9px]"></i> vs Sistema
-                      </button>
+                      <Button v-if="loteKey !== 'sin_lote'" @click="abrirComparativoHistorial(loteKey, grupoRows)"
+                        label="vs Sistema" icon="pi pi-arrows-h" severity="help" outlined size="small" />
                     </div>
                   </td>
                 </tr>
@@ -2515,6 +2366,8 @@ import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
+import Button from 'primevue/button';
+import ToggleButton from 'primevue/togglebutton';
 import { useReporteMallas } from '../../composables/adminLogica/useReporteMallas';
 import { useCargueHoras } from '../../composables/adminLogica/useCargueHoras';
 import ComparativoHorasModal from './ComparativoHorasModal.vue';

@@ -52,7 +52,8 @@
         </button>
 
         <!-- Rango de fechas -->
-        <div class="flex items-center gap-1.5 transition-all" :class="filterHoy ? 'opacity-40 pointer-events-none' : ''">
+        <div class="flex items-center gap-1.5 transition-all"
+          :class="filterHoy ? 'opacity-40 pointer-events-none' : ''">
           <DatePicker v-model="startDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
             inputClass="!h-7 !text-[11px] !w-[104px] !py-0" />
           <span class="text-[10px] opacity-40" :class="isDark ? 'text-white' : 'text-slate-500'">→</span>
@@ -70,8 +71,8 @@
         <IconField>
           <InputIcon class="pi pi-search text-[10px]" />
           <InputText v-model="search" placeholder="Nombre o cédula…"
-            @keyup.enter="tabActiva === 'crudo' ? fetchCrudoDiagnostico() : fetchReporte()"
-            class="!h-7 !text-[11px]" style="width: 176px" />
+            @keyup.enter="tabActiva === 'crudo' ? fetchCrudoDiagnostico() : fetchReporte()" class="!h-7 !text-[11px]"
+            style="width: 176px" />
         </IconField>
 
         <!-- Acciones -->
@@ -236,27 +237,39 @@
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
-                  <span :class="getStatusClass(item.c_entrada)"
+
+                  <!-- Primer span (Estado) con color de texto condicional -->
+                  <span :class="[getStatusClass(item.c_entrada), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_entrada || 'OK' }}
                   </span>
-                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+
+                  <!-- Segundo span (Fuente) con color de texto condicional -->
+                  <span v-if="item.fuente"
+                    :class="[getFuenteClass(item.fuente), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
+
                 </div>
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
-                  <span :class="getStatusClass(item.c_salida)"
+
+                  <!-- Primer span (Salida) con el cambio aplicado -->
+                  <span :class="[getStatusClass(item.c_salida), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_salida || 'OK' }}
                   </span>
-                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+
+                  <!-- Segundo span (Fuente) con el cambio aplicado también -->
+                  <span v-if="item.fuente"
+                    :class="[getFuenteClass(item.fuente), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
+
                 </div>
               </td>
             </tr>

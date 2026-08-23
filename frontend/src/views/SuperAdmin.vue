@@ -42,6 +42,7 @@ const NAV_GROUPS = [
       cronhoras: { icon: 'fas fa-business-time', label: 'Cálculo Horas Extra', color: 'text-orange-400', bg: 'bg-orange-500/10' },
       sync: { icon: 'fas fa-rotate', label: 'Sync Automático', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
       reporteworkers: { icon: 'fas fa-microchip', label: 'Workers de Reporte', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+      cronasistencia: { icon: 'fas fa-user-clock', label: 'Resumen Asistencia', color: 'text-teal-400', bg: 'bg-teal-500/10' },
     },
   },
   {
@@ -82,6 +83,7 @@ const MODULE_LABELS = {
   paramhx: 'Parametrización Horas Extra',
   cronhoras: 'Cálculo Automático Horas Extra',
   reporteworkers: 'Workers de Reporte de Asistencias',
+  cronasistencia: 'Resumen Nocturno de Asistencia',
   datoscrudos: 'Datos Crudos (Odoo)',
 };
 import { bgLines } from '../utils/bgLines.js';
@@ -97,6 +99,7 @@ import GestionDashboard from '../components/admin/SuperAdmin/GestionDashboard.vu
 import GestionSyncCron from '../components/admin/SuperAdmin/GestionSyncCron.vue';
 import GestionCronHoras from '../components/admin/SuperAdmin/GestionCronHoras.vue';
 import GestionReporteWorkers from '../components/admin/SuperAdmin/GestionReporteWorkers.vue';
+import GestionAsistenciaCron from '../components/admin/SuperAdmin/GestionAsistenciaCron.vue';
 import GestionDatosCrudos from '../components/admin/SuperAdmin/GestionDatosCrudos.vue';
 import GestionPermisos from '../components/admin/SuperAdmin/GestionPermisos.vue';
 import GestionMallas from '../components/admin/SuperAdmin/GestionMallas.vue';
@@ -146,6 +149,7 @@ const TAB_PERMS = {
   sync: 'super.superadmin',
   cronhoras: 'super.superadmin',
   reporteworkers: 'super.superadmin',
+  cronasistencia: 'super.superadmin',
   datoscrudos: 'super.datoscrudos',
 };
 
@@ -663,7 +667,7 @@ onUnmounted(() => {
         </svg>
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras', 'reporteworkers']"
+        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras', 'reporteworkers', 'cronasistencia']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -685,6 +689,7 @@ onUnmounted(() => {
             <GestionSyncCron v-if="tab === 'sync'" :isDark="isDark" />
             <GestionCronHoras v-if="tab === 'cronhoras'" :isDark="isDark" />
             <GestionReporteWorkers v-if="tab === 'reporteworkers'" :isDark="isDark" />
+            <GestionAsistenciaCron v-if="tab === 'cronasistencia'" :isDark="isDark" />
           </div>
         </template>
 

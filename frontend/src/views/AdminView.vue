@@ -22,6 +22,19 @@
       <!-- Nav -->
       <nav class="flex-1 px-2 space-y-1.5 mt-4 overflow-y-auto custom-scroll">
 
+        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.dashboard_asistencia']"
+          @click="router.push('/admin/dashboard-asistencia')"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
+          :class="route.path === '/admin/dashboard-asistencia'
+            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
+            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
+          <div class="flex items-center justify-center shrink-0 w-5">
+            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110"></i>
+          </div>
+          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Dashboard Asistencia</span>
+          <div v-if="route.path === '/admin/dashboard-asistencia'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
+        </button>
+
         <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.asistencias']"
           @click="router.push('/admin/asistencias')"
           class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
@@ -75,19 +88,6 @@
           <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Novedades</span>
           <div v-if="route.path.startsWith('/admin/novedades')"
             class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
-        </button>
-
-        <button v-if="employee?.isSuperAdmin || employee?.permisos?.['admin.dashboard_asistencia']"
-          @click="router.push('/admin/dashboard-asistencia')"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden"
-          :class="route.path === '/admin/dashboard-asistencia'
-            ? (isDark ? 'bg-white/[0.04] text-white' : 'bg-slate-100 text-slate-900')
-            : (isDark ? 'text-[#888888] hover:text-white hover:bg-white/[0.03]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')">
-          <div class="flex items-center justify-center shrink-0 w-5">
-            <i class="fas fa-chart-line text-xs transition-transform group-hover:scale-110"></i>
-          </div>
-          <span v-if="isSidebarOpen" class="text-[10px] font-bold uppercase tracking-wide">Dashboard Asistencia</span>
-          <div v-if="route.path === '/admin/dashboard-asistencia'" class="absolute left-0 w-[2px] h-5 bg-[#3B82F6] rounded-r"></div>
         </button>
 
       </nav>

@@ -1039,6 +1039,57 @@ export class UsuariosService {
     );
   }
 
+  /**
+   * Roster de empleados PROGRAMADOS (con malla vigente ese día) para una
+   * fecha dada — lo usa el cron de resumen diario de asistencia para
+   * detectar ausencias (gente que debía marcar y no lo hizo). Es de solo
+   * lectura y reusa exactamente la misma resolución de malla vigente que ya
+   * usa el reporte de asistencias (`getMallasMapLocal` / `resolverAsignacionParaFecha`)
+   * — no cambia ni duplica esa lógica, solo la expone para un consumidor nuevo.
+   */
+  async getRosterProgramado(
+    fecha: string,
+    company?: string,
+    departamento?: string,
+  ): Promise<
+    { id_odoo: number; cedula: string; nombre: string; departamento: string; hora_inicio: number; hora_fin: number }[]
+  > {
+    const q = this.usuarioRepo.createQueryBuilder('u').where('u.is_active = :activo', { activo: true });
+    if (departamento) q.andWhere('u.departamento = :departamento', { departamento });
+    const usuarios = await q.getMany();
+    if (!usuarios.length) return [];
+
+    const ids = usuarios.map((u) => u.id_odoo);
+    const mallasMap = await this.getMallasMapLocal(ids);
+
+    const [y, m, d] = fecha.split('-').map(Number);
+    const jsDay = new Date(y, m - 1, d).getDay();
+    const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+
+    const roster: { id_odoo: number; cedula: string; nombre: string; departamento: string; hora_inicio: number; hora_fin: number }[] = [];
+    for (const u of usuarios) {
+      const asignaciones = mallasMap.get(u.id_odoo);
+      if (!asignaciones?.length) continue;
+      const asig = this.resolverAsignacionParaFecha(asignaciones, fecha);
+      if (!asig?.malla) continue;
+      if (company && asig.malla.compania && asig.malla.compania !== company) continue;
+      const detalles = asig.malla.detalles ?? [];
+      const turno = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
+      if (!turno) continue; // día no laborable para esa malla
+      roster.push({
+        id_odoo: u.id_odoo,
+        cedula: u.identificacion || '',
+        nombre: u.nombre,
+        departamento: u.departamento || 'SIN DEPTO',
+        hora_inicio: Number(turno.hora_inicio),
+        hora_fin: Number(turno.hora_fin),
+      });
+    }
+    return roster;
+  }
+
   /** Formatea detalles de malla como "Lun 08:00-16:00 | Mar 08:00-16:00 …" */
   private formatearHorarioLocal(detalles: any[]): string {
     if (!detalles?.length) return '';

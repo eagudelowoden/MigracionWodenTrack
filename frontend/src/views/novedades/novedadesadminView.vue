@@ -49,9 +49,9 @@
         <div class="flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 w-full"
           :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
-          <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
+          <form @submit.prevent="handleSubmit" class="flex-1 flex flex-col p-3 gap-2 overflow-y-auto">
 
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 gap-2">
 
               <!-- Nombre -->
               <div class="flex flex-col gap-1">
@@ -59,7 +59,7 @@
                   :class="isDark ? 'text-slate-400' : 'text-[#3B82F6]'">Nombre</label>
                 <IconField>
                   <InputIcon class="pi pi-user" />
-                  <InputText v-model="form.nombre" placeholder="Nombre completo..." required class="w-full" />
+                  <InputText v-model="form.nombre" placeholder="Nombre completo..." required size="small" class="w-full" />
                 </IconField>
               </div>
 
@@ -85,24 +85,24 @@
               </div>
 
               <!-- Cédula + Fecha Inicio + Fecha Fin en una fila -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Cédula</label>
                   <IconField>
                     <InputIcon class="pi pi-id-card" />
-                    <InputText v-model="form.cedula" placeholder="N° identificación..." required class="w-full" />
+                    <InputText v-model="form.cedula" placeholder="N° identificación..." required size="small" class="w-full" />
                   </IconField>
                 </div>
                 <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Inicio</label>
-                  <DatePicker v-model="fechaInicioObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
+                  <DatePicker v-model="fechaInicioObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" size="small" class="w-full" />
                 </div>
                 <div v-if="form.tipificacion !== 'Renuncia'" class="flex flex-col gap-1">
                   <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                     :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fecha Fin</label>
-                  <DatePicker v-model="fechaFinObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
+                  <DatePicker v-model="fechaFinObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input" size="small" class="w-full" />
                 </div>
               </div>
 
@@ -110,15 +110,15 @@
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Descripción</label>
-                <Textarea v-model="form.descripcion" rows="3" placeholder="Explique el motivo..." required
-                  class="w-full" />
+                <Textarea v-model="form.descripcion" rows="2" placeholder="Explique el motivo..." required
+                  size="small" class="w-full" />
               </div>
 
               <!-- Tipificación -->
               <div class="flex flex-col gap-1">
                 <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5"
                   :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipificación</label>
-                <Select v-model="form.tipificacion" :options="TIPIFICACIONES" required
+                <Select v-model="form.tipificacion" :options="TIPIFICACIONES" required size="small"
                   placeholder="Seleccione el tipo de novedad..." class="w-full" />
               </div>
 
@@ -129,7 +129,7 @@
                     <i class="fas fa-calendar-xmark mr-1"></i>Último Día Trabajado
                   </label>
                   <DatePicker v-model="ultimoDiaTrabajadoObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
-                    required class="w-full" />
+                    required size="small" class="w-full" />
                 </div>
               </transition>
 
@@ -141,28 +141,28 @@
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-tag mr-1"></i>Descuento
                     </label>
-                    <InputText v-model="form.renunciaDescuento" placeholder="Valor descuento..." class="w-full" />
+                    <InputText v-model="form.renunciaDescuento" placeholder="Valor descuento..." size="small" class="w-full" />
                   </div>
                   <!-- Comisiones -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-coins mr-1"></i>Comisiones
                     </label>
-                    <InputText v-model="form.renunciaComisiones" placeholder="Valor comisiones..." class="w-full" />
+                    <InputText v-model="form.renunciaComisiones" placeholder="Valor comisiones..." size="small" class="w-full" />
                   </div>
                   <!-- Horas Extra -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-clock mr-1"></i>Horas Extra
                     </label>
-                    <InputText v-model="form.renunciaHorasExtra" placeholder="Valor horas extra..." class="w-full" />
+                    <InputText v-model="form.renunciaHorasExtra" placeholder="Valor horas extra..." size="small" class="w-full" />
                   </div>
                   <!-- Transporte -->
                   <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-semibold uppercase tracking-wide ml-0.5 text-amber-500">
                       <i class="fas fa-bus mr-1"></i>Transporte
                     </label>
-                    <InputText v-model="form.renunciaTransporte" placeholder="Valor transporte..." class="w-full" />
+                    <InputText v-model="form.renunciaTransporte" placeholder="Valor transporte..." size="small" class="w-full" />
                   </div>
                 </div>
               </transition>
@@ -233,18 +233,10 @@
             <!-- Footer -->
             <div class="flex items-center justify-between pt-3 mt-auto border-t"
               :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-              <button @click.prevent="resetForm" type="button"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wide transition-all active:scale-[0.98] border"
-                :class="isDark ? 'text-slate-500 border-[#222938] hover:text-slate-300 hover:border-slate-500' : 'text-slate-400 border-slate-200 hover:text-slate-600 hover:border-slate-300'">
-                <i class="fas fa-rotate-left text-[9px]"></i> Limpiar
-              </button>
-              <button type="submit" :disabled="loading"
-                class="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-semibold uppercase tracking-wide text-[9px] transition-all active:scale-[0.98] shadow-sm disabled:opacity-60 disabled:cursor-wait"
-                :class="isDark ? 'bg-[#3B82F6] text-white hover:brightness-110' : 'bg-[#0B0F19] text-white hover:bg-slate-700'">
-                <i v-if="loading" class="fas fa-circle-notch fa-spin text-[9px]"></i>
-                <i v-else class="fas fa-check-circle text-[9px] group-hover:scale-110 transition-transform"></i>
-                {{ loading ? 'Guardando...' : 'Guardar Novedad' }}
-              </button>
+              <Button @click.prevent="resetForm" type="button" label="Limpiar" icon="pi pi-refresh"
+                severity="secondary" outlined size="small" />
+              <Button type="submit" :loading="loading"
+                :label="loading ? 'Guardando...' : 'Guardar Novedad'" icon="pi pi-check-circle" size="small" />
             </div>
           </form>
         </div>
@@ -263,6 +255,7 @@ import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
+import Button from 'primevue/button';
 import MisAprobacionesView from './MisAprobacionesView.vue';
 import { useNovedades } from '../../composables/adminLogica/useNovedades';
 import { useNovedades as useNovedadesUsuario } from '../../composables/adminLogica/useNovedadesUsuario';

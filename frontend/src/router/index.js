@@ -4,7 +4,8 @@ import { createRouter, createWebHistory } from "vue-router";
 const getFirstAdminRoute = (session) => {
   const p = session?.permisos || {};
   const isSA = session?.isSuperAdmin;
-  if (isSA || p["admin.asistencias"]) return "/admin/asistencias";
+  if (isSA || p["admin.dashboard_asistencia"]) return "/admin/dashboard-asistencia";
+  if (p["admin.asistencias"]) return "/admin/asistencias";
   if (p["admin.mallas"]) return "/admin/mallas";
   if (p["admin.calculos"]) return "/admin/horas-extra";
   if (p["horas.ver_cargue_ch"]) return "/admin/cargue-horas-ch";
