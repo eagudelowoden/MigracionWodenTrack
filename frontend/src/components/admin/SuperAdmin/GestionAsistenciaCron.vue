@@ -165,10 +165,9 @@
           </span>
           <span v-if="procesando" class="text-amber-500 font-semibold flex items-center gap-2">
             <i class="fas fa-spinner fa-spin"></i>Procesando ahora…
-            <button @click="forzarLiberar" :disabled="liberando" type="button"
-              class="underline decoration-dotted hover:no-underline disabled:opacity-50"
-              title="Úsalo solo si lleva mucho tiempo pegado en 'Procesando' — mata el worker y libera el botón.">
-              {{ liberando ? 'Liberando…' : '¿Atascado? Forzar liberar' }}
+            <button @click="cancelarCorrida" :disabled="cancelando" type="button"
+              class="underline decoration-dotted hover:no-underline disabled:opacity-50">
+              {{ cancelando ? 'Cancelando…' : 'Cancelar' }}
             </button>
           </span>
         </div>
@@ -216,6 +215,15 @@
         <Column header="Creado" style="width: 150px">
           <template #body="{ data }">{{ formatFecha(data.created_at) }}</template>
         </Column>
+        <Column header="" style="width: 90px">
+          <template #body="{ data }">
+            <button v-if="data.estado === 'procesando'" @click="cancelarCorrida" :disabled="cancelando"
+              type="button"
+              class="px-2 py-0.5 rounded text-[10px] font-semibold transition-all disabled:opacity-40 border border-red-400/40 text-red-400 hover:bg-red-500/10">
+              <i class="fas" :class="cancelando ? 'fa-spinner fa-spin' : 'fa-xmark'"></i> Cancelar
+            </button>
+          </template>
+        </Column>
         <template #empty>Sin ejecuciones todavía.</template>
       </DataTable>
     </div>
@@ -256,7 +264,7 @@ const empresaSel = ref('Todas');
 const usaRangoFijo = ref(false);
 const rangoFijoDesde = ref(null);
 const rangoFijoHasta = ref(null);
-const liberando = ref(false);
+const cancelando = ref(false);
 const logs = ref([]);
 const cargandoLogs = ref(false);
 let pollTimer = null;
@@ -349,6 +357,7 @@ function etiquetaEstado(estado) {
   if (estado === 'procesando') return 'Procesando';
   if (estado === 'completado') return 'Completado';
   if (estado === 'error') return 'Error';
+  if (estado === 'cancelado') return 'Cancelado';
   return estado;
 }
 
@@ -356,6 +365,7 @@ function estadoClass(estado) {
   if (estado === 'procesando') return 'bg-amber-500/15 text-amber-500';
   if (estado === 'completado') return 'bg-emerald-500/15 text-emerald-500';
   if (estado === 'error') return 'bg-red-500/15 text-red-500';
+  if (estado === 'cancelado') return 'bg-slate-500/15 text-slate-400';
   return 'bg-slate-500/15 text-slate-400';
 }
 
@@ -391,17 +401,17 @@ async function guardar() {
   }
 }
 
-async function forzarLiberar() {
-  liberando.value = true;
+async function cancelarCorrida() {
+  cancelando.value = true;
   try {
-    await axios.post(`${API}/dashboard-asistencia/resumen-cron/forzar-liberar`);
-    flash('Worker liberado.');
+    await axios.post(`${API}/dashboard-asistencia/resumen-cron/cancelar`);
+    flash('Corrida cancelada.');
     await cargarConfig();
     await cargarLogs();
   } catch (e) {
-    flash('Error al forzar la liberación', true);
+    flash('Error al cancelar', true);
   } finally {
-    liberando.value = false;
+    cancelando.value = false;
   }
 }
 

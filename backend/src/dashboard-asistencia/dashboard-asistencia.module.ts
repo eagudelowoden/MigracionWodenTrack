@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { Novedad } from '../novedades/entities/novedad.entity';
-import { HoraExtra } from '../horas-extra/entities/hora-extra.entity';
 import { DashboardAsistenciaController } from './dashboard-asistencia.controller';
 import { DashboardAsistenciaService } from './dashboard-asistencia.service';
 import { AsistenciaDiariaResumen } from './entities/asistencia-diaria-resumen.entity';
@@ -14,7 +13,7 @@ import { AsistenciaResumenCronService } from './asistencia-resumen-cron.service'
 @Module({
   imports: [
     UsuariosModule,
-    TypeOrmModule.forFeature([AsistenciaDiariaResumen, AsistenciaCronConfig, AsistenciaCronLog, Novedad, HoraExtra]),
+    TypeOrmModule.forFeature([AsistenciaDiariaResumen, AsistenciaCronConfig, AsistenciaCronLog, Novedad]),
   ],
   controllers: [DashboardAsistenciaController],
   providers: [DashboardAsistenciaService, AsistenciaResumenService, AsistenciaResumenCronService],

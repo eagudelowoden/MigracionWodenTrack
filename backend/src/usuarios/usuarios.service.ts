@@ -1056,6 +1056,15 @@ export class UsuariosService {
   > {
     const q = this.usuarioRepo.createQueryBuilder('u').where('u.is_active = :activo', { activo: true });
     if (departamento) q.andWhere('u.departamento = :departamento', { departamento });
+    // La empresa se filtra por `u.pais` (mismo campo/patrón que usa el resto
+    // del archivo, ej. resolverIdsPorCompanyDepto) — NO por `mallas_horarias.
+    // compania`: ese es texto libre cargado por Excel, inconsistente entre
+    // mallas ("(CO) WODEN COLOMBIA SAS" vs el nombre real de la empresa
+    // "(CO) WODEN OPERATIVA COLOMBIA S.A.S", o simplemente vacío), y filtrar
+    // por ahí excluía casi a todo el mundo del roster (falsos "AUSENTE").
+    if (company && company !== 'Todas' && company !== '') {
+      q.andWhere('u.pais = :pais', { pais: company });
+    }
     const usuarios = await q.getMany();
     if (!usuarios.length) return [];
 
@@ -1072,7 +1081,6 @@ export class UsuariosService {
       if (!asignaciones?.length) continue;
       const asig = this.resolverAsignacionParaFecha(asignaciones, fecha);
       if (!asig?.malla) continue;
-      if (company && asig.malla.compania && asig.malla.compania !== company) continue;
       const detalles = asig.malla.detalles ?? [];
       const turno = detalles
         .filter((det: any) => Number(det.dia_semana) === diaSemana)

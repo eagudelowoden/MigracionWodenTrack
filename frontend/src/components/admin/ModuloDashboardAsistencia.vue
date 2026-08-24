@@ -7,9 +7,16 @@
 
       <div class="flex flex-col gap-1">
         <label class="text-[10px] font-bold uppercase tracking-wide"
-          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Mes</label>
-        <DatePicker v-model="mesSeleccionadoDate" view="month" dateFormat="mm/yy" showIcon iconDisplay="input"
-          inputClass="!h-8 !text-[12px]" class="w-40" />
+          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Desde</label>
+        <DatePicker v-model="filtroDesde" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+          inputClass="!h-8 !text-[12px]" class="w-36" />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-[10px] font-bold uppercase tracking-wide"
+          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Hasta</label>
+        <DatePicker v-model="filtroHasta" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+          inputClass="!h-8 !text-[12px]" class="w-36" />
       </div>
 
       <div class="flex flex-col gap-1">
@@ -18,13 +25,6 @@
         <AutoComplete v-model="departamentoSeleccionado" :suggestions="departamentosFiltrados"
           @complete="filtrarDepartamentos" @clear="departamentoSeleccionado = ''" dropdown
           placeholder="Todas las áreas" inputClass="!h-8 !text-[12px] !w-48" />
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label class="text-[10px] font-bold uppercase tracking-wide"
-          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Comparar tendencia desde</label>
-        <DatePicker v-model="mesInicioTendenciaDate" view="month" dateFormat="mm/yy" showIcon iconDisplay="input"
-          inputClass="!h-8 !text-[12px]" class="w-40" />
       </div>
 
       <Button @click="cargarTodo" label="Actualizar" icon="pi pi-refresh" :loading="cargando" class="!h-8 !px-4 !text-[12px]" />
@@ -36,7 +36,7 @@
     </div>
 
     <!-- ── 6 Tarjetas KPI ──────────────────────────────────────────────────── -->
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 shrink-0">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between mb-1.5">
@@ -84,30 +84,6 @@
         </div>
         <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ kpi.totalAusencias }}</p>
         <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">{{ kpi.ausenciasInjustificadas }} sin justificar</p>
-      </div>
-
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Horas extra</span>
-          <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-violet-500/15 text-violet-400' : 'bg-violet-50 text-violet-600'">
-            <i class="pi pi-hourglass"></i>
-          </span>
-        </div>
-        <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ kpi.totalHorasExtra }}h</p>
-      </div>
-
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Personas en riesgo</span>
-          <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'">
-            <i class="pi pi-exclamation-triangle"></i>
-          </span>
-        </div>
-        <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ personasAtencion.length }}</p>
       </div>
     </div>
 
@@ -181,6 +157,42 @@
       </div>
     </div>
 
+    <!-- ── Días destacados: clic para ver el detalle de ese día abajo ──────── -->
+    <div v-if="diaMasTardanzas || diaMasAusencias" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0">
+      <button v-if="diaMasTardanzas" type="button" @click="irADetalleDia(diaMasTardanzas.fecha)"
+        class="text-left rounded-2xl border p-3 shadow-sm transition-colors"
+        :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
+            :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'">
+            <i class="pi pi-clock"></i>
+          </span>
+          <div>
+            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más llegadas tarde</p>
+            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
+              {{ formatFechaISO(diaMasTardanzas.fecha) }} — {{ diaMasTardanzas.total_tardanzas }} tardanzas
+            </p>
+          </div>
+        </div>
+      </button>
+      <button v-if="diaMasAusencias" type="button" @click="irADetalleDia(diaMasAusencias.fecha)"
+        class="text-left rounded-2xl border p-3 shadow-sm transition-colors"
+        :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
+            :class="isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600'">
+            <i class="pi pi-user-minus"></i>
+          </span>
+          <div>
+            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más ausencias</p>
+            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
+              {{ formatFechaISO(diaMasAusencias.fecha) }} — {{ diaMasAusencias.total_ausencias }} ausencias
+            </p>
+          </div>
+        </div>
+      </button>
+    </div>
+
     <!-- ── Distribución de minutos de tardanza ─────────────────────────────── -->
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -215,16 +227,24 @@
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Personas que requieren atención</h3>
-      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">3+ tardanzas o alguna ausencia sin justificar en el mes seleccionado.</p>
+      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">3+ tardanzas o alguna ausencia sin justificar en el periodo seleccionado.</p>
       <DataTable :value="personasAtencion" paginator :rows="8" size="small" scrollable scrollHeight="220px"
         :class="isDark ? 'p-datatable-dark' : ''">
         <Column field="nombre" header="Nombre" sortable />
         <Column field="cedula" header="Cédula" sortable style="width: 130px" />
         <Column field="departamento" header="Área" sortable />
-        <Column field="total_tardanzas" header="Tardanzas" sortable style="width: 110px" />
+        <Column field="total_tardanzas" header="Tardanzas" sortable style="width: 110px">
+          <template #body="{ data }">
+            <span v-if="data.total_tardanzas > 0" v-tooltip.top="{ value: tooltipTardanzas(data.tardanzas_detalle), escape: false }"
+              class="px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-help"
+              :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'">{{ data.total_tardanzas }}</span>
+            <span v-else>—</span>
+          </template>
+        </Column>
         <Column field="ausencias_injustificadas" header="Ausencias s/justificar" sortable style="width: 160px">
           <template #body="{ data }">
-            <span v-if="data.ausencias_injustificadas > 0" class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            <span v-if="data.ausencias_injustificadas > 0" v-tooltip.top="{ value: tooltipAusencias(data.ausencias_detalle), escape: false }"
+              class="px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-help"
               :class="isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600'">{{ data.ausencias_injustificadas }}</span>
             <span v-else>—</span>
           </template>
@@ -234,7 +254,7 @@
     </div>
 
     <!-- ── Detalle de un día específico ──────────────────────────────────── -->
-    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
+    <div ref="detalleDiaSection" class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
         <div class="flex flex-wrap items-end gap-2">
@@ -316,7 +336,7 @@
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Personas más puntuales</h3>
-      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cero tardanzas en todo el mes seleccionado.</p>
+      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cero tardanzas en todo el periodo seleccionado.</p>
       <DataTable :value="personasPuntuales" paginator :rows="8" size="small" scrollable scrollHeight="200px"
         :class="isDark ? 'p-datatable-dark' : ''">
         <Column field="nombre" header="Nombre" sortable />
@@ -327,38 +347,26 @@
       </DataTable>
     </div>
 
-    <!-- ── Jornadas incompletas / Calidad de marcaciones + Horas extra por área ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 shrink-0">
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Jornadas incompletas / Calidad de marcaciones</h3>
-        <DataTable :value="calidadMarcaciones" paginator :rows="6" size="small" scrollable scrollHeight="180px"
-          :class="isDark ? 'p-datatable-dark' : ''">
-          <Column field="departamento" header="Área" sortable />
-          <Column field="total_incompletas" header="Incompletas" sortable style="width: 110px" />
-          <Column field="porcentaje_incompletas" header="%" sortable style="width: 90px">
-            <template #body="{ data }">{{ data.porcentaje_incompletas }}%</template>
-          </Column>
-          <template #empty>Sin datos para el periodo seleccionado.</template>
-        </DataTable>
-      </div>
-
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Horas extra por área</h3>
-        <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Según lo ya calculado en Gestión de Horas.</p>
-        <div class="h-44">
-          <Chart v-if="chartHorasExtra" type="bar" :data="chartHorasExtra" :options="opcionesBarrasVerticales" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin horas extra calculadas en el periodo.</p>
-        </div>
-      </div>
+    <!-- ── Jornadas incompletas / Calidad de marcaciones ───────────────────── -->
+    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Jornadas incompletas / Calidad de marcaciones</h3>
+      <DataTable :value="calidadMarcaciones" paginator :rows="6" size="small" scrollable scrollHeight="180px"
+        :class="isDark ? 'p-datatable-dark' : ''">
+        <Column field="departamento" header="Área" sortable />
+        <Column field="total_incompletas" header="Incompletas" sortable style="width: 110px" />
+        <Column field="porcentaje_incompletas" header="%" sortable style="width: 90px">
+          <template #body="{ data }">{{ data.porcentaje_incompletas }}%</template>
+        </Column>
+        <template #empty>Sin datos para el periodo seleccionado.</template>
+      </DataTable>
     </div>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import DatePicker from 'primevue/datepicker';
 import AutoComplete from 'primevue/autocomplete';
@@ -369,6 +377,7 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
+import vTooltip from 'primevue/tooltip';
 
 const props = defineProps({
   isDark: { type: Boolean, default: false },
@@ -379,16 +388,11 @@ const props = defineProps({
 // (mismo patrón que GestionPermisos.vue para /modulos-disponibles).
 const baseUrl = (import.meta.env.VITE_API_URL || '').replace('/usuarios', '');
 
-function toMesStr(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
 const hoy = new Date();
-const mesSeleccionadoDate = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-const mesInicioTendenciaDate = ref(new Date(hoy.getFullYear(), hoy.getMonth() - 5, 1));
-
-const mesSeleccionado = computed(() => toMesStr(mesSeleccionadoDate.value));
-const mesInicioTendencia = computed(() => toMesStr(mesInicioTendenciaDate.value));
+// Rango con día incluido (antes era solo "Mes" — el usuario necesita poder
+// acotar a un día o rango exacto, no solo a un mes calendario completo).
+const filtroDesde = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+const filtroHasta = ref(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
 
 const departamentoSeleccionado = ref('');
 const departamentosTodos = ref([]);
@@ -407,21 +411,14 @@ const tendenciaSerie = ref([]);
 const estadoAsistencia = ref([]);
 const tardanzasPorArea = ref([]);
 const tardanzasPorDia = ref([]);
+const ausenciasPorDia = ref([]);
 const distribucionMinutos = ref([]);
 const personasAtencion = ref([]);
 const personasPuntuales = ref([]);
 const calidadMarcaciones = ref([]);
-const horasExtraPorArea = ref([]);
 const cargando = ref(false);
 const cargandoRanking = ref(false);
 const error = ref('');
-
-function rangoDelMes(mes) {
-  const [y, m] = mes.split('-').map(Number);
-  const start = `${mes}-01`;
-  const end = new Date(y, m, 0).toISOString().slice(0, 10); // último día del mes
-  return { start, end };
-}
 
 function dateToISO(d) {
   if (!d) return '';
@@ -431,6 +428,30 @@ function dateToISO(d) {
 function formatFechaCorta(d) {
   if (!d) return '—';
   return d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// fecha viene como 'YYYY-MM-DD' del backend
+function formatFechaISO(fechaStr) {
+  if (!fechaStr) return '—';
+  const [y, m, d] = fechaStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function tooltipTardanzas(detalle) {
+  if (!detalle?.length) return '';
+  return detalle
+    .map(d => `${formatFechaISO(d.fecha)}: entró ${d.hora_entrada || '—'}, salió ${d.hora_salida || '—'}`)
+    .join('<br>');
+}
+
+function tooltipAusencias(detalle) {
+  if (!detalle?.length) return '';
+  return detalle.map(d => formatFechaISO(d.fecha)).join('<br>');
+}
+
+function isoStrToDate(fechaStr) {
+  const [y, m, d] = fechaStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 
 function etiquetaEstado(estado) {
@@ -467,6 +488,16 @@ const rankingFiltrado = computed(() => {
 const diaDetalleDate = ref(new Date());
 const detalleDia = ref([]);
 const cargandoDia = ref(false);
+const detalleDiaSection = ref(null);
+
+// Clic en "Día con más tardanzas/ausencias": carga el detalle de ese día y
+// hace scroll hasta la sección para que el resultado quede a la vista.
+async function irADetalleDia(fechaStr) {
+  diaDetalleDate.value = isoStrToDate(fechaStr);
+  await cargarDetalleDia();
+  await nextTick();
+  detalleDiaSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 async function cargarDetalleDia() {
   cargandoDia.value = true;
@@ -517,18 +548,24 @@ async function cargarRanking() {
 }
 
 async function cargarCumplimiento() {
-  const { start, end } = rangoDelMes(mesSeleccionado.value);
   const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/cumplimiento-por-area`, {
-    params: { startDate: start, endDate: end, company: props.company },
+    params: {
+      startDate: dateToISO(filtroDesde.value),
+      endDate: dateToISO(filtroHasta.value),
+      departamento: departamentoSeleccionado.value || undefined,
+      company: props.company,
+    },
   });
   cumplimientoAreas.value = data.areas || [];
 }
 
 async function cargarTendencia() {
-  const start = `${mesInicioTendencia.value}-01`;
-  const { end } = rangoDelMes(mesSeleccionado.value);
+  // Sin filtro propio ("Comparar tendencia desde" se quitó): siempre muestra
+  // los últimos 6 meses hasta la fecha "Hasta" del filtro principal.
+  const fin = filtroHasta.value;
+  const inicio = new Date(fin.getFullYear(), fin.getMonth() - 5, 1);
   const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/tendencia-mensual`, {
-    params: { startDate: start, endDate: end, departamento: departamentoSeleccionado.value || undefined, company: props.company },
+    params: { startDate: dateToISO(inicio), endDate: dateToISO(fin), departamento: departamentoSeleccionado.value || undefined, company: props.company },
   });
   tendenciaSerie.value = data.serie || [];
 }
@@ -538,30 +575,43 @@ async function cargarTendencia() {
 // eso sí se disparan en paralelo (a diferencia de cargarTodo, que mezcla estos
 // livianos con los históricos que ya existían).
 async function cargarSeccionesNuevas() {
-  const { start, end } = rangoDelMes(mesSeleccionado.value);
-  const params = { startDate: start, endDate: end, departamento: departamentoSeleccionado.value || undefined, company: props.company };
-  const paramsSinDepto = { startDate: start, endDate: end, company: props.company };
+  const params = {
+    startDate: dateToISO(filtroDesde.value),
+    endDate: dateToISO(filtroHasta.value),
+    departamento: departamentoSeleccionado.value || undefined,
+    company: props.company,
+  };
 
-  const [estado, tArea, tDia, distMin, atencion, puntuales, calidad, horasExtra] = await Promise.all([
+  const [estado, tArea, tDia, aDia, distMin, atencion, puntuales, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-area`, { params: paramsSinDepto }),
+    axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-area`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
+    axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/distribucion-minutos-tardanza`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/personas-atencion`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/personas-puntuales`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/horas-extra-por-area`, { params: paramsSinDepto }),
   ]);
 
   estadoAsistencia.value = estado.data.estados || [];
   tardanzasPorArea.value = tArea.data.areas || [];
   tardanzasPorDia.value = tDia.data.dias || [];
+  ausenciasPorDia.value = aDia.data.dias || [];
   distribucionMinutos.value = distMin.data.buckets || [];
   personasAtencion.value = atencion.data.personas || [];
   personasPuntuales.value = puntuales.data.personas || [];
   calidadMarcaciones.value = calidad.data.areas || [];
-  horasExtraPorArea.value = horasExtra.data.areas || [];
 }
+
+const diaMasTardanzas = computed(() => {
+  if (!tardanzasPorDia.value.length) return null;
+  return tardanzasPorDia.value.reduce((max, d) => (d.total_tardanzas > (max?.total_tardanzas ?? 0) ? d : max), null);
+});
+
+const diaMasAusencias = computed(() => {
+  if (!ausenciasPorDia.value.length) return null;
+  return ausenciasPorDia.value.reduce((max, d) => (d.total_ausencias > (max?.total_ausencias ?? 0) ? d : max), null);
+});
 
 async function cargarTodo() {
   cargando.value = true;
@@ -605,9 +655,7 @@ const kpi = computed(() => {
   const totalAusencias = ausenteEstado?.total ?? 0;
   const ausenciasInjustificadas = personasAtencion.value.reduce((s, p) => s + (p.ausencias_injustificadas || 0), 0);
 
-  const totalHorasExtra = Math.round(horasExtraPorArea.value.reduce((s, a) => s + (a.total_horas_extra || 0), 0) * 10) / 10;
-
-  return { cumplimientoPromedio, puntualidad, totalTardanzas, totalAusencias, ausenciasInjustificadas, totalHorasExtra };
+  return { cumplimientoPromedio, puntualidad, totalTardanzas, totalAusencias, ausenciasInjustificadas };
 });
 
 const chartCumplimiento = computed(() => {
@@ -681,20 +729,6 @@ const chartDistribucionMinutos = computed(() => {
       label: 'Tardanzas',
       data: distribucionMinutos.value.map(b => b.total),
       backgroundColor: '#EF4444',
-      borderRadius: 6,
-      barPercentage: 0.6,
-    }],
-  };
-});
-
-const chartHorasExtra = computed(() => {
-  if (!horasExtraPorArea.value.length) return null;
-  return {
-    labels: horasExtraPorArea.value.map(a => a.departamento),
-    datasets: [{
-      label: 'Horas extra',
-      data: horasExtraPorArea.value.map(a => a.total_horas_extra),
-      backgroundColor: '#8B5CF6',
       borderRadius: 6,
       barPercentage: 0.6,
     }],

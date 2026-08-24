@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { AsistenciaDiariaResumen } from './entities/asistencia-diaria-resumen.entity';
-import { HoraExtra } from '../horas-extra/entities/hora-extra.entity';
 
 /**
  * Lee `asistencia_diaria_resumen` (poblada por el cron/worker nocturno —
@@ -18,8 +17,6 @@ export class DashboardAsistenciaService {
     private readonly usuariosService: UsuariosService,
     @InjectRepository(AsistenciaDiariaResumen)
     private readonly resumenRepo: Repository<AsistenciaDiariaResumen>,
-    @InjectRepository(HoraExtra)
-    private readonly horaExtraRepo: Repository<HoraExtra>,
   ) {}
 
   private validarRango(startDate?: string, endDate?: string) {
@@ -71,10 +68,10 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, departamento: departamento ?? null, ranking };
   }
 
-  async cumplimientoPorArea(startDate: string, endDate: string, company?: string) {
+  async cumplimientoPorArea(startDate: string, endDate: string, company?: string, departamento?: string) {
     this.validarRango(startDate, endDate);
 
-    const porAreaRaw = await this.baseQuery(startDate, endDate, undefined, company)
+    const porAreaRaw = await this.baseQuery(startDate, endDate, departamento, company)
       .select('r.departamento', 'departamento')
       .addSelect('COUNT(*)', 'total_registros')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
@@ -82,7 +79,7 @@ export class DashboardAsistenciaService {
       .groupBy('r.departamento')
       .getRawMany();
 
-    const porEmpleadoRaw = await this.baseQuery(startDate, endDate, undefined, company)
+    const porEmpleadoRaw = await this.baseQuery(startDate, endDate, departamento, company)
       .select('r.departamento', 'departamento')
       .addSelect('r.cedula', 'cedula')
       .addSelect('r.nombre', 'nombre')
@@ -195,9 +192,9 @@ export class DashboardAsistenciaService {
     };
   }
 
-  async tardanzasPorArea(startDate: string, endDate: string, company?: string) {
+  async tardanzasPorArea(startDate: string, endDate: string, company?: string, departamento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, undefined, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company)
       .andWhere('r.estado = :tarde', { tarde: 'TARDE' })
       .select('r.departamento', 'departamento')
       .addSelect('COUNT(*)', 'total_tardanzas')
@@ -217,6 +214,18 @@ export class DashboardAsistenciaService {
       .orderBy('r.fecha', 'ASC')
       .getRawMany();
     return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_tardanzas: Number(r.total_tardanzas) })) };
+  }
+
+  async ausenciasPorDia(startDate: string, endDate: string, departamento?: string, company?: string) {
+    this.validarRango(startDate, endDate);
+    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+      .andWhere('r.estado = :ausente', { ausente: 'AUSENTE' })
+      .select('CONVERT(varchar, r.fecha, 23)', 'fecha')
+      .addSelect('COUNT(*)', 'total_ausencias')
+      .groupBy('r.fecha')
+      .orderBy('r.fecha', 'ASC')
+      .getRawMany();
+    return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_ausencias: Number(r.total_ausencias) })) };
   }
 
   /** Distribución de minutos de tardanza en buckets. */
@@ -242,32 +251,62 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, buckets: buckets.map(({ rango, total }) => ({ rango, total })) };
   }
 
-  /** Personas que requieren atención: 3+ tardanzas o alguna ausencia no justificada en el rango. */
+  private fechaAISO(f: any): string {
+    if (f instanceof Date) return f.toISOString().slice(0, 10);
+    return String(f).slice(0, 10);
+  }
+
+  private soloHora(f: string | null): string | null {
+    return f ? (f.split(' ')[1]?.slice(0, 5) ?? null) : null;
+  }
+
+  /**
+   * Personas que requieren atención: 3+ tardanzas o alguna ausencia no
+   * justificada en el rango. Incluye el detalle día a día (fecha de cada
+   * ausencia; fecha + hora de entrada/salida de cada tardanza) para que el
+   * frontend lo muestre en un tooltip sin tener que ir a "Detalle del día".
+   */
   async personasAtencion(startDate: string, endDate: string, departamento?: string, company?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select('r.cedula', 'cedula')
-      .addSelect('r.nombre', 'nombre')
-      .addSelect('r.departamento', 'departamento')
-      .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
-      .addSelect(
-        "SUM(CASE WHEN r.estado = 'AUSENTE' AND (r.ausencia_justificada IS NULL OR r.ausencia_justificada = 0) THEN 1 ELSE 0 END)",
-        'ausencias_injustificadas',
+    const filas = await this.baseQuery(startDate, endDate, departamento, company)
+      .andWhere(
+        "(r.estado = 'TARDE' OR (r.estado = 'AUSENTE' AND (r.ausencia_justificada IS NULL OR r.ausencia_justificada = 0)))",
       )
-      .setParameter('tarde', 'TARDE')
-      .groupBy('r.cedula, r.nombre, r.departamento')
-      .having(
-        "SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END) >= 3 OR SUM(CASE WHEN r.estado = 'AUSENTE' AND (r.ausencia_justificada IS NULL OR r.ausencia_justificada = 0) THEN 1 ELSE 0 END) >= 1",
-      )
-      .getRawMany();
+      .getMany();
 
-    const personas = raw
-      .map((r) => ({
-        cedula: r.cedula,
-        nombre: r.nombre,
-        departamento: r.departamento,
-        total_tardanzas: Number(r.total_tardanzas),
-        ausencias_injustificadas: Number(r.ausencias_injustificadas),
+    const porPersona = new Map<
+      string,
+      {
+        cedula: string;
+        nombre: string;
+        departamento: string | null;
+        tardanzas: { fecha: string; hora_entrada: string | null; hora_salida: string | null }[];
+        ausencias: { fecha: string }[];
+      }
+    >();
+    for (const f of filas) {
+      if (!porPersona.has(f.cedula)) {
+        porPersona.set(f.cedula, { cedula: f.cedula, nombre: f.nombre, departamento: f.departamento, tardanzas: [], ausencias: [] });
+      }
+      const p = porPersona.get(f.cedula)!;
+      const fecha = this.fechaAISO(f.fecha);
+      if (f.estado === 'TARDE') {
+        p.tardanzas.push({ fecha, hora_entrada: this.soloHora(f.hora_entrada), hora_salida: this.soloHora(f.hora_salida) });
+      } else {
+        p.ausencias.push({ fecha });
+      }
+    }
+
+    const personas = [...porPersona.values()]
+      .filter((p) => p.tardanzas.length >= 3 || p.ausencias.length >= 1)
+      .map((p) => ({
+        cedula: p.cedula,
+        nombre: p.nombre,
+        departamento: p.departamento,
+        total_tardanzas: p.tardanzas.length,
+        ausencias_injustificadas: p.ausencias.length,
+        tardanzas_detalle: p.tardanzas,
+        ausencias_detalle: p.ausencias,
       }))
       .sort((a, b) => b.ausencias_injustificadas - a.ausencias_injustificadas || b.total_tardanzas - a.total_tardanzas);
 
@@ -325,29 +364,6 @@ export class DashboardAsistenciaService {
           porcentaje_incompletas: total > 0 ? Math.round((incompletas / total) * 10000) / 100 : 0,
         };
       }),
-    };
-  }
-
-  /** Horas extra por área — solo LEE `horas_extra` (ya calculada por Gestión de Horas), no duplica su cálculo. */
-  async horasExtraPorArea(startDate: string, endDate: string, company?: string) {
-    this.validarRango(startDate, endDate);
-    const qb = this.horaExtraRepo
-      .createQueryBuilder('h')
-      .where('h.fecha BETWEEN :startDate AND :endDate', { startDate, endDate })
-      .select('h.departamento', 'departamento')
-      .addSelect('SUM(h.total_minutos_extra)', 'total_minutos_extra')
-      .groupBy('h.departamento')
-      .orderBy('total_minutos_extra', 'DESC');
-    if (company) qb.andWhere('h.company = :company', { company });
-    const raw = await qb.getRawMany();
-    return {
-      startDate,
-      endDate,
-      areas: raw.map((r) => ({
-        departamento: r.departamento,
-        total_minutos_extra: Number(r.total_minutos_extra) || 0,
-        total_horas_extra: Math.round(((Number(r.total_minutos_extra) || 0) / 60) * 100) / 100,
-      })),
     };
   }
 }

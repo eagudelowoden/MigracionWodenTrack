@@ -39,12 +39,39 @@ export class AsistenciaResumenCronService implements OnModuleInit {
     if (process.env.HX_WORKER === '1') return; // el worker no registra el cron
 
     try {
+      await this.recuperarLogsColgados();
       const config = await this.obtenerConfig();
       if (config.activo) this.registrarCron(config);
     } catch (e: any) {
       this.logger.error(
         `No se pudo inicializar el cron de resumen de asistencia (la API sigue arrancando igual): ${e?.message}`,
       );
+    }
+  }
+
+  /**
+   * Si la API se reinicia (deploy, --watch, crash) mientras una corrida está
+   * "procesando", el proceso que iba a cerrar el log muere con ella — el
+   * worker hijo queda huérfano (puede seguir vivo y terminar bien, escribiendo
+   * los datos) pero nadie marca el log como terminado, así que se queda
+   * "Procesando" en la UI para siempre. En cada arranque, cualquier fila que
+   * ya estaba "procesando" es de un proceso anterior (esta instancia arranca
+   * con `procesando = false` en memoria, no hay nada realmente corriendo
+   * ahora) — se marca como error para que dependan de correr de nuevo el
+   * historial ya sea que en la vez pasada haya terminado bien o no.
+   */
+  private async recuperarLogsColgados() {
+    const res = await this.logRepo.update(
+      { estado: 'procesando' },
+      {
+        estado: 'error',
+        error_mensaje:
+          'La API se reinició mientras esta corrida estaba en curso — no se pudo confirmar si terminó bien. Revisa los datos o vuelve a ejecutar.',
+        finalizado_at: new Date(),
+      },
+    );
+    if (res.affected) {
+      this.logger.warn(`${res.affected} corrida(s) de resumen de asistencia quedaron "procesando" de un arranque anterior — marcadas como error.`);
     }
   }
 
@@ -127,31 +154,31 @@ export class AsistenciaResumenCronService implements OnModuleInit {
   }
 
   /**
-   * Botón de emergencia si `procesando` se queda pegado en `true` (ej. el
-   * worker se colgó sin nunca emitir 'ready'/'exit' — antes del watchdog de
-   * abajo eso dejaba el botón "Ejecutar ahora" bloqueado para siempre). Mata
-   * el proceso hijo si sigue vivo y libera el flag.
+   * Cancela la corrida en curso desde Super Admin (botón "Cancelar" en la
+   * tabla de ejecuciones). También sirve como botón de emergencia si
+   * `procesando` se queda pegado en `true` porque el worker se colgó sin
+   * nunca emitir 'ready'/'exit'. Delega en `cancelarProcesoActual` (armado
+   * dentro de `lanzarWorker`) para que sea el ÚNICO lugar que escribe el
+   * estado final en el log — si no, hay una carrera real: este método
+   * escribía 'cancelado' y, un instante después, el handler 'exit' del hijo
+   * (que ya estaba en vuelo) volvía a escribir encima con el resultado por
+   * defecto ('error' o, si la escritura ni llegaba a tiempo, la UI seguía
+   * mostrando 'Procesando' un rato).
    */
-  async forzarLiberar(): Promise<{ liberado: boolean }> {
+  async cancelarActual(): Promise<{ liberado: boolean }> {
+    if (this.cancelarProcesoActual) {
+      return this.cancelarProcesoActual();
+    }
+    // No hay nada corriendo en memoria (ej. tras un restart de la API) pero
+    // el flag quedó pegado: no hay log que cerrar, solo se libera el botón.
     const estabaPegado = this.procesando;
-    if (this.hijoActual) {
-      try {
-        this.hijoActual.kill('SIGKILL');
-      } catch (_) {
-        /* ya estaba muerto */
-      }
-    }
-    if (this.logActualId) {
-      await this.cerrarLog(this.logActualId, 'error', null, 'Liberado manualmente desde Super Admin (worker atascado).');
-    }
     this.procesando = false;
-    this.hijoActual = null;
-    this.logActualId = null;
     return { liberado: estabaPegado };
   }
 
   private hijoActual: ChildProcess | null = null;
   private logActualId: number | null = null;
+  private cancelarProcesoActual: (() => Promise<{ liberado: boolean }>) | null = null;
 
   private async cerrarLog(id: number, estado: string, total_filas: number | null, error_mensaje: string | null) {
     try {
@@ -222,6 +249,7 @@ export class AsistenciaResumenCronService implements OnModuleInit {
 
       this.hijoActual = hijo;
       let liquidado = false;
+      let canceladoManual = false;
       let resultado: { estado: string; total: number | null; error: string | null } = {
         estado: 'error',
         total: null,
@@ -248,8 +276,34 @@ export class AsistenciaResumenCronService implements OnModuleInit {
         this.procesando = false;
         this.hijoActual = null;
         this.logActualId = null;
-        this.cerrarLog(log.id, resultado.estado, resultado.total, resultado.error);
+        this.cancelarProcesoActual = null;
+        // Si ya se canceló manualmente, ese flujo ya escribió el estado final
+        // ('cancelado') — escribir aquí también pisaría ese resultado con el
+        // valor por defecto ('error'), porque el 'exit' del hijo llega DESPUÉS
+        // (asíncrono) de que el cancel ya haya respondido y cerrado el log.
+        if (!canceladoManual) {
+          this.cerrarLog(log.id, resultado.estado, resultado.total, resultado.error);
+        }
         resolve();
+      };
+
+      // Único punto que cancela ESTA corrida: escribe 'cancelado' de una vez
+      // (antes de matar el proceso, para que la UI lo vea apenas responda) y
+      // deja marcado `canceladoManual` para que `terminar()` no vuelva a
+      // escribir por encima cuando el 'exit' real llegue un instante después.
+      this.cancelarProcesoActual = async () => {
+        canceladoManual = true;
+        await this.cerrarLog(log.id, 'cancelado', null, 'Cancelado manualmente desde Super Admin.');
+        this.procesando = false;
+        this.hijoActual = null;
+        this.logActualId = null;
+        this.cancelarProcesoActual = null;
+        try {
+          hijo.kill('SIGKILL');
+        } catch (_) {
+          /* ya estaba muerto */
+        }
+        return { liberado: true };
       };
 
       hijo.on('message', (msg: any) => {

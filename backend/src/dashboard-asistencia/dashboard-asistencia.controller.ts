@@ -50,10 +50,10 @@ export class DashboardAsistenciaController {
     return this.resumenCron.obtenerLogs(limit ? Number(limit) : 20);
   }
 
-  /** Botón de emergencia si "Procesando…" se queda pegado (worker colgado). */
-  @Post('resumen-cron/forzar-liberar')
-  forzarLiberarCron() {
-    return this.resumenCron.forzarLiberar();
+  /** Cancela la corrida en curso (o libera el flag si el worker quedó colgado). */
+  @Post('resumen-cron/cancelar')
+  cancelarCron() {
+    return this.resumenCron.cancelarActual();
   }
 
   @Get('ranking-tardanzas')
@@ -71,8 +71,9 @@ export class DashboardAsistenciaController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
   ) {
-    return this.service.cumplimientoPorArea(startDate, endDate, company);
+    return this.service.cumplimientoPorArea(startDate, endDate, company, departamento);
   }
 
   @Get('tendencia-mensual')
@@ -114,8 +115,9 @@ export class DashboardAsistenciaController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('company') company?: string,
+    @Query('departamento') departamento?: string,
   ) {
-    return this.service.tardanzasPorArea(startDate, endDate, company);
+    return this.service.tardanzasPorArea(startDate, endDate, company, departamento);
   }
 
   @Get('tardanzas-por-dia')
@@ -126,6 +128,16 @@ export class DashboardAsistenciaController {
     @Query('company') company?: string,
   ) {
     return this.service.tardanzasPorDia(startDate, endDate, departamento, company);
+  }
+
+  @Get('ausencias-por-dia')
+  ausenciasPorDia(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('departamento') departamento?: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.ausenciasPorDia(startDate, endDate, departamento, company);
   }
 
   @Get('distribucion-minutos-tardanza')
@@ -166,14 +178,5 @@ export class DashboardAsistenciaController {
     @Query('company') company?: string,
   ) {
     return this.service.calidadMarcaciones(startDate, endDate, departamento, company);
-  }
-
-  @Get('horas-extra-por-area')
-  horasExtraPorArea(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('company') company?: string,
-  ) {
-    return this.service.horasExtraPorArea(startDate, endDate, company);
   }
 }
