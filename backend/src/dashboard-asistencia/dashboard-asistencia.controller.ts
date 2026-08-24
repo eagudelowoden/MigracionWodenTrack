@@ -150,16 +150,6 @@ export class DashboardAsistenciaController {
     return this.service.distribucionMinutosTardanza(startDate, endDate, departamento, company);
   }
 
-  @Get('personas-atencion')
-  personasAtencion(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-  ) {
-    return this.service.personasAtencion(startDate, endDate, departamento, company);
-  }
-
   @Get('personas-puntuales')
   personasPuntuales(
     @Query('startDate') startDate: string,

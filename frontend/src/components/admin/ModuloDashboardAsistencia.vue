@@ -83,7 +83,6 @@
           </span>
         </div>
         <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ kpi.totalAusencias }}</p>
-        <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">{{ kpi.ausenciasInjustificadas }} sin justificar</p>
       </div>
     </div>
 
@@ -223,36 +222,6 @@
       </div>
     </div>
 
-    <!-- ── Personas que requieren atención ─────────────────────────────────── -->
-    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Personas que requieren atención</h3>
-      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">3+ tardanzas o alguna ausencia sin justificar en el periodo seleccionado.</p>
-      <DataTable :value="personasAtencion" paginator :rows="8" size="small" scrollable scrollHeight="220px"
-        :class="isDark ? 'p-datatable-dark' : ''">
-        <Column field="nombre" header="Nombre" sortable />
-        <Column field="cedula" header="Cédula" sortable style="width: 130px" />
-        <Column field="departamento" header="Área" sortable />
-        <Column field="total_tardanzas" header="Tardanzas" sortable style="width: 110px">
-          <template #body="{ data }">
-            <span v-if="data.total_tardanzas > 0" v-tooltip.top="{ value: tooltipTardanzas(data.tardanzas_detalle), escape: false }"
-              class="px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-help"
-              :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'">{{ data.total_tardanzas }}</span>
-            <span v-else>—</span>
-          </template>
-        </Column>
-        <Column field="ausencias_injustificadas" header="Ausencias s/justificar" sortable style="width: 160px">
-          <template #body="{ data }">
-            <span v-if="data.ausencias_injustificadas > 0" v-tooltip.top="{ value: tooltipAusencias(data.ausencias_detalle), escape: false }"
-              class="px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-help"
-              :class="isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600'">{{ data.ausencias_injustificadas }}</span>
-            <span v-else>—</span>
-          </template>
-        </Column>
-        <template #empty>Nadie requiere atención en el periodo seleccionado.</template>
-      </DataTable>
-    </div>
-
     <!-- ── Detalle de un día específico ──────────────────────────────────── -->
     <div ref="detalleDiaSection" class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -377,7 +346,6 @@ import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
-import vTooltip from 'primevue/tooltip';
 
 const props = defineProps({
   isDark: { type: Boolean, default: false },
@@ -413,7 +381,6 @@ const tardanzasPorArea = ref([]);
 const tardanzasPorDia = ref([]);
 const ausenciasPorDia = ref([]);
 const distribucionMinutos = ref([]);
-const personasAtencion = ref([]);
 const personasPuntuales = ref([]);
 const calidadMarcaciones = ref([]);
 const cargando = ref(false);
@@ -435,18 +402,6 @@ function formatFechaISO(fechaStr) {
   if (!fechaStr) return '—';
   const [y, m, d] = fechaStr.split('-');
   return `${d}/${m}/${y}`;
-}
-
-function tooltipTardanzas(detalle) {
-  if (!detalle?.length) return '';
-  return detalle
-    .map(d => `${formatFechaISO(d.fecha)}: entró ${d.hora_entrada || '—'}, salió ${d.hora_salida || '—'}`)
-    .join('<br>');
-}
-
-function tooltipAusencias(detalle) {
-  if (!detalle?.length) return '';
-  return detalle.map(d => formatFechaISO(d.fecha)).join('<br>');
 }
 
 function isoStrToDate(fechaStr) {
@@ -582,13 +537,12 @@ async function cargarSeccionesNuevas() {
     company: props.company,
   };
 
-  const [estado, tArea, tDia, aDia, distMin, atencion, puntuales, calidad] = await Promise.all([
+  const [estado, tArea, tDia, aDia, distMin, puntuales, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-area`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/distribucion-minutos-tardanza`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/personas-atencion`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/personas-puntuales`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
   ]);
@@ -598,7 +552,6 @@ async function cargarSeccionesNuevas() {
   tardanzasPorDia.value = tDia.data.dias || [];
   ausenciasPorDia.value = aDia.data.dias || [];
   distribucionMinutos.value = distMin.data.buckets || [];
-  personasAtencion.value = atencion.data.personas || [];
   personasPuntuales.value = puntuales.data.personas || [];
   calidadMarcaciones.value = calidad.data.areas || [];
 }
@@ -653,9 +606,8 @@ const kpi = computed(() => {
 
   const ausenteEstado = estadoAsistencia.value.find(e => e.estado === 'AUSENTE');
   const totalAusencias = ausenteEstado?.total ?? 0;
-  const ausenciasInjustificadas = personasAtencion.value.reduce((s, p) => s + (p.ausencias_injustificadas || 0), 0);
 
-  return { cumplimientoPromedio, puntualidad, totalTardanzas, totalAusencias, ausenciasInjustificadas };
+  return { cumplimientoPromedio, puntualidad, totalTardanzas, totalAusencias };
 });
 
 const chartCumplimiento = computed(() => {

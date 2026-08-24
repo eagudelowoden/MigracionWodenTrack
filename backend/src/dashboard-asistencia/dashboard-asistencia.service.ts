@@ -251,68 +251,6 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, buckets: buckets.map(({ rango, total }) => ({ rango, total })) };
   }
 
-  private fechaAISO(f: any): string {
-    if (f instanceof Date) return f.toISOString().slice(0, 10);
-    return String(f).slice(0, 10);
-  }
-
-  private soloHora(f: string | null): string | null {
-    return f ? (f.split(' ')[1]?.slice(0, 5) ?? null) : null;
-  }
-
-  /**
-   * Personas que requieren atención: 3+ tardanzas o alguna ausencia no
-   * justificada en el rango. Incluye el detalle día a día (fecha de cada
-   * ausencia; fecha + hora de entrada/salida de cada tardanza) para que el
-   * frontend lo muestre en un tooltip sin tener que ir a "Detalle del día".
-   */
-  async personasAtencion(startDate: string, endDate: string, departamento?: string, company?: string) {
-    this.validarRango(startDate, endDate);
-    const filas = await this.baseQuery(startDate, endDate, departamento, company)
-      .andWhere(
-        "(r.estado = 'TARDE' OR (r.estado = 'AUSENTE' AND (r.ausencia_justificada IS NULL OR r.ausencia_justificada = 0)))",
-      )
-      .getMany();
-
-    const porPersona = new Map<
-      string,
-      {
-        cedula: string;
-        nombre: string;
-        departamento: string | null;
-        tardanzas: { fecha: string; hora_entrada: string | null; hora_salida: string | null }[];
-        ausencias: { fecha: string }[];
-      }
-    >();
-    for (const f of filas) {
-      if (!porPersona.has(f.cedula)) {
-        porPersona.set(f.cedula, { cedula: f.cedula, nombre: f.nombre, departamento: f.departamento, tardanzas: [], ausencias: [] });
-      }
-      const p = porPersona.get(f.cedula)!;
-      const fecha = this.fechaAISO(f.fecha);
-      if (f.estado === 'TARDE') {
-        p.tardanzas.push({ fecha, hora_entrada: this.soloHora(f.hora_entrada), hora_salida: this.soloHora(f.hora_salida) });
-      } else {
-        p.ausencias.push({ fecha });
-      }
-    }
-
-    const personas = [...porPersona.values()]
-      .filter((p) => p.tardanzas.length >= 3 || p.ausencias.length >= 1)
-      .map((p) => ({
-        cedula: p.cedula,
-        nombre: p.nombre,
-        departamento: p.departamento,
-        total_tardanzas: p.tardanzas.length,
-        ausencias_injustificadas: p.ausencias.length,
-        tardanzas_detalle: p.tardanzas,
-        ausencias_detalle: p.ausencias,
-      }))
-      .sort((a, b) => b.ausencias_injustificadas - a.ausencias_injustificadas || b.total_tardanzas - a.total_tardanzas);
-
-    return { startDate, endDate, personas };
-  }
-
   /** Personas más puntuales: 0 tardanzas y 0 ausencias, más días trabajados primero. */
   async personasPuntuales(startDate: string, endDate: string, departamento?: string, company?: string) {
     this.validarRango(startDate, endDate);
