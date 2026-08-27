@@ -51,7 +51,7 @@ const NAV_GROUPS = [
     items: {
       apk: { icon: 'fab fa-android', label: 'APK', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
       api: { icon: 'fas fa-plug', label: 'API Externa', color: 'text-teal-400', bg: 'bg-teal-500/10' },
-      datoscrudos: { icon: 'fas fa-database', label: 'Datos Crudos', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+      datoscrudos: { icon: 'fas fa-database', label: 'Datos de Odoo', color: 'text-amber-400', bg: 'bg-amber-500/10' },
       config: { icon: 'fas fa-sliders', label: 'Configuración', color: 'text-slate-400', bg: 'bg-slate-500/10' },
       modulos: { icon: 'fas fa-puzzle-piece', label: 'Módulos', color: 'text-violet-400', bg: 'bg-violet-500/10' },
       reportes: { icon: 'fas fa-triangle-exclamation', label: 'Rep. Falla', color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -593,7 +593,8 @@ onUnmounted(() => {
         <!-- Derecha: 1-Sistema Activo · 2-Tema · 3-Usuario (con dropdown) -->
         <div class="flex items-center gap-2 shrink-0">
           <!-- 1. Sistema activo: entorno (.env) + nombre de la BD, sin credenciales -->
-          <div v-if="entornoInfo.entorno" class="sa-env-chip" :class="[`sa-env-${entornoColor}`, isDark ? 'sa-env-dark' : 'sa-env-light']"
+          <div v-if="entornoInfo.entorno" class="sa-env-chip"
+            :class="[`sa-env-${entornoColor}`, isDark ? 'sa-env-dark' : 'sa-env-light']"
             :title="`Entorno: ${entornoLabel} · Base de datos: ${entornoInfo.database || '—'}`">
             <span class="sa-env-label">{{ entornoLabel }}</span>
             <span class="sa-env-sep"></span>
@@ -634,7 +635,7 @@ onUnmounted(() => {
                     :class="isDark ? 'text-white' : 'text-[#64748B]'">{{ displayRole }}</p>
                   <p class="text-[11px] font-bold mt-0.5" :class="isDark ? 'text-white' : 'text-[#10233A]'">{{
                     displayName
-                    }}</p>
+                  }}</p>
                 </div>
                 <button @click="showUserMenu = false; showCambioPasswordSA = true"
                   class="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-medium transition-colors"
@@ -667,7 +668,8 @@ onUnmounted(() => {
         </svg>
 
         <!-- Módulos de contenido normal -->
-        <template v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras', 'reporteworkers', 'cronasistencia']"
+        <template
+          v-for="tab in ['stats', 'apk', 'companies', 'notifications', 'estructura', 'api', 'modulos', 'sync', 'cronhoras', 'reporteworkers', 'cronasistencia']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -739,7 +741,8 @@ onUnmounted(() => {
                 <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
                   <i class="fas fa-key text-blue-500 text-xs"></i>
                 </div>
-                <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Cambiar contraseña</span>
+                <span class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-slate-800'">Cambiar
+                  contraseña</span>
               </div>
               <button @click="cerrarCambioPasswordSA"
                 class="w-7 h-7 rounded-lg flex items-center justify-center opacity-40 hover:opacity-100 transition-colors"
@@ -752,7 +755,8 @@ onUnmounted(() => {
                 Al establecer una contraseña personal, deberás usarla para ingresar en lugar de tu cédula.
               </p>
               <div class="space-y-1">
-                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Nueva contraseña</label>
+                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Nueva
+                  contraseña</label>
                 <div class="relative">
                   <input v-model="pwFormSA.nueva" :type="pwFormSA.showNueva ? 'text' : 'password'"
                     placeholder="Mínimo 6 caracteres"
@@ -766,7 +770,8 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="space-y-1">
-                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Confirmar contraseña</label>
+                <label class="text-[11px] font-semibold" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Confirmar
+                  contraseña</label>
                 <div class="relative">
                   <input v-model="pwFormSA.confirmar" :type="pwFormSA.showConfirmar ? 'text' : 'password'"
                     placeholder="Repite la contraseña"
@@ -796,7 +801,8 @@ onUnmounted(() => {
               </button>
               <button @click="guardarPasswordSA" :disabled="pwFormSA.loading"
                 class="flex-1 h-9 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
-                <div v-if="pwFormSA.loading" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div v-if="pwFormSA.loading"
+                  class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span v-else><i class="fas fa-check mr-1"></i>Guardar</span>
               </button>
             </div>
@@ -807,10 +813,8 @@ onUnmounted(() => {
 
     <!-- ── Modal confirmación logout (estilo WodenTrack) ───────────────────── -->
     <Transition name="logout-fade">
-      <div v-if="showLogoutModal"
-        class="fixed inset-0 z-[200] flex items-center justify-center p-4"
-        style="background: rgba(16,46,74,0.45)"
-        @click.self="showLogoutModal = false">
+      <div v-if="showLogoutModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        style="background: rgba(16,46,74,0.45)" @click.self="showLogoutModal = false">
 
         <Transition name="logout-pop" appear>
           <div v-if="showLogoutModal" class="wt-modal" :class="isDark ? 'wt-modal-dark' : 'wt-modal-light'">
@@ -849,9 +853,8 @@ onUnmounted(() => {
 
     <!-- Panel de permisos -->
     <GestionPermisos v-model="selectedUserPerms" :isDark="isDark" :areas="areas" :segmentos="segmentos"
-      :apiUrl="API_URL" :todosLosDepartamentos="departamentosUnicos"
-      :savingPermSlugs="savingPermSlugs" :permFeedback="permFeedback"
-      @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
+      :apiUrl="API_URL" :todosLosDepartamentos="departamentosUnicos" :savingPermSlugs="savingPermSlugs"
+      :permFeedback="permFeedback" @toggle-perm="togglePermisoLocal($event.user, $event.slug)"
       @update-structure="updateUserStructure($event.user, $event.field)" />
   </div>
 </template>
@@ -930,7 +933,7 @@ onUnmounted(() => {
 }
 
 /* El nav interior sí hace scroll pero sin clip al botón que sobresale */
-.sa-sidebar > .sa-nav {
+.sa-sidebar>.sa-nav {
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1406,7 +1409,12 @@ onUnmounted(() => {
   font-weight: 700;
   white-space: nowrap;
 }
-.sa-env-label { text-transform: uppercase; letter-spacing: .05em; }
+
+.sa-env-label {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
 .sa-env-sep {
   width: 1px;
   height: 10px;
@@ -1414,6 +1422,7 @@ onUnmounted(() => {
   background: currentColor;
   opacity: .25;
 }
+
 .sa-env-db {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-weight: 600;
@@ -1422,18 +1431,46 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-.sa-env-red     { color: #ef4444; }
-.sa-env-amber   { color: #f59e0b; }
-.sa-env-emerald { color: #22c55e; }
+.sa-env-red {
+  color: #ef4444;
+}
 
-.sa-env-dark.sa-env-red     { background: rgba(239,68,68,.10); }
-.sa-env-dark.sa-env-amber   { background: rgba(245,158,11,.10); }
-.sa-env-dark.sa-env-emerald { background: rgba(74,222,128,.10); }
-.sa-env-light.sa-env-red     { background: rgba(239,68,68,.08); }
-.sa-env-light.sa-env-amber   { background: rgba(245,158,11,.08); }
-.sa-env-light.sa-env-emerald { background: rgba(22,163,74,.08); }
+.sa-env-amber {
+  color: #f59e0b;
+}
 
-.sa-env-db { color: inherit; opacity: .85; }
+.sa-env-emerald {
+  color: #22c55e;
+}
+
+.sa-env-dark.sa-env-red {
+  background: rgba(239, 68, 68, .10);
+}
+
+.sa-env-dark.sa-env-amber {
+  background: rgba(245, 158, 11, .10);
+}
+
+.sa-env-dark.sa-env-emerald {
+  background: rgba(74, 222, 128, .10);
+}
+
+.sa-env-light.sa-env-red {
+  background: rgba(239, 68, 68, .08);
+}
+
+.sa-env-light.sa-env-amber {
+  background: rgba(245, 158, 11, .08);
+}
+
+.sa-env-light.sa-env-emerald {
+  background: rgba(22, 163, 74, .08);
+}
+
+.sa-env-db {
+  color: inherit;
+  opacity: .85;
+}
 
 .sa-theme-btn {
   width: 32px;
@@ -1580,6 +1617,7 @@ onUnmounted(() => {
 .logout-fade-leave-active {
   transition: opacity .2s ease;
 }
+
 .logout-fade-enter-from,
 .logout-fade-leave-to {
   opacity: 0;
@@ -1589,9 +1627,11 @@ onUnmounted(() => {
 .logout-pop-enter-active {
   transition: all .18s ease-out;
 }
+
 .logout-pop-leave-active {
   transition: all .12s ease-in;
 }
+
 .logout-pop-enter-from,
 .logout-pop-leave-to {
   opacity: 0;
