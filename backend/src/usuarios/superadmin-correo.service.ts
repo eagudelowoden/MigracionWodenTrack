@@ -130,12 +130,19 @@ export class SuperAdminCorreoService {
           ? `${data.fechaInicio} al ${data.fechaFin}`
           : data.fechaInicio;
 
-      await t.sendMail({
+      const info = await t.sendMail({
         from: `"${fromNombre}" <${fromUser}>`,
         to: data.destinatarios.join(', '),
         subject: `Ausentismo — ${data.empleado} · ${fechaDisplay}`,
         html: this.buildHtml(data),
       });
+      // `sendMail` sin error solo confirma que Office365 ACEPTÓ el mensaje
+      // para reenviarlo, no que llegó a la bandeja del destinatario — si no
+      // llega, esta respuesta (messageId/response/accepted/rejected) es lo
+      // primero que hay que revisar antes de sospechar de la conexión SMTP.
+      console.log(
+        `📧 Ausentismo enviado — messageId: ${info.messageId} | response: ${info.response} | accepted: ${JSON.stringify(info.accepted)} | rejected: ${JSON.stringify(info.rejected)}`,
+      );
 
       return {
         ok: true,

@@ -114,28 +114,38 @@ export class MailService {
     const to = datos.destinatarios?.length
       ? datos.destinatarios.join(', ')
       : null;
-    if (!to) return;
+    // Antes esto hacía `return` silenciosamente y el llamador (notificarAprobados)
+    // igual marcaba el registro como "notificado" — desaparecía de la lista sin
+    // que se hubiera enviado ningún correo (nadie configuró destinatarios).
+    if (!to) {
+      throw new Error('No hay destinatarios configurados para notificar horas extra.');
+    }
 
-    try {
-      const { registros, excelBuffer, calculado_por } = datos;
-      const fecha = new Date().toLocaleString('es-CO', {
-        timeZone: 'America/Bogota',
-      });
-      const html = `
-        <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
-          <div style="border-left:4px solid #16a34a;padding:16px 20px;background:#f9fafb;border-radius:8px;">
-            <h2 style="margin:0 0 12px;font-size:16px;color:#1a1a1a;">✅ Novedades de horas extra aprobadas</h2>
-            <p style="font-size:12px;color:#666;margin:0 0 12px;">${registros.length} registro(s) aprobado(s). Ver detalle en el archivo adjunto.</p>
-            <p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por?.trim() || 'Sistema'}</p>
-            <p style="margin:6px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
-          </div>
+    const { registros, excelBuffer, calculado_por } = datos;
+    const fecha = new Date().toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+    });
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
+        <div style="border-left:4px solid #16a34a;padding:16px 20px;background:#f9fafb;border-radius:8px;">
+          <h2 style="margin:0 0 12px;font-size:16px;color:#1a1a1a;">✅ Novedades de horas extra aprobadas</h2>
+          <p style="font-size:12px;color:#666;margin:0 0 12px;">${registros.length} registro(s) aprobado(s). Ver detalle en el archivo adjunto.</p>
+          <p style="margin:12px 0 0;font-size:12px;color:#16a34a;font-weight:600;">👤 Enviado por: ${calculado_por?.trim() || 'Sistema'}</p>
+          <p style="margin:6px 0 0;font-size:11px;color:#aaa;">${fecha} · Sistema de Asistencias</p>
         </div>
-      `;
+      </div>
+    `;
 
-      const fechaArchivo = new Date().toISOString().slice(0, 10);
-      console.log(`📧 Enviando desde: ${process.env.MAIL_USER} | host: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
-      console.log(`📧 Destinatarios: ${to}`);
-      const porQuien = calculado_por?.trim() || 'Sistema';
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+    console.log(`📧 Enviando desde: ${process.env.MAIL_USER} | host: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
+    console.log(`📧 Destinatarios: ${to}`);
+    const porQuien = calculado_por?.trim() || 'Sistema';
+    // NO se atrapa el error aquí a propósito: el llamador (notificarAprobados /
+    // notificarDesdeCargue) solo debe marcar el registro como "notificado" (y
+    // quitarlo de la lista de pendientes) si el correo REALMENTE se envió — antes
+    // este método atrapaba cualquier fallo SMTP y devolvía éxito igual, así que
+    // registros se marcaban como notificados sin que hubiera llegado ningún correo.
+    try {
       const info = await this.crearTransporter().sendMail({
         from: this.getFrom(),
         to,
@@ -154,6 +164,7 @@ export class MailService {
     } catch (error) {
       console.error('📧 Error enviando novedades HX:', error.message);
       console.error('📧 Detalle SMTP:', error);
+      throw new Error(`No se pudo enviar el correo de notificación: ${error.message}`);
     }
   }
 

@@ -2812,7 +2812,9 @@ async function handleNotificarLoteIndividual(lote) {
   try {
     await notificarCargueGrupo(lote.lote_id);
     await handleCargarLotes();
-  } catch { } finally {
+  } catch (e) {
+    alert(e?.response?.data?.message || 'No se pudo enviar el correo — el lote sigue pendiente para reintentar.');
+  } finally {
     notificandoLoteIdCargue.value = null;
   }
 }
@@ -2825,7 +2827,9 @@ async function handleNotificarLotesSeleccionados() {
     }
     lotesSeleccionadosCargue.value = new Set();
     await handleCargarLotes();
-  } catch { } finally {
+  } catch (e) {
+    alert(e?.response?.data?.message || 'No se pudo enviar el correo de uno o más lotes — los que fallaron siguen pendientes para reintentar.');
+  } finally {
     notificandoLotesMasivo.value = false;
   }
 }
@@ -3187,7 +3191,7 @@ async function reenviarNotificacionHistorial(loteKey, grupoRows) {
     });
     alert('Correo reenviado correctamente.');
   } catch (e) {
-    alert('Error al reenviar el correo.');
+    alert(e?.response?.data?.message || 'Error al reenviar el correo.');
   } finally {
     renotificandoKey.value = null;
   }
@@ -3316,7 +3320,9 @@ async function handleDescargarNovedades() {
 async function handleNotificar() {
   try {
     await notificarAprobados();
-  } catch { /* silencioso */ }
+  } catch (e) {
+    alert(e?.response?.data?.message || 'No se pudo enviar el correo — los registros siguen pendientes para reintentar.');
+  }
 }
 
 /**
