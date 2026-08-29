@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ejemplo de web.config corregido para el sitio IIS de QA (puerto 8086).
+
+  El problema real: la regla "ReverseProxyToBackend" hacía match contra
+  `^api/(.*)`, pero NINGUNA ruta del backend NestJS empieza con "/api" — casi
+  todo vive bajo "/usuarios/..." (ver @Controller(...) en backend/src), más
+  unas pocas rutas en la raíz: /apk, /modulos-disponibles, /dashboard-asistencia.
+  Como la regla nunca hacía match, toda petición a /usuarios/... caía en la
+  regla 4 (SPA fallback) y el servidor devolvía index.html en vez de reenviar
+  al backend en 127.0.0.1:3001 — por eso el frontend nunca llegaba a la API.
+-->
+<configuration>
+  <system.webServer>
+
+    <!-- Habilita WebSockets para Socket.io -->
+    <webSocket enabled="true" />
+
+    <staticContent>
+      <clientCache cacheControlMode="DisableCache" />
+    </staticContent>
+
+    <httpProtocol>
+      <customHeaders>
+        <add name="Cache-Control" value="no-cache, no-store, must-revalidate" />
+        <add name="Pragma" value="no-cache" />
+        <add name="Expires" value="-1" />
+      </customHeaders>
+    </httpProtocol>
+
+    <rewrite>
+      <rules>
+        <!-- 1. Modo Mantenimiento -->
+        <rule name="Modo Mantenimiento" enabled="false" stopProcessing="true">
+          <match url="^(.*)$" />
+          <conditions>
+            <add input="{SCRIPT_NAME}" pattern="^/mantenimiento.html" negate="true" />
+            <add input="{REQUEST_FILENAME}" pattern=".*\.js|.*\.css|.*\.png|.*\.jpg|.*\.svg" negate="true" />
+            <add input="{REMOTE_ADDR}" pattern="152.200.241.168" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/mantenimiento.html" />
+        </rule>
+
+        <!-- 2. Reverse Proxy para WebSockets (Socket.io) -->
+        <rule name="WebSocketProxy" stopProcessing="true">
+          <match url="socket.io/(.*)" />
+          <action type="Rewrite" url="http://127.0.0.1:3001/socket.io/{R:1}" />
+        </rule>
+
+        <!--
+          3. Reverse Proxy para la API (backend NestJS en puerto 3001).
+          Antes: match url="^api/(.*)" — no existía ninguna ruta bajo /api.
+          Ahora: lista explícita de los prefijos REALES que expone el backend
+          (ver @Controller(...) en backend/src). Si en el futuro agregas un
+          @Controller nuevo con un prefijo en la raíz (no bajo "usuarios/..."),
+          hay que sumarlo aquí también.
+        -->
+        <rule name="ReverseProxyToBackend" stopProcessing="true">
+          <match url="^(usuarios|dashboard-asistencia|apk|modulos-disponibles|uploads)/(.*)" />
+          <action type="Rewrite" url="http://127.0.0.1:3001/{R:0}" />
+        </rule>
+
+        <!-- 4. SPA Fallback (History Mode para Frontend) -->
+        <rule name="Handle History Mode" stopProcessing="true">
+          <match url="(.*)" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/" />
+        </rule>
+      </rules>
+    </rewrite>
+
+  </system.webServer>
+</configuration>
