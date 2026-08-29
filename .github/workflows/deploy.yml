@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
-  # DESPLIEGUE A TEST/QA  (rama: dagudelo/qa)
+  # DESPLIEGUE A TEST/QA  (rama: dagudelo/qa) Nueva ip
   # ─────────────────────────────────────────────
   deploy-test:
     if: github.ref == 'refs/heads/dagudelo/qa'
