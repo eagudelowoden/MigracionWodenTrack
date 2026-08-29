@@ -24,7 +24,7 @@ jobs:
 
       # 1. Correr pruebas unitarias del backend — si algo falla, el job para
       #    aqui mismo y NADA de lo de abajo se ejecuta (ni build ni copia ni
-      #    reinicio). No se despliega codigo que no pasa sus propias pruebas.
+      #    reinicio). No se despliega codigo que no pasa sus propias pruebas.qa
       - name: Pruebas unitarias Backend
         run: |
           cd backend
