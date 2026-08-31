@@ -251,34 +251,6 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, buckets: buckets.map(({ rango, total }) => ({ rango, total })) };
   }
 
-  /** Personas más puntuales: 0 tardanzas y 0 ausencias, más días trabajados primero. */
-  async personasPuntuales(startDate: string, endDate: string, departamento?: string, company?: string) {
-    this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select('r.cedula', 'cedula')
-      .addSelect('r.nombre', 'nombre')
-      .addSelect('r.departamento', 'departamento')
-      .addSelect('COUNT(*)', 'total_dias')
-      .addSelect('SUM(CASE WHEN r.estado = :puntual THEN 1 ELSE 0 END)', 'dias_a_tiempo')
-      .setParameter('puntual', 'PUNTUAL')
-      .groupBy('r.cedula, r.nombre, r.departamento')
-      .having('COUNT(*) = SUM(CASE WHEN r.estado = :puntual THEN 1 ELSE 0 END)')
-      .orderBy('total_dias', 'DESC')
-      .limit(20)
-      .getRawMany();
-
-    return {
-      startDate,
-      endDate,
-      personas: raw.map((r) => ({
-        cedula: r.cedula,
-        nombre: r.nombre,
-        departamento: r.departamento,
-        total_dias: Number(r.total_dias),
-      })),
-    };
-  }
-
   /** Jornadas incompletas / calidad de marcaciones. */
   async calidadMarcaciones(startDate: string, endDate: string, departamento?: string, company?: string) {
     this.validarRango(startDate, endDate);

@@ -301,21 +301,6 @@
       </DataTable>
     </div>
 
-    <!-- ── Personas más puntuales ───────────────────────────────────────────── -->
-    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Personas más puntuales</h3>
-      <p class="text-[10px] mb-2" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cero tardanzas en todo el periodo seleccionado.</p>
-      <DataTable :value="personasPuntuales" paginator :rows="8" size="small" scrollable scrollHeight="200px"
-        :class="isDark ? 'p-datatable-dark' : ''">
-        <Column field="nombre" header="Nombre" sortable />
-        <Column field="cedula" header="Cédula" sortable style="width: 130px" />
-        <Column field="departamento" header="Área" sortable />
-        <Column field="total_dias" header="Días trabajados" sortable style="width: 140px" />
-        <template #empty>Sin registros para el periodo seleccionado.</template>
-      </DataTable>
-    </div>
-
     <!-- ── Jornadas incompletas / Calidad de marcaciones ───────────────────── -->
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -381,7 +366,6 @@ const tardanzasPorArea = ref([]);
 const tardanzasPorDia = ref([]);
 const ausenciasPorDia = ref([]);
 const distribucionMinutos = ref([]);
-const personasPuntuales = ref([]);
 const calidadMarcaciones = ref([]);
 const cargando = ref(false);
 const cargandoRanking = ref(false);
@@ -537,13 +521,12 @@ async function cargarSeccionesNuevas() {
     company: props.company,
   };
 
-  const [estado, tArea, tDia, aDia, distMin, puntuales, calidad] = await Promise.all([
+  const [estado, tArea, tDia, aDia, distMin, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-area`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/distribucion-minutos-tardanza`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/personas-puntuales`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
   ]);
 
@@ -552,7 +535,6 @@ async function cargarSeccionesNuevas() {
   tardanzasPorDia.value = tDia.data.dias || [];
   ausenciasPorDia.value = aDia.data.dias || [];
   distribucionMinutos.value = distMin.data.buckets || [];
-  personasPuntuales.value = puntuales.data.personas || [];
   calidadMarcaciones.value = calidad.data.areas || [];
 }
 
