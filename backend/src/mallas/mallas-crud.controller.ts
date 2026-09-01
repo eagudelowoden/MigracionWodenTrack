@@ -39,7 +39,6 @@ export class MallasCrudController {
     return this.mallasCrudService.toggleActiva(Number(id), body.activa);
   }
 
-
   @Post('upload-excel')
   @UseInterceptors(FileInterceptor('file'))
   async uploadExcel(@UploadedFile() file: Express.Multer.File) {
@@ -51,7 +50,8 @@ export class MallasCrudController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadExcelCrearAsignar(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: {
+    @Body()
+    body: {
       asignar?: string;
       asignado_por?: string;
       fecha_inicio_override?: string;
@@ -70,7 +70,9 @@ export class MallasCrudController {
 
   @Get('reporte-departamento')
   getReporteDepartamento(@Query('departamento') departamento?: string) {
-    return this.mallasCrudService.getMallasPorDepartamento(departamento || undefined);
+    return this.mallasCrudService.getMallasPorDepartamento(
+      departamento || undefined,
+    );
   }
 
   @Get('exportar-departamento')
@@ -78,9 +80,10 @@ export class MallasCrudController {
     @Query('departamento') departamento: string,
     @Res() res: any,
   ) {
-    const workbook = await this.mallasCrudService.exportarMallasPorDepartamentoExcel(
-      departamento || undefined,
-    );
+    const workbook =
+      await this.mallasCrudService.exportarMallasPorDepartamentoExcel(
+        departamento || undefined,
+      );
     const nombre = departamento
       ? `mallas-${departamento}.xlsx`
       : 'mallas-por-departamento.xlsx';
@@ -96,8 +99,14 @@ export class MallasCrudController {
   @Get('plantilla')
   async descargarPlantilla(@Res() res: any) {
     const workbook = this.mallasCrudService.generarPlantillaExcel();
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=plantilla-mallas.xlsx');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=plantilla-mallas.xlsx',
+    );
     await workbook.xlsx.write(res);
     res.end();
   }
