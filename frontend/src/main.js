@@ -20,16 +20,16 @@ setupAxiosInterceptors()
 const WodenPreset = definePreset(Aura, {
   semantic: {
     typography: { fontSize: '0.8125rem' },
-    // Color de marca WodenTrack (#ff4a05) como primario global — reemplaza
+    // Color de marca WodenTrack (#fd4c02) como primario global — reemplaza
     // el verde esmeralda por defecto de Aura en botones, checks, focus rings,
     // día seleccionado del DatePicker, opción resaltada del Select, etc.
     primary: {
       50: '#fff4ed', 100: '#ffe2d0', 200: '#ffc4a1', 300: '#ff9c68',
-      400: '#ff7038', 500: '#ff4a05', 600: '#e84200', 700: '#c13600',
+      400: '#ff7038', 500: '#fd4c02', 600: '#e64400', 700: '#c13600',
       800: '#9a2b00', 900: '#7d2400', 950: '#431000',
-      color: '#ff4a05',
+      color: '#fd4c02',
       contrastColor: '#ffffff',
-      hoverColor: '#e84200',
+      hoverColor: '#e64400',
       activeColor: '#c13600',
     },
     // Fondo de los campos (input/select/datepicker/textarea) en modo oscuro:

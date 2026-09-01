@@ -31,7 +31,7 @@
     </div>
 
     <div v-if="error" class="rounded-lg border px-3 py-2 text-[12px]"
-      :class="isDark ? 'bg-red-950/40 border-red-900/60 text-red-300' : 'bg-red-50 border-red-200 text-red-700'">
+      :class="isDark ? 'bg-orange-950/40 border-orange-900/60 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-700'">
       {{ error }}
     </div>
 
@@ -42,7 +42,7 @@
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cumplimiento</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-[#3B82F6]/15 text-[#60A5FA]' : 'bg-[#EEF4FF] text-[#2563eb]'">
+            :class="isDark ? 'bg-[#36A2EB]/15 text-[#60B2F5]' : 'bg-[#36A2EB]/10 text-[#2E86D1]'">
             <i class="pi pi-shield"></i>
           </span>
         </div>
@@ -54,7 +54,7 @@
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Puntualidad</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600'">
+            :class="isDark ? 'bg-[#2DD9B9]/15 text-[#2DD9B9]' : 'bg-[#2DD9B9]/10 text-[#1BA88E]'">
             <i class="pi pi-check-circle"></i>
           </span>
         </div>
@@ -66,7 +66,7 @@
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Llegadas tarde</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-500'">
+            :class="isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]'">
             <i class="pi pi-clock"></i>
           </span>
         </div>
@@ -78,7 +78,7 @@
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Ausencias</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
-            :class="isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600'">
+            :class="isDark ? 'bg-[#FF9F40]/15 text-[#FF9F40]' : 'bg-[#FF9F40]/15 text-[#C56A00]'">
             <i class="pi pi-user-minus"></i>
           </span>
         </div>
@@ -93,9 +93,9 @@
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Cumplimiento por área</h3>
           <div class="flex items-center gap-3 text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#22C55E]"></span>≥ 90%</span>
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#F59E0B]"></span>80–90%</span>
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#EF4444]"></span>&lt; 80%</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2DD9B9]"></span>≥ 90%</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FFCE56]"></span>80–90%</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FF9F40]"></span>&lt; 80%</span>
           </div>
         </div>
         <div :style="{ height: alturaBarrasArea }">
@@ -117,8 +117,8 @@
               <tr v-for="a in cumplimientoAreas" :key="a.departamento" class="border-t"
                 :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ a.departamento }}</td>
-                <td class="py-1.5 pr-3" :class="isDark ? 'text-red-400' : 'text-red-600'">{{ a.peor_empleado || '—' }}</td>
-                <td class="py-1.5" :class="isDark ? 'text-emerald-400' : 'text-emerald-600'">{{ a.mejor_empleado || '—' }}</td>
+                <td class="py-1.5 pr-3" :class="isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]'">{{ a.peor_empleado || '—' }}</td>
+                <td class="py-1.5" :class="isDark ? 'text-[#2DD9B9]' : 'text-[#1BA88E]'">{{ a.mejor_empleado || '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -163,7 +163,7 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
         <div class="flex items-center gap-2">
           <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
-            :class="isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600'">
+            :class="isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]'">
             <i class="pi pi-clock"></i>
           </span>
           <div>
@@ -179,7 +179,7 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
         <div class="flex items-center gap-2">
           <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
-            :class="isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600'">
+            :class="isDark ? 'bg-[#FF9F40]/15 text-[#FF9F40]' : 'bg-[#FF9F40]/15 text-[#C56A00]'">
             <i class="pi pi-user-minus"></i>
           </span>
           <div>
@@ -402,10 +402,10 @@ function etiquetaEstado(estado) {
 }
 
 function claseBadgeEstado(estado) {
-  if (estado === 'ENTRADA TARDE') return props.isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600';
-  if (estado === 'AUSENTE') return props.isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600';
-  if (estado === 'INCOMPLETO') return props.isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-600';
-  return props.isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600';
+  if (estado === 'ENTRADA TARDE') return props.isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]';
+  if (estado === 'AUSENTE') return props.isDark ? 'bg-[#FF9F40]/15 text-[#FF9F40]' : 'bg-[#FF9F40]/15 text-[#C56A00]';
+  if (estado === 'INCOMPLETO') return props.isDark ? 'bg-[#94A3B8]/15 text-[#94A3B8]' : 'bg-[#94A3B8]/15 text-[#64748B]';
+  return props.isDark ? 'bg-[#2DD9B9]/15 text-[#2DD9B9]' : 'bg-[#2DD9B9]/15 text-[#1BA88E]';
 }
 
 // ── Ranking: rango de fechas propio (independiente del "Mes" de las tarjetas/
@@ -571,10 +571,20 @@ async function cargarTodo() {
 const colorTexto = computed(() => (props.isDark ? '#E2E8F0' : '#334155'));
 const colorGrid = computed(() => (props.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'));
 
+// Paleta del dashboard: azul, naranja, amarillo, verde azulado (teal), gris —
+// sin rojo ni tonos que se lean como rojo (ej. naranja quemado).
+const PALETA = {
+  azul: '#36A2EB',
+  naranja: '#FF9F40',
+  amarillo: '#FFCE56',
+  teal: '#2DD9B9',
+  gris: '#94A3B8',
+};
+
 function colorCumplimiento(pct) {
-  if (pct >= 90) return '#22C55E';
-  if (pct >= 80) return '#F59E0B';
-  return '#EF4444';
+  if (pct >= 90) return PALETA.teal;
+  if (pct >= 80) return PALETA.amarillo;
+  return PALETA.naranja;
 }
 
 const kpi = computed(() => {
@@ -613,7 +623,7 @@ const alturaBarrasArea = computed(() => `${Math.max(180, cumplimientoAreas.value
 
 const chartEstado = computed(() => {
   if (!estadoAsistencia.value.length) return null;
-  const colores = { PUNTUAL: '#22C55E', TARDE: '#F59E0B', AUSENTE: '#EF4444', INCOMPLETO: '#94A3B8' };
+  const colores = { PUNTUAL: PALETA.teal, TARDE: PALETA.amarillo, AUSENTE: PALETA.naranja, INCOMPLETO: PALETA.gris };
   const etiquetas = { PUNTUAL: 'Puntual', TARDE: 'Tarde', AUSENTE: 'Ausente', INCOMPLETO: 'Incompleto' };
   return {
     labels: estadoAsistencia.value.map(e => etiquetas[e.estado] || e.estado),
@@ -632,7 +642,7 @@ const chartTardanzasArea = computed(() => {
     datasets: [{
       label: 'Tardanzas',
       data: tardanzasPorArea.value.map(a => a.total_tardanzas),
-      backgroundColor: '#F59E0B',
+      backgroundColor: PALETA.amarillo,
       borderRadius: 6,
       barPercentage: 0.6,
     }],
@@ -646,8 +656,8 @@ const chartTardanzasDia = computed(() => {
     datasets: [{
       label: 'Tardanzas',
       data: tardanzasPorDia.value.map(d => d.total_tardanzas),
-      borderColor: '#F59E0B',
-      backgroundColor: 'rgba(245,158,11,0.15)',
+      borderColor: PALETA.amarillo,
+      backgroundColor: 'rgba(255,206,86,0.2)',
       tension: 0.3,
       fill: true,
       pointRadius: 2,
@@ -662,7 +672,7 @@ const chartDistribucionMinutos = computed(() => {
     datasets: [{
       label: 'Tardanzas',
       data: distribucionMinutos.value.map(b => b.total),
-      backgroundColor: '#EF4444',
+      backgroundColor: PALETA.amarillo,
       borderRadius: 6,
       barPercentage: 0.6,
     }],
@@ -676,8 +686,8 @@ const chartTendencia = computed(() => {
     datasets: [{
       label: '% Cumplimiento',
       data: tendenciaSerie.value.map(s => s.porcentaje_cumplimiento),
-      borderColor: '#3B82F6',
-      backgroundColor: 'rgba(59,130,246,0.15)',
+      borderColor: PALETA.azul,
+      backgroundColor: 'rgba(54,162,235,0.15)',
       tension: 0.3,
       fill: true,
       pointRadius: 3,
@@ -692,8 +702,8 @@ const chartTendenciaTardanzas = computed(() => {
     datasets: [{
       label: '# Tardanzas',
       data: tendenciaSerie.value.map(s => s.total_tardanzas),
-      borderColor: '#F59E0B',
-      backgroundColor: 'rgba(245,158,11,0.15)',
+      borderColor: PALETA.amarillo,
+      backgroundColor: 'rgba(255,206,86,0.15)',
       tension: 0.3,
       fill: true,
       pointRadius: 3,
