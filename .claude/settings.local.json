@@ -247,7 +247,8 @@
       "Bash(npm uninstall *)",
       "PowerShell(Invoke-WebRequest -Uri \"http://18.217.246.39:8085/apk/info\" -UseBasicParsing)",
       "Bash(rm -f uploads/apk/apk-meta.json)",
-      "Bash(awk '/router\\\\.push\\\\\\(.\\\\/novedad.\\\\\\)/{print NR\": \"$0}' src/views/MarcacionView.vue)"
+      "Bash(awk '/router\\\\.push\\\\\\(.\\\\/novedad.\\\\\\)/{print NR\": \"$0}' src/views/MarcacionView.vue)",
+      "Bash(npx ts-node *)"
     ]
   }
 }

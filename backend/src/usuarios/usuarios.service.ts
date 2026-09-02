@@ -2216,19 +2216,22 @@ export class UsuariosService {
     const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
 
-    // inicioUTCLog: retrocede 1 día completo respecto a inicioUTC — simétrico
-    // al retroceso que ya existe hacia adelante en finUTCLog. Sin esto, la
-    // ENTRADA de un turno nocturno que empezó el día ANTERIOR a startDate
-    // nunca se descarga de Odoo, y su SALIDA (que sí cae dentro del rango)
-    // queda huérfana: se muestra como una "entrada" nueva sin pareja, marcada
-    // "ENTRADA TARDE"/"SIN SALIDA" en vez de reconocerse como el cierre del
-    // turno que ya se estaba mostrando bien en Horas Extra (que si retrocede
-    // sin este límite, vía `attendance-pairing.ts`).
+    // inicioUTCLog: retrocede 2 días completos respecto a inicioUTC — simétrico
+    // al retroceso de 2 días que ya existe hacia adelante en finUTCLog. Con
+    // solo 1 día no alcanza: una SALIDA que cae en "el día anterior a
+    // startDate" (ej. en modo "hoy", esa salida del día de ayer) puede tener
+    // su ENTRADA 2 días antes de startDate (turno nocturno que empezó hace 2
+    // días). Sin este margen, esa ENTRADA nunca se descarga de Odoo y la
+    // SALIDA (que sí cae dentro del rango) queda huérfana: se muestra como
+    // una "entrada" nueva sin pareja, marcada "ENTRADA TARDE"/"SIN SALIDA" en
+    // vez de reconocerse como el cierre del turno que ya se estaba mostrando
+    // bien en Horas Extra (que sí retrocede sin este límite, vía
+    // `attendance-pairing.ts`).
     let inicioUTCLog: string | null = null;
     if (startDay) {
       const [anioI, mesI, diaI] = startDay.split('-').map(Number);
       const fechaInicioLog = new Date(anioI, mesI - 1, diaI);
-      fechaInicioLog.setDate(fechaInicioLog.getDate() - 1);
+      fechaInicioLog.setDate(fechaInicioLog.getDate() - 2);
       const ai = fechaInicioLog.getFullYear();
       const mi = String(fechaInicioLog.getMonth() + 1).padStart(2, '0');
       const di = String(fechaInicioLog.getDate()).padStart(2, '0');

@@ -239,6 +239,18 @@ export function useCargarAsistencias() {
     const logCrudoMap = new Map();
     const noLog = filteredReport.value.filter((item) => {
       if (item.tipo !== "LOG CRUDO") return true;
+      // Una fila que YA llega emparejada (entrada Y salida reales) es un turno
+      // completo resuelto por el backend → pasa directo, sin deduplicar. Si se
+      // deduplica, dos turnos DISTINTOS del mismo día (ej. uno de mediodía y
+      // uno nocturno que arranca esa misma noche) comparten la clave
+      // empleado+fecha y colapsan en una sola fila: la entrada queda la del
+      // turno de mediodía y la salida la del nocturno, el span supera las 14h
+      // y la guarda de abajo la reescribe como una única "entrada sin salida".
+      if (
+        item.check_in && item.check_in !== "N/A" &&
+        item.check_out && item.check_out !== "N/A"
+      )
+        return true;
       const key = `${item.empleado}_${item.fecha}`;
       const itemTs = item.check_out || item.check_in;
       if (!logCrudoMap.has(key)) {
@@ -286,9 +298,22 @@ export function useCargarAsistencias() {
     const base = [...noLog, ...logCrudoFinal];
 
     // 2. Agrupar por empleado+fecha: múltiples toques biométricos sin check_out
-    //    colapsan en una fila → primer toque = entrada, último = salida
+    //    colapsan en una fila → primer toque = entrada, último = salida.
+    //    Las filas que YA llegan completas y emparejadas (check_in + check_out
+    //    reales, turno "Finalizado") se dejan pasar directo sin agrupar — si no,
+    //    dos turnos reales y distintos del mismo día (ej: uno de mediodía y uno
+    //    nocturno que empieza el mismo día) se fusionan en un solo turno falso
+    //    de ~17h, tomando la entrada más temprana y la salida más tardía.
     const mapa = new Map();
+    const yaEmparejadas = [];
     for (const item of base) {
+      const completo =
+        item.check_in && item.check_in !== "N/A" &&
+        item.check_out && item.check_out !== "N/A";
+      if (completo) {
+        yaEmparejadas.push({ ...item });
+        continue;
+      }
       const key = `${item.cc || item.empleado}__${item.fecha}`;
       if (!mapa.has(key)) {
         mapa.set(key, { ...item });
@@ -314,7 +339,7 @@ export function useCargarAsistencias() {
         }
       }
     }
-    return [...mapa.values()];
+    return [...yaEmparejadas, ...mapa.values()];
   });
 
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
