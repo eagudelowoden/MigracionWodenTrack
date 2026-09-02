@@ -9,6 +9,7 @@ import { AsistenciaCronConfig } from './entities/asistencia-cron-config.entity';
 import { AsistenciaCronLog } from './entities/asistencia-cron-log.entity';
 import { AsistenciaResumenService } from './asistencia-resumen.service';
 import { AsistenciaResumenCronService } from './asistencia-resumen-cron.service';
+import { EventLoopMonitorService } from './event-loop-monitor.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { AsistenciaResumenCronService } from './asistencia-resumen-cron.service'
     TypeOrmModule.forFeature([AsistenciaDiariaResumen, AsistenciaCronConfig, AsistenciaCronLog, Novedad]),
   ],
   controllers: [DashboardAsistenciaController],
-  providers: [DashboardAsistenciaService, AsistenciaResumenService, AsistenciaResumenCronService],
+  providers: [DashboardAsistenciaService, AsistenciaResumenService, AsistenciaResumenCronService, EventLoopMonitorService],
   exports: [AsistenciaResumenService],
 })
 export class DashboardAsistenciaModule {}

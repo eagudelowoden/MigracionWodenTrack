@@ -10,6 +10,7 @@
  * Protocolo IPC:
  *   worker → padre:  { type: 'ready' }
  *   padre  → worker: { tipo: 'params', startDate, endDate, company }
+ *   worker → padre:  { type: 'progress', fase, detalle, ts }  (por cada fase de cada día — ver AsistenciaResumenService)
  *   worker → padre:  { type: 'done', total }
  *   worker → padre:  { type: 'error', message }
  */
@@ -35,7 +36,9 @@ async function bootstrap() {
   process.once('message', async (msg: any) => {
     if (!msg || msg.tipo !== 'params') return;
     try {
-      const total = await resumen.calcularYGuardarRango(msg.startDate, msg.endDate, msg.company);
+      const total = await resumen.calcularYGuardarRango(msg.startDate, msg.endDate, msg.company, (fase, detalle) => {
+        process.send?.({ type: 'progress', fase, detalle, ts: Date.now() });
+      });
       await sendAndFlush({ type: 'done', total });
     } catch (e: any) {
       await sendAndFlush({ type: 'error', message: e?.message || 'Error desconocido' });

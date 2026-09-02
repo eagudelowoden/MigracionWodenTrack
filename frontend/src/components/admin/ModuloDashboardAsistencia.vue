@@ -290,13 +290,25 @@
           </IconField>
         </div>
       </div>
-      <DataTable :value="rankingFiltrado" paginator :rows="10" sortField="total_tardanzas" :sortOrder="-1"
+      <DataTable :value="rankingFiltrado" v-model:expandedRows="rankingExpandido" paginator :rows="10"
+        sortField="total_tardanzas" :sortOrder="-1" dataKey="cedula"
         removableSort size="small" scrollable scrollHeight="240px"
         :class="isDark ? 'p-datatable-dark' : ''">
+        <Column expander style="width: 36px" />
         <Column field="nombre" header="Nombre" sortable />
         <Column field="cedula" header="Cédula" sortable style="width: 140px" />
         <Column field="departamento" header="Área" sortable />
         <Column field="total_tardanzas" header="# Tardanzas" sortable style="width: 140px" />
+        <template #expansion="{ data }">
+          <div class="pl-10 py-1.5 flex flex-col gap-1">
+            <div v-for="(d, i) in data.detalle" :key="i" class="text-[11px] flex items-center gap-3"
+              :class="isDark ? 'text-[#cccccc]' : 'text-slate-700'">
+              <span class="font-medium">{{ formatFechaISO(d.fecha) }}</span>
+              <span>Entrada: {{ d.hora_entrada ? d.hora_entrada.slice(11, 16) : '—' }}</span>
+              <span>{{ d.minutos_tarde != null ? `${d.minutos_tarde} min tarde` : '' }}</span>
+            </div>
+          </div>
+        </template>
         <template #empty>Sin llegadas tarde para el periodo/área/persona seleccionados.</template>
       </DataTable>
     </div>
@@ -359,6 +371,7 @@ function filtrarDepartamentos(ev) {
 }
 
 const ranking = ref([]);
+const rankingExpandido = ref({});
 const cumplimientoAreas = ref([]);
 const tendenciaSerie = ref([]);
 const estadoAsistencia = ref([]);

@@ -228,6 +228,34 @@
       </DataTable>
     </div>
 
+    <!-- Consola en vivo: cada fase del cálculo (autenticar/consultar Odoo, guardar) apenas ocurre -->
+    <div class="rounded-2xl border shadow-sm overflow-hidden"
+      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
+      <div class="flex items-center justify-between px-5 py-3 border-b flex-wrap gap-2"
+        :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
+        <h3 class="text-[13px] font-semibold flex items-center gap-2" :class="isDark ? 'text-white' : 'text-slate-900'">
+          Consola en vivo
+          <span v-if="consolaConectada" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        </h3>
+        <div class="text-[11px] flex items-center gap-3" :class="isDark ? 'text-slate-400' : 'text-slate-500'">
+          <span :title="'Retraso del hilo principal de la API (perf_hooks). >100ms = algo lo está bloqueando.'">
+            <i class="fas fa-heart-pulse mr-1" :class="eventLoop.maxMs > 100 ? 'text-red-500' : 'text-emerald-500'"></i>
+            Event loop: mean {{ eventLoop.meanMs }}ms / max {{ eventLoop.maxMs }}ms
+          </span>
+          <button @click="consola = []" type="button" class="underline decoration-dotted hover:no-underline">Limpiar</button>
+        </div>
+      </div>
+      <div ref="consolaEl" class="p-3 font-mono text-[11px] overflow-y-auto space-y-0.5"
+        style="max-height: 220px;" :class="isDark ? 'bg-[#0B0F19] text-slate-300' : 'bg-slate-50 text-slate-700'">
+        <div v-if="!consola.length" class="opacity-50">
+          Sin actividad — se llena en cuanto corra el cron automático o le des "Ejecutar ahora".
+        </div>
+        <div v-for="(e, i) in consola" :key="i" class="whitespace-pre-wrap">
+          <span class="opacity-50">{{ e.hora }}</span> {{ e.icono }} {{ e.texto }}
+        </div>
+      </div>
+    </div>
+
     <p v-if="mensaje" class="text-[12px] font-medium" :class="mensajeError ? 'text-red-500' : 'text-emerald-500'">
       {{ mensaje }}
     </p>
@@ -269,6 +297,98 @@ const logs = ref([]);
 const cargandoLogs = ref(false);
 let pollTimer = null;
 let logsPollTimer = null;
+
+// ── Consola en vivo (SSE vía fetch, no EventSource) + salud del event loop ──
+// EventSource nativo no puede mandar el header Authorization — esta API
+// exige sesión en casi todas las rutas, así que se lee el stream a mano con
+// fetch() (mismo patrón que useCargarAsistencias.js para /reporte-novedades/stream).
+function getToken() {
+  try {
+    const raw = localStorage.getItem('user_session');
+    return raw ? (JSON.parse(raw)?.token ?? null) : null;
+  } catch { return null; }
+}
+
+const consola = ref([]);
+const consolaEl = ref(null);
+const consolaConectada = ref(false);
+const eventLoop = ref({ meanMs: 0, maxMs: 0 });
+let streamAbort = null;
+let eventLoopTimer = null;
+
+const FASE_TEXTO = {
+  'dia-inicio': (d) => `Día ${d.indice}/${d.total} — ${d.fecha}`,
+  'odoo-inicio': (d) => `Consultando Odoo (roster + asistencia + novedades) para ${d.fecha}…`,
+  'odoo-fin': (d) => `Odoo respondió en ${d.ms}ms — ${d.roster} en roster, ${d.marcaciones} marcaciones (${d.fecha})`,
+  'guardando-inicio': (d) => `Guardando en BD (upsert) ${d.filas} filas de ${d.fecha}…`,
+  'guardando-fin': (d) => `Guardado listo en ${d.ms}ms (${d.fecha})`,
+};
+const FASE_ICONO = {
+  'dia-inicio': '📅',
+  'odoo-inicio': '🌐',
+  'odoo-fin': '📥',
+  'guardando-inicio': '💾',
+  'guardando-fin': '✅',
+};
+
+function agregarEventoConsola(evento) {
+  const texto = FASE_TEXTO[evento.fase]?.(evento.detalle) ?? `${evento.fase}: ${JSON.stringify(evento.detalle)}`;
+  consola.value.push({
+    hora: new Date(evento.ts).toLocaleTimeString('es-CO', { hour12: false }),
+    icono: FASE_ICONO[evento.fase] ?? '•',
+    texto,
+  });
+  if (consola.value.length > 500) consola.value.shift();
+  requestAnimationFrame(() => {
+    if (consolaEl.value) consolaEl.value.scrollTop = consolaEl.value.scrollHeight;
+  });
+}
+
+async function conectarConsola() {
+  if (streamAbort) return;
+  streamAbort = new AbortController();
+  // Reintenta solo mientras el componente siga montado (streamAbort no fue cancelado).
+  while (streamAbort && !streamAbort.signal.aborted) {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API}/dashboard-asistencia/resumen-cron/stream`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: streamAbort.signal,
+      });
+      if (!res.ok || !res.body) throw new Error(`stream ${res.status}`);
+      consolaConectada.value = true;
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop();
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data: ')) continue;
+          try { agregarEventoConsola(JSON.parse(line.slice(6))); } catch { /* línea no parseable */ }
+        }
+      }
+    } catch (e) {
+      if (streamAbort?.signal.aborted) break;
+    }
+    consolaConectada.value = false;
+    if (streamAbort && !streamAbort.signal.aborted) {
+      await new Promise((r) => setTimeout(r, 3000)); // reconectar tras un corte
+    }
+  }
+}
+
+async function cargarEventLoop() {
+  try {
+    const { data } = await axios.get(`${API}/dashboard-asistencia/event-loop`);
+    eventLoop.value = { meanMs: data.meanMs ?? 0, maxMs: data.maxMs ?? 0 };
+  } catch { /* panel opcional, no interrumpe la vista si falla */ }
+}
 
 function isoToDate(s) {
   if (!s) return null;
@@ -438,10 +558,16 @@ async function ejecutarAhora() {
 
 onMounted(async () => {
   await Promise.all([cargarConfig(), cargarEmpresas(), cargarLogs()]);
+  conectarConsola();
+  await cargarEventLoop();
+  eventLoopTimer = setInterval(cargarEventLoop, 10000);
 });
 
 onUnmounted(() => {
   clearTimeout(pollTimer);
   clearTimeout(logsPollTimer);
+  clearInterval(eventLoopTimer);
+  streamAbort?.abort();
+  streamAbort = null;
 });
 </script>

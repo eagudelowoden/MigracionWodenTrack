@@ -35,20 +35,31 @@ export class AsistenciaResumenService {
     startDate: string,
     endDate: string,
     company?: string,
+    onProgress?: (fase: string, detalle: Record<string, any>) => void,
   ): Promise<number> {
+    const dias = this.rangoDeDias(startDate, endDate);
     let totalGuardadas = 0;
-    for (const fecha of this.rangoDeDias(startDate, endDate)) {
-      totalGuardadas += await this.calcularYGuardarDia(fecha, company);
+    for (let i = 0; i < dias.length; i++) {
+      const fecha = dias[i];
+      onProgress?.('dia-inicio', { fecha, indice: i + 1, total: dias.length });
+      totalGuardadas += await this.calcularYGuardarDia(fecha, company, onProgress);
     }
     return totalGuardadas;
   }
 
-  async calcularYGuardarDia(fecha: string, company?: string): Promise<number> {
+  async calcularYGuardarDia(
+    fecha: string,
+    company?: string,
+    onProgress?: (fase: string, detalle: Record<string, any>) => void,
+  ): Promise<number> {
+    onProgress?.('odoo-inicio', { fecha });
+    const tOdoo = Date.now();
     const [roster, filas, novedadesAprobadas] = await Promise.all([
       this.usuariosService.getRosterProgramado(fecha, company),
       this.usuariosService.getReporteNovedades(false, company, fecha, fecha),
       this.novedadRepo.find({ where: { aprobado: 1 } }),
     ]);
+    onProgress?.('odoo-fin', { fecha, ms: Date.now() - tOdoo, roster: roster.length, marcaciones: filas.length });
 
     const porCedula = new Map<string, any>();
     for (const fila of filas) {
@@ -98,9 +109,19 @@ export class AsistenciaResumenService {
       );
     }
 
-    for (const registro of filasFinal) {
-      await this.resumenRepo.upsert(registro, ['cedula', 'fecha', 'company']);
+    onProgress?.('guardando-inicio', { fecha, filas: filasFinal.length });
+    const tGuardar = Date.now();
+    // Antes: 1 upsert por fila = 1 viaje de ida y vuelta a un SQL Server remoto
+    // por cada persona (medido: ~130s para 640 filas, ~200ms/fila de puro
+    // network round-trip). Agrupar en lotes convierte eso en un MERGE con
+    // muchas filas por viaje. El tamaño del lote (100) deja margen bajo el
+    // límite de ~2100 parámetros de SQL Server (cada fila usa hasta ~14).
+    const LOTE = 100;
+    for (let i = 0; i < filasFinal.length; i += LOTE) {
+      const lote = filasFinal.slice(i, i + LOTE);
+      await this.resumenRepo.upsert(lote, ['cedula', 'fecha', 'company']);
     }
+    onProgress?.('guardando-fin', { fecha, ms: Date.now() - tGuardar, filas: filasFinal.length });
     return filasFinal.length;
   }
 

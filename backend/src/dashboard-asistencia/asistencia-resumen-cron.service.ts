@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CronJob } from 'cron';
 import { fork, ChildProcess } from 'child_process';
+import { EventEmitter } from 'events';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { AsistenciaCronConfig } from './entities/asistencia-cron-config.entity';
@@ -180,6 +181,31 @@ export class AsistenciaResumenCronService implements OnModuleInit {
   private logActualId: number | null = null;
   private cancelarProcesoActual: (() => Promise<{ liberado: boolean }>) | null = null;
 
+  // ── Progreso en vivo (panel de Super Admin) ─────────────────────────────
+  // Buffer corto en memoria + emisor para que el endpoint SSE pueda tanto
+  // "ponerse al día" (últimos eventos) como recibir los que lleguen después.
+  // No persiste en BD: es solo para observabilidad mientras corre, se pierde
+  // al reiniciar la API (igual que `procesando`).
+  private readonly progresoEmitter = new EventEmitter();
+  private progresoReciente: { fase: string; detalle: Record<string, any>; ts: number }[] = [];
+  private readonly PROGRESO_MAX = 300;
+
+  private registrarProgreso(evento: { fase: string; detalle: Record<string, any>; ts: number }) {
+    this.progresoReciente.push(evento);
+    if (this.progresoReciente.length > this.PROGRESO_MAX) this.progresoReciente.shift();
+    this.progresoEmitter.emit('evento', evento);
+  }
+
+  /** Últimos eventos de progreso (para que un cliente SSE recién conectado se ponga al día). */
+  obtenerProgresoReciente() {
+    return this.progresoReciente;
+  }
+
+  suscribirProgreso(cb: (evento: { fase: string; detalle: Record<string, any>; ts: number }) => void) {
+    this.progresoEmitter.on('evento', cb);
+    return () => this.progresoEmitter.off('evento', cb);
+  }
+
   private async cerrarLog(id: number, estado: string, total_filas: number | null, error_mensaje: string | null) {
     try {
       await this.logRepo.update(id, { estado, total_filas, error_mensaje, finalizado_at: new Date() });
@@ -217,6 +243,7 @@ export class AsistenciaResumenCronService implements OnModuleInit {
     }
 
     this.procesando = true;
+    this.progresoReciente = [];
     const log = await this.logRepo.save(
       this.logRepo.create({
         tipo,
@@ -309,6 +336,8 @@ export class AsistenciaResumenCronService implements OnModuleInit {
       hijo.on('message', (msg: any) => {
         if (msg?.type === 'ready') {
           hijo.send({ tipo: 'params', startDate, endDate, company });
+        } else if (msg?.type === 'progress') {
+          this.registrarProgreso({ fase: msg.fase, detalle: msg.detalle, ts: msg.ts ?? Date.now() });
         } else if (msg?.type === 'done') {
           this.logger.log(`Resumen de asistencia ${startDate} → ${endDate}: ${msg.total} filas guardadas.`);
           resultado = { estado: 'completado', total: msg.total ?? null, error: null };

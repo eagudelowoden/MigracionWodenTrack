@@ -52,17 +52,28 @@ export class DashboardAsistenciaService {
       .select('r.cedula', 'cedula')
       .addSelect('r.nombre', 'nombre')
       .addSelect('r.departamento', 'departamento')
-      .addSelect('COUNT(*)', 'total_tardanzas')
-      .groupBy('r.cedula, r.nombre, r.departamento')
+      .addSelect('r.fecha', 'fecha')
+      .addSelect('r.hora_entrada', 'hora_entrada')
+      .addSelect('r.minutos_tarde', 'minutos_tarde')
+      .orderBy('r.fecha', 'ASC')
       .getRawMany();
 
-    const ranking = filas
-      .map((f) => ({
-        cedula: f.cedula,
-        nombre: f.nombre,
-        departamento: f.departamento,
-        total_tardanzas: Number(f.total_tardanzas),
-      }))
+    const porCedula = new Map<string, { cedula: string; nombre: string; departamento: string; detalle: any[] }>();
+    for (const f of filas) {
+      let entry = porCedula.get(f.cedula);
+      if (!entry) {
+        entry = { cedula: f.cedula, nombre: f.nombre, departamento: f.departamento, detalle: [] };
+        porCedula.set(f.cedula, entry);
+      }
+      entry.detalle.push({
+        fecha: f.fecha,
+        hora_entrada: f.hora_entrada,
+        minutos_tarde: f.minutos_tarde != null ? Number(f.minutos_tarde) : null,
+      });
+    }
+
+    const ranking = Array.from(porCedula.values())
+      .map((e) => ({ ...e, total_tardanzas: e.detalle.length }))
       .sort((a, b) => b.total_tardanzas - a.total_tardanzas);
 
     return { startDate, endDate, departamento: departamento ?? null, ranking };

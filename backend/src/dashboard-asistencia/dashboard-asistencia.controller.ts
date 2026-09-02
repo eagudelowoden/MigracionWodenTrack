@@ -1,13 +1,22 @@
-import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { DashboardAsistenciaService } from './dashboard-asistencia.service';
 import { AsistenciaResumenCronService } from './asistencia-resumen-cron.service';
+import { EventLoopMonitorService } from './event-loop-monitor.service';
 
 @Controller('dashboard-asistencia')
 export class DashboardAsistenciaController {
   constructor(
     private readonly service: DashboardAsistenciaService,
     private readonly resumenCron: AsistenciaResumenCronService,
+    private readonly eventLoop: EventLoopMonitorService,
   ) {}
+
+  /** Salud del hilo principal de la API — ver EventLoopMonitorService. */
+  @Get('event-loop')
+  eventLoopStatus() {
+    return this.eventLoop.obtenerEstado() ?? { meanMs: 0, maxMs: 0, p99Ms: 0, ts: null };
+  }
 
   @Get('resumen-cron/config')
   async obtenerConfigCron() {
@@ -48,6 +57,27 @@ export class DashboardAsistenciaController {
   @Get('resumen-cron/logs')
   obtenerLogsCron(@Query('limit') limit?: string) {
     return this.resumenCron.obtenerLogs(limit ? Number(limit) : 20);
+  }
+
+  /**
+   * Consola en vivo del cálculo: cada fase (autenticando/consultando Odoo,
+   * guardando en BD) llega aquí apenas ocurre, vía SSE — para ver en tiempo
+   * real dónde se va el tiempo de una corrida, no solo el resultado final.
+   */
+  @Get('resumen-cron/stream')
+  streamProgresoCron(@Res() res: Response) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    // Ponerse al día con lo que ya pasó de la corrida actual (si hay una).
+    for (const evento of this.resumenCron.obtenerProgresoReciente()) send(evento);
+
+    const desuscribir = this.resumenCron.suscribirProgreso(send);
+    res.on('close', desuscribir);
   }
 
   /** Cancela la corrida en curso (o libera el flag si el worker quedó colgado). */
