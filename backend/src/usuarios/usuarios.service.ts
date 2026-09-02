@@ -1782,7 +1782,7 @@ export class UsuariosService {
     marcar('resolverFiltros', t0);
 
     // 3. Dominios (mismas fechas/filtros que el reporte real)
-    const { inicioUTC, finUTC, finUTCLog } = this.calcularRangoUTC(
+    const { inicioUTC, inicioUTCLog, finUTC, finUTCLog } = this.calcularRangoUTC(
       soloHoy, hoyFechaCorta, startDate, endDate,
     );
     const { domainAtt, domainLog } = this.construirDominios(
@@ -1791,6 +1791,7 @@ export class UsuariosService {
       usarFiltroRelacional ? departamentoName : undefined,
       employeeIdsEfectivos,
       finUTCLog,
+      inicioUTCLog,
     );
 
     // 4. Contar (sin descargar aún)
@@ -1962,7 +1963,7 @@ export class UsuariosService {
     }
 
     // 2. Calcular fechas UTC
-    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } =
+    const { inicioUTC, inicioUTCLog, finUTC, finUTCLog, startDay, endDay } =
       this.calcularRangoUTC(soloHoy, hoyFechaCorta, startDate, endDate);
 
     // 3. Construir dominios (sin filtros relacionales si ya tenemos los IDs)
@@ -1973,6 +1974,7 @@ export class UsuariosService {
       usarFiltroRelacional ? departamentoName : undefined,
       employeeIdsEfectivos,
       finUTCLog,
+      inicioUTCLog,
     );
 
     // 4. Consultar Odoo  +  Opción 1: lanzar partner map en paralelo si ya tenemos IDs
@@ -2204,6 +2206,7 @@ export class UsuariosService {
     endDate?: string,
   ): {
     inicioUTC: string | null;
+    inicioUTCLog: string | null;
     finUTC: string | null;
     finUTCLog: string | null;
     startDay: string | null;
@@ -2212,6 +2215,25 @@ export class UsuariosService {
     const startDay = soloHoy ? hoyFechaCorta : (startDate ?? null);
     const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
+
+    // inicioUTCLog: retrocede 1 día completo respecto a inicioUTC — simétrico
+    // al retroceso que ya existe hacia adelante en finUTCLog. Sin esto, la
+    // ENTRADA de un turno nocturno que empezó el día ANTERIOR a startDate
+    // nunca se descarga de Odoo, y su SALIDA (que sí cae dentro del rango)
+    // queda huérfana: se muestra como una "entrada" nueva sin pareja, marcada
+    // "ENTRADA TARDE"/"SIN SALIDA" en vez de reconocerse como el cierre del
+    // turno que ya se estaba mostrando bien en Horas Extra (que si retrocede
+    // sin este límite, vía `attendance-pairing.ts`).
+    let inicioUTCLog: string | null = null;
+    if (startDay) {
+      const [anioI, mesI, diaI] = startDay.split('-').map(Number);
+      const fechaInicioLog = new Date(anioI, mesI - 1, diaI);
+      fechaInicioLog.setDate(fechaInicioLog.getDate() - 1);
+      const ai = fechaInicioLog.getFullYear();
+      const mi = String(fechaInicioLog.getMonth() + 1).padStart(2, '0');
+      const di = String(fechaInicioLog.getDate()).padStart(2, '0');
+      inicioUTCLog = `${ai}-${mi}-${di} 05:00:00`;
+    }
 
     let finUTC: string | null = null;
     let finUTCLog: string | null = null;
@@ -2238,7 +2260,7 @@ export class UsuariosService {
       finUTCLog = `${al}-${ml}-${dl} 04:59:59`; // medianoche Colombia del día extendido
     }
 
-    return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
+    return { inicioUTC, inicioUTCLog, finUTC, finUTCLog, startDay, endDay };
   }
 
   /**
@@ -2279,13 +2301,20 @@ export class UsuariosService {
     departamentoName?: string,
     employeeIds?: number[] | null,
     finUTCLog?: string | null,
+    inicioUTCLog?: string | null,
   ): { domainAtt: any[]; domainLog: any[] } {
     const domainAtt: any[] = [];
     const domainLog: any[] = [];
 
     if (inicioUTC) {
       domainAtt.push(['check_in', '>=', inicioUTC]);
-      domainLog.push(['punching_time', '>=', inicioUTC]);
+    }
+    // attendance.log usa un rango extendido hacia atrás (ver inicioUTCLog en
+    // calcularRangoUTC) para capturar la ENTRADA de un turno nocturno que
+    // empezó el día anterior a startDate — si no, su salida queda huérfana.
+    const inicioLog = inicioUTCLog ?? inicioUTC;
+    if (inicioLog) {
+      domainLog.push(['punching_time', '>=', inicioLog]);
     }
     if (finUTC) {
       domainAtt.push(['check_in', '<=', finUTC]);

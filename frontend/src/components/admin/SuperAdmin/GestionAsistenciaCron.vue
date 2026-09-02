@@ -58,33 +58,36 @@
         <ToggleSwitch v-model="config.activo" />
       </label>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
         <!-- Empresa del cron -->
-        <div class="col-span-2 sm:col-span-1 flex flex-col gap-1">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Empresa del cron</label>
           <Select v-model="empresaSel" :options="opcionesEmpresa" optionLabel="label" optionValue="value"
             inputClass="!h-9 !text-[12px]" class="w-full" />
         </div>
         <!-- Hora -->
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Hora
             (0-23)</label>
-          <InputNumber v-model="config.hora" :min="0" :max="23" showButtons buttonLayout="horizontal"
-            inputClass="!h-9 !text-[13px]" class="w-full" />
+          <input type="number" v-model.number="config.hora" min="0" max="23"
+            @input="config.hora = Math.min(23, Math.max(0, config.hora || 0))"
+            class="gac-num-input !h-9 !text-[13px] w-full" :class="isDark ? 'gac-num-dark' : 'gac-num-light'" />
         </div>
         <!-- Minuto -->
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Minuto
             (0-59)</label>
-          <InputNumber v-model="config.minuto" :min="0" :max="59" showButtons buttonLayout="horizontal"
-            inputClass="!h-9 !text-[13px]" class="w-full" />
+          <input type="number" v-model.number="config.minuto" min="0" max="59"
+            @input="config.minuto = Math.min(59, Math.max(0, config.minuto || 0))"
+            class="gac-num-input !h-9 !text-[13px] w-full" :class="isDark ? 'gac-num-dark' : 'gac-num-light'" />
         </div>
         <!-- Ventana -->
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="text-[11px] font-medium" :class="isDark ? 'text-slate-300' : 'text-slate-600'">Días a
             recalcular</label>
-          <InputNumber v-model="config.dias_ventana" :min="1" :max="60" :disabled="usaRangoFijo" showButtons buttonLayout="horizontal"
-            inputClass="!h-9 !text-[13px]" class="w-full" />
+          <input type="number" v-model.number="config.dias_ventana" min="1" max="60" :disabled="usaRangoFijo"
+            @input="config.dias_ventana = Math.min(60, Math.max(1, config.dias_ventana || 1))"
+            class="gac-num-input !h-9 !text-[13px] w-full disabled:opacity-50" :class="isDark ? 'gac-num-dark' : 'gac-num-light'" />
         </div>
       </div>
 
@@ -187,45 +190,64 @@
         <Button @click="cargarLogs" icon="pi pi-refresh" :loading="cargandoLogs"
           label="Actualizar" text size="small" class="!text-[11px]" />
       </div>
-      <DataTable :value="logs" size="small" scrollable scrollHeight="300px" :class="isDark ? 'p-datatable-dark' : ''">
-        <Column field="id" header="#" style="width: 60px" />
-        <Column field="tipo" header="Tipo" style="width: 90px">
-          <template #body="{ data }">{{ data.tipo === 'cron' ? 'Automático' : 'Manual' }}</template>
-        </Column>
-        <Column field="company" header="Empresa">
-          <template #body="{ data }">{{ data.company || 'Todas' }}</template>
-        </Column>
-        <Column header="Rango" style="width: 180px">
-          <template #body="{ data }">{{ data.rango_desde || '—' }} → {{ data.rango_hasta || '—' }}</template>
-        </Column>
-        <Column field="estado" header="Estado" style="width: 130px">
-          <template #body="{ data }">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="estadoClass(data.estado)">
-              {{ etiquetaEstado(data.estado) }}
-            </span>
-          </template>
-        </Column>
-        <Column header="Resultado">
-          <template #body="{ data }">
-            <span v-if="data.estado === 'completado'">{{ data.total_filas }} filas guardadas</span>
-            <span v-else-if="data.estado === 'error'" class="text-red-500" :title="data.error_mensaje">{{ data.error_mensaje }}</span>
-            <span v-else>—</span>
-          </template>
-        </Column>
-        <Column header="Creado" style="width: 150px">
-          <template #body="{ data }">{{ formatFecha(data.created_at) }}</template>
-        </Column>
-        <Column header="" style="width: 90px">
-          <template #body="{ data }">
-            <button v-if="data.estado === 'procesando'" @click="cancelarCorrida" :disabled="cancelando"
-              type="button"
-              class="px-2 py-0.5 rounded text-[10px] font-semibold transition-all disabled:opacity-40 border border-red-400/40 text-red-400 hover:bg-red-500/10">
-              <i class="fas" :class="cancelando ? 'fa-spinner fa-spin' : 'fa-xmark'"></i> Cancelar
-            </button>
-          </template>
-        </Column>
-        <template #empty>Sin ejecuciones todavía.</template>
-      </DataTable>
+      <div v-if="!logs.length" class="flex flex-col items-center gap-2 py-7 text-[12px]"
+        :class="isDark ? 'text-slate-500' : 'text-slate-400'">
+        <i class="fas fa-clock-rotate-left text-2xl opacity-40"></i>
+        <p>Sin ejecuciones todavía.</p>
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="gac-table w-full" :class="isDark ? 'gac-dark' : 'gac-light'">
+          <thead>
+            <tr>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">#</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Tipo</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Empresa</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Rango</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Estado</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Resultado</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'">Creado</th>
+              <th :class="isDark ? 'text-slate-400' : 'text-slate-500'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in logs" :key="log.id"
+              class="gac-tr" :style="log.estado === 'error' ? 'background: rgba(239,68,68,.04)' : ''">
+              <td class="whitespace-nowrap" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ log.id }}</td>
+              <td>
+                <span class="gac-origen" :class="log.tipo === 'cron' ? 'gac-origen-auto' : 'gac-origen-manual'">
+                  {{ log.tipo === 'cron' ? 'Automático' : 'Manual' }}
+                </span>
+              </td>
+              <td :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ log.company || 'Todas' }}</td>
+              <td class="whitespace-nowrap" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                {{ log.rango_desde || '—' }} → {{ log.rango_hasta || '—' }}
+              </td>
+              <td>
+                <span class="gac-badge" :class="estadoClass(log.estado)">
+                  {{ etiquetaEstado(log.estado) }}
+                </span>
+              </td>
+              <td class="max-w-[160px]">
+                <span v-if="log.estado === 'completado'" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+                  {{ log.total_filas }} filas guardadas
+                </span>
+                <button v-else-if="log.estado === 'error'" class="gac-error-chip" @click="flash(log.error_mensaje, true)">
+                  <i class="fas fa-triangle-exclamation"></i> Ver
+                </button>
+                <span v-else :class="isDark ? 'text-slate-500' : 'text-slate-400'">—</span>
+              </td>
+              <td class="whitespace-nowrap" :class="isDark ? 'text-slate-300' : 'text-slate-700'">{{ formatFecha(log.created_at) }}</td>
+              <td>
+                <button v-if="log.estado === 'procesando'" @click="cancelarCorrida" :disabled="cancelando"
+                  type="button"
+                  class="px-2 py-0.5 rounded text-[10px] font-semibold transition-all disabled:opacity-40 border border-red-400/40 text-red-400 hover:bg-red-500/10 whitespace-nowrap">
+                  <i class="fas" :class="cancelando ? 'fa-spinner fa-spin' : 'fa-xmark'"></i> Cancelar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Consola en vivo: cada fase del cálculo (autenticar/consultar Odoo, guardar) apenas ocurre -->
@@ -268,11 +290,8 @@ import axios from 'axios';
 import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import Button from 'primevue/button';
-import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Checkbox from 'primevue/checkbox';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
 
 defineProps({ isDark: { type: Boolean, default: true } });
 
@@ -571,3 +590,84 @@ onUnmounted(() => {
   streamAbort = null;
 });
 </script>
+
+<style scoped>
+/* Tabla "Últimas Ejecuciones" — mismo lenguaje visual que GestionSyncCron.vue
+   (.gsc-table): filas sin bordes verticales, separadas por línea inferior,
+   badges tipo píldora, chip "Ver" para errores. */
+.gac-table {
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.gac-table th {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border: none;
+  border-bottom: 1px solid;
+}
+.gac-tr td {
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid;
+  vertical-align: middle;
+}
+.gac-tr:last-child td { border-bottom: none; }
+
+/* Color de borde explícito: sin esto, el border-bottom hereda currentColor
+   (el color de texto de cada celda) y se ve como rayitas de colores distintos
+   en vez de una sola línea gris uniforme. */
+.gac-dark th, .gac-dark .gac-tr td { border-bottom-color: #222938; }
+.gac-light th, .gac-light .gac-tr td { border-bottom-color: #e2e8f0; }
+
+.gac-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.gac-origen {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.gac-origen-auto   { background: rgba(139,92,246,.12); color: #8b5cf6; }
+.gac-origen-manual { background: rgba(245,158,11,.12); color: #f59e0b; }
+
+.gac-error-chip {
+  font-size: 10px;
+  color: #ef4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.gac-error-chip:hover { text-decoration: underline; }
+
+/* Input numérico nativo (Hora/Minuto/Días) — sin flechitas de PrimeVue que
+   chocaban con la celda vecina; se quitan también los spinners nativos del
+   navegador para controlar el look por completo. */
+.gac-num-input {
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  outline: none;
+  font-weight: 600;
+  -moz-appearance: textfield;
+}
+.gac-num-input::-webkit-outer-spin-button,
+.gac-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.gac-num-input:focus { border-color: #3b82f6; }
+.gac-num-dark  { background: #0B0F19; border-color: #222938; color: #fff; }
+.gac-num-light { background: #ffffff; border-color: #cbd5e1; color: #0f172a; }
+</style>

@@ -155,25 +155,25 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const session = JSON.parse(localStorage.getItem("user_session") || "null");
 
   // ── Rutas públicas ─────────────────────────────────────────────────────────
-  if (to.meta.isPublic) return next();
+  if (to.meta.isPublic) return true;
 
   // ── Sin sesión o sesión sin token JWT (sesión antigua) → limpiar y al Login ──
   if ((!session || !session.token) && to.path !== "/login") {
     localStorage.removeItem("user_session");
-    return next("/login");
+    return "/login";
   }
 
   // ── Con sesión intentando ir al Login → redirigir según rol ───────────────
   if (session && to.path === "/login") {
     if (session.isSuperAdmin || session.permisos?.["super.superadmin"])
-      return next("/selector-perfil");
+      return "/selector-perfil";
     if (session.role === "admin" || session.permisos?.["admin.admin"])
-      return next(getFirstAdminRoute(session));
-    return next("/marcacion");
+      return getFirstAdminRoute(session);
+    return "/marcacion";
   }
 
   const isSuperAdmin = session?.isSuperAdmin;
@@ -185,11 +185,9 @@ router.beforeEach((to, from, next) => {
     Object.keys(session?.permisos || {}).some((k) => k.startsWith("super."));
 
   if (to.path.startsWith("/super-admin") && !tieneAccesoSuperAdmin) {
-    const fallback =
-      session?.role === "admin" || session?.permisos?.["admin.admin"]
-        ? getFirstAdminRoute(session)
-        : "/marcacion";
-    return next(fallback);
+    return session?.role === "admin" || session?.permisos?.["admin.admin"]
+      ? getFirstAdminRoute(session)
+      : "/marcacion";
   }
 
   // ── Protección de Selector Perfil ─────────────────────────────────────────
@@ -197,11 +195,9 @@ router.beforeEach((to, from, next) => {
     tieneAccesoSuperAdmin || session?.permisos?.["admin.marcacion"];
 
   if (to.path === "/selector-perfil" && !tieneAccesoSelectorPerfil) {
-    const fallback =
-      session?.role === "admin" || session?.permisos?.["admin.admin"]
-        ? getFirstAdminRoute(session)
-        : "/marcacion";
-    return next(fallback);
+    return session?.role === "admin" || session?.permisos?.["admin.admin"]
+      ? getFirstAdminRoute(session)
+      : "/marcacion";
   }
 
   // ── Protección de Seriales Recuperados ─────────────────────────────────────
@@ -209,7 +205,7 @@ router.beforeEach((to, from, next) => {
     tieneAccesoSuperAdmin || session?.permisos?.["admin.marcacion_seriales"];
 
   if (to.path === "/marcacion/seriales" && !tieneAccesoSeriales) {
-    return next("/marcacion");
+    return "/marcacion";
   }
 
   // ── Protección de rutas /admin/* ───────────────────────────────────────────
@@ -218,19 +214,19 @@ router.beforeEach((to, from, next) => {
 
     // Debe tener acceso general al panel admin
     if (!isSuperAdmin && session?.role !== "admin" && !tienePermisoAdmin) {
-      return next("/marcacion");
+      return "/marcacion";
     }
 
     // Verifica permiso específico del módulo (sólo para rutas hijas)
     if (to.meta?.permiso && !isSuperAdmin) {
       if (!session?.permisos?.[to.meta.permiso]) {
         // No tiene permiso para ese módulo → primer módulo disponible
-        return next(getFirstAdminRoute(session));
+        return getFirstAdminRoute(session);
       }
     }
   }
 
-  next();
+  return true;
 });
 
 export default router;
