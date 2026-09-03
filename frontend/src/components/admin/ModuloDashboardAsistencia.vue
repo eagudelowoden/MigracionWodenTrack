@@ -23,11 +23,12 @@
         <label class="text-[10px] font-bold uppercase tracking-wide"
           :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Área / Departamento</label>
         <AutoComplete v-model="departamentoSeleccionado" :suggestions="departamentosFiltrados"
-          @complete="filtrarDepartamentos" @clear="departamentoSeleccionado = ''" dropdown
-          placeholder="Todas las áreas" inputClass="!h-8 !text-[12px] !w-48" />
+          @complete="filtrarDepartamentos" @clear="departamentoSeleccionado = ''" dropdown placeholder="Todas las áreas"
+          inputClass="!h-8 !text-[12px] !w-48" />
       </div>
 
-      <Button @click="cargarTodo" label="Actualizar" icon="pi pi-refresh" :loading="cargando" class="!h-8 !px-4 !text-[12px]" />
+      <Button @click="cargarTodo" label="Actualizar" icon="pi pi-refresh" :loading="cargando"
+        class="!h-8 !px-4 !text-[12px]" />
     </div>
 
     <div v-if="error" class="rounded-lg border px-3 py-2 text-[12px]"
@@ -40,13 +41,15 @@
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cumplimiento</span>
+          <span class="text-[11px] font-medium"
+            :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Cumplimiento</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
             :class="isDark ? 'bg-[#36A2EB]/15 text-[#60B2F5]' : 'bg-[#36A2EB]/10 text-[#2E86D1]'">
             <i class="pi pi-shield"></i>
           </span>
         </div>
-        <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ kpi.cumplimientoPromedio }}%</p>
+        <p class="text-lg font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">{{ kpi.cumplimientoPromedio }}%
+        </p>
       </div>
 
       <div class="rounded-2xl border p-3 shadow-sm"
@@ -64,7 +67,8 @@
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Llegadas tarde</span>
+          <span class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Llegadas
+            tarde</span>
           <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px]"
             :class="isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]'">
             <i class="pi pi-clock"></i>
@@ -90,21 +94,41 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-2.5 shrink-0">
       <div class="lg:col-span-2 rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Cumplimiento por área</h3>
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Cumplimiento por área
+            </h3>
+            <span class="text-[10px]" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">(clic en una barra para
+              filtrar el resto del dashboard)</span>
+          </div>
           <div class="flex items-center gap-3 text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
             <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2DD9B9]"></span>≥ 90%</span>
             <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FFCE56]"></span>80–90%</span>
-            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FF9F40]"></span>&lt; 80%</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FF9F40]"></span>&lt;
+              80%</span>
           </div>
         </div>
+        <div v-if="segmentoSeleccionado" class="mb-2">
+          <button type="button" @click="limpiarSegmento"
+            class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors"
+            :class="isDark ? 'bg-[#36A2EB]/15 text-[#60B2F5] hover:bg-[#36A2EB]/25' : 'bg-[#36A2EB]/10 text-[#2E86D1] hover:bg-[#36A2EB]/20'">
+            <i class="pi pi-filter"></i> Segmento: {{ segmentoSeleccionado }} <i class="pi pi-times ml-0.5"></i>
+          </button>
+        </div>
         <div :style="{ height: alturaBarrasArea }">
-          <Chart v-if="chartCumplimiento" type="bar" :data="chartCumplimiento" :options="opcionesBarrasHorizontal" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el periodo seleccionado.</p>
+          <Chart v-if="chartCumplimiento" type="bar" :data="chartCumplimiento" :options="opcionesBarrasHorizontal"
+            class="w-full h-full" />
+          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el periodo
+            seleccionado.</p>
         </div>
 
-        <!-- Extremos por área: quién más llega tarde y quién es más puntual -->
-        <div v-if="cumplimientoAreas.length" class="mt-3 overflow-x-auto">
+        <!-- Extremos por área: quién más llega tarde y quién es más puntual.
+             A diferencia del gráfico de arriba (que se queda completo para
+             poder elegir otra barra), esta tabla SÍ se acota al segmento
+             seleccionado — es un filtro puramente de cliente, sin ida y
+             vuelta al backend: los datos de todas las áreas ya están en
+             cumplimientoAreas, solo se ocultan las que no aplican. -->
+        <div v-if="filasCumplimientoAreas.length" class="mt-3 overflow-x-auto">
           <table class="w-full text-[11px]">
             <thead>
               <tr :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
@@ -114,11 +138,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in cumplimientoAreas" :key="a.departamento" class="border-t"
+              <tr v-for="a in filasCumplimientoAreas" :key="a.departamento" class="border-t"
                 :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ a.departamento }}</td>
-                <td class="py-1.5 pr-3" :class="isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]'">{{ a.peor_empleado || '—' }}</td>
-                <td class="py-1.5" :class="isDark ? 'text-[#2DD9B9]' : 'text-[#1BA88E]'">{{ a.mejor_empleado || '—' }}</td>
+                <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ a.departamento
+                  }}</td>
+                <td class="py-1.5 pr-3" :class="isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]'">{{ a.peor_empleado || '—'
+                  }}</td>
+                <td class="py-1.5" :class="isDark ? 'text-[#2DD9B9]' : 'text-[#1BA88E]'">{{ a.mejor_empleado || '—' }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -127,7 +154,8 @@
 
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Estado de asistencia</h3>
+        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Estado de asistencia
+        </h3>
         <div class="h-56">
           <Chart v-if="chartEstado" type="doughnut" :data="chartEstado" :options="opcionesDona" class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos.</p>
@@ -141,8 +169,10 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tardanzas por área</h3>
         <div class="h-48">
-          <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasVerticales" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el periodo.</p>
+          <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasVerticales"
+            class="w-full h-full" />
+          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
+            periodo.</p>
         </div>
       </div>
 
@@ -150,8 +180,10 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tardanzas por día</h3>
         <div class="h-48">
-          <Chart v-if="chartTardanzasDia" type="line" :data="chartTardanzasDia" :options="opcionesLineaTardanzas" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el periodo.</p>
+          <Chart v-if="chartTardanzasDia" type="line" :data="chartTardanzasDia" :options="opcionesLineaTardanzas"
+            class="w-full h-full" />
+          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
+            periodo.</p>
         </div>
       </div>
     </div>
@@ -167,7 +199,8 @@
             <i class="pi pi-clock"></i>
           </span>
           <div>
-            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más llegadas tarde</p>
+            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más
+              llegadas tarde</p>
             <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
               {{ formatFechaISO(diaMasTardanzas.fecha) }} — {{ diaMasTardanzas.total_tardanzas }} tardanzas
             </p>
@@ -183,7 +216,8 @@
             <i class="pi pi-user-minus"></i>
           </span>
           <div>
-            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más ausencias</p>
+            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más
+              ausencias</p>
             <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
               {{ formatFechaISO(diaMasAusencias.fecha) }} — {{ diaMasAusencias.total_ausencias }} ausencias
             </p>
@@ -195,10 +229,13 @@
     <!-- ── Distribución de minutos de tardanza ─────────────────────────────── -->
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Distribución de minutos de tardanza</h3>
+      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Distribución de minutos
+        de tardanza</h3>
       <div class="h-44">
-        <Chart v-if="chartDistribucionMinutos" type="bar" :data="chartDistribucionMinutos" :options="opcionesBarrasVerticales" class="w-full h-full" />
-        <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el periodo.</p>
+        <Chart v-if="chartDistribucionMinutos" type="bar" :data="chartDistribucionMinutos"
+          :options="opcionesBarrasVerticales" class="w-full h-full" />
+        <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el periodo.
+        </p>
       </div>
     </div>
 
@@ -206,18 +243,24 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 shrink-0">
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — % de cumplimiento</h3>
+        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — %
+          de cumplimiento</h3>
         <div class="h-44">
-          <Chart v-if="chartTendencia" type="line" :data="chartTendencia" :options="opcionesLinea" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango seleccionado.</p>
+          <Chart v-if="chartTendencia" type="line" :data="chartTendencia" :options="opcionesLinea"
+            class="w-full h-full" />
+          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango
+            seleccionado.</p>
         </div>
       </div>
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — # de tardanzas</h3>
+        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — #
+          de tardanzas</h3>
         <div class="h-44">
-          <Chart v-if="chartTendenciaTardanzas" type="line" :data="chartTendenciaTardanzas" :options="opcionesLineaTardanzas" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango seleccionado.</p>
+          <Chart v-if="chartTendenciaTardanzas" type="line" :data="chartTendenciaTardanzas"
+            :options="opcionesLineaTardanzas" class="w-full h-full" />
+          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango
+            seleccionado.</p>
         </div>
       </div>
     </div>
@@ -226,22 +269,23 @@
     <div ref="detalleDiaSection" class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
       <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
-        <div class="flex flex-wrap items-end gap-2">
-          <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold uppercase tracking-wide"
-              :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Ver detalle del día</label>
-            <DatePicker v-model="diaDetalleDate" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
-              inputClass="!h-8 !text-[12px]" class="w-40" />
-          </div>
-          <Button @click="cargarDetalleDia" label="Consultar" icon="pi pi-search" :loading="cargandoDia" size="small" severity="secondary" outlined />
+        <div>
+          <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Ver detalle del día</h3>
+          <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+            {{ formatFechaISO(dateToISO(diaDetalleDate)) }} — se actualiza con el rango de fechas, el clic en un día
+            destacado, o el filtro de segmento.
+          </p>
         </div>
         <span v-if="detalleDia.length" class="text-[11px] font-semibold px-2 py-1 rounded-full"
           :class="isDark ? 'bg-white/[0.06] text-[#888888]' : 'bg-slate-100 text-slate-500'">
-          {{ detalleDia.filter(d => d.estado === 'ENTRADA TARDE').length }} de {{ detalleDia.length }} llegaron tarde
+          {{detalleDia.filter(d => d.estado === 'ENTRADA TARDE').length}} de {{ detalleDia.length }} llegaron tarde
         </span>
       </div>
       <DataTable :value="detalleDia" paginator :rows="10" size="small" scrollable scrollHeight="220px"
         :class="isDark ? 'p-datatable-dark' : ''">
+        <Column header="Fecha" style="width: 100px">
+          <template #body>{{ formatFechaISO(dateToISO(diaDetalleDate)) }}</template>
+        </Column>
         <Column field="nombre" header="Nombre" sortable />
         <Column field="cedula" header="Cédula" sortable style="width: 130px" />
         <Column field="departamento" header="Área" sortable />
@@ -254,7 +298,7 @@
             </span>
           </template>
         </Column>
-        <template #empty>Sin registros para ese día. Presiona "Consultar".</template>
+        <template #empty>Sin registros para ese día. Presiona "Actualizar" arriba.</template>
       </DataTable>
     </div>
 
@@ -264,7 +308,7 @@
       <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
         <div>
           <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
-            Ranking de llegadas tarde
+            Listado llegadas tarde
           </h3>
           <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
             {{ formatFechaCorta(rankingStartDate) }} — {{ formatFechaCorta(rankingEndDate) }}
@@ -283,7 +327,8 @@
             <DatePicker v-model="rankingEndDate" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
               inputClass="!h-8 !text-[12px]" class="w-36" />
           </div>
-          <Button @click="cargarRanking" label="Buscar" icon="pi pi-search" :loading="cargandoRanking" size="small" severity="secondary" outlined />
+          <Button @click="cargarRanking" label="Buscar" icon="pi pi-search" :loading="cargandoRanking" size="small"
+            severity="secondary" outlined />
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="busquedaPersona" placeholder="Buscar persona…" class="!h-8 !text-[12px] w-44" />
@@ -291,9 +336,8 @@
         </div>
       </div>
       <DataTable :value="rankingFiltrado" v-model:expandedRows="rankingExpandido" paginator :rows="10"
-        sortField="total_tardanzas" :sortOrder="-1" dataKey="cedula"
-        removableSort size="small" scrollable scrollHeight="240px"
-        :class="isDark ? 'p-datatable-dark' : ''">
+        sortField="total_tardanzas" :sortOrder="-1" dataKey="cedula" removableSort size="small" scrollable
+        scrollHeight="240px" :class="isDark ? 'p-datatable-dark' : ''">
         <Column expander style="width: 36px" />
         <Column field="nombre" header="Nombre" sortable />
         <Column field="cedula" header="Cédula" sortable style="width: 140px" />
@@ -316,7 +360,8 @@
     <!-- ── Jornadas incompletas / Calidad de marcaciones ───────────────────── -->
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Jornadas incompletas / Calidad de marcaciones</h3>
+      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Jornadas incompletas /
+        Calidad de marcaciones</h3>
       <DataTable :value="calidadMarcaciones" paginator :rows="6" size="small" scrollable scrollHeight="180px"
         :class="isDark ? 'p-datatable-dark' : ''">
         <Column field="departamento" header="Área" sortable />
@@ -362,6 +407,12 @@ const filtroHasta = ref(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
 const departamentoSeleccionado = ref('');
 const departamentosTodos = ref([]);
 const departamentosFiltrados = ref([]);
+
+// Filtro por SEGMENTO (propio, distinto del departamento de Odoo): se activa
+// haciendo clic en una barra de "Cumplimiento por área" y se aplica, además
+// del departamento, a todas las demás secciones del dashboard. Ambos filtros
+// son independientes y se pueden combinar.
+const segmentoSeleccionado = ref('');
 
 function filtrarDepartamentos(ev) {
   const q = (ev.query || '').toLowerCase();
@@ -458,6 +509,7 @@ async function cargarDetalleDia() {
       params: {
         fecha: dateToISO(diaDetalleDate.value),
         departamento: departamentoSeleccionado.value || undefined,
+        segmento: segmentoSeleccionado.value || undefined,
         company: props.company,
       },
     });
@@ -488,6 +540,7 @@ async function cargarRanking() {
         startDate: dateToISO(rankingStartDate.value),
         endDate: dateToISO(rankingEndDate.value),
         departamento: departamentoSeleccionado.value || undefined,
+        segmento: segmentoSeleccionado.value || undefined,
         company: props.company,
       },
     });
@@ -517,7 +570,13 @@ async function cargarTendencia() {
   const fin = filtroHasta.value;
   const inicio = new Date(fin.getFullYear(), fin.getMonth() - 5, 1);
   const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/tendencia-mensual`, {
-    params: { startDate: dateToISO(inicio), endDate: dateToISO(fin), departamento: departamentoSeleccionado.value || undefined, company: props.company },
+    params: {
+      startDate: dateToISO(inicio),
+      endDate: dateToISO(fin),
+      departamento: departamentoSeleccionado.value || undefined,
+      segmento: segmentoSeleccionado.value || undefined,
+      company: props.company,
+    },
   });
   tendenciaSerie.value = data.serie || [];
 }
@@ -531,6 +590,7 @@ async function cargarSeccionesNuevas() {
     startDate: dateToISO(filtroDesde.value),
     endDate: dateToISO(filtroHasta.value),
     departamento: departamentoSeleccionado.value || undefined,
+    segmento: segmentoSeleccionado.value || undefined,
     company: props.company,
   };
 
@@ -561,7 +621,11 @@ const diaMasAusencias = computed(() => {
   return ausenciasPorDia.value.reduce((max, d) => (d.total_ausencias > (max?.total_ausencias ?? 0) ? d : max), null);
 });
 
-async function cargarTodo() {
+// Recarga todo lo que depende de los filtros (fecha/departamento/segmento).
+// `incluirCumplimiento` se apaga cuando el disparo ES un clic en una barra de
+// "Cumplimiento por área": ese gráfico debe seguir mostrando TODOS los
+// segmentos (para poder elegir otro o quitar el filtro), no reducirse a uno solo.
+async function recargarSegunFiltros({ incluirCumplimiento = true } = {}) {
   cargando.value = true;
   error.value = '';
   try {
@@ -570,15 +634,46 @@ async function cargarTodo() {
     // varias llamadas a Odoo por dentro — disparar las 3 a la vez agotaba el
     // cupo y una de ellas (normalmente el ranking) terminaba rechazada con
     // "Ups, esto podría tardar un poco…", dejando la tabla vacía.
-    await cargarCumplimiento();
+    if (incluirCumplimiento) await cargarCumplimiento();
     await cargarRanking();
     await cargarTendencia();
     await cargarSeccionesNuevas();
+    await cargarDetalleDia();
   } catch (e) {
     error.value = e?.response?.data?.message || 'Error al cargar el dashboard de asistencia.';
   } finally {
     cargando.value = false;
   }
+}
+
+async function cargarTodo() {
+  // Refresco completo (botón "Actualizar" o carga inicial): el día que
+  // muestra "Ver detalle del día" vuelve a su valor por defecto (el último
+  // día del rango) salvo que se sobreescriba haciendo clic en una tarjeta de
+  // "Día con más tardanzas/ausencias". Tope en HOY: si el rango elegido se
+  // extiende al futuro (ej. "este mes" con hoy a mitad de mes), el último día
+  // del rango todavía no ocurrió y nunca va a tener marcaciones — sin este
+  // tope, "Ver detalle del día" siempre caía en un día vacío por diseño.
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  diaDetalleDate.value = filtroHasta.value > hoy ? hoy : filtroHasta.value;
+  await recargarSegunFiltros({ incluirCumplimiento: true });
+}
+
+// Clic en una barra de "Cumplimiento por área": alterna el filtro de
+// segmento (clic de nuevo en la misma barra lo quita) y refresca todo lo
+// demás con ese filtro — sin tocar el propio gráfico de cumplimiento.
+async function onClickBarraCumplimiento(_evt, elements) {
+  if (!elements?.length) return;
+  const area = cumplimientoAreas.value[elements[0].index];
+  if (!area) return;
+  segmentoSeleccionado.value = segmentoSeleccionado.value === area.departamento ? '' : area.departamento;
+  await recargarSegunFiltros({ incluirCumplimiento: false });
+}
+
+async function limpiarSegmento() {
+  segmentoSeleccionado.value = '';
+  await recargarSegunFiltros({ incluirCumplimiento: false });
 }
 
 const colorTexto = computed(() => (props.isDark ? '#E2E8F0' : '#334155'));
@@ -622,7 +717,13 @@ const chartCumplimiento = computed(() => {
     datasets: [{
       label: '% Cumplimiento',
       data: cumplimientoAreas.value.map(a => a.porcentaje_cumplimiento),
-      backgroundColor: cumplimientoAreas.value.map(a => colorCumplimiento(a.porcentaje_cumplimiento)),
+      // Con un segmento activo, se atenúan las barras de los demás para que
+      // resalte cuál está filtrando (la selección se hace clicando la barra).
+      backgroundColor: cumplimientoAreas.value.map(a => {
+        const color = colorCumplimiento(a.porcentaje_cumplimiento);
+        if (!segmentoSeleccionado.value || a.departamento === segmentoSeleccionado.value) return color;
+        return color + '33';
+      }),
       borderRadius: { topLeft: 0, topRight: 8, bottomLeft: 0, bottomRight: 8 },
       borderSkipped: false,
       barPercentage: 0.6,
@@ -633,6 +734,16 @@ const chartCumplimiento = computed(() => {
 
 // Alto dinámico para que las barras horizontales no se aplasten cuando hay muchas áreas.
 const alturaBarrasArea = computed(() => `${Math.max(180, cumplimientoAreas.value.length * 28)}px`);
+
+// Filas de la tabla "Área / Más llega tarde / Más puntual": con un segmento
+// activo se reduce a esa única fila, para que la tabla siga al filtro igual
+// que el resto del dashboard (el gráfico de barras, en cambio, se queda
+// completo a propósito — ver comentario en recargarSegunFiltros).
+const filasCumplimientoAreas = computed(() =>
+  segmentoSeleccionado.value
+    ? cumplimientoAreas.value.filter(a => a.departamento === segmentoSeleccionado.value)
+    : cumplimientoAreas.value,
+);
 
 const chartEstado = computed(() => {
   if (!estadoAsistencia.value.length) return null;
@@ -728,13 +839,17 @@ const opcionesBarrasHorizontal = computed(() => ({
   indexAxis: 'y',
   responsive: true,
   maintainAspectRatio: false,
+  onClick: onClickBarraCumplimiento,
+  onHover: (evt, elements) => {
+    evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+  },
   plugins: {
     legend: { display: false },
     tooltip: {
       callbacks: {
         label: (ctx) => {
           const area = cumplimientoAreas.value[ctx.dataIndex];
-          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde)`;
+          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde) — clic para filtrar`;
         },
       },
     },

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { EstructuraOrganizacionalService } from '../estructura-organizacional/estructura-organizacional.service';
 import { Novedad } from '../novedades/entities/novedad.entity';
 import {
   AsistenciaDiariaResumen,
@@ -24,6 +25,7 @@ export class AsistenciaResumenService {
 
   constructor(
     private readonly usuariosService: UsuariosService,
+    private readonly estructuraOrganizacionalService: EstructuraOrganizacionalService,
     @InjectRepository(AsistenciaDiariaResumen)
     private readonly resumenRepo: Repository<AsistenciaDiariaResumen>,
     @InjectRepository(Novedad)
@@ -54,10 +56,11 @@ export class AsistenciaResumenService {
   ): Promise<number> {
     onProgress?.('odoo-inicio', { fecha });
     const tOdoo = Date.now();
-    const [roster, filas, novedadesAprobadas] = await Promise.all([
+    const [roster, filas, novedadesAprobadas, segmentacion] = await Promise.all([
       this.usuariosService.getRosterProgramado(fecha, company),
       this.usuariosService.getReporteNovedades(false, company, fecha, fecha),
       this.novedadRepo.find({ where: { aprobado: 1 } }),
+      this.estructuraOrganizacionalService.obtenerSegmentacionParaCron(),
     ]);
     onProgress?.('odoo-fin', { fecha, ms: Date.now() - tOdoo, roster: roster.length, marcaciones: filas.length });
 
@@ -77,12 +80,19 @@ export class AsistenciaResumenService {
     for (const r of roster) {
       const fila = porCedula.get(r.cedula);
       porCedula.delete(r.cedula);
+      // Cruce primario por id_odoo (más confiable que cédula: sin problemas
+      // de formato/ceros a la izquierda).
+      const seg = segmentacion.porIdOdoo.get(r.id_odoo);
       filasFinal.push(
         this.armarFila({
           cedula: r.cedula,
           nombre: r.nombre,
           employee_id_odoo: r.id_odoo,
           departamento: r.departamento,
+          segmentoId: seg?.segmento_id ?? null,
+          segmentoNombre: seg?.segmento_nombre ?? null,
+          centroCostoId: seg?.centro_costo_id ?? null,
+          centroCostoNombre: seg?.centro_costo_nombre ?? null,
           company: company ?? null,
           fecha,
           horaProgramada: r.hora_inicio,
@@ -94,12 +104,19 @@ export class AsistenciaResumenService {
 
     // 2. Marcaciones sin malla vigente ese día (no estaban en el roster) → NO_PROGRAMADO.
     for (const fila of porCedula.values()) {
+      // Estas filas no traen id_odoo (vienen solo del biométrico/Odoo por
+      // cédula) → se cruza por cédula como respaldo.
+      const seg = segmentacion.porCedula.get(fila.cc);
       filasFinal.push(
         this.armarFila({
           cedula: fila.cc,
           nombre: fila.empleado,
           employee_id_odoo: null,
           departamento: fila.department_id ?? null,
+          segmentoId: seg?.segmento_id ?? null,
+          segmentoNombre: seg?.segmento_nombre ?? null,
+          centroCostoId: seg?.centro_costo_id ?? null,
+          centroCostoNombre: seg?.centro_costo_nombre ?? null,
           company: company ?? null,
           fecha,
           horaProgramada: null,
@@ -130,13 +147,20 @@ export class AsistenciaResumenService {
     nombre: string;
     employee_id_odoo: number | null;
     departamento: string | null;
+    segmentoId: number | null;
+    segmentoNombre: string | null;
+    centroCostoId: number | null;
+    centroCostoNombre: string | null;
     company: string | null;
     fecha: string;
     horaProgramada: number | null;
     fila: any | undefined;
     novedad: Novedad | undefined;
   }): Partial<AsistenciaDiariaResumen> {
-    const { cedula, nombre, employee_id_odoo, departamento, company, fecha, horaProgramada, fila, novedad } = params;
+    const {
+      cedula, nombre, employee_id_odoo, departamento, segmentoId, segmentoNombre,
+      centroCostoId, centroCostoNombre, company, fecha, horaProgramada, fila, novedad,
+    } = params;
 
     let estado: EstadoAsistenciaDiaria;
     let minutosTarde: number | null = null;
@@ -170,6 +194,10 @@ export class AsistenciaResumenService {
       nombre,
       employee_id_odoo,
       departamento,
+      segmento_id: segmentoId,
+      segmento_nombre: segmentoNombre,
+      centro_costo_id: centroCostoId,
+      centro_costo_nombre: centroCostoNombre,
       company,
       fecha,
       hora_programada: horaProgramada,

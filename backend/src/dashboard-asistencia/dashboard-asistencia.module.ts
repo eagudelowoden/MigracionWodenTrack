@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { EstructuraOrganizacionalModule } from '../estructura-organizacional/estructura-organizacional.module';
 import { Novedad } from '../novedades/entities/novedad.entity';
 import { DashboardAsistenciaController } from './dashboard-asistencia.controller';
 import { DashboardAsistenciaService } from './dashboard-asistencia.service';
@@ -14,6 +15,7 @@ import { EventLoopMonitorService } from './event-loop-monitor.service';
 @Module({
   imports: [
     UsuariosModule,
+    EstructuraOrganizacionalModule,
     TypeOrmModule.forFeature([AsistenciaDiariaResumen, AsistenciaCronConfig, AsistenciaCronLog, Novedad]),
   ],
   controllers: [DashboardAsistenciaController],

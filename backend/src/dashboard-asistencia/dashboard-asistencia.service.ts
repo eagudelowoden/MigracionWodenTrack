@@ -28,14 +28,24 @@ export class DashboardAsistenciaService {
     }
   }
 
-  /** Base query: rango de fechas + filtros opcionales, excluyendo NO_PROGRAMADO. */
-  private baseQuery(startDate: string, endDate: string, departamento?: string, company?: string) {
+  /**
+   * Base query: rango de fechas + filtros opcionales, excluyendo NO_PROGRAMADO.
+   * `segmento` filtra por `r.segmento_nombre` — INDEPENDIENTE de `departamento`
+   * (que sigue siendo el de Odoo): ambos pueden venir activos a la vez, es el
+   * cruce de los dos. 'SIN SEGMENTO' es el valor que muestra el frontend para
+   * las filas sin segmento asignado (el propio `cumplimientoPorArea` lo arma
+   * con COALESCE) — nunca existe como string real en la columna, así que se
+   * traduce a IS NULL en vez de una comparación literal.
+   */
+  private baseQuery(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     const qb = this.resumenRepo
       .createQueryBuilder('r')
       .where('r.fecha BETWEEN :startDate AND :endDate', { startDate, endDate })
       .andWhere('r.estado != :noProg', { noProg: 'NO_PROGRAMADO' });
     if (departamento) qb.andWhere('r.departamento = :departamento', { departamento });
     if (company) qb.andWhere('r.company = :company', { company });
+    if (segmento === 'SIN SEGMENTO') qb.andWhere('r.segmento_nombre IS NULL');
+    else if (segmento) qb.andWhere('r.segmento_nombre = :segmento', { segmento });
     return qb;
   }
 
@@ -45,14 +55,19 @@ export class DashboardAsistenciaService {
     return estado; // AUSENTE / INCOMPLETO
   }
 
-  async rankingTardanzas(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async rankingTardanzas(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const filas = await this.baseQuery(startDate, endDate, departamento, company)
+    const filas = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .andWhere('r.estado = :tarde', { tarde: 'TARDE' })
       .select('r.cedula', 'cedula')
       .addSelect('r.nombre', 'nombre')
       .addSelect('r.departamento', 'departamento')
-      .addSelect('r.fecha', 'fecha')
+      // CONVERT a 'YYYY-MM-DD' plano (mismo patrón que tardanzasPorDia/
+      // ausenciasPorDia más abajo): sin esto, el driver de mssql devuelve la
+      // columna `date` como objeto Date, que al serializarse a JSON sale como
+      // ISO datetime ("2026-09-02T05:00:00.000Z") — y formatFechaISO en el
+      // frontend, que espera 'YYYY-MM-DD', corta mal esa cadena.
+      .addSelect('CONVERT(varchar, r.fecha, 23)', 'fecha')
       .addSelect('r.hora_entrada', 'hora_entrada')
       .addSelect('r.minutos_tarde', 'minutos_tarde')
       .orderBy('r.fecha', 'ASC')
@@ -79,26 +94,37 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, departamento: departamento ?? null, ranking };
   }
 
+  /**
+   * Agrupa por SEGMENTO (maestro_segmentos, propio de esta app) en vez de
+   * `departamento` (el que reporta Odoo) — a diferencia del resto de
+   * endpoints "por área" de este servicio, que siguen usando `departamento`.
+   * El filtro `departamento` recibido de la UI sigue aplicando tal cual (es
+   * el dropdown Área/Departamento, que no cambia); solo lo que se AGRUPA y
+   * se muestra como fila cambia de fuente. Se usa el alias 'departamento' en
+   * el SELECT a propósito: el frontend ya lee ese campo, así no hay que
+   * tocarlo. COALESCE a 'SIN SEGMENTO' para no perder filas de empleados sin
+   * segmento asignado.
+   */
   async cumplimientoPorArea(startDate: string, endDate: string, company?: string, departamento?: string) {
     this.validarRango(startDate, endDate);
 
     const porAreaRaw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select('r.departamento', 'departamento')
+      .select("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')", 'departamento')
       .addSelect('COUNT(*)', 'total_registros')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
       .setParameter('tarde', 'TARDE')
-      .groupBy('r.departamento')
+      .groupBy("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')")
       .getRawMany();
 
     const porEmpleadoRaw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select('r.departamento', 'departamento')
+      .select("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')", 'departamento')
       .addSelect('r.cedula', 'cedula')
       .addSelect('r.nombre', 'nombre')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
       .addSelect('SUM(CASE WHEN r.estado = :puntual THEN 1 ELSE 0 END)', 'dias_a_tiempo')
       .setParameter('tarde', 'TARDE')
       .setParameter('puntual', 'PUNTUAL')
-      .groupBy('r.departamento, r.cedula, r.nombre')
+      .groupBy("COALESCE(r.segmento_nombre, 'SIN SEGMENTO'), r.cedula, r.nombre")
       .getRawMany();
 
     const peorPorArea = new Map<string, { nombre: string; total_tardanzas: number }>();
@@ -137,9 +163,9 @@ export class DashboardAsistenciaService {
   }
 
   /** Detalle de un solo día: quién llegó, a qué hora, y si llegó tarde. */
-  async detalleDia(fecha: string, departamento?: string, company?: string) {
+  async detalleDia(fecha: string, departamento?: string, company?: string, segmento?: string) {
     if (!fecha) throw new BadRequestException('fecha es requerida (formato YYYY-MM-DD)');
-    const filas = await this.baseQuery(fecha, fecha, departamento, company).getMany();
+    const filas = await this.baseQuery(fecha, fecha, departamento, company, segmento).getMany();
 
     const registros = filas
       .map((f) => ({
@@ -155,10 +181,10 @@ export class DashboardAsistenciaService {
     return { fecha, departamento: departamento ?? null, registros };
   }
 
-  async tendenciaMensual(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async tendenciaMensual(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
 
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .select("FORMAT(r.fecha, 'yyyy-MM')", 'mes')
       .addSelect('COUNT(*)', 'total_registros')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
@@ -189,9 +215,9 @@ export class DashboardAsistenciaService {
   // ── Nuevos: dashboard ampliado ────────────────────────────────────────────
 
   /** Dona: cuántos días-persona cayeron en cada estado. */
-  async estadoAsistencia(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async estadoAsistencia(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .select('r.estado', 'estado')
       .addSelect('COUNT(*)', 'total')
       .groupBy('r.estado')
@@ -203,9 +229,9 @@ export class DashboardAsistenciaService {
     };
   }
 
-  async tardanzasPorArea(startDate: string, endDate: string, company?: string, departamento?: string) {
+  async tardanzasPorArea(startDate: string, endDate: string, company?: string, departamento?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .andWhere('r.estado = :tarde', { tarde: 'TARDE' })
       .select('r.departamento', 'departamento')
       .addSelect('COUNT(*)', 'total_tardanzas')
@@ -215,9 +241,9 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, areas: raw.map((r) => ({ departamento: r.departamento, total_tardanzas: Number(r.total_tardanzas) })) };
   }
 
-  async tardanzasPorDia(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async tardanzasPorDia(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .andWhere('r.estado = :tarde', { tarde: 'TARDE' })
       .select('CONVERT(varchar, r.fecha, 23)', 'fecha')
       .addSelect('COUNT(*)', 'total_tardanzas')
@@ -227,9 +253,9 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_tardanzas: Number(r.total_tardanzas) })) };
   }
 
-  async ausenciasPorDia(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async ausenciasPorDia(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .andWhere('r.estado = :ausente', { ausente: 'AUSENTE' })
       .select('CONVERT(varchar, r.fecha, 23)', 'fecha')
       .addSelect('COUNT(*)', 'total_ausencias')
@@ -240,9 +266,9 @@ export class DashboardAsistenciaService {
   }
 
   /** Distribución de minutos de tardanza en buckets. */
-  async distribucionMinutosTardanza(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async distribucionMinutosTardanza(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const filas = await this.baseQuery(startDate, endDate, departamento, company)
+    const filas = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .andWhere('r.estado = :tarde', { tarde: 'TARDE' })
       .select('r.minutos_tarde', 'minutos_tarde')
       .getRawMany();
@@ -263,9 +289,9 @@ export class DashboardAsistenciaService {
   }
 
   /** Jornadas incompletas / calidad de marcaciones. */
-  async calidadMarcaciones(startDate: string, endDate: string, departamento?: string, company?: string) {
+  async calidadMarcaciones(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string) {
     this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company)
+    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
       .select('r.departamento', 'departamento')
       .addSelect('COUNT(*)', 'total_registros')
       .addSelect("SUM(CASE WHEN r.estado = 'INCOMPLETO' THEN 1 ELSE 0 END)", 'total_incompletas')

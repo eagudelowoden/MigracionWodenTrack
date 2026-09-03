@@ -285,7 +285,7 @@ import { bgLines } from '../../utils/bgLines.js';
 const { apkData, loading, fetchApkInfo, descargarApk } = useApkRepo();
 const activeModal = ref(null);
 
-const isDark = ref(localStorage.getItem('theme') !== 'light');
+const isDark = ref(localStorage.getItem('theme') === 'dark');
 const toggleTheme = () => {
   isDark.value = !isDark.value;
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light');

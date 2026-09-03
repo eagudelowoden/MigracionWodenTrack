@@ -10,7 +10,10 @@ export function useAttendance() {
   const currentTime = ref("00:00:00 AM");
   const form = reactive({ usuario: "", password: "" });
   const message = reactive({ text: "", type: "" });
-  const isDark = ref(localStorage.getItem("theme") !== "light");
+  // Por defecto claro: sin nada guardado en localStorage (primera visita, o
+  // navegador que borra cookies/storage), debe caer en modo claro — antes
+  // caía en oscuro porque comparaba contra "light" en vez de contra "dark".
+  const isDark = ref(localStorage.getItem("theme") === "dark");
   // Sincroniza <html class="dark"> con el estado propio de la app — PrimeVue
   // (darkModeSelector: '.dark' en main.js) lo necesita para pintar sus
   // componentes (DatePicker, Select, etc.) en modo oscuro/claro correctamente.

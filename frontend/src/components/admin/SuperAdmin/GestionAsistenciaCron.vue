@@ -231,7 +231,7 @@
                 <span v-if="log.estado === 'completado'" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
                   {{ log.total_filas }} filas guardadas
                 </span>
-                <button v-else-if="log.estado === 'error'" class="gac-error-chip" @click="flash(log.error_mensaje, true)">
+                <button v-else-if="log.estado === 'error'" class="gac-error-chip" @click="verError(log.error_mensaje)">
                   <i class="fas fa-triangle-exclamation"></i> Ver
                 </button>
                 <span v-else :class="isDark ? 'text-slate-500' : 'text-slate-400'">—</span>
@@ -282,6 +282,31 @@
       {{ mensaje }}
     </p>
   </div>
+
+  <!-- Modal de error de una corrida: aparte del <p> de mensaje de arriba
+       (que vive al fondo de un panel con scroll propio y se autoborra a los
+       4s — inservible para un error que hay que poder leer con calma). Con
+       Teleport queda fijo sobre toda la pantalla, sin importar dónde esté
+       scrolleado el panel, y no se cierra solo. -->
+  <Teleport to="body">
+    <div v-if="errorModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style="background: rgba(0,0,0,.5);" @click.self="errorModal = null">
+      <div class="w-full max-w-lg rounded-2xl shadow-xl p-5"
+        :class="isDark ? 'bg-[#161B26] border border-[#222938]' : 'bg-white border border-slate-200'">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <h3 class="text-[13px] font-semibold flex items-center gap-2 text-red-500">
+            <i class="fas fa-triangle-exclamation"></i> Error de la corrida
+          </h3>
+          <button @click="errorModal = null" type="button" class="text-[13px] opacity-60 hover:opacity-100">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <p class="text-[12px] whitespace-pre-wrap" :class="isDark ? 'text-slate-300' : 'text-slate-700'">
+          {{ errorModal }}
+        </p>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -449,6 +474,11 @@ const flash = (msg, error = false) => {
   mensaje.value = msg;
   mensajeError.value = error;
   setTimeout(() => (mensaje.value = ''), 4000);
+};
+
+const errorModal = ref(null);
+const verError = (msg) => {
+  errorModal.value = msg || 'Sin detalle de error.';
 };
 
 const formatFecha = (f) => {

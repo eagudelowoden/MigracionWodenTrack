@@ -12,6 +12,7 @@ export type EstadoAsistenciaDiaria = 'PUNTUAL' | 'TARDE' | 'AUSENTE' | 'INCOMPLE
 @Unique('UQ_asistencia_dia_cedula_fecha', ['cedula', 'fecha', 'company'])
 @Index('IDX_asistencia_dia_fecha', ['fecha'])
 @Index('IDX_asistencia_dia_departamento', ['departamento'])
+@Index('IDX_asistencia_dia_segmento', ['segmento_nombre'])
 export class AsistenciaDiariaResumen {
   @PrimaryGeneratedColumn()
   id: number;
@@ -27,6 +28,21 @@ export class AsistenciaDiariaResumen {
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   departamento: string | null;
+
+  // Segmentación propia (maestro_segmentos), cruzada por id_odoo/cédula contra
+  // usuarios_registrados — independiente del department_id que reporta Odoo.
+  // Null si el empleado no tiene segmento asignado en esa fecha.
+  @Column({ type: 'int', nullable: true })
+  segmento_id: number | null;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  segmento_nombre: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  centro_costo_id: number | null;
+
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  centro_costo_nombre: string | null;
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   company: string | null;

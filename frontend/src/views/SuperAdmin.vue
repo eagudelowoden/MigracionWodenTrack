@@ -12,6 +12,7 @@ const NAV_GROUPS = [
       stats: { icon: 'fas fa-chart-pie', label: 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-500/10' },
       users: { icon: 'fas fa-users', label: 'Personal', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
       estructura: { icon: 'fas fa-sitemap', label: 'Organización', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+      segmentacion: { icon: 'fas fa-diagram-project', label: 'Estructura Organizacional', color: 'text-teal-400', bg: 'bg-teal-500/10' },
       companies: { icon: 'fas fa-building-columns', label: 'Empresas', color: 'text-purple-400', bg: 'bg-purple-500/10' },
     },
   },
@@ -75,7 +76,7 @@ const NAV_ITEMS = NAV_GROUPS.reduce((acc, g) => ({ ...acc, ...g.items }), {});
 
 const MODULE_LABELS = {
   stats: 'Dashboard', apk: 'APK', companies: 'Empresas', users: 'Personal',
-  notifications: 'Avisos', estructura: 'Organización', mallas: 'Mallas',
+  notifications: 'Avisos', estructura: 'Organización', segmentacion: 'Estructura Organizacional', mallas: 'Mallas',
   analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
@@ -91,6 +92,7 @@ import { useAttendance } from '../composables/UserLogica/useAttendance.js';
 import { useUsuariosSync } from '../composables/adminLogica/useUsuariosSync.js';
 import { useOrganizacion } from '../composables/adminLogica/useOrganizacion.js';
 import GestionEstructura from '../components/admin/SuperAdmin/GestionEstructura.vue';
+import GestionSegmentacionAreas from '../components/admin/SuperAdmin/GestionSegmentacionAreas.vue';
 import Notificaciones from '../components/admin/SuperAdmin/GestionNotificaciones.vue';
 import GestionApk from '../components/admin/SuperAdmin/GestionApk.vue';
 import GestionCompanias from '../components/admin/SuperAdmin/GestionCompanias.vue';
@@ -134,6 +136,10 @@ const TAB_PERMS = {
   users: 'super.personal',
   notifications: 'super.avisos',
   estructura: 'super.organizacion',
+  // Gate detrás de super.superadmin (solo SuperAdmin raíz), mismo patrón que
+  // sync/cronhoras/reporteworkers/cronasistencia — herramienta interna nueva,
+  // sin catálogo de permiso fino todavía.
+  segmentacion: 'super.superadmin',
   mallas: 'super.mallas',
   paramhx: 'super.parametroshx',
   analitica: 'super.analitica',
@@ -697,12 +703,13 @@ onUnmounted(() => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos']"
+          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos', 'segmentacion']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
             <GestionMallas v-if="tab === 'mallas'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
+            <GestionSegmentacionAreas v-if="tab === 'segmentacion'" :isDark="isDark" />
             <GestionParametrosHorasExtra v-if="tab === 'paramhx'" :isDark="isDark" />
             <GestionAnalitica v-if="tab === 'analitica'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />

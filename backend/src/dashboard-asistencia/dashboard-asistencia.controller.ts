@@ -92,8 +92,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.rankingTardanzas(startDate, endDate, departamento, company);
+    return this.service.rankingTardanzas(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('cumplimiento-por-area')
@@ -112,8 +113,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.tendenciaMensual(startDate, endDate, departamento, company);
+    return this.service.tendenciaMensual(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('departamentos')
@@ -126,8 +128,9 @@ export class DashboardAsistenciaController {
     @Query('fecha') fecha: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.detalleDia(fecha, departamento, company);
+    return this.service.detalleDia(fecha, departamento, company, segmento);
   }
 
   @Get('estado-asistencia')
@@ -136,8 +139,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.estadoAsistencia(startDate, endDate, departamento, company);
+    return this.service.estadoAsistencia(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('tardanzas-por-area')
@@ -146,8 +150,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('company') company?: string,
     @Query('departamento') departamento?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.tardanzasPorArea(startDate, endDate, company, departamento);
+    return this.service.tardanzasPorArea(startDate, endDate, company, departamento, segmento);
   }
 
   @Get('tardanzas-por-dia')
@@ -156,8 +161,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.tardanzasPorDia(startDate, endDate, departamento, company);
+    return this.service.tardanzasPorDia(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('ausencias-por-dia')
@@ -166,8 +172,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.ausenciasPorDia(startDate, endDate, departamento, company);
+    return this.service.ausenciasPorDia(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('distribucion-minutos-tardanza')
@@ -176,8 +183,9 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.distribucionMinutosTardanza(startDate, endDate, departamento, company);
+    return this.service.distribucionMinutosTardanza(startDate, endDate, departamento, company, segmento);
   }
 
   @Get('calidad-marcaciones')
@@ -186,7 +194,8 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.calidadMarcaciones(startDate, endDate, departamento, company);
+    return this.service.calidadMarcaciones(startDate, endDate, departamento, company, segmento);
   }
 }

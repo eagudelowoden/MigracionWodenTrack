@@ -25,6 +25,9 @@ import { ApiCampoConfig } from '../api-externa/entities/api-campo-config.entity'
 import { RecordatorioMalla } from '../recordatorios/entities/recordatorio.entity';
 import { WfsmSerial } from '../wfsm/entities/wfsm-serial.entity';
 import { WfsmSyncEstado } from '../wfsm/entities/wfsm-sync-estado.entity';
+import { CentroCosto } from '../estructura-organizacional/entities/centro-costo.entity';
+import { SegmentoEstructura } from '../estructura-organizacional/entities/segmento-estructura.entity';
+import { SegmentacionArea } from '../estructura-organizacional/entities/segmentacion-area.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -84,6 +87,10 @@ export const getDatabaseConfig = (
       // WFSM (seriales recuperados)
       WfsmSerial,
       WfsmSyncEstado,
+      // Estructura organizacional (segmentación + centros de costo)
+      CentroCosto,
+      SegmentoEstructura,
+      SegmentacionArea,
     ],
     autoLoadEntities: true,
     // NO se auto-altera el esquema salvo que el .env del ambiente lo pida

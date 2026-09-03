@@ -13,6 +13,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizacionModule } from './organizacion/organizacion.module';
+import { EstructuraOrganizacionalModule } from './estructura-organizacional/estructura-organizacional.module';
 import { NovedadesModule } from './novedades/novedades.module';
 import { SistemaConfigModule } from './sistema-config/sistema-config.module';
 import { ApiExternaModule } from './api-externa/api-externa.module';
@@ -56,6 +57,7 @@ import { DashboardAsistenciaModule } from './dashboard-asistencia/dashboard-asis
     CompaniesModule, // (Ya no está duplicado)
     NotificationsModule,
     OrganizacionModule,
+    EstructuraOrganizacionalModule,
     NovedadesModule,
     SistemaConfigModule,
     ApiExternaModule,
