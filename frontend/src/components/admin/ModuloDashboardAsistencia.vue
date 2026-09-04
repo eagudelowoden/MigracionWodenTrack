@@ -21,10 +21,10 @@
 
       <div class="flex flex-col gap-1">
         <label class="text-[10px] font-bold uppercase tracking-wide"
-          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Área / Departamento</label>
-        <AutoComplete v-model="departamentoSeleccionado" :suggestions="departamentosFiltrados"
-          @complete="filtrarDepartamentos" @clear="departamentoSeleccionado = ''" dropdown placeholder="Todas las áreas"
-          inputClass="!h-8 !text-[12px] !w-48" />
+          :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Segmento</label>
+        <Select v-model="segmentoSeleccionado" :options="segmentosDisponibles" optionLabel="nombre"
+          optionValue="nombre" showClear placeholder="Todos los segmentos" inputClass="!h-8 !text-[12px]"
+          class="w-48" />
       </div>
 
       <Button @click="cargarTodo" label="Actualizar" icon="pi pi-refresh" :loading="cargando"
@@ -96,10 +96,11 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div class="flex items-center gap-2">
-            <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Cumplimiento por área
+            <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
+              {{ modoCentroCosto ? 'Cumplimiento por centro de costo' : 'Cumplimiento por área' }}
             </h3>
-            <span class="text-[10px]" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">(clic en una barra para
-              filtrar el resto del dashboard)</span>
+            <span v-if="!modoCentroCosto" class="text-[10px]" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">
+              (clic en una barra para filtrar el resto del dashboard)</span>
           </div>
           <div class="flex items-center gap-3 text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
             <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2DD9B9]"></span>≥ 90%</span>
@@ -132,16 +133,16 @@
           <table class="w-full text-[11px]">
             <thead>
               <tr :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                <th class="text-left font-semibold py-1.5 pr-3">Área</th>
+                <th class="text-left font-semibold py-1.5 pr-3">{{ modoCentroCosto ? 'Centro de costo' : 'Área' }}</th>
                 <th class="text-left font-semibold py-1.5 pr-3">Más llega tarde</th>
                 <th class="text-left font-semibold py-1.5">Más puntual</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in filasCumplimientoAreas" :key="a.departamento" class="border-t"
+              <tr v-for="a in filasCumplimientoAreas" :key="a.departamento || a.centro_costo" class="border-t"
                 :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">{{ a.departamento
-                  }}</td>
+                <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">
+                  {{ a.departamento || a.centro_costo }}</td>
                 <td class="py-1.5 pr-3" :class="isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]'">{{ a.peor_empleado || '—'
                   }}</td>
                 <td class="py-1.5" :class="isDark ? 'text-[#2DD9B9]' : 'text-[#1BA88E]'">{{ a.mejor_empleado || '—' }}
@@ -167,9 +168,11 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 shrink-0">
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tardanzas por área</h3>
-        <div class="h-48">
-          <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasVerticales"
+        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">
+          Personas con más tardanzas <span class="font-normal" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">(color = área)</span>
+        </h3>
+        <div :style="{ height: alturaTardanzasPersonas }">
+          <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasTardanzasPersonas"
             class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
             periodo.</p>
@@ -180,7 +183,7 @@
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tardanzas por día</h3>
         <div class="h-48">
-          <Chart v-if="chartTardanzasDia" type="line" :data="chartTardanzasDia" :options="opcionesLineaTardanzas"
+          <Chart v-if="chartTardanzasDia" type="line" :data="chartTardanzasDia" :options="opcionesLineaTardanzasDia"
             class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
             periodo.</p>
@@ -344,13 +347,9 @@
         <Column field="departamento" header="Área" sortable />
         <Column field="total_tardanzas" header="# Tardanzas" sortable style="width: 140px" />
         <template #expansion="{ data }">
-          <div class="pl-10 py-1.5 flex flex-col gap-1">
-            <div v-for="(d, i) in data.detalle" :key="i" class="text-[11px] flex items-center gap-3"
-              :class="isDark ? 'text-[#cccccc]' : 'text-slate-700'">
-              <span class="font-medium">{{ formatFechaISO(d.fecha) }}</span>
-              <span>Entrada: {{ d.hora_entrada ? d.hora_entrada.slice(11, 16) : '—' }}</span>
-              <span>{{ d.minutos_tarde != null ? `${d.minutos_tarde} min tarde` : '' }}</span>
-            </div>
+          <div class="pl-10 py-2" style="height: 150px; max-width: 520px;">
+            <Chart type="bar" :data="chartDetallePersona(data.detalle)" :options="opcionesDetallePersona"
+              class="w-full h-full" />
           </div>
         </template>
         <template #empty>Sin llegadas tarde para el periodo/área/persona seleccionados.</template>
@@ -380,7 +379,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import DatePicker from 'primevue/datepicker';
-import AutoComplete from 'primevue/autocomplete';
+import Select from 'primevue/select';
 import Button from 'primevue/button';
 import Chart from 'primevue/chart';
 import DataTable from 'primevue/datatable';
@@ -404,29 +403,22 @@ const hoy = new Date();
 const filtroDesde = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 const filtroHasta = ref(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
 
-const departamentoSeleccionado = ref('');
-const departamentosTodos = ref([]);
-const departamentosFiltrados = ref([]);
-
-// Filtro por SEGMENTO (propio, distinto del departamento de Odoo): se activa
-// haciendo clic en una barra de "Cumplimiento por área" y se aplica, además
-// del departamento, a todas las demás secciones del dashboard. Ambos filtros
-// son independientes y se pueden combinar.
+// Filtro por SEGMENTO (maestro propio de "Estructura Organizacional",
+// maestro_segmentos_estructura — reemplaza al viejo filtro por departamento
+// de Odoo). Se activa desde este dropdown O haciendo clic en una barra de
+// "Cumplimiento por área"; ambos caminos comparten el mismo estado.
 const segmentoSeleccionado = ref('');
-
-function filtrarDepartamentos(ev) {
-  const q = (ev.query || '').toLowerCase();
-  departamentosFiltrados.value = q
-    ? departamentosTodos.value.filter(d => d.toLowerCase().includes(q))
-    : [...departamentosTodos.value];
-}
+const segmentosDisponibles = ref([]);
+// Drill-down: cumplimiento por centro de costo DENTRO del segmento elegido —
+// reemplaza el gráfico/tabla de "Cumplimiento por área" mientras haya un
+// segmento activo (ver computed `modoCentroCosto`).
+const cumplimientoCentrosCosto = ref([]);
 
 const ranking = ref([]);
 const rankingExpandido = ref({});
 const cumplimientoAreas = ref([]);
 const tendenciaSerie = ref([]);
 const estadoAsistencia = ref([]);
-const tardanzasPorArea = ref([]);
 const tardanzasPorDia = ref([]);
 const ausenciasPorDia = ref([]);
 const distribucionMinutos = ref([]);
@@ -508,7 +500,6 @@ async function cargarDetalleDia() {
     const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/detalle-dia`, {
       params: {
         fecha: dateToISO(diaDetalleDate.value),
-        departamento: departamentoSeleccionado.value || undefined,
         segmento: segmentoSeleccionado.value || undefined,
         company: props.company,
       },
@@ -521,14 +512,12 @@ async function cargarDetalleDia() {
   }
 }
 
-async function cargarDepartamentos() {
+async function cargarSegmentosDisponibles() {
   try {
-    const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/departamentos`, {
-      params: { company: props.company },
-    });
-    departamentosTodos.value = data.departamentos || [];
+    const { data } = await axios.get(`${baseUrl}/estructura-organizacional/segmentos`);
+    segmentosDisponibles.value = data || [];
   } catch {
-    // no crítico: el autocomplete simplemente queda vacío
+    // no crítico: el dropdown simplemente queda vacío
   }
 }
 
@@ -539,7 +528,6 @@ async function cargarRanking() {
       params: {
         startDate: dateToISO(rankingStartDate.value),
         endDate: dateToISO(rankingEndDate.value),
-        departamento: departamentoSeleccionado.value || undefined,
         segmento: segmentoSeleccionado.value || undefined,
         company: props.company,
       },
@@ -557,7 +545,7 @@ async function cargarCumplimiento() {
     params: {
       startDate: dateToISO(filtroDesde.value),
       endDate: dateToISO(filtroHasta.value),
-      departamento: departamentoSeleccionado.value || undefined,
+      segmento: segmentoSeleccionado.value || undefined,
       company: props.company,
     },
   });
@@ -573,7 +561,6 @@ async function cargarTendencia() {
     params: {
       startDate: dateToISO(inicio),
       endDate: dateToISO(fin),
-      departamento: departamentoSeleccionado.value || undefined,
       segmento: segmentoSeleccionado.value || undefined,
       company: props.company,
     },
@@ -589,14 +576,12 @@ async function cargarSeccionesNuevas() {
   const params = {
     startDate: dateToISO(filtroDesde.value),
     endDate: dateToISO(filtroHasta.value),
-    departamento: departamentoSeleccionado.value || undefined,
     segmento: segmentoSeleccionado.value || undefined,
     company: props.company,
   };
 
-  const [estado, tArea, tDia, aDia, distMin, calidad] = await Promise.all([
+  const [estado, tDia, aDia, distMin, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-area`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/distribucion-minutos-tardanza`, { params }),
@@ -604,11 +589,28 @@ async function cargarSeccionesNuevas() {
   ]);
 
   estadoAsistencia.value = estado.data.estados || [];
-  tardanzasPorArea.value = tArea.data.areas || [];
   tardanzasPorDia.value = tDia.data.dias || [];
   ausenciasPorDia.value = aDia.data.dias || [];
   distribucionMinutos.value = distMin.data.buckets || [];
   calidadMarcaciones.value = calidad.data.areas || [];
+}
+
+async function cargarCumplimientoCentrosCosto() {
+  // Solo tiene sentido dentro de UN segmento — sin eso, "por centro de costo"
+  // mezclaría gente de segmentos distintos que puede compartir centro de costo.
+  if (!segmentoSeleccionado.value) {
+    cumplimientoCentrosCosto.value = [];
+    return;
+  }
+  const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/cumplimiento-por-centro-costo`, {
+    params: {
+      startDate: dateToISO(filtroDesde.value),
+      endDate: dateToISO(filtroHasta.value),
+      segmento: segmentoSeleccionado.value,
+      company: props.company,
+    },
+  });
+  cumplimientoCentrosCosto.value = data.centros || [];
 }
 
 const diaMasTardanzas = computed(() => {
@@ -639,6 +641,7 @@ async function recargarSegunFiltros({ incluirCumplimiento = true } = {}) {
     await cargarTendencia();
     await cargarSeccionesNuevas();
     await cargarDetalleDia();
+    await cargarCumplimientoCentrosCosto();
   } catch (e) {
     error.value = e?.response?.data?.message || 'Error al cargar el dashboard de asistencia.';
   } finally {
@@ -663,7 +666,10 @@ async function cargarTodo() {
 // Clic en una barra de "Cumplimiento por área": alterna el filtro de
 // segmento (clic de nuevo en la misma barra lo quita) y refresca todo lo
 // demás con ese filtro — sin tocar el propio gráfico de cumplimiento.
+// En modo centro de costo (drill-down DENTRO de un segmento) el clic no hace
+// nada — centro de costo es solo informativo, no es un filtro del dashboard.
 async function onClickBarraCumplimiento(_evt, elements) {
+  if (modoCentroCosto.value) return;
   if (!elements?.length) return;
   const area = cumplimientoAreas.value[elements[0].index];
   if (!area) return;
@@ -695,6 +701,22 @@ function colorCumplimiento(pct) {
   return PALETA.naranja;
 }
 
+// Paleta categórica para "Personas con más tardanzas": un color distinto por
+// área/departamento, estable entre renders (mismo departamento → mismo color
+// siempre, sin importar en qué orden aparezca en los datos).
+const PALETA_CATEGORICA = [
+  '#36A2EB', '#FF9F40', '#2DD9B9', '#A78BFA', '#F472B6',
+  '#FFCE56', '#34D399', '#60A5FA', '#FB923C', '#94A3B8',
+];
+const coloresPorDepartamento = new Map();
+function colorPorDepartamento(dept) {
+  const clave = dept || 'SIN ÁREA';
+  if (!coloresPorDepartamento.has(clave)) {
+    coloresPorDepartamento.set(clave, PALETA_CATEGORICA[coloresPorDepartamento.size % PALETA_CATEGORICA.length]);
+  }
+  return coloresPorDepartamento.get(clave);
+}
+
 const kpi = computed(() => {
   const areas = cumplimientoAreas.value;
   const cumplimientoPromedio = areas.length
@@ -710,7 +732,27 @@ const kpi = computed(() => {
   return { cumplimientoPromedio, puntualidad, totalTardanzas, totalAusencias };
 });
 
+// Con un segmento elegido Y datos de centro de costo cargados, el gráfico
+// entero pasa a mostrar el desglose interno (centros de costo) en vez de los
+// segmentos — es un drill-down, no un filtro adicional.
+const modoCentroCosto = computed(() => !!segmentoSeleccionado.value && cumplimientoCentrosCosto.value.length > 0);
+
 const chartCumplimiento = computed(() => {
+  if (modoCentroCosto.value) {
+    const datos = cumplimientoCentrosCosto.value;
+    return {
+      labels: datos.map(c => c.centro_costo),
+      datasets: [{
+        label: '% Cumplimiento',
+        data: datos.map(c => c.porcentaje_cumplimiento),
+        backgroundColor: datos.map(c => colorCumplimiento(c.porcentaje_cumplimiento)),
+        borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
+      }],
+    };
+  }
   if (!cumplimientoAreas.value.length) return null;
   return {
     labels: cumplimientoAreas.value.map(a => a.departamento),
@@ -732,18 +774,21 @@ const chartCumplimiento = computed(() => {
   };
 });
 
-// Alto dinámico para que las barras horizontales no se aplasten cuando hay muchas áreas.
-const alturaBarrasArea = computed(() => `${Math.max(180, cumplimientoAreas.value.length * 28)}px`);
+// Barras verticales: alto fijo (ya no depende de cuántas categorías haya,
+// como sí hacía falta con las horizontales — acá lo que se aprieta es el
+// ancho, y las etiquetas rotadas ya lo manejan).
+const alturaBarrasArea = computed(() => '260px');
 
-// Filas de la tabla "Área / Más llega tarde / Más puntual": con un segmento
-// activo se reduce a esa única fila, para que la tabla siga al filtro igual
-// que el resto del dashboard (el gráfico de barras, en cambio, se queda
-// completo a propósito — ver comentario en recargarSegunFiltros).
-const filasCumplimientoAreas = computed(() =>
-  segmentoSeleccionado.value
+// Filas de la tabla "Área / Más llega tarde / Más puntual": en modo centro de
+// costo muestra ese desglose; si no, con un segmento activo se reduce a esa
+// única fila (el gráfico de barras normal, en cambio, se queda completo a
+// propósito — ver comentario en recargarSegunFiltros).
+const filasCumplimientoAreas = computed(() => {
+  if (modoCentroCosto.value) return cumplimientoCentrosCosto.value;
+  return segmentoSeleccionado.value
     ? cumplimientoAreas.value.filter(a => a.departamento === segmentoSeleccionado.value)
-    : cumplimientoAreas.value,
-);
+    : cumplimientoAreas.value;
+});
 
 const chartEstado = computed(() => {
   if (!estadoAsistencia.value.length) return null;
@@ -759,18 +804,77 @@ const chartEstado = computed(() => {
   };
 });
 
+// Ya no es un agregado por área — son las personas puntuales con más
+// tardanzas (viene del mismo `ranking` que ya se carga para la tabla de
+// abajo, sin pedirle nada nuevo al backend), coloreadas por su departamento.
+// Se limita a un TOP para que las barras no queden ilegibles con cientos de
+// personas.
+const TOP_TARDANZAS = 12;
+const topPersonasTardanzas = computed(() =>
+  [...ranking.value].sort((a, b) => b.total_tardanzas - a.total_tardanzas).slice(0, TOP_TARDANZAS),
+);
+
 const chartTardanzasArea = computed(() => {
-  if (!tardanzasPorArea.value.length) return null;
+  if (!topPersonasTardanzas.value.length) return null;
   return {
-    labels: tardanzasPorArea.value.map(a => a.departamento),
+    labels: topPersonasTardanzas.value.map(p => p.nombre),
     datasets: [{
-      label: 'Tardanzas',
-      data: tardanzasPorArea.value.map(a => a.total_tardanzas),
+      label: '# Tardanzas',
+      data: topPersonasTardanzas.value.map(p => p.total_tardanzas),
+      backgroundColor: topPersonasTardanzas.value.map(p => colorPorDepartamento(p.departamento)),
+      borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+      borderSkipped: false,
+      barPercentage: 0.65,
+      categoryPercentage: 0.75,
+    }],
+  };
+});
+
+const alturaTardanzasPersonas = computed(() => '260px');
+
+// Mini-gráfica del detalle expandible por persona (tabla de ranking): minutos
+// de tardanza día a día, en vez de la lista de texto que había antes.
+function chartDetallePersona(detalle) {
+  return {
+    labels: (detalle || []).map(d => formatFechaISO(d.fecha)),
+    datasets: [{
+      label: 'Minutos tarde',
+      data: (detalle || []).map(d => d.minutos_tarde ?? 0),
       backgroundColor: PALETA.amarillo,
-      borderRadius: 6,
+      borderRadius: 4,
       barPercentage: 0.6,
     }],
   };
+}
+
+const opcionesDetallePersona = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: { callbacks: { label: (ctx) => ` ${ctx.formattedValue} min tarde` } },
+  },
+  scales: {
+    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 9 } }, grid: { display: false } },
+    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
+  },
+}));
+
+// Para el tooltip de "Tardanzas por día": quién fue la persona con más
+// minutos de tardanza cada día, calculado del `ranking` que ya está cargado
+// (cada persona trae su detalle día a día) — sin pedirle nada nuevo al backend.
+const personaMasTardePorDia = computed(() => {
+  const mapa = new Map();
+  for (const persona of ranking.value) {
+    for (const d of persona.detalle || []) {
+      const minutos = d.minutos_tarde ?? 0;
+      const actual = mapa.get(d.fecha);
+      if (!actual || minutos > actual.minutos_tarde) {
+        mapa.set(d.fecha, { nombre: persona.nombre, minutos_tarde: minutos });
+      }
+    }
+  }
+  return mapa;
 });
 
 const chartTardanzasDia = computed(() => {
@@ -836,7 +940,6 @@ const chartTendenciaTardanzas = computed(() => {
 });
 
 const opcionesBarrasHorizontal = computed(() => ({
-  indexAxis: 'y',
   responsive: true,
   maintainAspectRatio: false,
   onClick: onClickBarraCumplimiento,
@@ -848,15 +951,18 @@ const opcionesBarrasHorizontal = computed(() => ({
     tooltip: {
       callbacks: {
         label: (ctx) => {
-          const area = cumplimientoAreas.value[ctx.dataIndex];
-          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde) — clic para filtrar`;
+          const area = modoCentroCosto.value
+            ? cumplimientoCentrosCosto.value[ctx.dataIndex]
+            : cumplimientoAreas.value[ctx.dataIndex];
+          const sufijo = modoCentroCosto.value ? '' : ' — clic para filtrar';
+          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde)${sufijo}`;
         },
       },
     },
   },
   scales: {
-    x: { min: 0, max: 100, ticks: { color: colorTexto.value, callback: (v) => `${v}%` }, grid: { color: colorGrid.value } },
-    y: { ticks: { color: colorTexto.value, font: { size: 10 } }, grid: { display: false } },
+    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { display: false } },
+    y: { min: 0, max: 100, ticks: { color: colorTexto.value, callback: (v) => `${v}%` }, grid: { color: colorGrid.value } },
   },
 }));
 
@@ -866,6 +972,26 @@ const opcionesBarrasVerticales = computed(() => ({
   plugins: { legend: { display: false } },
   scales: {
     x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { display: false } },
+    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
+  },
+}));
+
+const opcionesBarrasTardanzasPersonas = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (ctx) => {
+          const p = topPersonasTardanzas.value[ctx.dataIndex];
+          return ` ${ctx.formattedValue} tardanza(s) — ${p.departamento || 'Sin área'}`;
+        },
+      },
+    },
+  },
+  scales: {
+    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 9 } }, grid: { display: false } },
     y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
   },
 }));
@@ -893,6 +1019,32 @@ const opcionesLineaTardanzas = computed(() => ({
   },
 }));
 
+// Variante específica de "Tardanzas por día": el tooltip además dice quién
+// fue la persona que más tarde llegó ese día puntual (opcionesLineaTardanzas
+// de arriba se queda genérica porque también la usa "Tendencia mes a mes",
+// donde no aplica un lookup por día).
+const opcionesLineaTardanzasDia = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { labels: { color: colorTexto.value } },
+    tooltip: {
+      callbacks: {
+        label: (ctx) => {
+          const fecha = tardanzasPorDia.value[ctx.dataIndex]?.fecha;
+          const top = fecha ? personaMasTardePorDia.value.get(fecha) : null;
+          const base = ` ${ctx.formattedValue} tardanza(s)`;
+          return top ? `${base} — el que más tarde llegó: ${top.nombre} (${top.minutos_tarde} min)` : base;
+        },
+      },
+    },
+  },
+  scales: {
+    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { color: colorGrid.value } },
+    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
+  },
+}));
+
 const opcionesDona = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -903,6 +1055,6 @@ const opcionesDona = computed(() => ({
 // la consulta por sí solo — el usuario debe presionar "Actualizar" (o
 // "Buscar"/"Consultar" en las secciones de ranking y detalle del día).
 onMounted(async () => {
-  await cargarDepartamentos();
+  await cargarSegmentosDisponibles();
 });
 </script>

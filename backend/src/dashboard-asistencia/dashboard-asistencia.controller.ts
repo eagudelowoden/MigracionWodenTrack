@@ -103,8 +103,19 @@ export class DashboardAsistenciaController {
     @Query('endDate') endDate: string,
     @Query('company') company?: string,
     @Query('departamento') departamento?: string,
+    @Query('segmento') segmento?: string,
   ) {
-    return this.service.cumplimientoPorArea(startDate, endDate, company, departamento);
+    return this.service.cumplimientoPorArea(startDate, endDate, company, departamento, segmento);
+  }
+
+  @Get('cumplimiento-por-centro-costo')
+  cumplimientoPorCentroCosto(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('segmento') segmento: string,
+    @Query('company') company?: string,
+  ) {
+    return this.service.cumplimientoPorCentroCosto(startDate, endDate, segmento, company);
   }
 
   @Get('tendencia-mensual')

@@ -95,71 +95,110 @@ export class DashboardAsistenciaService {
   }
 
   /**
-   * Agrupa por SEGMENTO (maestro_segmentos, propio de esta app) en vez de
-   * `departamento` (el que reporta Odoo) — a diferencia del resto de
-   * endpoints "por área" de este servicio, que siguen usando `departamento`.
-   * El filtro `departamento` recibido de la UI sigue aplicando tal cual (es
-   * el dropdown Área/Departamento, que no cambia); solo lo que se AGRUPA y
-   * se muestra como fila cambia de fuente. Se usa el alias 'departamento' en
-   * el SELECT a propósito: el frontend ya lee ese campo, así no hay que
-   * tocarlo. COALESCE a 'SIN SEGMENTO' para no perder filas de empleados sin
-   * segmento asignado.
+   * Agrupa cumplimiento (% + peor/mejor empleado) por lo que diga `groupExpr`
+   * (una expresión SQL, ej. columna o COALESCE) — compartido por
+   * `cumplimientoPorArea` (agrupa por segmento) y `cumplimientoPorCentroCosto`
+   * (agrupa por centro de costo, siempre dentro de UN segmento). `aliasField`
+   * es el nombre de columna que usa el SELECT/GROUP BY y con el que se arma
+   * cada fila del resultado.
    */
-  async cumplimientoPorArea(startDate: string, endDate: string, company?: string, departamento?: string) {
-    this.validarRango(startDate, endDate);
+  private async cumplimientoAgrupado(
+    startDate: string,
+    endDate: string,
+    groupExpr: string,
+    aliasField: string,
+    opts: { company?: string; departamento?: string; segmento?: string },
+  ): Promise<any[]> {
+    const { company, departamento, segmento } = opts;
 
-    const porAreaRaw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')", 'departamento')
+    const porGrupoRaw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
+      .select(groupExpr, aliasField)
       .addSelect('COUNT(*)', 'total_registros')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
       .setParameter('tarde', 'TARDE')
-      .groupBy("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')")
+      .groupBy(groupExpr)
       .getRawMany();
 
-    const porEmpleadoRaw = await this.baseQuery(startDate, endDate, departamento, company)
-      .select("COALESCE(r.segmento_nombre, 'SIN SEGMENTO')", 'departamento')
+    const porEmpleadoRaw = await this.baseQuery(startDate, endDate, departamento, company, segmento)
+      .select(groupExpr, aliasField)
       .addSelect('r.cedula', 'cedula')
       .addSelect('r.nombre', 'nombre')
       .addSelect('SUM(CASE WHEN r.estado = :tarde THEN 1 ELSE 0 END)', 'total_tardanzas')
       .addSelect('SUM(CASE WHEN r.estado = :puntual THEN 1 ELSE 0 END)', 'dias_a_tiempo')
       .setParameter('tarde', 'TARDE')
       .setParameter('puntual', 'PUNTUAL')
-      .groupBy("COALESCE(r.segmento_nombre, 'SIN SEGMENTO'), r.cedula, r.nombre")
+      .groupBy(`${groupExpr}, r.cedula, r.nombre`)
       .getRawMany();
 
-    const peorPorArea = new Map<string, { nombre: string; total_tardanzas: number }>();
-    const mejorPorArea = new Map<string, { nombre: string; dias_a_tiempo: number }>();
+    const peorPorGrupo = new Map<string, { nombre: string; total_tardanzas: number }>();
+    const mejorPorGrupo = new Map<string, { nombre: string; dias_a_tiempo: number }>();
     for (const e of porEmpleadoRaw) {
-      const dept = e.departamento;
+      const clave = e[aliasField];
       const tard = Number(e.total_tardanzas);
       const puntual = Number(e.dias_a_tiempo);
-      const peorActual = peorPorArea.get(dept);
+      const peorActual = peorPorGrupo.get(clave);
       if (tard > 0 && (!peorActual || tard > peorActual.total_tardanzas)) {
-        peorPorArea.set(dept, { nombre: e.nombre, total_tardanzas: tard });
+        peorPorGrupo.set(clave, { nombre: e.nombre, total_tardanzas: tard });
       }
-      const mejorActual = mejorPorArea.get(dept);
+      const mejorActual = mejorPorGrupo.get(clave);
       if (tard === 0 && (!mejorActual || puntual > mejorActual.dias_a_tiempo)) {
-        mejorPorArea.set(dept, { nombre: e.nombre, dias_a_tiempo: puntual });
+        mejorPorGrupo.set(clave, { nombre: e.nombre, dias_a_tiempo: puntual });
       }
     }
 
-    const areas = porAreaRaw
+    return porGrupoRaw
       .map((a) => {
         const total_registros = Number(a.total_registros);
         const total_tardanzas = Number(a.total_tardanzas);
         return {
-          departamento: a.departamento,
+          [aliasField]: a[aliasField],
           total_registros,
           total_tardanzas,
           porcentaje_cumplimiento:
             total_registros > 0 ? Math.round((100 - (total_tardanzas / total_registros) * 100) * 100) / 100 : 100,
-          peor_empleado: peorPorArea.get(a.departamento)?.nombre ?? null,
-          mejor_empleado: mejorPorArea.get(a.departamento)?.nombre ?? null,
+          peor_empleado: peorPorGrupo.get(a[aliasField])?.nombre ?? null,
+          mejor_empleado: mejorPorGrupo.get(a[aliasField])?.nombre ?? null,
         };
       })
       .sort((a, b) => b.porcentaje_cumplimiento - a.porcentaje_cumplimiento);
+  }
 
+  /**
+   * Agrupa por SEGMENTO (maestro_segmentos_estructura, propio de esta app) en
+   * vez de `departamento` (el que reporta Odoo) — a diferencia del resto de
+   * endpoints "por área" de este servicio, que siguen usando `departamento`.
+   * El filtro `departamento` recibido de la UI sigue aplicando tal cual; solo
+   * lo que se AGRUPA cambia de fuente. Se usa el alias 'departamento' en el
+   * SELECT a propósito: el frontend ya lee ese campo, así no hay que
+   * tocarlo. COALESCE a 'SIN SEGMENTO' para no perder filas sin segmento.
+   */
+  async cumplimientoPorArea(startDate: string, endDate: string, company?: string, departamento?: string, segmento?: string) {
+    this.validarRango(startDate, endDate);
+    const areas = await this.cumplimientoAgrupado(
+      startDate,
+      endDate,
+      "COALESCE(r.segmento_nombre, 'SIN SEGMENTO')",
+      'departamento',
+      { company, departamento, segmento },
+    );
     return { startDate, endDate, areas };
+  }
+
+  /**
+   * Drill-down: cumplimiento por CENTRO DE COSTO, siempre acotado a UN
+   * segmento (obligatorio) — es lo que reemplaza el gráfico de "Cumplimiento
+   * por área" cuando ya hay un segmento elegido, para ver el desglose interno.
+   */
+  async cumplimientoPorCentroCosto(startDate: string, endDate: string, segmento: string, company?: string) {
+    this.validarRango(startDate, endDate);
+    const centros = await this.cumplimientoAgrupado(
+      startDate,
+      endDate,
+      "COALESCE(r.centro_costo_nombre, 'SIN CENTRO DE COSTO')",
+      'centro_costo',
+      { company, segmento },
+    );
+    return { startDate, endDate, centros };
   }
 
   /** Detalle de un solo día: quién llegó, a qué hora, y si llegó tarde. */
@@ -313,4 +352,5 @@ export class DashboardAsistenciaService {
       }),
     };
   }
+
 }
