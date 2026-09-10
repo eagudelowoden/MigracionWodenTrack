@@ -171,18 +171,6 @@ export class DashboardAsistenciaController {
     return this.service.tardanzasPorDia(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 
-  @Get('ausencias-por-dia')
-  ausenciasPorDia(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-    @Query('centroCosto') centroCosto?: string,
-  ) {
-    return this.service.ausenciasPorDia(startDate, endDate, departamento, company, segmento, centroCosto);
-  }
-
   @Get('calidad-marcaciones')
   calidadMarcaciones(
     @Query('startDate') startDate: string,

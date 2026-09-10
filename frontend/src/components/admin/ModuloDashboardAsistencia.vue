@@ -140,8 +140,8 @@
       </div>
     </div>
 
-    <!-- ── Tardanzas por área / por día ────────────────────────────────────── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 shrink-0">
+    <!-- ── Tardanzas por área ───────────────────────────────────────────────── -->
+    <div class="grid grid-cols-1 gap-2.5 shrink-0">
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">
@@ -170,22 +170,11 @@
           </div>
         </div>
       </div>
-
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tardanzas por día</h3>
-        <div class="h-48">
-          <Chart v-if="chartTardanzasDia" type="line" :data="chartTardanzasDia" :options="opcionesLineaTardanzasDia"
-            class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
-            periodo.</p>
-        </div>
-      </div>
     </div>
 
-    <!-- ── Días destacados: clic para ver el detalle de ese día abajo ──────── -->
-    <div v-if="diaMasTardanzas || diaMasAusencias" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0">
-      <button v-if="diaMasTardanzas" type="button" @click="irADetalleDia(diaMasTardanzas.fecha)"
+    <!-- ── Día destacado: clic para ver el detalle de ese día abajo ────────── -->
+    <div v-if="diaMasTardanzas" class="grid grid-cols-1 gap-2.5 shrink-0">
+      <button type="button" @click="irADetalleDia(diaMasTardanzas.fecha)"
         class="text-left rounded-2xl border p-3 shadow-sm transition-colors"
         :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
         <div class="flex items-center gap-2">
@@ -198,23 +187,6 @@
               llegadas tarde</p>
             <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
               {{ formatFechaISO(diaMasTardanzas.fecha) }} — {{ diaMasTardanzas.total_tardanzas }} tardanzas
-            </p>
-          </div>
-        </div>
-      </button>
-      <button v-if="diaMasAusencias" type="button" @click="irADetalleDia(diaMasAusencias.fecha)"
-        class="text-left rounded-2xl border p-3 shadow-sm transition-colors"
-        :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
-        <div class="flex items-center gap-2">
-          <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
-            :class="isDark ? 'bg-[#FF9F40]/15 text-[#FF9F40]' : 'bg-[#FF9F40]/15 text-[#C56A00]'">
-            <i class="pi pi-user-minus"></i>
-          </span>
-          <div>
-            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más
-              ausencias</p>
-            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
-              {{ formatFechaISO(diaMasAusencias.fecha) }} — {{ diaMasAusencias.total_ausencias }} ausencias
             </p>
           </div>
         </div>
@@ -380,7 +352,6 @@ const rankingExpandido = ref({});
 const cumplimientoAreas = ref([]);
 const estadoAsistencia = ref([]);
 const tardanzasPorDia = ref([]);
-const ausenciasPorDia = ref([]);
 const calidadMarcaciones = ref([]);
 const cargando = ref(false);
 const cargandoRanking = ref(false);
@@ -527,16 +498,14 @@ async function cargarSeccionesNuevas() {
     company: props.company,
   };
 
-  const [estado, tDia, aDia, calidad] = await Promise.all([
+  const [estado, tDia, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
   ]);
 
   estadoAsistencia.value = estado.data.estados || [];
   tardanzasPorDia.value = tDia.data.dias || [];
-  ausenciasPorDia.value = aDia.data.dias || [];
   calidadMarcaciones.value = calidad.data.areas || [];
 }
 
@@ -561,11 +530,6 @@ async function cargarCumplimientoCentrosCosto() {
 const diaMasTardanzas = computed(() => {
   if (!tardanzasPorDia.value.length) return null;
   return tardanzasPorDia.value.reduce((max, d) => (d.total_tardanzas > (max?.total_tardanzas ?? 0) ? d : max), null);
-});
-
-const diaMasAusencias = computed(() => {
-  if (!ausenciasPorDia.value.length) return null;
-  return ausenciasPorDia.value.reduce((max, d) => (d.total_ausencias > (max?.total_ausencias ?? 0) ? d : max), null);
 });
 
 // Recarga todo lo que depende de los filtros (fecha/departamento/segmento).
@@ -813,39 +777,6 @@ const opcionesDetallePersona = computed(() => ({
   },
 }));
 
-// Para el tooltip de "Tardanzas por día": quién fue la persona con más
-// minutos de tardanza cada día, calculado del `ranking` que ya está cargado
-// (cada persona trae su detalle día a día) — sin pedirle nada nuevo al backend.
-const personaMasTardePorDia = computed(() => {
-  const mapa = new Map();
-  for (const persona of ranking.value) {
-    for (const d of persona.detalle || []) {
-      const minutos = d.minutos_tarde ?? 0;
-      const actual = mapa.get(d.fecha);
-      if (!actual || minutos > actual.minutos_tarde) {
-        mapa.set(d.fecha, { nombre: persona.nombre, minutos_tarde: minutos });
-      }
-    }
-  }
-  return mapa;
-});
-
-const chartTardanzasDia = computed(() => {
-  if (!tardanzasPorDia.value.length) return null;
-  return {
-    labels: tardanzasPorDia.value.map(d => d.fecha.slice(5)),
-    datasets: [{
-      label: 'Tardanzas',
-      data: tardanzasPorDia.value.map(d => d.total_tardanzas),
-      borderColor: PALETA.amarillo,
-      backgroundColor: 'rgba(255,206,86,0.2)',
-      tension: 0.3,
-      fill: true,
-      pointRadius: 2,
-    }],
-  };
-});
-
 const opcionesBarrasHorizontal = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -909,30 +840,6 @@ const opcionesBarrasTardanzasPersonas = computed(() => ({
   },
   scales: {
     x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 9 } }, grid: { display: false } },
-    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
-  },
-}));
-
-// Opciones de línea para "Tardanzas por día" — el tooltip dice, además del
-// conteo, quién fue la persona que más tarde llegó ese día puntual.
-const opcionesLineaTardanzasDia = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { labels: { color: colorTexto.value } },
-    tooltip: {
-      callbacks: {
-        label: (ctx) => {
-          const fecha = tardanzasPorDia.value[ctx.dataIndex]?.fecha;
-          const top = fecha ? personaMasTardePorDia.value.get(fecha) : null;
-          const base = ` ${ctx.formattedValue} tardanza(s)`;
-          return top ? `${base} — el que más tarde llegó: ${top.nombre} (${top.minutos_tarde} min)` : base;
-        },
-      },
-    },
-  },
-  scales: {
-    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { color: colorGrid.value } },
     y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
   },
 }));

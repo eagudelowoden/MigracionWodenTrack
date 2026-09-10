@@ -290,18 +290,6 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_tardanzas: Number(r.total_tardanzas) })) };
   }
 
-  async ausenciasPorDia(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string, centroCosto?: string) {
-    this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento, centroCosto)
-      .andWhere('r.estado = :ausente', { ausente: 'AUSENTE' })
-      .select('CONVERT(varchar, r.fecha, 23)', 'fecha')
-      .addSelect('COUNT(*)', 'total_ausencias')
-      .groupBy('r.fecha')
-      .orderBy('r.fecha', 'ASC')
-      .getRawMany();
-    return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_ausencias: Number(r.total_ausencias) })) };
-  }
-
   /** Jornadas incompletas / calidad de marcaciones. */
   async calidadMarcaciones(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string, centroCosto?: string) {
     this.validarRango(startDate, endDate);
