@@ -99,7 +99,7 @@
             <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
               {{ modoCentroCosto ? 'Cumplimiento por centro de costo' : 'Cumplimiento por área' }}
             </h3>
-            <span v-if="!modoCentroCosto" class="text-[10px]" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">
+            <span class="text-[10px]" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">
               (clic en una barra para filtrar el resto del dashboard)</span>
           </div>
           <div class="flex items-center gap-3 text-[11px]" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
@@ -109,11 +109,16 @@
               80%</span>
           </div>
         </div>
-        <div v-if="segmentoSeleccionado" class="mb-2">
+        <div v-if="segmentoSeleccionado || centroCostoSeleccionado" class="mb-2 flex flex-wrap gap-2">
           <button type="button" @click="limpiarSegmento"
             class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors"
             :class="isDark ? 'bg-[#36A2EB]/15 text-[#60B2F5] hover:bg-[#36A2EB]/25' : 'bg-[#36A2EB]/10 text-[#2E86D1] hover:bg-[#36A2EB]/20'">
             <i class="pi pi-filter"></i> Segmento: {{ segmentoSeleccionado }} <i class="pi pi-times ml-0.5"></i>
+          </button>
+          <button v-if="centroCostoSeleccionado" type="button" @click="limpiarCentroCosto"
+            class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors"
+            :class="isDark ? 'bg-[#2DD9B9]/15 text-[#2DD9B9] hover:bg-[#2DD9B9]/25' : 'bg-[#2DD9B9]/10 text-[#1BA88E] hover:bg-[#2DD9B9]/20'">
+            <i class="pi pi-filter"></i> Centro de costo: {{ centroCostoSeleccionado }} <i class="pi pi-times ml-0.5"></i>
           </button>
         </div>
         <div :style="{ height: alturaBarrasArea }">
@@ -121,35 +126,6 @@
             class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el periodo
             seleccionado.</p>
-        </div>
-
-        <!-- Extremos por área: quién más llega tarde y quién es más puntual.
-             A diferencia del gráfico de arriba (que se queda completo para
-             poder elegir otra barra), esta tabla SÍ se acota al segmento
-             seleccionado — es un filtro puramente de cliente, sin ida y
-             vuelta al backend: los datos de todas las áreas ya están en
-             cumplimientoAreas, solo se ocultan las que no aplican. -->
-        <div v-if="filasCumplimientoAreas.length" class="mt-3 overflow-x-auto">
-          <table class="w-full text-[11px]">
-            <thead>
-              <tr :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-                <th class="text-left font-semibold py-1.5 pr-3">{{ modoCentroCosto ? 'Centro de costo' : 'Área' }}</th>
-                <th class="text-left font-semibold py-1.5 pr-3">Más llega tarde</th>
-                <th class="text-left font-semibold py-1.5">Más puntual</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="a in filasCumplimientoAreas" :key="a.departamento || a.centro_costo" class="border-t"
-                :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
-                <td class="py-1.5 pr-3 font-medium" :class="isDark ? 'text-white' : 'text-slate-900'">
-                  {{ a.departamento || a.centro_costo }}</td>
-                <td class="py-1.5 pr-3" :class="isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]'">{{ a.peor_empleado || '—'
-                  }}</td>
-                <td class="py-1.5" :class="isDark ? 'text-[#2DD9B9]' : 'text-[#1BA88E]'">{{ a.mejor_empleado || '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
@@ -169,13 +145,29 @@
       <div class="rounded-2xl border p-3 shadow-sm"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">
-          Personas con más tardanzas <span class="font-normal" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">(color = área)</span>
+          Personas del área <span class="font-normal" :class="isDark ? 'text-[#666666]' : 'text-slate-400'">(clic en
+            una barra para ver sus días de tardanza)</span>
         </h3>
         <div :style="{ height: alturaTardanzasPersonas }">
           <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasTardanzasPersonas"
             class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
             periodo.</p>
+        </div>
+        <div v-if="personaTardanzasSeleccionada" class="mt-3 pt-3 border-t" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
+          <div class="flex items-center justify-between mb-1.5">
+            <p class="text-[11px] font-semibold" :class="isDark ? 'text-white' : 'text-slate-900'">
+              {{ personaTardanzasSeleccionada.nombre }} — días de tardanza
+            </p>
+            <button type="button" @click="personaTardanzasSeleccionada = null"
+              class="text-[11px] opacity-60 hover:opacity-100" :class="isDark ? 'text-white' : 'text-slate-900'">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+          <div style="height: 140px;">
+            <Chart type="bar" :data="chartDetallePersona(personaTardanzasSeleccionada.detalle)"
+              :options="opcionesDetallePersona" class="w-full h-full" />
+          </div>
         </div>
       </div>
 
@@ -229,45 +221,6 @@
       </button>
     </div>
 
-    <!-- ── Distribución de minutos de tardanza ─────────────────────────────── -->
-    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Distribución de minutos
-        de tardanza</h3>
-      <div class="h-44">
-        <Chart v-if="chartDistribucionMinutos" type="bar" :data="chartDistribucionMinutos"
-          :options="opcionesBarrasVerticales" class="w-full h-full" />
-        <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el periodo.
-        </p>
-      </div>
-    </div>
-
-    <!-- ── Tendencia de cumplimiento / tardanzas ───────────────────────────── -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 shrink-0">
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — %
-          de cumplimiento</h3>
-        <div class="h-44">
-          <Chart v-if="chartTendencia" type="line" :data="chartTendencia" :options="opcionesLinea"
-            class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango
-            seleccionado.</p>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-3 shadow-sm"
-        :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-        <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Tendencia mes a mes — #
-          de tardanzas</h3>
-        <div class="h-44">
-          <Chart v-if="chartTendenciaTardanzas" type="line" :data="chartTendenciaTardanzas"
-            :options="opcionesLineaTardanzas" class="w-full h-full" />
-          <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin datos para el rango
-            seleccionado.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- ── Detalle de un día específico ──────────────────────────────────── -->
     <div ref="detalleDiaSection" class="rounded-2xl border p-3 shadow-sm shrink-0"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
@@ -276,7 +229,7 @@
           <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Ver detalle del día</h3>
           <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
             {{ formatFechaISO(dateToISO(diaDetalleDate)) }} — se actualiza con el rango de fechas, el clic en un día
-            destacado, o el filtro de segmento.
+            destacado, o el filtro de segmento/centro de costo.
           </p>
         </div>
         <span v-if="detalleDia.length" class="text-[11px] font-semibold px-2 py-1 rounded-full"
@@ -376,7 +329,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import DatePicker from 'primevue/datepicker';
 import Select from 'primevue/select';
@@ -413,15 +366,21 @@ const segmentosDisponibles = ref([]);
 // reemplaza el gráfico/tabla de "Cumplimiento por área" mientras haya un
 // segmento activo (ver computed `modoCentroCosto`).
 const cumplimientoCentrosCosto = ref([]);
+// Clic en una barra del drill-down de centro de costo: a diferencia del
+// desglose que solo se mostraba (informativo), esto SÍ filtra — por ahora
+// solo "Personas con más tardanzas" (ranking), que es lo que se pidió.
+const centroCostoSeleccionado = ref('');
+// Red de seguridad: si el segmento cambia por CUALQUIER vía (dropdown de
+// arriba + Actualizar, no solo clic en barra), el centro de costo elegido
+// antes deja de tener sentido (era de otro segmento) — se limpia solo.
+watch(segmentoSeleccionado, () => { centroCostoSeleccionado.value = ''; });
 
 const ranking = ref([]);
 const rankingExpandido = ref({});
 const cumplimientoAreas = ref([]);
-const tendenciaSerie = ref([]);
 const estadoAsistencia = ref([]);
 const tardanzasPorDia = ref([]);
 const ausenciasPorDia = ref([]);
-const distribucionMinutos = ref([]);
 const calidadMarcaciones = ref([]);
 const cargando = ref(false);
 const cargandoRanking = ref(false);
@@ -501,6 +460,7 @@ async function cargarDetalleDia() {
       params: {
         fecha: dateToISO(diaDetalleDate.value),
         segmento: segmentoSeleccionado.value || undefined,
+        centroCosto: centroCostoSeleccionado.value || undefined,
         company: props.company,
       },
     });
@@ -523,12 +483,14 @@ async function cargarSegmentosDisponibles() {
 
 async function cargarRanking() {
   cargandoRanking.value = true;
+  personaTardanzasSeleccionada.value = null; // los datos van a cambiar, no dejar un detalle viejo abierto
   try {
     const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/ranking-tardanzas`, {
       params: {
         startDate: dateToISO(rankingStartDate.value),
         endDate: dateToISO(rankingEndDate.value),
         segmento: segmentoSeleccionado.value || undefined,
+        centroCosto: centroCostoSeleccionado.value || undefined,
         company: props.company,
       },
     });
@@ -552,22 +514,6 @@ async function cargarCumplimiento() {
   cumplimientoAreas.value = data.areas || [];
 }
 
-async function cargarTendencia() {
-  // Sin filtro propio ("Comparar tendencia desde" se quitó): siempre muestra
-  // los últimos 6 meses hasta la fecha "Hasta" del filtro principal.
-  const fin = filtroHasta.value;
-  const inicio = new Date(fin.getFullYear(), fin.getMonth() - 5, 1);
-  const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/tendencia-mensual`, {
-    params: {
-      startDate: dateToISO(inicio),
-      endDate: dateToISO(fin),
-      segmento: segmentoSeleccionado.value || undefined,
-      company: props.company,
-    },
-  });
-  tendenciaSerie.value = data.serie || [];
-}
-
 // Los métodos nuevos ya son agregaciones SQL sobre `asistencia_diaria_resumen`
 // (el cron nocturno ya cruzó todo) — no hay límite de admisión Odoo aquí, por
 // eso sí se disparan en paralelo (a diferencia de cargarTodo, que mezcla estos
@@ -577,21 +523,20 @@ async function cargarSeccionesNuevas() {
     startDate: dateToISO(filtroDesde.value),
     endDate: dateToISO(filtroHasta.value),
     segmento: segmentoSeleccionado.value || undefined,
+    centroCosto: centroCostoSeleccionado.value || undefined,
     company: props.company,
   };
 
-  const [estado, tDia, aDia, distMin, calidad] = await Promise.all([
+  const [estado, tDia, aDia, calidad] = await Promise.all([
     axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/ausencias-por-dia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/distribucion-minutos-tardanza`, { params }),
     axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
   ]);
 
   estadoAsistencia.value = estado.data.estados || [];
   tardanzasPorDia.value = tDia.data.dias || [];
   ausenciasPorDia.value = aDia.data.dias || [];
-  distribucionMinutos.value = distMin.data.buckets || [];
   calidadMarcaciones.value = calidad.data.areas || [];
 }
 
@@ -632,13 +577,11 @@ async function recargarSegunFiltros({ incluirCumplimiento = true } = {}) {
   error.value = '';
   try {
     // Secuencial, NO en paralelo: el backend solo admite 2 consultas "pesadas"
-    // simultáneas (control anti-OOM) y tendencia-mensual por sí sola ya hace
-    // varias llamadas a Odoo por dentro — disparar las 3 a la vez agotaba el
-    // cupo y una de ellas (normalmente el ranking) terminaba rechazada con
+    // simultáneas (control anti-OOM) — dispararlas todas a la vez agotaba el
+    // cupo y alguna (normalmente el ranking) terminaba rechazada con
     // "Ups, esto podría tardar un poco…", dejando la tabla vacía.
     if (incluirCumplimiento) await cargarCumplimiento();
     await cargarRanking();
-    await cargarTendencia();
     await cargarSeccionesNuevas();
     await cargarDetalleDia();
     await cargarCumplimientoCentrosCosto();
@@ -669,16 +612,33 @@ async function cargarTodo() {
 // En modo centro de costo (drill-down DENTRO de un segmento) el clic no hace
 // nada — centro de costo es solo informativo, no es un filtro del dashboard.
 async function onClickBarraCumplimiento(_evt, elements) {
-  if (modoCentroCosto.value) return;
   if (!elements?.length) return;
+  if (modoCentroCosto.value) {
+    // Drill-down de centro de costo: clic filtra "Personas con más tardanzas"
+    // (clic de nuevo en la misma barra lo quita).
+    const centro = cumplimientoCentrosCosto.value[elements[0].index];
+    if (!centro) return;
+    centroCostoSeleccionado.value = centroCostoSeleccionado.value === centro.centro_costo ? '' : centro.centro_costo;
+    await recargarSegunFiltros({ incluirCumplimiento: false });
+    return;
+  }
   const area = cumplimientoAreas.value[elements[0].index];
   if (!area) return;
   segmentoSeleccionado.value = segmentoSeleccionado.value === area.departamento ? '' : area.departamento;
+  // Un segmento nuevo invalida cualquier centro de costo elegido antes (era
+  // de otro segmento).
+  centroCostoSeleccionado.value = '';
   await recargarSegunFiltros({ incluirCumplimiento: false });
 }
 
 async function limpiarSegmento() {
   segmentoSeleccionado.value = '';
+  centroCostoSeleccionado.value = '';
+  await recargarSegunFiltros({ incluirCumplimiento: false });
+}
+
+async function limpiarCentroCosto() {
+  centroCostoSeleccionado.value = '';
   await recargarSegunFiltros({ incluirCumplimiento: false });
 }
 
@@ -745,7 +705,11 @@ const chartCumplimiento = computed(() => {
       datasets: [{
         label: '% Cumplimiento',
         data: datos.map(c => c.porcentaje_cumplimiento),
-        backgroundColor: datos.map(c => colorCumplimiento(c.porcentaje_cumplimiento)),
+        backgroundColor: datos.map(c => {
+          const color = colorCumplimiento(c.porcentaje_cumplimiento);
+          if (!centroCostoSeleccionado.value || c.centro_costo === centroCostoSeleccionado.value) return color;
+          return color + '33';
+        }),
         borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
         borderSkipped: false,
         barPercentage: 0.6,
@@ -778,17 +742,6 @@ const chartCumplimiento = computed(() => {
 // como sí hacía falta con las horizontales — acá lo que se aprieta es el
 // ancho, y las etiquetas rotadas ya lo manejan).
 const alturaBarrasArea = computed(() => '260px');
-
-// Filas de la tabla "Área / Más llega tarde / Más puntual": en modo centro de
-// costo muestra ese desglose; si no, con un segmento activo se reduce a esa
-// única fila (el gráfico de barras normal, en cambio, se queda completo a
-// propósito — ver comentario en recargarSegunFiltros).
-const filasCumplimientoAreas = computed(() => {
-  if (modoCentroCosto.value) return cumplimientoCentrosCosto.value;
-  return segmentoSeleccionado.value
-    ? cumplimientoAreas.value.filter(a => a.departamento === segmentoSeleccionado.value)
-    : cumplimientoAreas.value;
-});
 
 const chartEstado = computed(() => {
   if (!estadoAsistencia.value.length) return null;
@@ -893,52 +846,6 @@ const chartTardanzasDia = computed(() => {
   };
 });
 
-const chartDistribucionMinutos = computed(() => {
-  if (!distribucionMinutos.value.some(b => b.total > 0)) return null;
-  return {
-    labels: distribucionMinutos.value.map(b => `${b.rango} min`),
-    datasets: [{
-      label: 'Tardanzas',
-      data: distribucionMinutos.value.map(b => b.total),
-      backgroundColor: PALETA.amarillo,
-      borderRadius: 6,
-      barPercentage: 0.6,
-    }],
-  };
-});
-
-const chartTendencia = computed(() => {
-  if (!tendenciaSerie.value.length) return null;
-  return {
-    labels: tendenciaSerie.value.map(s => s.mes),
-    datasets: [{
-      label: '% Cumplimiento',
-      data: tendenciaSerie.value.map(s => s.porcentaje_cumplimiento),
-      borderColor: PALETA.azul,
-      backgroundColor: 'rgba(54,162,235,0.15)',
-      tension: 0.3,
-      fill: true,
-      pointRadius: 3,
-    }],
-  };
-});
-
-const chartTendenciaTardanzas = computed(() => {
-  if (!tendenciaSerie.value.length) return null;
-  return {
-    labels: tendenciaSerie.value.map(s => s.mes),
-    datasets: [{
-      label: '# Tardanzas',
-      data: tendenciaSerie.value.map(s => s.total_tardanzas),
-      borderColor: PALETA.amarillo,
-      backgroundColor: 'rgba(255,206,86,0.15)',
-      tension: 0.3,
-      fill: true,
-      pointRadius: 3,
-    }],
-  };
-});
-
 const opcionesBarrasHorizontal = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -954,8 +861,7 @@ const opcionesBarrasHorizontal = computed(() => ({
           const area = modoCentroCosto.value
             ? cumplimientoCentrosCosto.value[ctx.dataIndex]
             : cumplimientoAreas.value[ctx.dataIndex];
-          const sufijo = modoCentroCosto.value ? '' : ' — clic para filtrar';
-          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde)${sufijo}`;
+          return ` ${ctx.formattedValue}% cumplimiento (${area.total_tardanzas}/${area.total_registros} tarde) — clic para filtrar`;
         },
       },
     },
@@ -966,19 +872,24 @@ const opcionesBarrasHorizontal = computed(() => ({
   },
 }));
 
-const opcionesBarrasVerticales = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { display: false } },
-    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
-  },
-}));
+// Persona elegida al hacer clic en su barra: se muestra su detalle día a día
+// debajo del gráfico (reusa la misma mini-gráfica del detalle expandible en
+// la tabla de ranking). Clic de nuevo en la misma barra lo cierra.
+const personaTardanzasSeleccionada = ref(null);
+function onClickBarraPersonaTardanzas(_evt, elements) {
+  if (!elements?.length) return;
+  const p = topPersonasTardanzas.value[elements[0].index];
+  if (!p) return;
+  personaTardanzasSeleccionada.value = personaTardanzasSeleccionada.value?.cedula === p.cedula ? null : p;
+}
 
 const opcionesBarrasTardanzasPersonas = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  onClick: onClickBarraPersonaTardanzas,
+  onHover: (evt, elements) => {
+    evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+  },
   plugins: {
     legend: { display: false },
     tooltip: {
@@ -986,6 +897,12 @@ const opcionesBarrasTardanzasPersonas = computed(() => ({
         label: (ctx) => {
           const p = topPersonasTardanzas.value[ctx.dataIndex];
           return ` ${ctx.formattedValue} tardanza(s) — ${p.departamento || 'Sin área'}`;
+        },
+        // Una línea por cada día que llegó tarde, con fecha y minutos —
+        // el resumen de arriba ya dice el total, esto es el detalle.
+        afterLabel: (ctx) => {
+          const p = topPersonasTardanzas.value[ctx.dataIndex];
+          return (p.detalle || []).map(d => `${formatFechaISO(d.fecha)} — ${d.minutos_tarde ?? 0} min tarde`);
         },
       },
     },
@@ -996,33 +913,8 @@ const opcionesBarrasTardanzasPersonas = computed(() => ({
   },
 }));
 
-const opcionesLinea = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { labels: { color: colorTexto.value } },
-    tooltip: { callbacks: { label: (ctx) => ` ${ctx.formattedValue}% cumplimiento` } },
-  },
-  scales: {
-    x: { ticks: { color: colorTexto.value }, grid: { color: colorGrid.value } },
-    y: { min: 0, max: 100, ticks: { color: colorTexto.value, callback: (v) => `${v}%` }, grid: { color: colorGrid.value } },
-  },
-}));
-
-const opcionesLineaTardanzas = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: colorTexto.value } } },
-  scales: {
-    x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 10 } }, grid: { color: colorGrid.value } },
-    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
-  },
-}));
-
-// Variante específica de "Tardanzas por día": el tooltip además dice quién
-// fue la persona que más tarde llegó ese día puntual (opcionesLineaTardanzas
-// de arriba se queda genérica porque también la usa "Tendencia mes a mes",
-// donde no aplica un lookup por día).
+// Opciones de línea para "Tardanzas por día" — el tooltip dice, además del
+// conteo, quién fue la persona que más tarde llegó ese día puntual.
 const opcionesLineaTardanzasDia = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,

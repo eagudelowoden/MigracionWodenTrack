@@ -93,8 +93,9 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.rankingTardanzas(startDate, endDate, departamento, company, segmento);
+    return this.service.rankingTardanzas(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 
   @Get('cumplimiento-por-area')
@@ -118,17 +119,6 @@ export class DashboardAsistenciaController {
     return this.service.cumplimientoPorCentroCosto(startDate, endDate, segmento, company);
   }
 
-  @Get('tendencia-mensual')
-  tendenciaMensual(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-  ) {
-    return this.service.tendenciaMensual(startDate, endDate, departamento, company, segmento);
-  }
-
   @Get('departamentos')
   departamentos(@Query('company') company?: string) {
     return this.service.departamentos(company);
@@ -140,8 +130,9 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.detalleDia(fecha, departamento, company, segmento);
+    return this.service.detalleDia(fecha, departamento, company, segmento, centroCosto);
   }
 
   @Get('estado-asistencia')
@@ -151,8 +142,9 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.estadoAsistencia(startDate, endDate, departamento, company, segmento);
+    return this.service.estadoAsistencia(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 
   @Get('tardanzas-por-area')
@@ -162,8 +154,9 @@ export class DashboardAsistenciaController {
     @Query('company') company?: string,
     @Query('departamento') departamento?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.tardanzasPorArea(startDate, endDate, company, departamento, segmento);
+    return this.service.tardanzasPorArea(startDate, endDate, company, departamento, segmento, centroCosto);
   }
 
   @Get('tardanzas-por-dia')
@@ -173,8 +166,9 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.tardanzasPorDia(startDate, endDate, departamento, company, segmento);
+    return this.service.tardanzasPorDia(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 
   @Get('ausencias-por-dia')
@@ -184,19 +178,9 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.ausenciasPorDia(startDate, endDate, departamento, company, segmento);
-  }
-
-  @Get('distribucion-minutos-tardanza')
-  distribucionMinutosTardanza(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-  ) {
-    return this.service.distribucionMinutosTardanza(startDate, endDate, departamento, company, segmento);
+    return this.service.ausenciasPorDia(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 
   @Get('calidad-marcaciones')
@@ -206,7 +190,8 @@ export class DashboardAsistenciaController {
     @Query('departamento') departamento?: string,
     @Query('company') company?: string,
     @Query('segmento') segmento?: string,
+    @Query('centroCosto') centroCosto?: string,
   ) {
-    return this.service.calidadMarcaciones(startDate, endDate, departamento, company, segmento);
+    return this.service.calidadMarcaciones(startDate, endDate, departamento, company, segmento, centroCosto);
   }
 }
