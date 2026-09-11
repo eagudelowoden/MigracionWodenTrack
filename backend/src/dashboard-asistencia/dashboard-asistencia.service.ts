@@ -60,12 +60,6 @@ export class DashboardAsistenciaService {
     return qb;
   }
 
-  private mapEstado(estado: string): string {
-    if (estado === 'TARDE') return 'ENTRADA TARDE';
-    if (estado === 'PUNTUAL') return 'A TIEMPO';
-    return estado; // AUSENTE / INCOMPLETO
-  }
-
   async rankingTardanzas(
     startDate: string,
     endDate: string,
@@ -93,6 +87,7 @@ export class DashboardAsistenciaService {
       // frontend, que espera 'YYYY-MM-DD', corta mal esa cadena.
       .addSelect('CONVERT(varchar, r.fecha, 23)', 'fecha')
       .addSelect('r.hora_entrada', 'hora_entrada')
+      .addSelect('r.hora_salida', 'hora_salida')
       .addSelect('r.minutos_tarde', 'minutos_tarde')
       .orderBy('r.fecha', 'ASC')
       .getRawMany();
@@ -107,6 +102,7 @@ export class DashboardAsistenciaService {
       entry.detalle.push({
         fecha: f.fecha,
         hora_entrada: f.hora_entrada,
+        hora_salida: f.hora_salida,
         minutos_tarde: f.minutos_tarde != null ? Number(f.minutos_tarde) : null,
       });
     }
@@ -225,25 +221,6 @@ export class DashboardAsistenciaService {
     return { startDate, endDate, centros };
   }
 
-  /** Detalle de un solo día: quién llegó, a qué hora, y si llegó tarde. */
-  async detalleDia(fecha: string, departamento?: string, company?: string, segmento?: string, centroCosto?: string) {
-    if (!fecha) throw new BadRequestException('fecha es requerida (formato YYYY-MM-DD)');
-    const filas = await this.baseQuery(fecha, fecha, departamento, company, segmento, centroCosto).getMany();
-
-    const registros = filas
-      .map((f) => ({
-        cedula: f.cedula,
-        nombre: f.nombre,
-        departamento: f.departamento,
-        entrada: f.hora_entrada ? f.hora_entrada.split(' ')[1]?.slice(0, 5) ?? null : null,
-        salida: f.hora_salida ? f.hora_salida.split(' ')[1]?.slice(0, 5) ?? null : null,
-        estado: this.mapEstado(f.estado),
-      }))
-      .sort((a, b) => (a.estado === 'ENTRADA TARDE' ? -1 : 1) - (b.estado === 'ENTRADA TARDE' ? -1 : 1));
-
-    return { fecha, departamento: departamento ?? null, registros };
-  }
-
   async departamentos(company?: string): Promise<{ departamentos: string[] }> {
     const departamentos = await this.usuariosService.getDepartamentosMalla(company);
     return { departamentos };
@@ -276,44 +253,6 @@ export class DashboardAsistenciaService {
       .orderBy('total_tardanzas', 'DESC')
       .getRawMany();
     return { startDate, endDate, areas: raw.map((r) => ({ departamento: r.departamento, total_tardanzas: Number(r.total_tardanzas) })) };
-  }
-
-  async tardanzasPorDia(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string, centroCosto?: string) {
-    this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento, centroCosto)
-      .andWhere('r.minutos_tarde > 0')
-      .select('CONVERT(varchar, r.fecha, 23)', 'fecha')
-      .addSelect('COUNT(*)', 'total_tardanzas')
-      .groupBy('r.fecha')
-      .orderBy('r.fecha', 'ASC')
-      .getRawMany();
-    return { startDate, endDate, dias: raw.map((r) => ({ fecha: r.fecha, total_tardanzas: Number(r.total_tardanzas) })) };
-  }
-
-  /** Jornadas incompletas / calidad de marcaciones. */
-  async calidadMarcaciones(startDate: string, endDate: string, departamento?: string, company?: string, segmento?: string, centroCosto?: string) {
-    this.validarRango(startDate, endDate);
-    const raw = await this.baseQuery(startDate, endDate, departamento, company, segmento, centroCosto)
-      .select('r.departamento', 'departamento')
-      .addSelect('COUNT(*)', 'total_registros')
-      .addSelect("SUM(CASE WHEN r.estado = 'INCOMPLETO' THEN 1 ELSE 0 END)", 'total_incompletas')
-      .groupBy('r.departamento')
-      .getRawMany();
-
-    return {
-      startDate,
-      endDate,
-      areas: raw.map((r) => {
-        const total = Number(r.total_registros);
-        const incompletas = Number(r.total_incompletas);
-        return {
-          departamento: r.departamento,
-          total_registros: total,
-          total_incompletas: incompletas,
-          porcentaje_incompletas: total > 0 ? Math.round((incompletas / total) * 10000) / 100 : 0,
-        };
-      }),
-    };
   }
 
 }

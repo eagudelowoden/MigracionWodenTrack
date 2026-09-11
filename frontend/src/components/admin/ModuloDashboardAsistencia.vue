@@ -31,10 +31,27 @@
         class="!h-8 !px-4 !text-[12px]" />
     </div>
 
+    <!-- Banner de carga: sticky para que se vea sin importar hasta dónde esté
+         scrolleado el usuario (ej. justo mirando la gráfica donde hizo clic
+         para filtrar) — antes el único indicador era el spinner del botón
+         "Actualizar", invisible si ya se había scrolleado hacia abajo. -->
+    <div v-if="cargando" class="sticky top-0 z-10 rounded-lg border px-3 py-2 text-[12px] flex items-center gap-2 shadow-sm"
+      :class="isDark ? 'bg-[#161B26] border-[#222938] text-[#B0B7C3]' : 'bg-white border-slate-200 text-slate-600'">
+      <i class="pi pi-spin pi-spinner"></i> Actualizando el dashboard…
+    </div>
+
     <div v-if="error" class="rounded-lg border px-3 py-2 text-[12px]"
       :class="isDark ? 'bg-orange-950/40 border-orange-900/60 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-700'">
       {{ error }}
     </div>
+
+    <!-- Contenedor de todo el contenido que depende de los filtros: se
+         atenúa mientras `cargando` está activo, como señal en TODAS las
+         secciones a la vez de que hay una recarga en curso (además del
+         banner sticky de arriba). pointer-events-none evita clics dobles
+         sobre gráficos/tablas mientras los datos están por cambiar. -->
+    <div class="flex flex-col gap-2.5 transition-opacity duration-200"
+      :class="cargando ? 'opacity-50 pointer-events-none' : 'opacity-100'">
 
     <!-- ── 6 Tarjetas KPI ──────────────────────────────────────────────────── -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
@@ -150,7 +167,7 @@
         </h3>
         <div :style="{ height: alturaTardanzasPersonas }">
           <Chart v-if="chartTardanzasArea" type="bar" :data="chartTardanzasArea" :options="opcionesBarrasTardanzasPersonas"
-            class="w-full h-full" />
+            :plugins="[ChartDataLabels]" class="w-full h-full" />
           <p v-else class="text-[12px]" :class="isDark ? 'text-[#888888]' : 'text-slate-400'">Sin tardanzas en el
             periodo.</p>
         </div>
@@ -172,63 +189,6 @@
       </div>
     </div>
 
-    <!-- ── Día destacado: clic para ver el detalle de ese día abajo ────────── -->
-    <div v-if="diaMasTardanzas" class="grid grid-cols-1 gap-2.5 shrink-0">
-      <button type="button" @click="irADetalleDia(diaMasTardanzas.fecha)"
-        class="text-left rounded-2xl border p-3 shadow-sm transition-colors"
-        :class="isDark ? 'bg-[#161B26] border-[#222938] hover:bg-white/[0.03]' : 'bg-white border-slate-200 hover:bg-slate-50'">
-        <div class="flex items-center gap-2">
-          <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
-            :class="isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]'">
-            <i class="pi pi-clock"></i>
-          </span>
-          <div>
-            <p class="text-[11px] font-medium" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Día con más
-              llegadas tarde</p>
-            <p class="text-[13px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">
-              {{ formatFechaISO(diaMasTardanzas.fecha) }} — {{ diaMasTardanzas.total_tardanzas }} tardanzas
-            </p>
-          </div>
-        </div>
-      </button>
-    </div>
-
-    <!-- ── Detalle de un día específico ──────────────────────────────────── -->
-    <div ref="detalleDiaSection" class="rounded-2xl border p-3 shadow-sm shrink-0"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
-        <div>
-          <h3 class="text-[12px] font-bold" :class="isDark ? 'text-white' : 'text-slate-900'">Ver detalle del día</h3>
-          <p class="text-[10px] mt-0.5" :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
-            {{ formatFechaISO(dateToISO(diaDetalleDate)) }} — se actualiza con el rango de fechas, el clic en un día
-            destacado, o el filtro de segmento/centro de costo.
-          </p>
-        </div>
-        <span v-if="detalleDia.length" class="text-[11px] font-semibold px-2 py-1 rounded-full"
-          :class="isDark ? 'bg-white/[0.06] text-[#888888]' : 'bg-slate-100 text-slate-500'">
-          {{detalleDia.filter(d => d.estado === 'ENTRADA TARDE').length}} de {{ detalleDia.length }} llegaron tarde
-        </span>
-      </div>
-      <DataTable :value="detalleDia" paginator :rows="10" size="small" scrollable scrollHeight="220px"
-        :class="isDark ? 'p-datatable-dark' : ''">
-        <Column header="Fecha" style="width: 100px">
-          <template #body>{{ formatFechaISO(dateToISO(diaDetalleDate)) }}</template>
-        </Column>
-        <Column field="nombre" header="Nombre" sortable />
-        <Column field="cedula" header="Cédula" sortable style="width: 130px" />
-        <Column field="departamento" header="Área" sortable />
-        <Column field="entrada" header="Entrada" sortable style="width: 100px" />
-        <Column field="salida" header="Salida" sortable style="width: 100px" />
-        <Column field="estado" header="Estado" sortable style="width: 140px">
-          <template #body="{ data }">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="claseBadgeEstado(data.estado)">
-              {{ etiquetaEstado(data.estado) }}
-            </span>
-          </template>
-        </Column>
-        <template #empty>Sin registros para ese día. Presiona "Actualizar" arriba.</template>
-      </DataTable>
-    </div>
 
     <!-- ── Ranking de tardanzas ────────────────────────────────────────────── -->
     <div class="rounded-2xl border p-3 shadow-sm shrink-0"
@@ -257,6 +217,12 @@
           </div>
           <Button @click="cargarRanking" label="Buscar" icon="pi pi-search" :loading="cargandoRanking" size="small"
             severity="secondary" outlined />
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold uppercase tracking-wide"
+              :class="isDark ? 'text-[#888888]' : 'text-slate-500'">Ver solo este día</label>
+            <DatePicker v-model="filtroFechaUnica" dateFormat="dd/mm/yy" showIcon iconDisplay="input" showClear
+              placeholder="Todos los días" inputClass="!h-8 !text-[12px]" class="w-36" />
+          </div>
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="busquedaPersona" placeholder="Buscar persona…" class="!h-8 !text-[12px] w-44" />
@@ -272,41 +238,50 @@
         <Column field="departamento" header="Área" sortable />
         <Column field="total_tardanzas" header="# Tardanzas" sortable style="width: 140px" />
         <template #expansion="{ data }">
-          <div class="pl-10 py-2" style="height: 150px; max-width: 520px;">
-            <Chart type="bar" :data="chartDetallePersona(data.detalle)" :options="opcionesDetallePersona"
-              class="w-full h-full" />
+          <div class="pl-10 py-2">
+            <div class="overflow-x-auto">
+              <table class="text-[11px] w-full">
+                <thead>
+                  <tr :class="isDark ? 'text-[#888888]' : 'text-slate-500'">
+                    <th class="text-left font-semibold py-1 pr-4">Fecha</th>
+                    <th class="text-left font-semibold py-1 pr-4">Entrada</th>
+                    <th class="text-left font-semibold py-1 pr-4">Salida</th>
+                    <th class="text-left font-semibold py-1">Min. tarde</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(d, i) in data.detalle" :key="i" class="border-t"
+                    :class="isDark ? 'border-[#222938] text-[#cccccc]' : 'border-slate-100 text-slate-700'">
+                    <td class="py-1 pr-4 whitespace-nowrap">{{ formatFechaISO(d.fecha) }}</td>
+                    <td class="py-1 pr-4 whitespace-nowrap">{{ d.hora_entrada ? d.hora_entrada.slice(11, 16) : '—' }}</td>
+                    <td class="py-1 pr-4 whitespace-nowrap"
+                      :class="!d.hora_salida && (isDark ? 'text-[#FF9F40]' : 'text-[#C56A00]')">
+                      {{ d.hora_salida ? d.hora_salida.slice(11, 16) : 'Sin salida' }}
+                    </td>
+                    <td class="py-1 whitespace-nowrap">{{ formatMinutosTarde(d.minutos_tarde) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </template>
-        <template #empty>Sin llegadas tarde para el periodo/área/persona seleccionados.</template>
+        <template #empty>Sin llegadas tarde para el periodo/área/persona/día seleccionados.</template>
       </DataTable>
     </div>
 
-    <!-- ── Jornadas incompletas / Calidad de marcaciones ───────────────────── -->
-    <div class="rounded-2xl border p-3 shadow-sm shrink-0"
-      :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
-      <h3 class="text-[12px] font-bold mb-2" :class="isDark ? 'text-white' : 'text-slate-900'">Jornadas incompletas /
-        Calidad de marcaciones</h3>
-      <DataTable :value="calidadMarcaciones" paginator :rows="6" size="small" scrollable scrollHeight="180px"
-        :class="isDark ? 'p-datatable-dark' : ''">
-        <Column field="departamento" header="Área" sortable />
-        <Column field="total_incompletas" header="Incompletas" sortable style="width: 110px" />
-        <Column field="porcentaje_incompletas" header="%" sortable style="width: 90px">
-          <template #body="{ data }">{{ data.porcentaje_incompletas }}%</template>
-        </Column>
-        <template #empty>Sin datos para el periodo seleccionado.</template>
-      </DataTable>
-    </div>
 
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import DatePicker from 'primevue/datepicker';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
 import Chart from 'primevue/chart';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
@@ -351,8 +326,6 @@ const ranking = ref([]);
 const rankingExpandido = ref({});
 const cumplimientoAreas = ref([]);
 const estadoAsistencia = ref([]);
-const tardanzasPorDia = ref([]);
-const calidadMarcaciones = ref([]);
 const cargando = ref(false);
 const cargandoRanking = ref(false);
 const error = ref('');
@@ -374,24 +347,15 @@ function formatFechaISO(fechaStr) {
   return `${d}/${m}/${y}`;
 }
 
-function isoStrToDate(fechaStr) {
-  const [y, m, d] = fechaStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function etiquetaEstado(estado) {
-  if (estado === 'ENTRADA TARDE') return 'Tarde';
-  if (estado === 'A TIEMPO') return 'A tiempo';
-  if (estado === 'AUSENTE') return 'Ausente';
-  if (estado === 'INCOMPLETO') return 'Incompleto';
-  return estado;
-}
-
-function claseBadgeEstado(estado) {
-  if (estado === 'ENTRADA TARDE') return props.isDark ? 'bg-[#FFCE56]/15 text-[#FFCE56]' : 'bg-[#FFCE56]/15 text-[#B8860B]';
-  if (estado === 'AUSENTE') return props.isDark ? 'bg-[#FF9F40]/15 text-[#FF9F40]' : 'bg-[#FF9F40]/15 text-[#C56A00]';
-  if (estado === 'INCOMPLETO') return props.isDark ? 'bg-[#94A3B8]/15 text-[#94A3B8]' : 'bg-[#94A3B8]/15 text-[#64748B]';
-  return props.isDark ? 'bg-[#2DD9B9]/15 text-[#2DD9B9]' : 'bg-[#2DD9B9]/15 text-[#1BA88E]';
+// Minutos de tardanza en formato legible: por debajo de 60 se queda en
+// minutos, de ahí para arriba pasa a horas (+ minutos sueltos si sobran) —
+// "170 min" no dice nada de un vistazo, "2h 50min" sí.
+function formatMinutosTarde(minutos) {
+  const m = minutos ?? 0;
+  if (m < 60) return `${m} min`;
+  const horas = Math.floor(m / 60);
+  const resto = m % 60;
+  return resto > 0 ? `${horas}h ${resto}min` : `${horas}h`;
 }
 
 // ── Ranking: rango de fechas propio (independiente del "Mes" de las tarjetas/
@@ -400,48 +364,26 @@ function claseBadgeEstado(estado) {
 const rankingStartDate = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 const rankingEndDate = ref(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
 const busquedaPersona = ref('');
+// "Ver solo este día": filtro de UN día puntual (distinto del rango Desde/
+// Hasta) — sin backend nuevo, ya que `ranking` trae el detalle día a día de
+// cada persona completo; solo se filtra client-side quién tiene una entrada
+// para esa fecha exacta. Vacío = se ve el ranking normal (todos, por rango).
+const filtroFechaUnica = ref(null);
 
 const rankingFiltrado = computed(() => {
+  let filas = ranking.value;
+
+  if (filtroFechaUnica.value) {
+    const fechaISO = dateToISO(filtroFechaUnica.value);
+    filas = filas.filter(r => (r.detalle || []).some(d => d.fecha === fechaISO));
+  }
+
   const q = busquedaPersona.value.trim().toLowerCase();
-  if (!q) return ranking.value;
-  return ranking.value.filter(r =>
+  if (!q) return filas;
+  return filas.filter(r =>
     (r.nombre || '').toLowerCase().includes(q) || (r.cedula || '').toLowerCase().includes(q)
   );
 });
-
-// ── Detalle de un día específico: quién llegó, a qué hora, y si llegó tarde.
-const diaDetalleDate = ref(new Date());
-const detalleDia = ref([]);
-const cargandoDia = ref(false);
-const detalleDiaSection = ref(null);
-
-// Clic en "Día con más tardanzas/ausencias": carga el detalle de ese día y
-// hace scroll hasta la sección para que el resultado quede a la vista.
-async function irADetalleDia(fechaStr) {
-  diaDetalleDate.value = isoStrToDate(fechaStr);
-  await cargarDetalleDia();
-  await nextTick();
-  detalleDiaSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-async function cargarDetalleDia() {
-  cargandoDia.value = true;
-  try {
-    const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/detalle-dia`, {
-      params: {
-        fecha: dateToISO(diaDetalleDate.value),
-        segmento: segmentoSeleccionado.value || undefined,
-        centroCosto: centroCostoSeleccionado.value || undefined,
-        company: props.company,
-      },
-    });
-    detalleDia.value = data.registros || [];
-  } catch (e) {
-    error.value = e?.response?.data?.message || 'Error al cargar el detalle del día.';
-  } finally {
-    cargandoDia.value = false;
-  }
-}
 
 async function cargarSegmentosDisponibles() {
   try {
@@ -485,28 +427,17 @@ async function cargarCumplimiento() {
   cumplimientoAreas.value = data.areas || [];
 }
 
-// Los métodos nuevos ya son agregaciones SQL sobre `asistencia_diaria_resumen`
-// (el cron nocturno ya cruzó todo) — no hay límite de admisión Odoo aquí, por
-// eso sí se disparan en paralelo (a diferencia de cargarTodo, que mezcla estos
-// livianos con los históricos que ya existían).
-async function cargarSeccionesNuevas() {
-  const params = {
-    startDate: dateToISO(filtroDesde.value),
-    endDate: dateToISO(filtroHasta.value),
-    segmento: segmentoSeleccionado.value || undefined,
-    centroCosto: centroCostoSeleccionado.value || undefined,
-    company: props.company,
-  };
-
-  const [estado, tDia, calidad] = await Promise.all([
-    axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/tardanzas-por-dia`, { params }),
-    axios.get(`${baseUrl}/dashboard-asistencia/calidad-marcaciones`, { params }),
-  ]);
-
-  estadoAsistencia.value = estado.data.estados || [];
-  tardanzasPorDia.value = tDia.data.dias || [];
-  calidadMarcaciones.value = calidad.data.areas || [];
+async function cargarEstadoAsistencia() {
+  const { data } = await axios.get(`${baseUrl}/dashboard-asistencia/estado-asistencia`, {
+    params: {
+      startDate: dateToISO(filtroDesde.value),
+      endDate: dateToISO(filtroHasta.value),
+      segmento: segmentoSeleccionado.value || undefined,
+      centroCosto: centroCostoSeleccionado.value || undefined,
+      company: props.company,
+    },
+  });
+  estadoAsistencia.value = data.estados || [];
 }
 
 async function cargarCumplimientoCentrosCosto() {
@@ -527,11 +458,6 @@ async function cargarCumplimientoCentrosCosto() {
   cumplimientoCentrosCosto.value = data.centros || [];
 }
 
-const diaMasTardanzas = computed(() => {
-  if (!tardanzasPorDia.value.length) return null;
-  return tardanzasPorDia.value.reduce((max, d) => (d.total_tardanzas > (max?.total_tardanzas ?? 0) ? d : max), null);
-});
-
 // Recarga todo lo que depende de los filtros (fecha/departamento/segmento).
 // `incluirCumplimiento` se apaga cuando el disparo ES un clic en una barra de
 // "Cumplimiento por área": ese gráfico debe seguir mostrando TODOS los
@@ -540,15 +466,16 @@ async function recargarSegunFiltros({ incluirCumplimiento = true } = {}) {
   cargando.value = true;
   error.value = '';
   try {
-    // Secuencial, NO en paralelo: el backend solo admite 2 consultas "pesadas"
-    // simultáneas (control anti-OOM) — dispararlas todas a la vez agotaba el
-    // cupo y alguna (normalmente el ranking) terminaba rechazada con
-    // "Ups, esto podría tardar un poco…", dejando la tabla vacía.
-    if (incluirCumplimiento) await cargarCumplimiento();
-    await cargarRanking();
-    await cargarSeccionesNuevas();
-    await cargarDetalleDia();
-    await cargarCumplimientoCentrosCosto();
+    // En paralelo: estos endpoints son agregaciones SQL simples sobre
+    // asistencia_diaria_resumen (el cron nocturno ya cruzó todo) — ninguno
+    // llama a Odoo en vivo ni pasa por el interceptor de "carga pesada"
+    // (@Pesado(), el que devuelve "Ups, esto podría tardar un poco…"; eso es
+    // de OTRO flujo, el reporte en vivo contra Odoo en usuarios.controller.ts).
+    // Antes se encadenaban uno por uno "por las dudas" y cada clic en una
+    // barra tardaba la suma de 5 viajes de ida y vuelta en vez de 1.
+    const tareas = [cargarRanking(), cargarEstadoAsistencia(), cargarCumplimientoCentrosCosto()];
+    if (incluirCumplimiento) tareas.push(cargarCumplimiento());
+    await Promise.all(tareas);
   } catch (e) {
     error.value = e?.response?.data?.message || 'Error al cargar el dashboard de asistencia.';
   } finally {
@@ -557,16 +484,6 @@ async function recargarSegunFiltros({ incluirCumplimiento = true } = {}) {
 }
 
 async function cargarTodo() {
-  // Refresco completo (botón "Actualizar" o carga inicial): el día que
-  // muestra "Ver detalle del día" vuelve a su valor por defecto (el último
-  // día del rango) salvo que se sobreescriba haciendo clic en una tarjeta de
-  // "Día con más tardanzas/ausencias". Tope en HOY: si el rango elegido se
-  // extiende al futuro (ej. "este mes" con hoy a mitad de mes), el último día
-  // del rango todavía no ocurrió y nunca va a tener marcaciones — sin este
-  // tope, "Ver detalle del día" siempre caía en un día vacío por diseño.
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  diaDetalleDate.value = filtroHasta.value > hoy ? hoy : filtroHasta.value;
   await recargarSegunFiltros({ incluirCumplimiento: true });
 }
 
@@ -769,11 +686,23 @@ const opcionesDetallePersona = computed(() => ({
   maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
-    tooltip: { callbacks: { label: (ctx) => ` ${ctx.formattedValue} min tarde` } },
+    tooltip: { callbacks: { label: (ctx) => ` ${formatMinutosTarde(ctx.raw)} tarde` } },
+    datalabels: {
+      anchor: 'end',
+      align: 'top',
+      color: colorTexto.value,
+      font: { size: 9, weight: 'bold' },
+      formatter: (value) => value,
+    },
   },
   scales: {
     x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 9 } }, grid: { display: false } },
-    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
+    y: {
+      beginAtZero: true,
+      ticks: { color: colorTexto.value, precision: 0 },
+      grid: { color: colorGrid.value },
+      title: { display: true, text: 'Minutos tarde', color: colorTexto.value, font: { size: 9 } },
+    },
   },
 }));
 
@@ -827,20 +756,34 @@ const opcionesBarrasTardanzasPersonas = computed(() => ({
       callbacks: {
         label: (ctx) => {
           const p = topPersonasTardanzas.value[ctx.dataIndex];
-          return ` ${ctx.formattedValue} tardanza(s) — ${p.departamento || 'Sin área'}`;
+          return ` ${ctx.formattedValue} día(s) llegó tarde — ${p.departamento || 'Sin área'}`;
         },
         // Una línea por cada día que llegó tarde, con fecha y minutos —
         // el resumen de arriba ya dice el total, esto es el detalle.
         afterLabel: (ctx) => {
           const p = topPersonasTardanzas.value[ctx.dataIndex];
-          return (p.detalle || []).map(d => `${formatFechaISO(d.fecha)} — ${d.minutos_tarde ?? 0} min tarde`);
+          return (p.detalle || []).map(d => `${formatFechaISO(d.fecha)} — ${formatMinutosTarde(d.minutos_tarde)} tarde`);
         },
       },
+    },
+    // Número visible arriba de cada barra — sin esto no queda claro qué mide
+    // la altura (cuántos DÍAS llegó tarde esa persona, no minutos).
+    datalabels: {
+      anchor: 'end',
+      align: 'top',
+      color: colorTexto.value,
+      font: { size: 10, weight: 'bold' },
+      formatter: (value) => value,
     },
   },
   scales: {
     x: { ticks: { color: colorTexto.value, autoSkip: false, maxRotation: 40, minRotation: 40, font: { size: 9 } }, grid: { display: false } },
-    y: { beginAtZero: true, ticks: { color: colorTexto.value, precision: 0 }, grid: { color: colorGrid.value } },
+    y: {
+      beginAtZero: true,
+      ticks: { color: colorTexto.value, precision: 0 },
+      grid: { color: colorGrid.value },
+      title: { display: true, text: '# de días que llegó tarde', color: colorTexto.value, font: { size: 10 } },
+    },
   },
 }));
 

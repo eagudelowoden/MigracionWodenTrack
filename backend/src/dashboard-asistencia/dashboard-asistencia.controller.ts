@@ -124,17 +124,6 @@ export class DashboardAsistenciaController {
     return this.service.departamentos(company);
   }
 
-  @Get('detalle-dia')
-  detalleDia(
-    @Query('fecha') fecha: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-    @Query('centroCosto') centroCosto?: string,
-  ) {
-    return this.service.detalleDia(fecha, departamento, company, segmento, centroCosto);
-  }
-
   @Get('estado-asistencia')
   estadoAsistencia(
     @Query('startDate') startDate: string,
@@ -159,27 +148,4 @@ export class DashboardAsistenciaController {
     return this.service.tardanzasPorArea(startDate, endDate, company, departamento, segmento, centroCosto);
   }
 
-  @Get('tardanzas-por-dia')
-  tardanzasPorDia(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-    @Query('centroCosto') centroCosto?: string,
-  ) {
-    return this.service.tardanzasPorDia(startDate, endDate, departamento, company, segmento, centroCosto);
-  }
-
-  @Get('calidad-marcaciones')
-  calidadMarcaciones(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-    @Query('departamento') departamento?: string,
-    @Query('company') company?: string,
-    @Query('segmento') segmento?: string,
-    @Query('centroCosto') centroCosto?: string,
-  ) {
-    return this.service.calidadMarcaciones(startDate, endDate, departamento, company, segmento, centroCosto);
-  }
 }

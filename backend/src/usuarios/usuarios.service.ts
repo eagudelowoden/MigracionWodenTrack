@@ -2628,42 +2628,28 @@ export class UsuariosService {
   }
   async getMallaHoy(employee_id: number) {
     try {
-      const uid = await this.odoo.authenticate();
       const ahoraCol = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
       );
+      const dayOfWeekOdoo = ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1;
 
-      const contracts = await this.odoo.executeKw<any[]>(
-        'hr.contract',
-        'search_read',
-        [[['employee_id', '=', employee_id], ['state', 'in', ['open', 'draft']]]],
-        { fields: ['resource_calendar_id'], limit: 1 },
-        uid,
-      );
+      const [asigLocal] = await this.obtenerAsignacionesVigentes([employee_id]);
 
-      if (!contracts?.length || !contracts[0].resource_calendar_id) {
+      if (!asigLocal?.malla) {
         return { tiene_malla: false, nombre: null, turnos: [] };
       }
 
-      const calId = contracts[0].resource_calendar_id[0];
-      const calNombre = contracts[0].resource_calendar_id[1];
-      const dayOfWeek = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
-
-      const turnos = await this.odoo.executeKw<any[]>(
-        'resource.calendar.attendance',
-        'search_read',
-        [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeek]]],
-        { fields: ['hour_from', 'hour_to', 'name'], order: 'hour_from asc' },
-        uid,
-      );
+      const turnosHoy = (asigLocal.malla.detalles || [])
+        .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
 
       return {
-        tiene_malla: turnos.length > 0,
-        nombre: calNombre,
-        turnos: turnos.map(t => ({
-          entrada: this.formatDecimal(t.hour_from),
-          salida: this.formatDecimal(t.hour_to),
-          nombre: t.name || null,
+        tiene_malla: turnosHoy.length > 0,
+        nombre: asigLocal.malla.nombre,
+        turnos: turnosHoy.map((t: any) => ({
+          entrada: this.formatDecimal(t.hora_inicio),
+          salida: this.formatDecimal(t.hora_fin),
+          nombre: null,
         })),
       };
     } catch (e) {
