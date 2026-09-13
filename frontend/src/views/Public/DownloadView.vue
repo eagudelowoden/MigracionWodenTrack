@@ -97,8 +97,49 @@
                 </div>
               </div>
 
+              <!-- ESTADO: DESCARGANDO / COMPLETADA -->
+              <div v-if="descargando || descargaCompletada" class="p-3.5 rounded-xl border space-y-2.5"
+                :class="isDark ? 'bg-[#0B1120] border-slate-800' : 'bg-[#F7FAFD] border-[#E7ECF2]'">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0 text-white"
+                    :class="descargaCompletada ? 'bg-emerald-500' : (isDark ? 'bg-[#1B4A8A]' : 'bg-[#102E4A]')">
+                    <i v-if="descargaCompletada" class="fas fa-check text-xs"></i>
+                    <i v-else class="fas fa-circle-notch fa-spin text-xs"></i>
+                  </div>
+                  <div class="space-y-0.5 min-w-0">
+                    <span class="block text-xs font-bold"
+                      :class="descargaCompletada ? 'text-emerald-500' : (isDark ? 'text-[#FF5400]' : 'text-[#102E4A]')">
+                      {{ descargaCompletada ? 'Descarga completada' : 'Descargando aplicación...' }}
+                    </span>
+                    <span class="block text-[10px] font-medium leading-snug"
+                      :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
+                      {{ descargaCompletada
+                        ? 'Abre el archivo descargado para instalar. Android te pedirá permiso para instalar desde esta fuente.'
+                        : 'No cierres esta página hasta que termine.' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="h-1.5 w-full rounded-full overflow-hidden"
+                  :class="isDark ? 'bg-slate-800' : 'bg-[#E7ECF2]'">
+                  <div class="h-full rounded-full transition-all duration-200"
+                    :class="descargaCompletada ? 'bg-emerald-500' : 'bg-[#FF5400]'"
+                    :style="{ width: progresoDescarga + '%' }"></div>
+                </div>
+
+                <div class="flex items-center justify-between text-[10px] font-bold"
+                  :class="isDark ? 'text-slate-400' : 'text-[#64748B]'">
+                  <span>{{ progresoDescarga }}%</span>
+                  <button v-if="descargaCompletada" @click="descargarApk"
+                    class="font-bold transition-colors"
+                    :class="isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-[#102E4A]'">
+                    Descargar de nuevo
+                  </button>
+                </div>
+              </div>
+
               <!-- Botón de Descarga Estilo Fila -->
-              <button @click="descargarApk"
+              <button v-else @click="descargarApk"
                 class="w-full group p-3.5 rounded-xl border text-left flex items-center justify-between transition-all duration-200"
                 :class="isDark ? 'bg-[#0B1120] border-slate-800 hover:border-[#FF5400]/50' : 'bg-[#F7FAFD] border-[#E7ECF2] hover:border-[#C5D1DE] shadow-sm'">
                 <div class="flex items-center gap-3">
@@ -282,7 +323,15 @@ import QrcodeVue from 'qrcode.vue';
 import { useApkRepo } from '../../composables/adminLogica/useApkRepo.js';
 import { bgLines } from '../../utils/bgLines.js';
 
-const { apkData, loading, fetchApkInfo, descargarApk } = useApkRepo();
+const {
+  apkData,
+  loading,
+  fetchApkInfo,
+  descargarApk,
+  descargando,
+  progresoDescarga,
+  descargaCompletada,
+} = useApkRepo();
 const activeModal = ref(null);
 
 const isDark = ref(localStorage.getItem('theme') === 'dark');
