@@ -113,7 +113,7 @@
             </span>
             <span v-if="infoConsulta" class="v-modo" :class="infoConsulta.modo === 'directo' ? 'is-directo' : 'is-bd'">
               {{ infoConsulta.modo === 'directo' ? 'WFS directo' : (infoConsulta.sincronizado ? 'DB' : 'DB') }}
-              <template v-if="infoConsulta.total_api !== null"> · API devolvió {{ infoConsulta.total_api }}</template>
+              <template v-if="infoConsulta.total_api !== null"> · Registros {{ infoConsulta.total_api }}</template>
             </span>
           </div>
           <div class="v-search">
