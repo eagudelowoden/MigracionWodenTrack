@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="vercel-root min-h-screen w-screen flex flex-col items-center transition-colors duration-200"
     :class="isDark ? 'dark' : ''">
     <div class="w-full max-w-3xl px-5 py-6 space-y-6">
@@ -57,7 +57,8 @@
             <input type="text" v-model="filtros.agente" placeholder="Nombre o cédula del agente"
               @keyup.enter="consultar" class="v-input" />
           </div>
-          <button @click="consultar" :disabled="loading" class="v-btn-primary">
+          <button @click="consultar" :disabled="loading || !hayFiltro" class="v-btn-primary"
+            :title="hayFiltro ? '' : 'Escribe una cédula de cliente o un agente'">
             <span v-if="loading" class="v-spinner"></span>
             <template v-else>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,6 +69,11 @@
             </template>
           </button>
         </div>
+
+        <p class="v-pista">
+          <strong>Cédula del cliente</strong> consulta la API directamente, sin importar el rango.
+          <strong>Agente</strong> busca sobre los datos que el proceso nocturno ya guardó (último mes).
+        </p>
       </section>
 
       <!-- Error -->
@@ -94,6 +100,12 @@
             <!-- Diagnóstico: de dónde salieron los datos y, en modo directo,
                  cuántos devolvió WFS antes de filtrar aquí. Si total_api no
                  baja al enviar una cédula, WFS está ignorando el parámetro. -->
+            <span
+              v-if="infoConsulta && infoConsulta.modo === 'bd' && infoConsulta.dias_con_cache < infoConsulta.dias_rango"
+              class="v-modo is-tope"
+              title="El cron nocturno aun no ha traido esos dias. Busca por cedula de cliente para consultar la API directamente.">
+              {{ infoConsulta.dias_rango - infoConsulta.dias_con_cache }} de {{ infoConsulta.dias_rango }} dias sin datos
+            </span>
             <span v-if="infoConsulta?.truncado" class="v-modo is-tope"
               title="Hay mas resultados. Acota el rango de fechas o filtra por cedula.">
               Tope alcanzado
@@ -238,6 +250,16 @@ const consultar = async () => {
   loading.value = true;
   limite.value = 50;
   try {
+    // Sin filtro no se consulta: un rango entero son decenas de miles de filas
+    // que nadie revisa a mano, y el backend lo rechaza igual.
+    if (!filtros.documento.trim() && !filtros.agente.trim()) {
+      error.value = 'Aplica un filtro para consultar: cédula del cliente o nombre/cédula del agente.';
+      registros.value = null;
+      infoConsulta.value = null;
+      loading.value = false;
+      return;
+    }
+
     const body = { fecha: filtros.fecha, fecha_fin: filtros.fechaFin || filtros.fecha };
     if (filtros.documento.trim()) body.documento = filtros.documento.trim();
     if (filtros.agente.trim()) body.agente = filtros.agente.trim();
@@ -256,7 +278,7 @@ const consultar = async () => {
       return;
     }
     registros.value = data.registros ?? [];
-    infoConsulta.value = { modo: data.modo, total_api: data.total_api, total: data.total, sugerencia: data.sugerencia, sincronizado: data.sincronizado, truncado: data.truncado };
+    infoConsulta.value = { modo: data.modo, total_api: data.total_api, total: data.total, sugerencia: data.sugerencia, truncado: data.truncado, dias_rango: data.dias_rango, dias_con_cache: data.dias_con_cache };
   } catch {
     error.value = 'Error de conexión con el servidor.';
     registros.value = null;
@@ -264,6 +286,9 @@ const consultar = async () => {
     loading.value = false;
   }
 };
+
+// Una de las dos búsquedas debe estar presente (ver getSerialesRecuperados).
+const hayFiltro = computed(() => !!filtros.documento.trim() || !!filtros.agente.trim());
 
 const registrosFiltrados = computed(() => {
   if (!registros.value) return [];
@@ -399,6 +424,18 @@ const estatusClass = (estatus) => {
 .v-sugerencia svg {
   flex-shrink: 0;
   margin-top: .1rem;
+}
+
+.v-pista {
+  margin-top: .75rem;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: .65;
+}
+
+.v-pista strong {
+  font-weight: 650;
+  opacity: .9;
 }
 
 .v-modo {

@@ -26,10 +26,11 @@ const CRON_JOB_NAME = 'wfsm-sync-seriales';
  *
  * Variables de entorno (todas opcionales):
  *   WFSM_SYNC_CRON       expresión cron. Por defecto '20 2 * * *' (2:20 a. m.)
- *   WFSM_SYNC_DIAS         ventana de días que se cubre hacia atrás. Def. 15
+ *   WFSM_SYNC_DIAS         ventana de días que se cubre hacia atrás. Def. 30
  *   WFSM_SYNC_DIAS_FRESCOS días recientes que SIEMPRE se re-descargan (los
  *                          demás solo si nunca se cachearon). Def. 3
- *   WFSM_RETENCION_DIAS  días que se conservan en caché. Def. 90. 0 = no purgar
+ *   WFSM_RETENCION_DIAS  días que se conservan en caché. Def. 30 (un mes:
+ *                        se trae la ventana y se purga lo anterior). 0 = no purgar
  *   WFSM_SYNC_ACTIVO     'false' para desactivar el cron por completo
  */
 @Injectable()
@@ -83,9 +84,9 @@ export class WfsmSyncCronService implements OnModuleInit {
     }
     this.enCurso = true;
 
-    const dias = Number(this.config.get('WFSM_SYNC_DIAS') ?? 15);
+    const dias = Number(this.config.get('WFSM_SYNC_DIAS') ?? 30);
     const frescos = Number(this.config.get('WFSM_SYNC_DIAS_FRESCOS') ?? 3);
-    const retencion = Number(this.config.get('WFSM_RETENCION_DIAS') ?? 90);
+    const retencion = Number(this.config.get('WFSM_RETENCION_DIAS') ?? 30);
     const inicio = Date.now();
     let sincronizados = 0;
 

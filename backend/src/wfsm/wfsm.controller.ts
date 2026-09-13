@@ -20,7 +20,7 @@ export class WfsmController {
     const fechaFin = body.fecha_fin ?? fecha;
 
     try {
-      const { registros, modo, total_api, sugerencia, sincronizado, truncado } = await this.svc.getSerialesRecuperados(
+      const { registros, modo, total_api, sugerencia, dias_rango, dias_con_cache, truncado } = await this.svc.getSerialesRecuperados(
         fecha,
         fechaFin,
         body.documento,
@@ -38,9 +38,11 @@ export class WfsmController {
         // igual al total con y sin documento, WFS está ignorando el filtro.
         total_api,
         total: registros.length,
-        // false = se respondió solo con la caché, sin ir a WFS (búsqueda sin
-        // filtros). Sirve para que la UI avise que pueden faltar datos.
-        sincronizado,
+        // Cobertura de la caché en el rango pedido. Si dias_con_cache es menor
+        // que dias_rango, hay días que el cron aún no ha traído: un resultado
+        // corto puede deberse a eso y no a que no existan registros.
+        dias_rango,
+        dias_con_cache,
         // true = habia mas resultados de los que se devuelven (tope de filas).
         truncado,
         // Mensaje de ayuda cuando no hubo resultados y no se filtró por cédula.

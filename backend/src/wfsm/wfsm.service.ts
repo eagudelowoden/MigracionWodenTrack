@@ -23,11 +23,7 @@ export class WfsmService {
   private loginEnCurso: Promise<string> | null = null;
 
   private async getToken(forzar = false): Promise<string> {
-    if (
-      !forzar &&
-      this.tokenCache &&
-      Date.now() < this.tokenCache.expira
-    ) {
+    if (!forzar && this.tokenCache && Date.now() < this.tokenCache.expira) {
       return this.tokenCache.token;
     }
 
@@ -44,7 +40,9 @@ export class WfsmService {
     const loginUrl = this.config.get<string>('WFSM_LOGIN_URL');
     const authBasic = this.config.get<string>('WFSM_AUTH_BASIC');
     if (!loginUrl || !authBasic) {
-      throw new Error('Variables de entorno WFSM_LOGIN_URL/WFSM_AUTH_BASIC no configuradas.');
+      throw new Error(
+        'Variables de entorno WFSM_LOGIN_URL/WFSM_AUTH_BASIC no configuradas.',
+      );
     }
 
     const loginRes = await fetch(loginUrl, {
@@ -70,7 +68,9 @@ export class WfsmService {
       null;
 
     if (!token) {
-      throw new Error(`Token WFS no encontrado. Respuesta login: ${JSON.stringify(loginData)}`);
+      throw new Error(
+        `Token WFS no encontrado. Respuesta login: ${JSON.stringify(loginData)}`,
+      );
     }
 
     this.tokenCache = { token, expira: Date.now() + this.TOKEN_TTL_MS };
@@ -82,18 +82,14 @@ export class WfsmService {
   // WFS solo filtra por cédula del cliente (cliente/cedula); sin ese parámetro
   // devuelve el día completo (~24MB) y no admite filtro por agente. Para
   // no pegarle esa carga a su API en cada búsqueda, guardamos el día en la BD
-  // (tabla wfsm_seriales_recuperados) y filtramos ahí con SQL. Si dos búsquedas
-  // de la misma fecha llegan casi al tiempo y ninguna tiene datos frescos, la
-  // segunda se "engancha" a la sincronización de la primera en vez de disparar
-  // otra consulta de 20MB a WFS (cola de sincronización en memoria).
-  private readonly SYNC_TTL_MS = 15 * 60 * 1000; // 15 min
-
+  // (tabla wfsm_seriales_recuperados) y filtramos ahí con SQL. Quien llena esa
+  // tabla es el cron nocturno (WfsmSyncCronService): una consulta de usuario
+  // nunca dispara descargas, porque cada día cuesta ~20MB y ~5s.
   // Tope de filas devueltas por consulta. Cada fila arrastra su JSON completo
   // (~2.4 KB en la columna datos) y se parsea en memoria: 15 días sin filtros
   // son ~150.000 filas, es decir cientos de MB en el heap de una sola petición.
   // La vista pagina de a 50, así que 5.000 es holgado para el uso real.
   private readonly MAX_FILAS = 5000;
-  private sincronizacionesEnCurso = new Map<string, Promise<void>>();
 
   // ── Modo de consulta ────────────────────────────────────────────────────────
   // WFSM_CONSULTA_DIRECTA:
@@ -106,7 +102,9 @@ export class WfsmService {
   //   'true'                → siempre directo a WFS.
   //   'false'               → siempre caché en BD.
   private get modoConfigurado(): string {
-    return String(this.config.get('WFSM_CONSULTA_DIRECTA') ?? 'auto').toLowerCase();
+    return String(
+      this.config.get('WFSM_CONSULTA_DIRECTA') ?? 'auto',
+    ).toLowerCase();
   }
 
   private resolverModo(documento?: string): 'directo' | 'bd' {
@@ -146,19 +144,25 @@ export class WfsmService {
   // Filtro aplicado siempre, también en modo directo: si WFS ignora el
   // parámetro de documento, el resultado igual sale filtrado. Comparar
   // total_api contra total revela si WFS filtró de verdad o no.
-  private filtrarEnMemoria(registros: any[], documento?: string, agente?: string): any[] {
+  private filtrarEnMemoria(
+    registros: any[],
+    documento?: string,
+    agente?: string,
+  ): any[] {
     let out = registros;
 
     const doc = documento?.trim();
-    if (doc) out = out.filter((r) => String(r.cedula_cliente ?? '').includes(doc));
+    if (doc)
+      out = out.filter((r) => String(r.cedula_cliente ?? '').includes(doc));
 
     // El campo "agente" acepta nombre o cédula: se prueba contra los dos.
     const ag = agente?.trim().toLowerCase();
     if (ag) {
       out = out.filter(
         (r) =>
-          String(r.agente_campo ?? '').toLowerCase().includes(ag) ||
-          String(r.documento_identidad ?? '').includes(ag),
+          String(r.agente_campo ?? '')
+            .toLowerCase()
+            .includes(ag) || String(r.documento_identidad ?? '').includes(ag),
       );
     }
 
@@ -175,10 +179,28 @@ export class WfsmService {
     modo: string;
     total_api: number | null;
     sugerencia: string | null;
-    sincronizado: boolean;
+    dias_rango: number;
+    dias_con_cache: number;
     truncado: boolean;
   }> {
     const dias = this.diasEntre(fechaInicio, fechaFin);
+
+    // Sin ningún filtro no se consulta nada. Traer un rango entero solo puede
+    // salir de la caché, y ni siquiera sirve: son decenas de miles de filas que
+    // nadie va a revisar a mano. Se exige acotar por cliente o por agente.
+    if (!documento?.trim() && !agente?.trim()) {
+      return {
+        registros: [],
+        modo: 'sin_filtro',
+        total_api: null,
+        sugerencia:
+          'Aplica un filtro para consultar: cédula del cliente (se consulta directo a la API) o nombre/cédula del agente (se consulta sobre los datos almacenados).',
+        dias_rango: dias.length,
+        dias_con_cache: 0,
+        truncado: false,
+      };
+    }
+
     const modo = this.resolverModo(documento);
 
     // Mensaje de ayuda cuando la búsqueda sale vacía. Hay dos casos distintos
@@ -186,10 +208,13 @@ export class WfsmService {
     const sugerir = (n: number, modoUsado: 'directo' | 'bd') => {
       if (n !== 0) return null;
 
-      // (a) No se filtró por cédula: es el único filtro que WFS resuelve en su
-      // servidor, y el que hace viables los rangos largos (~0.4 s a 15 días).
+      // (a) Búsqueda por agente: solo puede mirar lo almacenado, porque WFS no
+      // ofrece ningún filtro por agente (probados: agente/cedula,
+      // agente/documento, agente/documento_identidad, usuario/cedula,
+      // recurso/cedula — todos devuelven el día completo). Si el dato no está
+      // guardado, la única vía rápida es la cédula del cliente.
       if (!documento?.trim()) {
-        return 'Sin resultados en los datos ya almacenados. Intenta con el número de cédula del cliente: esa búsqueda va directo a la API y funciona incluso en rangos de 15 días.';
+        return 'Sin resultados en los datos almacenados. La API no permite filtrar por agente, así que esta búsqueda solo ve lo que el proceso nocturno ya guardó. Si necesitas un caso puntual, búscalo por cédula del cliente: eso consulta la API directamente.';
       }
 
       // (b) Sí hubo cédula y se consultó a WFS: la API exige el número exacto
@@ -204,7 +229,11 @@ export class WfsmService {
 
     // ── Modo directo: una sola llamada a WFS con todo el rango ───────────────
     if (modo === 'directo') {
-      const crudos = await this.fetchRegistrosRango(dias[0], dias[dias.length - 1], documento);
+      const crudos = await this.fetchRegistrosRango(
+        dias[0],
+        dias[dias.length - 1],
+        documento,
+      );
       const todos = this.filtrarEnMemoria(crudos, documento, agente);
       const registros = todos.slice(0, this.MAX_FILAS);
       return {
@@ -212,26 +241,29 @@ export class WfsmService {
         modo: 'directo',
         total_api: crudos.length,
         sugerencia: sugerir(registros.length, 'directo'),
-        sincronizado: true,
+        dias_rango: dias.length,
+        dias_con_cache: dias.length, // el modo directo no depende de la caché
         truncado: todos.length > this.MAX_FILAS,
       };
     }
 
     // ── Modo BD ─────────────────────────────────────────────────────────────
-    // Sin ningún filtro (ni cédula ni agente) se responde SOLO con lo que ya
-    // está en caché, sin esperar a WFS: sincronizar cuesta ~8 s por día, y la
-    // consulta sin filtros es justo la que más días suele abarcar. Con filtro
-    // de agente sí se sincroniza, porque ahí el usuario busca algo concreto y
-    // un vacío por caché fría sería engañoso.
-    const sincronizar = !!agente?.trim();
-    // En serie, no en paralelo: cada día son ~24MB desde WFS.
-    if (sincronizar) {
-      for (const dia of dias) await this.asegurarSincronizado(dia);
-    }
+    // NUNCA se sincroniza desde aquí. Sincronizar cuesta ~5 s y ~20 MB POR DÍA:
+    // una búsqueda de 74 días se iba a ~6 minutos y 1.4 GB descargados, cuando
+    // la consulta SQL equivalente tarda 249 ms. Llenar la caché es tarea del
+    // cron nocturno (WfsmSyncCronService), no de alguien que está esperando.
+    //
+    // Se reporta cuántos días del rango tienen caché para que un resultado
+    // corto no se confunda con "no hay nada": puede que esos días aún no se
+    // hayan traído.
+    const conCache = await this.fechasConCache(dias);
 
     const qb = this.serialRepo
       .createQueryBuilder('s')
-      .where('s.fecha BETWEEN :ini AND :fin', { ini: dias[0], fin: dias[dias.length - 1] });
+      .where('s.fecha BETWEEN :ini AND :fin', {
+        ini: dias[0],
+        fin: dias[dias.length - 1],
+      });
 
     // Predicados sargables: un LIKE '%x%' descarta el índice y obliga a evaluar
     // fila por fila. Cuando lo buscado es numérico (el caso normal: cédulas) se
@@ -246,7 +278,9 @@ export class WfsmService {
       if (esNumerico(doc)) {
         qb.andWhere('s.cedula_cliente = :doc', { doc });
       } else {
-        qb.andWhere('s.cedula_cliente LIKE :docPrefijo', { docPrefijo: `${doc}%` });
+        qb.andWhere('s.cedula_cliente LIKE :docPrefijo', {
+          docPrefijo: `${doc}%`,
+        });
       }
     }
 
@@ -279,26 +313,10 @@ export class WfsmService {
       modo: 'bd',
       total_api: null,
       sugerencia: sugerir(filas.length, 'bd'),
-      sincronizado: sincronizar,
+      dias_rango: dias.length,
+      dias_con_cache: conCache.size,
       truncado,
     };
-  }
-
-  private async asegurarSincronizado(fecha: string): Promise<void> {
-    const enCurso = this.sincronizacionesEnCurso.get(fecha);
-    if (enCurso) return enCurso;
-
-    const estado = await this.syncEstadoRepo.findOne({ where: { fecha } });
-    if (estado && Date.now() - estado.ultima_sync_en.getTime() < this.SYNC_TTL_MS) {
-      return; // datos ya frescos en BD
-    }
-
-    const promesa = this.sincronizarDia(fecha).finally(() => {
-      this.sincronizacionesEnCurso.delete(fecha);
-    });
-
-    this.sincronizacionesEnCurso.set(fecha, promesa);
-    return promesa;
   }
 
   // Sincroniza una fecha: trae el día entero de WFS y reemplaza en bloque lo
@@ -316,18 +334,16 @@ export class WfsmService {
     const inicio = new Date();
     const registros = await this.fetchRegistrosRango(fecha, fecha);
 
-    // WFS puede repetir el mismo id_visita más de una vez en el mismo día;
-    // deduplicamos por id (nos quedamos con la última ocurrencia) para no
-    // violar la llave primaria al guardar.
-    const porId = new Map<number, any>();
-    for (const r of registros) {
-      const id = r.id_visita ?? r.key;
-      if (id != null) porId.set(id, r);
-    }
-
-    const filas = Array.from(porId.entries()).map(([id, r]) =>
+    // Una fila por registro, SIN deduplicar: WFS devuelve una fila por serial
+    // recuperado y una misma visita puede traer decenas. Antes se colapsaban
+    // por id_visita para no violar la PK, y eso botaba más de la mitad de los
+    // seriales (2026-09-12: 5.442 registros de la API quedaban en 2.513 filas;
+    // una visita con 45 seriales guardaba 1). Con la PK subrogada caben todos.
+    const filas = registros
+      .filter((r) => (r.id_visita ?? r.key) != null)
+      .map((r) =>
       this.serialRepo.create({
-        id_visita: id,
+        id_visita: r.id_visita ?? r.key,
         fecha,
         cedula_cliente: r.cedula_cliente ?? null,
         agente_campo: r.agente_campo ?? null,
@@ -346,13 +362,16 @@ export class WfsmService {
     await this.serialRepo.manager.transaction(async (trx) => {
       await trx.delete(WfsmSerial, { fecha });
 
-      // upsert (no insert/save) por si un id_visita ya existía bajo otra fecha
-      // (ej. un registro que WFS reclasificó de día tras un reintento).
+      // El día se reemplaza completo con el delete de arriba, así que basta
+      // insertar: ya no hay llave natural contra la cual hacer upsert (la PK
+      // es subrogada) ni filas viejas de esa fecha que puedan sobrevivir.
       for (let i = 0; i < filas.length; i += LOTE) {
-        await trx.upsert(WfsmSerial, filas.slice(i, i + LOTE), ['id_visita']);
+        await trx.insert(WfsmSerial, filas.slice(i, i + LOTE));
       }
 
-      await trx.upsert(WfsmSyncEstado, { fecha, ultima_sync_en: inicio }, ['fecha']);
+      await trx.upsert(WfsmSyncEstado, { fecha, ultima_sync_en: inicio }, [
+        'fecha',
+      ]);
     });
 
     console.log(`[WFSM] ${fecha} sincronizado: ${filas.length} registros`);
@@ -361,7 +380,9 @@ export class WfsmService {
   /** De las fechas dadas, cuáles ya tienen caché registrada. */
   async fechasConCache(fechas: string[]): Promise<Set<string>> {
     if (!fechas.length) return new Set();
-    const filas = await this.syncEstadoRepo.find({ where: { fecha: In(fechas) } });
+    const filas = await this.syncEstadoRepo.find({
+      where: { fecha: In(fechas) },
+    });
     return new Set(filas.map((f) => f.fecha));
   }
 
@@ -396,7 +417,9 @@ export class WfsmService {
       'WFSM_CONSULTA_SERIALES_RECUPERADOS_URL',
     );
     if (!consultaUrl) {
-      throw new Error('Variable de entorno WFSM_CONSULTA_SERIALES_RECUPERADOS_URL no configurada.');
+      throw new Error(
+        'Variable de entorno WFSM_CONSULTA_SERIALES_RECUPERADOS_URL no configurada.',
+      );
     }
 
     // Rango de fechas Colombia UTC-5. El corte superior es el día siguiente
@@ -418,7 +441,9 @@ export class WfsmService {
     const doc = documento?.trim();
     if (doc) qs.push(`${this.paramDocumento}=${encodeURIComponent(doc)}`);
 
-    console.log(`[WFSM] Consulta ${fechaInicio}..${fechaFin}${doc ? ` doc=${doc}` : ''}`);
+    console.log(
+      `[WFSM] Consulta ${fechaInicio}..${fechaFin}${doc ? ` doc=${doc}` : ''}`,
+    );
 
     const consultaFullUrl = `${consultaUrl}?${qs.join('&')}`;
 
@@ -431,7 +456,9 @@ export class WfsmService {
     }
 
     if (data === '__AUTH_EXPIRED__') {
-      throw new Error('Consulta WFS fallida: autenticación rechazada tras renovar token.');
+      throw new Error(
+        'Consulta WFS fallida: autenticación rechazada tras renovar token.',
+      );
     }
 
     return data?.registros ?? (Array.isArray(data) ? data : []);
