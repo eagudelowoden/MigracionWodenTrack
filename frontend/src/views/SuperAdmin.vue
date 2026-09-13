@@ -23,7 +23,6 @@ const NAV_GROUPS = [
       mallas: { icon: 'fas fa-calendar-days', label: 'Mallas', color: 'text-amber-400', bg: 'bg-amber-500/10' },
       paramhx: { icon: 'fas fa-business-time', label: 'Param. Horas Extra', color: 'text-lime-400', bg: 'bg-lime-500/10' },
       solicitudes: { icon: 'fas fa-inbox', label: 'Solicitudes', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-      analitica: { icon: 'fas fa-chart-line', label: 'Analítica HR', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
       sesiones: { icon: 'fas fa-lock', label: 'Sesiones', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     },
   },
@@ -77,7 +76,7 @@ const NAV_ITEMS = NAV_GROUPS.reduce((acc, g) => ({ ...acc, ...g.items }), {});
 const MODULE_LABELS = {
   stats: 'Dashboard', apk: 'APK', companies: 'Empresas', users: 'Personal',
   notifications: 'Avisos', estructura: 'Organización', segmentacion: 'Estructura Organizacional', mallas: 'Mallas',
-  analitica: 'Analítica HR', sesiones: 'Sesiones', mensajes: 'Mensajes',
+sesiones: 'Sesiones', mensajes: 'Mensajes',
   recordatorios: 'Recordatorios', config: 'Configuración', api: 'API Externa',
   modulos: 'Módulos & Permisos', solicitudes: 'Solicitudes', reportes: 'Rep. de Falla',
   offboarding: 'Checklist Offboarding', sync: 'Sync Automático',
@@ -109,7 +108,6 @@ import GestionConfiguraciones from '../components/admin/SuperAdmin/GestionConfig
 import GestionChecklistOffboarding from '../components/admin/SuperAdmin/GestionChecklistOffboarding.vue';
 import GestionOffboardingCron from '../components/admin/SuperAdmin/GestionOffboardingCron.vue';
 import GestionApiExterna from '../components/admin/SuperAdmin/GestionApiExterna.vue';
-import GestionAnalitica from '../components/admin/SuperAdmin/GestionAnalitica.vue';
 import GestionSesiones from '../components/admin/SuperAdmin/GestionSesiones.vue';
 import GestionMensajes from '../components/admin/SuperAdmin/GestionMensajes.vue';
 import GestionRecordatorios from '../components/admin/SuperAdmin/GestionRecordatorios.vue';
@@ -142,7 +140,6 @@ const TAB_PERMS = {
   segmentacion: 'super.superadmin',
   mallas: 'super.mallas',
   paramhx: 'super.parametroshx',
-  analitica: 'super.analitica',
   sesiones: 'super.sesiones',
   mensajes: 'super.mensajes',
   recordatorios: 'super.recordatorios',
@@ -703,7 +700,7 @@ onUnmounted(() => {
 
         <!-- Módulos de altura completa -->
         <template
-          v-for="tab in ['mallas', 'paramhx', 'analitica', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos', 'segmentacion']"
+          v-for="tab in ['mallas', 'paramhx', 'config', 'users', 'sesiones', 'mensajes', 'recordatorios', 'solicitudes', 'reportes', 'offboarding', 'datoscrudos', 'segmentacion']"
           :key="tab">
           <div v-if="currentTab === tab && canAccess(tab)" class="sa-card sa-card-full"
             :class="isDark ? 'sa-card-dark' : 'sa-card-light'">
@@ -711,8 +708,6 @@ onUnmounted(() => {
               @error="showNotification($event, 'error')" />
             <GestionSegmentacionAreas v-if="tab === 'segmentacion'" :isDark="isDark" />
             <GestionParametrosHorasExtra v-if="tab === 'paramhx'" :isDark="isDark" />
-            <GestionAnalitica v-if="tab === 'analitica'" :isDark="isDark" @success="showNotification($event)"
-              @error="showNotification($event, 'error')" />
             <GestionConfiguraciones v-if="tab === 'config'" :isDark="isDark" @success="showNotification($event)"
               @error="showNotification($event, 'error')" />
             <GestionUsuarios v-if="tab === 'users'" :isDark="isDark" @success="showNotification($event)"

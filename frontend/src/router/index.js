@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+﻿import { createRouter, createWebHistory } from "vue-router";
 
 // Retorna la primera ruta admin a la que el usuario tiene acceso
 const getFirstAdminRoute = (session) => {
@@ -101,7 +101,6 @@ const routes = [
         notifications: "super.avisos",
         estructura: "super.organizacion",
         mallas: "super.mallas",
-        analitica: "super.analitica",
         sesiones: "super.sesiones",
         mensajes: "super.mensajes",
         recordatorios: "super.recordatorios",

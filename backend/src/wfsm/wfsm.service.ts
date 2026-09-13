@@ -89,16 +89,76 @@ export class WfsmService {
   private readonly SYNC_TTL_MS = 15 * 60 * 1000; // 15 min
   private sincronizacionesEnCurso = new Map<string, Promise<void>>();
 
+  // ── Modo de consulta: directo a WFS vs BD ───────────────────────────────────
+  // WFSM_CONSULTA_DIRECTA=true  → cada búsqueda pega a la API de WFS.
+  // WFSM_CONSULTA_DIRECTA=false → se usa la caché en BD (comportamiento normal).
+  // El camino de BD NO se elimina: el switch solo elige cuál se usa.
+  private get consultaDirecta(): boolean {
+    return String(this.config.get('WFSM_CONSULTA_DIRECTA') ?? '').toLowerCase() === 'true';
+  }
+
+  // Nombre del parámetro de documento que espera WFS. Se deja configurable
+  // porque el que se probó antes (documento_identidad) era ignorado; si el
+  // nuevo se llama distinto, se ajusta por entorno sin tocar código.
+  private get paramDocumento(): string {
+    return this.config.get<string>('WFSM_PARAM_DOCUMENTO') ?? 'documento_identidad';
+  }
+
+  // Días YYYY-MM-DD entre dos fechas, ambos extremos incluidos.
+  private diasEntre(desde: string, hasta: string): string[] {
+    const [y1, m1, d1] = desde.split('-').map(Number);
+    const [y2, m2, d2] = hasta.split('-').map(Number);
+    let ini = Date.UTC(y1, m1 - 1, d1);
+    let fin = Date.UTC(y2, m2 - 1, d2);
+    if (fin < ini) [ini, fin] = [fin, ini]; // rango invertido: se normaliza
+
+    const dias: string[] = [];
+    for (let t = ini; t <= fin; t += 86400000) {
+      dias.push(new Date(t).toISOString().split('T')[0]);
+    }
+    return dias;
+  }
+
+  // Filtro aplicado siempre, también en modo directo: si WFS ignora el
+  // parámetro de documento, el resultado igual sale filtrado. Comparar
+  // total_api contra total revela si WFS filtró de verdad o no.
+  private filtrarEnMemoria(registros: any[], documento?: string, agente?: string): any[] {
+    let out = registros;
+
+    const doc = documento?.trim();
+    if (doc) out = out.filter((r) => String(r.cedula_cliente ?? '').includes(doc));
+
+    const ag = agente?.trim().toLowerCase();
+    if (ag) out = out.filter((r) => String(r.agente_campo ?? '').toLowerCase().includes(ag));
+
+    return out;
+  }
+
   async getSerialesRecuperados(
-    fecha: string,
+    fechaInicio: string,
+    fechaFin: string,
     documento?: string,
     agente?: string,
-  ): Promise<any[]> {
-    await this.asegurarSincronizado(fecha);
+  ): Promise<{ registros: any[]; modo: string; total_api: number | null }> {
+    const dias = this.diasEntre(fechaInicio, fechaFin);
+
+    // ── Modo directo: una sola llamada a WFS con todo el rango ───────────────
+    if (this.consultaDirecta) {
+      const crudos = await this.fetchRegistrosRango(dias[0], dias[dias.length - 1], documento);
+      return {
+        registros: this.filtrarEnMemoria(crudos, documento, agente),
+        modo: 'directo',
+        total_api: crudos.length,
+      };
+    }
+
+    // ── Modo BD: se sincroniza día por día y se filtra con SQL ───────────────
+    // En serie, no en paralelo: cada día son ~20MB desde WFS.
+    for (const dia of dias) await this.asegurarSincronizado(dia);
 
     const qb = this.serialRepo
       .createQueryBuilder('s')
-      .where('s.fecha = :fecha', { fecha });
+      .where('s.fecha BETWEEN :ini AND :fin', { ini: dias[0], fin: dias[dias.length - 1] });
 
     const doc = documento?.trim();
     if (doc) qb.andWhere('s.cedula_cliente LIKE :doc', { doc: `%${doc}%` });
@@ -107,7 +167,11 @@ export class WfsmService {
     if (ag) qb.andWhere('LOWER(s.agente_campo) LIKE :ag', { ag: `%${ag.toLowerCase()}%` });
 
     const filas = await qb.getMany();
-    return filas.map((f) => JSON.parse(f.datos));
+    return {
+      registros: filas.map((f) => JSON.parse(f.datos)),
+      modo: 'bd',
+      total_api: null,
+    };
   }
 
   private async asegurarSincronizado(fecha: string): Promise<void> {
@@ -130,7 +194,7 @@ export class WfsmService {
   // Trae el día completo de WFS y reemplaza en bloque lo que había en BD para
   // esa fecha (evita arrastrar registros obsoletos si un estatus cambió).
   private async sincronizarDia(fecha: string): Promise<void> {
-    const registros = await this.fetchRegistrosDelDia(fecha);
+    const registros = await this.fetchRegistrosRango(fecha, fecha);
 
     // WFS puede repetir el mismo id_visita más de una vez en el mismo día;
     // deduplicamos por id (nos quedamos con la última ocurrencia) para no
@@ -172,7 +236,11 @@ export class WfsmService {
     });
   }
 
-  private async fetchRegistrosDelDia(fecha: string): Promise<any[]> {
+  private async fetchRegistrosRango(
+    fechaInicio: string,
+    fechaFin: string,
+    documento?: string,
+  ): Promise<any[]> {
     const consultaUrl = this.config.get<string>(
       'WFSM_CONSULTA_SERIALES_RECUPERADOS_URL',
     );
@@ -180,18 +248,26 @@ export class WfsmService {
       throw new Error('Variable de entorno WFSM_CONSULTA_SERIALES_RECUPERADOS_URL no configurada.');
     }
 
-    // Rango de fechas Colombia UTC-5
-    const [y, m, d] = fecha.split('-').map(Number);
+    // Rango de fechas Colombia UTC-5. El corte superior es el día siguiente
+    // al último del rango a las 04:59Z, que es medianoche hora Colombia.
+    const [y, m, d] = fechaFin.split('-').map(Number);
     const nextDay = new Date(Date.UTC(y, m - 1, d + 1))
       .toISOString()
       .split('T')[0];
 
     const qs: string[] = [
-      `min_fecha=${encodeURIComponent(`${fecha}T00:00:00.000Z`)}`,
+      `min_fecha=${encodeURIComponent(`${fechaInicio}T00:00:00.000Z`)}`,
       `max_fecha=${encodeURIComponent(`${nextDay}T04:59:59.000Z`)}`,
       `conf/timezone=300`,
       `servicio/id_proyecto=1`,
     ];
+
+    // Parámetro de documento recién habilitado por WFS. Se envía solo si viene
+    // con valor; si WFS lo sigue ignorando, filtrarEnMemoria() lo cubre.
+    const doc = documento?.trim();
+    if (doc) qs.push(`${this.paramDocumento}=${encodeURIComponent(doc)}`);
+
+    console.log(`[WFSM] Consulta directa ${fechaInicio}..${fechaFin}${doc ? ` doc=${doc}` : ''}`);
 
     const consultaFullUrl = `${consultaUrl}?${qs.join('&')}`;
 

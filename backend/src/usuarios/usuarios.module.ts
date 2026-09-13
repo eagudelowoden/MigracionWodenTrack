@@ -16,13 +16,9 @@ import { MallasUploadController } from '../mallas/mallas-upload.controller';
 import { MallasCrudService } from '../mallas/mallas-crud.service';
 import { MallasCrudController } from '../mallas/mallas-crud.controller';
 import { SistemaConfigModule } from '../sistema-config/sistema-config.module';
-import { SuperAdminAnaliticaService } from './superadmin-analitica.service';
-import { SuperAdminAnaliticaController } from './superadmin-analitica.controller';
 import { SuperAdminCorreoService } from './superadmin-correo.service';
 import { CorreoDestinatario } from './entities/correo-destinatario.entity';
 import { SuperAdminCorreoController } from './superadmin-correo.controller';
-import { SuperAdminIAService } from './superadmin-ia.service';
-import { SuperAdminIAController } from './superadmin-ia.controller';
 import { SesionActiva } from './entities/sesion-activa.entity';
 import { MensajeInterno } from './entities/mensaje-interno.entity';
 import { InternoGateway } from './interno.gateway';
@@ -74,9 +70,7 @@ import { ReporteWorkerController } from './reporte-worker.controller';
     UsuariosController,
     MallasUploadController,
     MallasCrudController,
-    SuperAdminAnaliticaController,
     SuperAdminCorreoController,
-    SuperAdminIAController,
     SuperAdminSesionesController,
     SuperAdminMensajesController,
     SuperAdminSolicitudesController,
@@ -88,9 +82,7 @@ import { ReporteWorkerController } from './reporte-worker.controller';
     UsuariosService,
     MallasUploadService,
     MallasCrudService,
-    SuperAdminAnaliticaService,
     SuperAdminCorreoService,
-    SuperAdminIAService,
     InternoGateway,
     SuperAdminSesionesService,
     SuperAdminMensajesService,

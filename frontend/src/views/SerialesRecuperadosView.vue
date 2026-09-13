@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="vercel-root min-h-screen w-screen flex flex-col items-center transition-colors duration-200"
     :class="isDark ? 'dark' : ''">
     <div class="w-full max-w-3xl px-5 py-6 space-y-6">
@@ -38,10 +38,14 @@
 
       <!-- Filtros -->
       <section class="v-card p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 sm:items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 sm:items-end">
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Fecha</label>
+            <label class="v-label">Desde</label>
             <input type="date" v-model="filtros.fecha" class="v-input" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="v-label">Hasta</label>
+            <input type="date" v-model="filtros.fechaFin" class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="v-label">Cédula cliente <span class="v-muted font-normal">(opcional)</span></label>
@@ -85,6 +89,14 @@
             <span class="text-[22px] font-semibold tracking-tight v-fg tabular-nums">{{ totalFiltrado }}</span>
             <span class="text-[12px] v-muted">
               registro{{ totalFiltrado !== 1 ? 's' : '' }}<template v-if="busquedaLocal"> · filtrado</template>
+            </span>
+
+            <!-- Diagnóstico: de dónde salieron los datos y, en modo directo,
+                 cuántos devolvió WFS antes de filtrar aquí. Si total_api no
+                 baja al enviar una cédula, WFS está ignorando el parámetro. -->
+            <span v-if="infoConsulta" class="v-modo" :class="infoConsulta.modo === 'directo' ? 'is-directo' : 'is-bd'">
+              {{ infoConsulta.modo === 'directo' ? 'WFS directo' : 'Caché BD' }}
+              <template v-if="infoConsulta.total_api !== null"> · API devolvió {{ infoConsulta.total_api }}</template>
             </span>
           </div>
           <div class="v-search">
@@ -170,11 +182,13 @@ const toggleTheme = () => {
 
 const hoy = () => new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-const filtros = reactive({ fecha: hoy(), documento: '', agente: '' });
+const filtros = reactive({ fecha: hoy(), fechaFin: hoy(), documento: '', agente: '' });
 const loading = ref(false);
 const error = ref('');
 const registros = ref(null);
 const busquedaLocal = ref('');
+// Diagnóstico devuelto por el backend: 'directo' (API WFS) o 'bd' (caché).
+const infoConsulta = ref(null);
 const limite = ref(50);
 
 const CAMPOS_VISIBLES = [
@@ -208,7 +222,7 @@ const consultar = async () => {
   loading.value = true;
   limite.value = 50;
   try {
-    const body = { fecha: filtros.fecha };
+    const body = { fecha: filtros.fecha, fecha_fin: filtros.fechaFin || filtros.fecha };
     if (filtros.documento.trim()) body.documento = filtros.documento.trim();
     if (filtros.agente.trim()) body.agente = filtros.agente.trim();
 
@@ -222,9 +236,11 @@ const consultar = async () => {
     if (!res.ok) {
       error.value = data?.error || 'Error al consultar la API externa.';
       registros.value = null;
+      infoConsulta.value = null;
       return;
     }
     registros.value = data.registros ?? [];
+    infoConsulta.value = { modo: data.modo, total_api: data.total_api, total: data.total };
   } catch {
     error.value = 'Error de conexión con el servidor.';
     registros.value = null;
@@ -348,6 +364,25 @@ const estatusClass = (estatus) => {
 }
 
 /* Labels e inputs */
+.v-modo {
+  padding: .125rem .5rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.v-modo.is-directo {
+  background: rgb(217 119 6 / .15);
+  color: #d97706;
+}
+
+.v-modo.is-bd {
+  background: rgb(37 99 235 / .15);
+  color: #2563eb;
+}
+
 .v-label {
   font-size: 12px;
   font-weight: 500;
