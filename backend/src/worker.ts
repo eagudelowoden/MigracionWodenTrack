@@ -19,7 +19,10 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HorasExtraJobService } from './horas-extra/horas-extra-job.service';
-import { HorasExtraService, CalcularExtrasDto } from './horas-extra/horas-extra.service';
+import {
+  HorasExtraService,
+  CalcularExtrasDto,
+} from './horas-extra/horas-extra.service';
 import { HorasExtraCronService } from './horas-extra/horas-extra-cron.service';
 
 const POLL_MS = 5000; // cada cuánto revisa la cola cuando está vacía (modo demonio)
@@ -46,8 +49,11 @@ async function bootstrap() {
   // Devolver a la cola jobs que quedaron 'procesando' por una caída previa
   const recuperados = await jobs.recuperarColgados(30);
   if (recuperados > 0) {
-    logger.warn(`Recuperados ${recuperados} job(s) colgados → vuelven a la cola.`);
+    logger.warn(
+      `Recuperados ${recuperados} job(s) colgados → vuelven a la cola.`,
+    );
   }
+  //desplegar
 
   logger.log(
     `Worker de horas extra iniciado (modo ${ONCE ? 'once: procesa y cierra' : 'demonio'}).`,
@@ -101,7 +107,9 @@ async function bootstrap() {
       if (job.tipo === 'cron') {
         await cron.confirmarCorridaExitosa(params);
       }
-      logger.log(`Job #${job.id} completado (${guardados} registros, ${seg}s).`);
+      logger.log(
+        `Job #${job.id} completado (${guardados} registros, ${seg}s).`,
+      );
     } catch (e: any) {
       logger.error(`Job #${job.id} falló: ${e?.message}`);
       await jobs.marcarError(job.id, e?.message ?? 'Error desconocido');
