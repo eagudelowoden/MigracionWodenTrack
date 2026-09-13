@@ -3,6 +3,7 @@ import { Entity, PrimaryColumn, Column, Index, UpdateDateColumn } from 'typeorm'
 @Entity('wfsm_seriales_recuperados')
 @Index(['fecha', 'cedula_cliente'])
 @Index(['fecha', 'agente_campo'])
+@Index(['fecha', 'documento_agente'])
 export class WfsmSerial {
   @PrimaryColumn({ type: 'bigint' })
   id_visita: number;
@@ -16,6 +17,14 @@ export class WfsmSerial {
 
   @Column({ type: 'nvarchar', length: 255, nullable: true })
   agente_campo: string | null;
+
+  // Cédula del AGENTE de campo. En WFS el campo se llama documento_identidad,
+  // que despista: NO es el documento del cliente (ese es cedula_cliente).
+  // Comprobado sobre un día completo: documento_identidad tiene exactamente
+  // tantos valores distintos como agentes (224) y ninguno se repite entre dos
+  // agentes, mientras cedula_cliente tiene 4.884 valores distintos.
+  @Column({ type: 'nvarchar', length: 50, nullable: true })
+  documento_agente: string | null;
 
   @Column({ type: 'nvarchar', length: 100, nullable: true })
   estatus: string | null;
