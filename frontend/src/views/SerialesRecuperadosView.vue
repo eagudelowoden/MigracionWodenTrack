@@ -48,12 +48,12 @@
             <input type="date" v-model="filtros.fechaFin" class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Cédula cliente <span class="v-muted font-normal">(opcional)</span></label>
+            <label class="v-label">Cédula cliente <span class="v-muted font-normal">Obligatorio</span></label>
             <input type="text" v-model="filtros.documento" placeholder="Ej. 1035851539" @keyup.enter="consultar"
               class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Agente <span class="v-muted font-normal">(nombre o cédula)</span></label>
+            <label class="v-label">Agente <span class="v-muted font-normal">Obligatorio</span></label>
             <input type="text" v-model="filtros.agente" placeholder="Nombre o cédula del agente"
               @keyup.enter="consultar" class="v-input" />
           </div>
@@ -71,8 +71,8 @@
         </div>
 
         <p class="v-pista">
-          <strong>Cédula del cliente</strong> consulta la API directamente, sin importar el rango.
-          <strong>Agente</strong> busca sobre los datos que el proceso nocturno ya guardó (último mes).
+          <strong>Cédula del cliente</strong> Obligatorio para consultas.
+          <strong>Agente</strong> Obligatorio para consultas.
         </p>
       </section>
 
@@ -104,7 +104,8 @@
               v-if="infoConsulta && infoConsulta.modo === 'bd' && infoConsulta.dias_con_cache < infoConsulta.dias_rango"
               class="v-modo is-tope"
               title="El cron nocturno aun no ha traido esos dias. Busca por cedula de cliente para consultar la API directamente.">
-              {{ infoConsulta.dias_rango - infoConsulta.dias_con_cache }} de {{ infoConsulta.dias_rango }} dias sin datos
+              {{ infoConsulta.dias_rango - infoConsulta.dias_con_cache }} de {{ infoConsulta.dias_rango }} dias sin
+              datos
             </span>
             <span v-if="infoConsulta?.truncado" class="v-modo is-tope"
               title="Hay mas resultados. Acota el rango de fechas o filtra por cedula.">
