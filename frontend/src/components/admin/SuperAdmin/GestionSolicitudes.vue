@@ -165,6 +165,11 @@
               <span v-else class="text-[11px] font-bold opacity-20 pr-1">
                 <i class="fas fa-check-double"></i>
               </span>
+              <button @click="confirmarEliminar(s)" :disabled="procesando === s.id"
+                class="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 bg-slate-500/5 border border-slate-500/10 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all disabled:opacity-40"
+                title="Eliminar">
+                <i class="fas fa-trash-can text-[9px]"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -197,6 +202,42 @@
         </div>
       </div>
     </Transition>
+
+    <!-- ── MODAL CONFIRMAR ELIMINAR ──────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="solicitudAEliminar" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/55"
+          @click.self="solicitudAEliminar = null">
+          <div class="w-full max-w-sm rounded-2xl border overflow-hidden"
+            :class="isDark ? 'bg-[#18181b] border-white/10' : 'bg-white border-slate-200'">
+            <div class="flex items-center gap-2.5 px-4 py-3.5 border-b"
+              :class="isDark ? 'border-white/10' : 'border-slate-100'">
+              <i class="fas fa-triangle-exclamation text-red-400 text-xs"></i>
+              <p class="text-xs font-bold uppercase tracking-wide" :class="isDark ? 'text-white' : 'text-slate-800'">
+                Eliminar solicitud
+              </p>
+            </div>
+            <div class="px-4 py-3.5">
+              <p class="text-[11px] leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                ¿Eliminar la solicitud de <strong>{{ solicitudAEliminar?.solicitante_nombre }}</strong>? Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div class="flex justify-end gap-2 px-4 py-3 border-t"
+              :class="isDark ? 'border-white/10' : 'border-slate-100'">
+              <button @click="solicitudAEliminar = null"
+                class="px-3.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase transition-all"
+                :class="isDark ? 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'">
+                Cancelar
+              </button>
+              <button @click="eliminarSolicitud"
+                class="px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-rose-500 text-white hover:bg-rose-600 transition-all flex items-center gap-1.5">
+                <i class="fas fa-trash-can text-[9px]"></i> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
@@ -234,6 +275,7 @@ const procesando = ref(null);
 const showStats = ref(false);
 
 const popover = ref({ visible: false, data: null, x: 0, y: 0 });
+const solicitudAEliminar = ref(null);
 
 const togglePopover = (s, evt) => {
   if (popover.value.visible && popover.value.data?.id === s.id) {
@@ -284,6 +326,19 @@ const atender = async (id, estado) => {
     emit('success', estado === 'aprobado' ? 'Solicitud aprobada' : 'Solicitud rechazada');
   } catch { emit('error', 'Error al atender solicitud'); }
   finally { procesando.value = null; }
+};
+
+const confirmarEliminar = (s) => { solicitudAEliminar.value = s; };
+
+const eliminarSolicitud = async () => {
+  if (!solicitudAEliminar.value) return;
+  const id = solicitudAEliminar.value.id;
+  try {
+    await apiFetch(`${API_URL}/superadmin/solicitudes/${id}`, { method: 'DELETE' });
+    lista.value = lista.value.filter(s => s.id !== id);
+    emit('success', 'Solicitud eliminada');
+  } catch { emit('error', 'Error al eliminar solicitud'); }
+  finally { solicitudAEliminar.value = null; }
 };
 
 const formatFecha = (d) => {

@@ -38,22 +38,27 @@
 
       <!-- Filtros -->
       <section class="v-card p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 sm:items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 sm:items-end">
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Fecha</label>
+            <label class="v-label">Desde</label>
             <input type="date" v-model="filtros.fecha" class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Cédula cliente <span class="v-muted font-normal">(opcional)</span></label>
+            <label class="v-label">Hasta</label>
+            <input type="date" v-model="filtros.fechaFin" class="v-input" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="v-label">Cédula cliente <span class="v-muted font-normal">Obligatorio</span></label>
             <input type="text" v-model="filtros.documento" placeholder="Ej. 1035851539" @keyup.enter="consultar"
               class="v-input" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="v-label">Agente <span class="v-muted font-normal">(opcional)</span></label>
-            <input type="text" v-model="filtros.agente" placeholder="Nombre del agente" @keyup.enter="consultar"
-              class="v-input" />
+            <label class="v-label">Agente <span class="v-muted font-normal">Obligatorio</span></label>
+            <input type="text" v-model="filtros.agente" placeholder="Nombre o cédula del agente"
+              @keyup.enter="consultar" class="v-input" />
           </div>
-          <button @click="consultar" :disabled="loading" class="v-btn-primary">
+          <button @click="consultar" :disabled="loading || !hayFiltro" class="v-btn-primary"
+            :title="hayFiltro ? '' : 'Escribe una cédula de cliente o un agente'">
             <span v-if="loading" class="v-spinner"></span>
             <template v-else>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -64,6 +69,11 @@
             </template>
           </button>
         </div>
+
+        <p class="v-pista">
+          <strong>Cédula del cliente</strong> Obligatorio para consultas.
+          <strong>Agente</strong> Obligatorio para consultas.
+        </p>
       </section>
 
       <!-- Error -->
@@ -86,6 +96,25 @@
             <span class="text-[12px] v-muted">
               registro{{ totalFiltrado !== 1 ? 's' : '' }}<template v-if="busquedaLocal"> · filtrado</template>
             </span>
+
+            <!-- Diagnóstico: de dónde salieron los datos y, en modo directo,
+                 cuántos devolvió WFS antes de filtrar aquí. Si total_api no
+                 baja al enviar una cédula, WFS está ignorando el parámetro. -->
+            <span
+              v-if="infoConsulta && infoConsulta.modo === 'bd' && infoConsulta.dias_con_cache < infoConsulta.dias_rango"
+              class="v-modo is-tope"
+              title="El cron nocturno aun no ha traido esos dias. Busca por cedula de cliente para consultar la API directamente.">
+              {{ infoConsulta.dias_rango - infoConsulta.dias_con_cache }} de {{ infoConsulta.dias_rango }} dias sin
+              datos
+            </span>
+            <span v-if="infoConsulta?.truncado" class="v-modo is-tope"
+              title="Hay mas resultados. Acota el rango de fechas o filtra por cedula.">
+              Tope alcanzado
+            </span>
+            <span v-if="infoConsulta" class="v-modo" :class="infoConsulta.modo === 'directo' ? 'is-directo' : 'is-bd'">
+              {{ infoConsulta.modo === 'directo' ? 'WFS directo' : (infoConsulta.sincronizado ? 'DB' : 'DB') }}
+              <template v-if="infoConsulta.total_api !== null"> · Registros {{ infoConsulta.total_api }}</template>
+            </span>
           </div>
           <div class="v-search">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -103,6 +132,17 @@
               d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
           <p>No se encontraron seriales recuperados.</p>
+
+          <!-- Sugerencia del backend: aparece cuando la búsqueda salió vacía y
+               no se usó cédula de cliente, que es el único filtro que la API
+               resuelve en su servidor (y el que hace viables los 15 días). -->
+          <p v-if=infoConsulta?.sugerencia class="v-sugerencia">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" d="M12 16v-5M12 8h.01" />
+            </svg>
+            <span>{{ infoConsulta.sugerencia }}</span>
+          </p>
         </div>
 
         <!-- Lista -->
@@ -115,7 +155,7 @@
                   <span class="v-dot"></span>{{ item.estatus || 'N/D' }}
                 </span>
                 <code class="text-[12.5px] font-medium v-fg truncate">{{ item.serial || item.serial_confirmado || '—'
-            }}</code>
+                }}</code>
               </div>
               <a v-if="linkComprobante(item)" :href="linkComprobante(item)" target="_blank" rel="noopener"
                 class="v-link-btn shrink-0">
@@ -170,16 +210,19 @@ const toggleTheme = () => {
 
 const hoy = () => new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-const filtros = reactive({ fecha: hoy(), documento: '', agente: '' });
+const filtros = reactive({ fecha: hoy(), fechaFin: hoy(), documento: '', agente: '' });
 const loading = ref(false);
 const error = ref('');
 const registros = ref(null);
 const busquedaLocal = ref('');
+// Diagnóstico devuelto por el backend: 'directo' (API WFS) o 'bd' (caché).
+const infoConsulta = ref(null);
 const limite = ref(50);
 
 const CAMPOS_VISIBLES = [
   { key: 'cedula_cliente', label: 'Cédula cliente' },
   { key: 'agente_campo', label: 'Agente' },
+  { key: 'documento_identidad', label: 'Cédula agente' },
   { key: 'nombre_usuario', label: 'Cliente' },
   { key: 'ciudad', label: 'Ciudad' },
   { key: 'departamento', label: 'Departamento' },
@@ -208,7 +251,17 @@ const consultar = async () => {
   loading.value = true;
   limite.value = 50;
   try {
-    const body = { fecha: filtros.fecha };
+    // Sin filtro no se consulta: un rango entero son decenas de miles de filas
+    // que nadie revisa a mano, y el backend lo rechaza igual.
+    if (!filtros.documento.trim() && !filtros.agente.trim()) {
+      error.value = 'Aplica un filtro para consultar: cédula del cliente o nombre/cédula del agente.';
+      registros.value = null;
+      infoConsulta.value = null;
+      loading.value = false;
+      return;
+    }
+
+    const body = { fecha: filtros.fecha, fecha_fin: filtros.fechaFin || filtros.fecha };
     if (filtros.documento.trim()) body.documento = filtros.documento.trim();
     if (filtros.agente.trim()) body.agente = filtros.agente.trim();
 
@@ -222,9 +275,11 @@ const consultar = async () => {
     if (!res.ok) {
       error.value = data?.error || 'Error al consultar la API externa.';
       registros.value = null;
+      infoConsulta.value = null;
       return;
     }
     registros.value = data.registros ?? [];
+    infoConsulta.value = { modo: data.modo, total_api: data.total_api, total: data.total, sugerencia: data.sugerencia, truncado: data.truncado, dias_rango: data.dias_rango, dias_con_cache: data.dias_con_cache };
   } catch {
     error.value = 'Error de conexión con el servidor.';
     registros.value = null;
@@ -232,6 +287,9 @@ const consultar = async () => {
     loading.value = false;
   }
 };
+
+// Una de las dos búsquedas debe estar presente (ver getSerialesRecuperados).
+const hayFiltro = computed(() => !!filtros.documento.trim() || !!filtros.agente.trim());
 
 const registrosFiltrados = computed(() => {
   if (!registros.value) return [];
@@ -348,6 +406,63 @@ const estatusClass = (estatus) => {
 }
 
 /* Labels e inputs */
+.v-sugerencia {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  max-width: 30rem;
+  margin-top: .75rem;
+  padding: .625rem .75rem;
+  border-radius: .625rem;
+  border: 1px solid rgb(37 99 235 / .25);
+  background: rgb(37 99 235 / .08);
+  color: #2563eb;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.v-sugerencia svg {
+  flex-shrink: 0;
+  margin-top: .1rem;
+}
+
+.v-pista {
+  margin-top: .75rem;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: .65;
+}
+
+.v-pista strong {
+  font-weight: 650;
+  opacity: .9;
+}
+
+.v-modo {
+  padding: .125rem .5rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.v-modo.is-directo {
+  background: rgb(217 119 6 / .15);
+  color: #d97706;
+}
+
+.v-modo.is-tope {
+  background: rgb(217 119 6 / .15);
+  color: #b45309;
+}
+
+.v-modo.is-bd {
+  background: rgb(37 99 235 / .15);
+  color: #2563eb;
+}
+
 .v-label {
   font-size: 12px;
   font-weight: 500;

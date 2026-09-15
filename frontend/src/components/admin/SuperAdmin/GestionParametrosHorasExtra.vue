@@ -124,7 +124,7 @@ onMounted(cargar);
 
     <!-- Grupos de parámetros -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div v-for="grupo in GRUPOS" :key="grupo.titulo" class="rounded-xl border overflow-hidden"
+      <div v-for="grupo in GRUPOS" :key="grupo.titulo" class="rounded-2xl border shadow-sm overflow-hidden"
         :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
         <div class="px-4 py-2.5 border-b flex items-center gap-2"
           :class="isDark ? 'border-[#222938]' : 'border-slate-100'">

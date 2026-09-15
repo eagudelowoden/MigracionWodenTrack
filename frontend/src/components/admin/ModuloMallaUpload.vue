@@ -2,7 +2,7 @@
   <div class="h-full animate-fade-in flex flex-col gap-2 font-round-custom">
 
     <!-- Toolbar (Vercel compacto) -->
-    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-2xl border shadow-sm"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex items-center gap-2">
@@ -17,29 +17,14 @@
       <div class="flex flex-wrap items-center gap-1.5">
 
         <template v-if="hasPerm('admin.filtro_departamento')">
-          <div class="relative">
-            <select v-model="selectedDepartment"
-              class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-40 transition-all"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-              <option value="">Todos los departamentos</option>
-              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-            </select>
-            <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-              :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          </div>
+          <Select v-model="departamentoSelectValue" :options="departments" filter showClear
+            placeholder="Todos los departamentos" inputClass="!h-7 !text-[11px]" style="width: 170px" />
         </template>
 
-        <div class="relative">
-          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-            :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          <input v-model="searchQuery" type="text" placeholder="Buscar…"
-            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-40 md:w-48 transition-all"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-              : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'" />
-        </div>
+        <IconField>
+          <InputIcon class="pi pi-search text-[10px]" />
+          <InputText v-model="searchQuery" placeholder="Buscar…" class="!h-7 !text-[11px]" style="width: 176px" />
+        </IconField>
 
         <div class="flex items-center gap-1.5 border-l pl-1.5 ml-0.5"
           :class="isDark ? 'border-[#222938]' : 'border-slate-200'">
@@ -78,7 +63,7 @@
     </div>
 
     <!-- Tabla asignaciones -->
-    <div class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+    <div class="table-wrapper flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <Transition name="fade-chip">
@@ -251,7 +236,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
+import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import { useMallasGeneral } from '../../composables/adminLogica/mallasGeneral';
 import MallaUploadWindow from './MallaUploadWindow.vue';
 import '../../assets/css/modulo-mallas.css';
@@ -287,6 +276,11 @@ const {
   showSolicitudModal,
   crearSolicitud,
 } = useMallasGeneral();
+
+const departamentoSelectValue = computed({
+  get: () => selectedDepartment.value || null,
+  set: (v) => { selectedDepartment.value = v || ''; },
+});
 
 // Ventana de carga
 const showUploadWindow = ref(false);

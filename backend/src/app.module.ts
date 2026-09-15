@@ -13,6 +13,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { getDatabaseConfig } from './config/database.config'; // Tu archivo de configuración
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizacionModule } from './organizacion/organizacion.module';
+import { EstructuraOrganizacionalModule } from './estructura-organizacional/estructura-organizacional.module';
 import { NovedadesModule } from './novedades/novedades.module';
 import { SistemaConfigModule } from './sistema-config/sistema-config.module';
 import { ApiExternaModule } from './api-externa/api-externa.module';
@@ -23,6 +24,7 @@ import { ModulosDisponiblesModule } from './modulos-disponibles/modulos-disponib
 import { WfsmModule } from './wfsm/wfsm.module';
 import { MarcacionEcuadorModule } from './marcacion-ecuador/marcacion-ecuador.module';
 import { CargaModule } from './common/carga/carga.module';
+import { DashboardAsistenciaModule } from './dashboard-asistencia/dashboard-asistencia.module';
 
 @Module({
   imports: [
@@ -55,10 +57,12 @@ import { CargaModule } from './common/carga/carga.module';
     CompaniesModule, // (Ya no está duplicado)
     NotificationsModule,
     OrganizacionModule,
+    EstructuraOrganizacionalModule,
     NovedadesModule,
     SistemaConfigModule,
     ApiExternaModule,
     HorasExtraModule,
+    DashboardAsistenciaModule,
     ScheduleModule.forRoot(),
     RecordatoriosModule,
     ModulosDisponiblesModule,

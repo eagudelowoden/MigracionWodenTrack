@@ -42,9 +42,6 @@ export class UsuariosService {
   // Prevents duplicate markings from concurrent requests for the same employee
   private markingInProgress = new Set<number>();
 
-  private readonly _REPORTE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-  private _reporteCache = new Map<string, { ts: number; data: any }>();
-
   private readonly rootPath = path.resolve(
     __dirname,
     '..',
@@ -207,44 +204,7 @@ export class UsuariosService {
     const esAdmin = tieneMandoGeneral || esTI;
     const rolAsignado = esAdmin ? 'admin' : 'user';
 
-    // 1. BUSCAR PERMISOS EN LA BASE DE DATOS LOCAL
-    const permisosDB = await this.permisoRepo.find({
-      where: { usuario_id_odoo: emp.id },
-    });
-
-    const mapaPermisos = permisosDB.reduce((acc, p) => {
-      acc[p.modulos] = p.nivel_acceso === 'admin';
-      return acc;
-    }, {});
-
-    // Auto-detectar si es responsable de segmento o área en la estructura local.
-    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
-    // para que un override manual (nivel_acceso='user') siempre prevalezca.
-    const [respSegmento, respArea] = await Promise.all([
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_segmentos s
-         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-      this.dataSource.query(
-        `SELECT TOP 1 1 AS es
-         FROM   maestro_areas a
-         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
-         WHERE  r.id_odoo = @0`,
-        [emp.id],
-      ),
-    ]);
-
-    // Responsable de segmento → puede ver todas las novedades del segmento
-    if (
-      respSegmento.length > 0 &&
-      mapaPermisos['novedades.ver_segmento'] === undefined
-    ) {
-      mapaPermisos['novedades.ver_segmento'] = true;
-    }
-    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+    const mapaPermisos = await this.calcularPermisos(emp.id);
 
     // 3. VALIDACIÓN DE ESTADO (ASISTENCIA)
     // ¿Tiene algo abierto actualmente?
@@ -322,6 +282,63 @@ export class UsuariosService {
       permisos: mapaPermisos,
     };
   }
+
+  /**
+   * Mapa de permisos { slug: boolean } para un empleado — la misma lógica que
+   * corre en login() (extraída de ahí), incluyendo el auto-detectado de
+   * responsable de segmento. El frontend cachea `permisos` en localStorage al
+   * loguearse y NUNCA lo vuelve a pedir por su cuenta, así que si alguien
+   * cambia un permiso desde SuperAdmin mientras esa persona ya tiene sesión
+   * abierta, su navegador sigue viendo el permiso viejo hasta que este método
+   * se llame de nuevo (ver /usuarios/permisos-sesion/:id_odoo).
+   */
+  private async calcularPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    const permisosDB = await this.permisoRepo.find({
+      where: { usuario_id_odoo: idOdoo },
+    });
+
+    const mapaPermisos = permisosDB.reduce((acc, p) => {
+      acc[p.modulos] = p.nivel_acceso === 'admin';
+      return acc;
+    }, {});
+
+    // Auto-detectar si es responsable de segmento o área en la estructura local.
+    // Solo inyecta el permiso cuando no hay una asignación explícita en la tabla usuarios_permisos,
+    // para que un override manual (nivel_acceso='user') siempre prevalezca.
+    const [respSegmento, respArea] = await Promise.all([
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_segmentos s
+         INNER  JOIN usuarios_registrados r ON s.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+      this.dataSource.query(
+        `SELECT TOP 1 1 AS es
+         FROM   maestro_areas a
+         INNER  JOIN usuarios_registrados r ON a.responsable_id = r.id
+         WHERE  r.id_odoo = @0`,
+        [idOdoo],
+      ),
+    ]);
+
+    // Responsable de segmento → puede ver todas las novedades del segmento
+    if (
+      respSegmento.length > 0 &&
+      mapaPermisos['novedades.ver_segmento'] === undefined
+    ) {
+      mapaPermisos['novedades.ver_segmento'] = true;
+    }
+    // Responsable de área → comportamiento por defecto (esArea en el frontend), no se requiere flag adicional
+
+    return mapaPermisos;
+  }
+
+  /** Recalcula y devuelve los permisos vigentes de un empleado — ver calcularPermisos(). */
+  async refrescarPermisos(idOdoo: number): Promise<Record<string, boolean>> {
+    return this.calcularPermisos(idOdoo);
+  }
+
   async asignarModuloPermiso(
     idOdoo: number,
     modulo: string,
@@ -1022,6 +1039,65 @@ export class UsuariosService {
     );
   }
 
+  /**
+   * Roster de empleados PROGRAMADOS (con malla vigente ese día) para una
+   * fecha dada — lo usa el cron de resumen diario de asistencia para
+   * detectar ausencias (gente que debía marcar y no lo hizo). Es de solo
+   * lectura y reusa exactamente la misma resolución de malla vigente que ya
+   * usa el reporte de asistencias (`getMallasMapLocal` / `resolverAsignacionParaFecha`)
+   * — no cambia ni duplica esa lógica, solo la expone para un consumidor nuevo.
+   */
+  async getRosterProgramado(
+    fecha: string,
+    company?: string,
+    departamento?: string,
+  ): Promise<
+    { id_odoo: number; cedula: string; nombre: string; departamento: string; hora_inicio: number; hora_fin: number }[]
+  > {
+    const q = this.usuarioRepo.createQueryBuilder('u').where('u.is_active = :activo', { activo: true });
+    if (departamento) q.andWhere('u.departamento = :departamento', { departamento });
+    // La empresa se filtra por `u.pais` (mismo campo/patrón que usa el resto
+    // del archivo, ej. resolverIdsPorCompanyDepto) — NO por `mallas_horarias.
+    // compania`: ese es texto libre cargado por Excel, inconsistente entre
+    // mallas ("(CO) WODEN COLOMBIA SAS" vs el nombre real de la empresa
+    // "(CO) WODEN OPERATIVA COLOMBIA S.A.S", o simplemente vacío), y filtrar
+    // por ahí excluía casi a todo el mundo del roster (falsos "AUSENTE").
+    if (company && company !== 'Todas' && company !== '') {
+      q.andWhere('u.pais = :pais', { pais: company });
+    }
+    const usuarios = await q.getMany();
+    if (!usuarios.length) return [];
+
+    const ids = usuarios.map((u) => u.id_odoo);
+    const mallasMap = await this.getMallasMapLocal(ids);
+
+    const [y, m, d] = fecha.split('-').map(Number);
+    const jsDay = new Date(y, m - 1, d).getDay();
+    const diaSemana = jsDay === 0 ? 6 : jsDay - 1;
+
+    const roster: { id_odoo: number; cedula: string; nombre: string; departamento: string; hora_inicio: number; hora_fin: number }[] = [];
+    for (const u of usuarios) {
+      const asignaciones = mallasMap.get(u.id_odoo);
+      if (!asignaciones?.length) continue;
+      const asig = this.resolverAsignacionParaFecha(asignaciones, fecha);
+      if (!asig?.malla) continue;
+      const detalles = asig.malla.detalles ?? [];
+      const turno = detalles
+        .filter((det: any) => Number(det.dia_semana) === diaSemana)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio))[0];
+      if (!turno) continue; // día no laborable para esa malla
+      roster.push({
+        id_odoo: u.id_odoo,
+        cedula: u.identificacion || '',
+        nombre: u.nombre,
+        departamento: u.departamento || 'SIN DEPTO',
+        hora_inicio: Number(turno.hora_inicio),
+        hora_fin: Number(turno.hora_fin),
+      });
+    }
+    return roster;
+  }
+
   /** Formatea detalles de malla como "Lun 08:00-16:00 | Mar 08:00-16:00 …" */
   private formatearHorarioLocal(detalles: any[]): string {
     if (!detalles?.length) return '';
@@ -1706,7 +1782,7 @@ export class UsuariosService {
     marcar('resolverFiltros', t0);
 
     // 3. Dominios (mismas fechas/filtros que el reporte real)
-    const { inicioUTC, finUTC, finUTCLog } = this.calcularRangoUTC(
+    const { inicioUTC, inicioUTCLog, finUTC, finUTCLog } = this.calcularRangoUTC(
       soloHoy, hoyFechaCorta, startDate, endDate,
     );
     const { domainAtt, domainLog } = this.construirDominios(
@@ -1715,6 +1791,7 @@ export class UsuariosService {
       usarFiltroRelacional ? departamentoName : undefined,
       employeeIdsEfectivos,
       finUTCLog,
+      inicioUTCLog,
     );
 
     // 4. Contar (sin descargar aún)
@@ -1725,7 +1802,9 @@ export class UsuariosService {
     ]);
     marcar('contar', t0);
 
-    // 5. Descargar hr.attendance — CRUDO, sin mapear
+    // 5. Descargar hr.attendance — CRUDO, sin mapear. x_studio_cedula_codigo
+    // NO existe en este modelo (Odoo devuelve 500 "Invalid field" si se pide)
+    // — solo vive en attendance.log, ver más abajo.
     t0 = Date.now();
     const attFields = [
       'employee_id', 'check_in', 'check_out', 'department_id',
@@ -1740,17 +1819,20 @@ export class UsuariosService {
     t0 = Date.now();
     const logFields = [
       'employee_id', 'punching_time', 'status',
-      'x_studio_related_field_j40wn', 'device',
+      'x_studio_related_field_j40wn', 'device', 'x_studio_cedula_codigo',
     ];
     const logs = await this.odoo.searchReadAllWithProgress<any>(
       'attendance.log', domainLog, logFields, uid, () => {},
     );
     marcar('descargarLogs', t0);
 
-    // Aplanar para tabla: usamos employee_id (Odoo) directo — NO se resuelve
-    // cédula (eso requeriría otra llamada a Odoo, innecesaria para inspeccionar
-    // el dato crudo). La hora local es solo FORMATO (mismo conversor que usa el
-    // reporte real), no hay emparejamiento de turnos ni cruce con mallas.
+    // Aplanar para tabla: usamos employee_id (Odoo) directo. La cédula viene
+    // del propio campo Studio (x_studio_cedula_codigo) del registro de
+    // attendance.log, NO de una consulta aparte — no es un cruce, es un campo
+    // más del mismo registro. hr.attendance NO tiene este campo (Odoo lo
+    // rechaza), por eso ahí no se pide. La hora local es solo FORMATO (mismo
+    // conversor que usa el reporte real), no hay emparejamiento de turnos ni
+    // cruce con mallas.
     const toLocal = this.crearConvertidorLocal();
     const attendancesPlanas = attendances.map((a) => ({
       id: a.id,
@@ -1766,6 +1848,7 @@ export class UsuariosService {
       id: l.id,
       employee_id: l.employee_id?.[0] ?? null,
       empleado: l.employee_id?.[1] ?? 'Desconocido',
+      cedula: l.x_studio_cedula_codigo ?? null,
       department_id: l.x_studio_related_field_j40wn?.[1] ?? 'SIN DEPTO',
       punching_time: toLocal(l.punching_time),
       status: l.status ?? null,
@@ -1799,6 +1882,7 @@ export class UsuariosService {
     segmentoId?: number,
     agruparLogs: boolean = true,
     onProgress?: (pct: number, msg: string) => void,
+    employeeId?: number,
   ) {
     const emit = onProgress ?? (() => {});
     // ── Validar rango de fechas: máx 62 días para proteger memoria ────────────
@@ -1814,22 +1898,6 @@ export class UsuariosService {
       }
     }
 
-    // ── Opción 3: Caché en memoria ────────────────────────────────────────────
-    const cacheKey = JSON.stringify({
-      soloHoy,
-      companyName,
-      startDate,
-      endDate,
-      departamentoName,
-      areaId,
-      segmentoId,
-      agruparLogs,
-    });
-    const cached = this._reporteCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this._REPORTE_TTL_MS) {
-      console.log('✅ Reporte servido desde caché en memoria');
-      return cached.data;
-    }
 
     console.time('⏱ TOTAL reporte');
     const inicioTotal = Date.now();
@@ -1843,10 +1911,23 @@ export class UsuariosService {
     const deptoTexto = departamentoName || 'Todos los departamentos';
 
     // 1. Filtro por estructura local (área/segmento)
-    const employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
+    let employeeIdsPorEstructura = await this.resolverIdsPorEstructura(
       areaId,
       segmentoId,
     );
+
+    // 1a. employeeId acota a UN solo empleado (ej. usuario sin área que ve solo
+    //     su propio registro). Se intersecta con el filtro de estructura si
+    //     ambos vienen — nunca lo amplía.
+    if (employeeId) {
+      employeeIdsPorEstructura =
+        employeeIdsPorEstructura === null
+          ? [employeeId]
+          : employeeIdsPorEstructura.includes(employeeId)
+            ? [employeeId]
+            : [];
+    }
+
     if (
       employeeIdsPorEstructura !== null &&
       employeeIdsPorEstructura.length === 0
@@ -1882,7 +1963,7 @@ export class UsuariosService {
     }
 
     // 2. Calcular fechas UTC
-    const { inicioUTC, finUTC, finUTCLog, startDay, endDay } =
+    const { inicioUTC, inicioUTCLog, finUTC, finUTCLog, startDay, endDay } =
       this.calcularRangoUTC(soloHoy, hoyFechaCorta, startDate, endDate);
 
     // 3. Construir dominios (sin filtros relacionales si ya tenemos los IDs)
@@ -1893,6 +1974,7 @@ export class UsuariosService {
       usarFiltroRelacional ? departamentoName : undefined,
       employeeIdsEfectivos,
       finUTCLog,
+      inicioUTCLog,
     );
 
     // 4. Consultar Odoo  +  Opción 1: lanzar partner map en paralelo si ya tenemos IDs
@@ -2124,6 +2206,7 @@ export class UsuariosService {
     endDate?: string,
   ): {
     inicioUTC: string | null;
+    inicioUTCLog: string | null;
     finUTC: string | null;
     finUTCLog: string | null;
     startDay: string | null;
@@ -2132,6 +2215,28 @@ export class UsuariosService {
     const startDay = soloHoy ? hoyFechaCorta : (startDate ?? null);
     const endDay = soloHoy ? hoyFechaCorta : (endDate ?? null);
     const inicioUTC = startDay ? `${startDay} 05:00:00` : null;
+
+    // inicioUTCLog: retrocede 2 días completos respecto a inicioUTC — simétrico
+    // al retroceso de 2 días que ya existe hacia adelante en finUTCLog. Con
+    // solo 1 día no alcanza: una SALIDA que cae en "el día anterior a
+    // startDate" (ej. en modo "hoy", esa salida del día de ayer) puede tener
+    // su ENTRADA 2 días antes de startDate (turno nocturno que empezó hace 2
+    // días). Sin este margen, esa ENTRADA nunca se descarga de Odoo y la
+    // SALIDA (que sí cae dentro del rango) queda huérfana: se muestra como
+    // una "entrada" nueva sin pareja, marcada "ENTRADA TARDE"/"SIN SALIDA" en
+    // vez de reconocerse como el cierre del turno que ya se estaba mostrando
+    // bien en Horas Extra (que sí retrocede sin este límite, vía
+    // `attendance-pairing.ts`).
+    let inicioUTCLog: string | null = null;
+    if (startDay) {
+      const [anioI, mesI, diaI] = startDay.split('-').map(Number);
+      const fechaInicioLog = new Date(anioI, mesI - 1, diaI);
+      fechaInicioLog.setDate(fechaInicioLog.getDate() - 2);
+      const ai = fechaInicioLog.getFullYear();
+      const mi = String(fechaInicioLog.getMonth() + 1).padStart(2, '0');
+      const di = String(fechaInicioLog.getDate()).padStart(2, '0');
+      inicioUTCLog = `${ai}-${mi}-${di} 05:00:00`;
+    }
 
     let finUTC: string | null = null;
     let finUTCLog: string | null = null;
@@ -2158,7 +2263,7 @@ export class UsuariosService {
       finUTCLog = `${al}-${ml}-${dl} 04:59:59`; // medianoche Colombia del día extendido
     }
 
-    return { inicioUTC, finUTC, finUTCLog, startDay, endDay };
+    return { inicioUTC, inicioUTCLog, finUTC, finUTCLog, startDay, endDay };
   }
 
   /**
@@ -2199,13 +2304,20 @@ export class UsuariosService {
     departamentoName?: string,
     employeeIds?: number[] | null,
     finUTCLog?: string | null,
+    inicioUTCLog?: string | null,
   ): { domainAtt: any[]; domainLog: any[] } {
     const domainAtt: any[] = [];
     const domainLog: any[] = [];
 
     if (inicioUTC) {
       domainAtt.push(['check_in', '>=', inicioUTC]);
-      domainLog.push(['punching_time', '>=', inicioUTC]);
+    }
+    // attendance.log usa un rango extendido hacia atrás (ver inicioUTCLog en
+    // calcularRangoUTC) para capturar la ENTRADA de un turno nocturno que
+    // empezó el día anterior a startDate — si no, su salida queda huérfana.
+    const inicioLog = inicioUTCLog ?? inicioUTC;
+    if (inicioLog) {
+      domainLog.push(['punching_time', '>=', inicioLog]);
     }
     if (finUTC) {
       domainAtt.push(['check_in', '<=', finUTC]);
@@ -2217,7 +2329,12 @@ export class UsuariosService {
     }
     if (companyName && companyName !== 'Todas' && companyName !== '') {
       domainAtt.push(['employee_id.company_id.name', '=', companyName]);
-      domainLog.push(['company_id.name', '=', companyName]);
+      // OJO: antes filtraba por "company_id.name" (campo propio del log,
+      // llenado por el dispositivo biométrico al sincronizar) — si ese campo
+      // queda vacío o desincronizado en un registro puntual, el empleado
+      // desaparece del reporte aunque su ficha sí tenga la empresa correcta.
+      // Filtrar vía el empleado (como hr.attendance) es la fuente confiable.
+      domainLog.push(['employee_id.company_id.name', '=', companyName]);
     }
     if (
       departamentoName &&
@@ -2511,42 +2628,28 @@ export class UsuariosService {
   }
   async getMallaHoy(employee_id: number) {
     try {
-      const uid = await this.odoo.authenticate();
       const ahoraCol = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }),
       );
+      const dayOfWeekOdoo = ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1;
 
-      const contracts = await this.odoo.executeKw<any[]>(
-        'hr.contract',
-        'search_read',
-        [[['employee_id', '=', employee_id], ['state', 'in', ['open', 'draft']]]],
-        { fields: ['resource_calendar_id'], limit: 1 },
-        uid,
-      );
+      const [asigLocal] = await this.obtenerAsignacionesVigentes([employee_id]);
 
-      if (!contracts?.length || !contracts[0].resource_calendar_id) {
+      if (!asigLocal?.malla) {
         return { tiene_malla: false, nombre: null, turnos: [] };
       }
 
-      const calId = contracts[0].resource_calendar_id[0];
-      const calNombre = contracts[0].resource_calendar_id[1];
-      const dayOfWeek = (ahoraCol.getDay() === 0 ? 6 : ahoraCol.getDay() - 1).toString();
-
-      const turnos = await this.odoo.executeKw<any[]>(
-        'resource.calendar.attendance',
-        'search_read',
-        [[['calendar_id', '=', calId], ['dayofweek', '=', dayOfWeek]]],
-        { fields: ['hour_from', 'hour_to', 'name'], order: 'hour_from asc' },
-        uid,
-      );
+      const turnosHoy = (asigLocal.malla.detalles || [])
+        .filter((d: any) => Number(d.dia_semana) === dayOfWeekOdoo)
+        .sort((a: any, b: any) => Number(a.hora_inicio) - Number(b.hora_inicio));
 
       return {
-        tiene_malla: turnos.length > 0,
-        nombre: calNombre,
-        turnos: turnos.map(t => ({
-          entrada: this.formatDecimal(t.hour_from),
-          salida: this.formatDecimal(t.hour_to),
-          nombre: t.name || null,
+        tiene_malla: turnosHoy.length > 0,
+        nombre: asigLocal.malla.nombre,
+        turnos: turnosHoy.map((t: any) => ({
+          entrada: this.formatDecimal(t.hora_inicio),
+          salida: this.formatDecimal(t.hora_fin),
+          nombre: null,
         })),
       };
     } catch (e) {
@@ -2873,6 +2976,13 @@ export class UsuariosService {
     if (!reporte) throw new NotFoundException('Reporte no encontrado');
     reporte.resuelto = true;
     await this.reporteFallaRepo.save(reporte);
+    return { status: 'success' };
+  }
+
+  async eliminarFalla(id: number) {
+    const reporte = await this.reporteFallaRepo.findOne({ where: { id } });
+    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    await this.reporteFallaRepo.delete(id);
     return { status: 'success' };
   }
 

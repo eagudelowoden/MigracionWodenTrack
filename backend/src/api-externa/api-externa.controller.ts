@@ -11,8 +11,15 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Public } from '../auth/public.decorator';
 import { ApiExternaService } from './api-externa.service';
 
+// @Public exime del JwtAuthGuard global, que exige el JWT de la app y hacía
+// imposible usar esta API desde afuera: /auth respondía "Token no
+// proporcionado" (contradictorio, porque /auth ES el login) y /asistencias
+// nunca llegaba a validar su Bearer. No queda abierta: /auth pide usuario y
+// contraseña, y /asistencias valida el token con validateToken().
+@Public()
 @Controller('usuarios/api-externa')
 export class ApiExternaController {
   constructor(private readonly svc: ApiExternaService) {}

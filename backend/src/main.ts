@@ -14,7 +14,12 @@ import * as fs from 'fs';
  *   - SSL_PFX_PATH (+ SSL_PFX_PASSPHRASE)   → certificado .pfx exportado de IIS
  *   - o bien SSL_KEY_PATH + SSL_CERT_PATH   → par clave/certificado en PEM
  */
-function cargarHttpsOptions(): { pfx?: Buffer; passphrase?: string; key?: Buffer; cert?: Buffer } | null {
+function cargarHttpsOptions(): {
+  pfx?: Buffer;
+  passphrase?: string;
+  key?: Buffer;
+  cert?: Buffer;
+} | null {
   try {
     const pfxPath = process.env.SSL_PFX_PATH;
     if (pfxPath && fs.existsSync(pfxPath)) {
@@ -25,11 +30,19 @@ function cargarHttpsOptions(): { pfx?: Buffer; passphrase?: string; key?: Buffer
     }
     const keyPath = process.env.SSL_KEY_PATH;
     const certPath = process.env.SSL_CERT_PATH;
-    if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    if (
+      keyPath &&
+      certPath &&
+      fs.existsSync(keyPath) &&
+      fs.existsSync(certPath)
+    ) {
       return { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) };
     }
   } catch (e: any) {
-    console.error('⚠️  No se pudo cargar el certificado HTTPS, se arranca en HTTP:', e?.message);
+    console.error(
+      '⚠️  No se pudo cargar el certificado HTTPS, se arranca en HTTP:',
+      e?.message,
+    );
   }
   return null;
 }
@@ -66,19 +79,24 @@ async function bootstrap() {
 
   // Timeouts HTTP — el handler del timeout cierra el socket activamente
   const server = app.getHttpServer();
-  server.keepAliveTimeout = 120000;   // 2 min keep-alive
-  server.headersTimeout   = 125000;   // debe ser > keepAliveTimeout
+  server.keepAliveTimeout = 120000; // 2 min keep-alive
+  server.headersTimeout = 125000; // debe ser > keepAliveTimeout
 
   // Cuando un socket lleva más de 4 min inactivo, cerrarlo limpiamente
   // para que el cliente reciba un 503 en vez de ERR_CONNECTION_RESET
   server.setTimeout(240000, (socket) => {
-    socket.end('HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+    socket.end(
+      'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n',
+    );
     socket.destroy();
   });
 
   const PORT = process.env.PORT || 8082;
   await app.listen(PORT, '0.0.0.0');
   const proto = httpsOptions ? 'https' : 'http';
-  console.log(`🚀 Servidor NestJS corriendo en: ${proto}://0.0.0.0:${PORT}  (${httpsOptions ? 'HTTPS/wss' : 'HTTP/ws'})`);
+  console.log(
+    `🚀 Servidor NestJS corriendo en: ${proto}://0.0.0.0:${PORT}  (${httpsOptions ? 'HTTPS/wss' : 'HTTP/ws'})`,
+  );
 }
+//Desplegar a producci
 bootstrap();

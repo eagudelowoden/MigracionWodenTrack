@@ -49,7 +49,7 @@
     </header>
 
     <!-- PANEL: REPORTE POR DEPARTAMENTO -->
-    <div class="rounded-xl border overflow-hidden transition-all shrink-0"
+    <div class="rounded-2xl border shadow-sm overflow-hidden transition-all shrink-0"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
 
       <!-- Header del panel -->
@@ -172,7 +172,7 @@
 
     <!-- PANEL: CARGA MASIVA EXCEL -->
     <Transition name="slide-down">
-      <div v-if="activeView === 'masivo'" class="rounded-xl border overflow-hidden transition-all"
+      <div v-if="activeView === 'masivo'" class="rounded-2xl border shadow-sm overflow-hidden transition-all"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
         <div class="px-3 py-2 border-b flex items-center gap-2"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
@@ -243,9 +243,9 @@
     <!-- PANEL: FORMULARIO CREAR MALLA -->
     <!-- overflow-visible permite que los dropdowns de hora en el Domingo no queden ocultos -->
     <Transition name="slide-down">
-      <div v-if="activeView === 'crear'" class="rounded-xl border transition-all"
+      <div v-if="activeView === 'crear'" class="rounded-2xl border shadow-sm transition-all"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
-        <div class="px-3 py-2 border-b rounded-t-xl"
+        <div class="px-3 py-2 border-b rounded-t-2xl"
           :class="isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'">
           <span class="text-[10px] font-semibold uppercase tracking-wider opacity-60"
             :class="isDark ? 'text-white' : 'text-slate-600'">Nueva malla horaria</span>
@@ -459,7 +459,7 @@
             class="fixed inset-0 z-40"></div>
 
           <!-- REDUCCIÓN DE HORAS -->
-          <div class="rounded-xl border transition-all overflow-hidden" :class="reduccion.activa
+          <div class="rounded-2xl border shadow-sm transition-all overflow-hidden" :class="reduccion.activa
             ? isDark ? 'border-orange-500/40 bg-orange-500/5' : 'border-orange-300 bg-orange-50'
             : isDark ? 'border-white/10' : 'border-slate-200'">
             <div class="px-3 py-2.5 flex items-center gap-3 cursor-pointer select-none"
@@ -542,7 +542,7 @@
 
     <!-- TABLA DE MALLAS EXISTENTES (solo en tab Listado) -->
     <div v-if="activeView === 'listado'"
-      class="flex-1 min-h-0 rounded-xl border overflow-hidden transition-all flex flex-col"
+      class="flex-1 min-h-0 rounded-2xl border shadow-sm overflow-hidden transition-all flex flex-col"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
 
       <!-- Header con búsqueda -->

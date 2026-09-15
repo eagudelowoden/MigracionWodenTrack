@@ -130,5 +130,9 @@ export function adminOdoo() {
     clearFilters,
     handleAttendance,
     downloadExcelReport,
+    // Loading específico de marcar entrada/salida — separado de `loading`
+    // (que es el del reporte de asistencias) porque `...att` ya quedó
+    // sobrescrito arriba por el `loading` del reporte.
+    marcandoAsistencia: att.loading,
   };
 }

@@ -2,7 +2,7 @@
   <div class="h-full flex flex-col gap-3 animate-fade-in">
 
     <!-- ── Header ───────────────────────────────────────────────── -->
-    <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border shrink-0"
+    <div class="flex items-center justify-between px-3 py-2.5 rounded-2xl border shadow-sm shrink-0"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
       <div class="flex items-center gap-2">
         <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
@@ -50,7 +50,7 @@
         </div>
 
         <div v-for="rec in lista" :key="rec.id"
-          class="rounded-xl border p-3 transition-all"
+          class="rounded-2xl border shadow-sm p-3 transition-all"
           :class="[
             isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200',
             !rec.activo ? 'opacity-50' : ''
@@ -138,7 +138,7 @@
 
       <!-- ── Panel formulario ───────────────────────────────────── -->
       <div v-if="form.abierto"
-        class="w-80 shrink-0 rounded-xl border overflow-hidden flex flex-col"
+        class="w-80 shrink-0 rounded-2xl border shadow-sm overflow-hidden flex flex-col"
         :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
 
         <div class="px-4 py-3 border-b flex items-center justify-between shrink-0"
@@ -290,7 +290,7 @@
     </div>
 
     <!-- Nota informativa -->
-    <div class="px-3 py-2 rounded-xl border shrink-0"
+    <div class="px-3 py-2 rounded-2xl border shadow-sm shrink-0"
       :class="isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'">
       <p class="text-[9px] opacity-30" :class="isDark ? 'text-white' : 'text-slate-500'">
         <i class="fas fa-circle-info mr-1"></i>

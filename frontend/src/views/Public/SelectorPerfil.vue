@@ -3,23 +3,13 @@
     class="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden transition-colors duration-300 select-none"
     :class="isDark ? 'bg-[#1a1f35] text-[#F5F5F7]' : 'bg-[#F4F6FA] text-[#111827]'">
 
-    <!-- FONDO UNIFICADO WODENTRACK -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <!-- Patrón de cuadrícula/puntos sutil -->
-      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
-        style="background-image: radial-gradient(#111827 1px, transparent 1px); background-size: 24px 24px;">
-      </div>
-
-      <!-- Resplandor 1: Azul institucional (Arriba a la izquierda) -->
-      <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-blue-500/10' : 'bg-blue-400/20'">
-      </div>
-
-      <!-- Resplandor 2: Naranja WodenTrack (Abajo a la derecha) -->
-      <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[120px] transition-opacity duration-300"
-        :class="isDark ? 'bg-[#e88710]/10' : 'bg-[#e88710]/15'">
-      </div>
-    </div>
+    <!-- Fondo: mallado disperso e irregular de líneas que se cruzan en ángulos
+         variados (estilo Kaspersky, igual que LoginView.vue), muy tenue. -->
+    <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <line v-for="(l, i) in bgLines" :key="i" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+        :stroke="isDark ? 'rgba(255,255,255,0.09)' : 'rgba(16,46,74,0.16)'" stroke-width="1"
+        vector-effect="non-scaling-stroke" /></svg>
 
     <!-- CONTENEDOR PRINCIPAL -->
     <div class="max-w-4xl w-full space-y-10 relative z-10 py-6">
@@ -37,7 +27,7 @@
                 :class="isDark ? 'text-white' : 'text-[#111827]'">Track</span></span>
           </div>
           <h1 class="text-2xl md:text-3xl font-bold tracking-tight">
-            Hola, <span class="font-normal text-lg md:text-2xl block md:inline"
+            Hola, {{ primerNombre }} <span class="font-normal text-lg md:text-2xl block md:inline"
               :class="isDark ? 'text-[#8895B3]' : 'text-[#64748B]'">selecciona tu espacio de trabajo</span>
           </h1>
         </div>
@@ -164,10 +154,23 @@
 import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import { useAttendance } from '../../composables/UserLogica/useAttendance.js';
+import { bgLines } from '../../utils/bgLines.js';
 
 const router = useRouter();
 const session = ref(null);
 const { isDark, toggleTheme } = useAttendance();
+
+// Primer nombre de pila para el saludo. Convención colombiana del nombre
+// completo: "Apellido1 Apellido2 Nombre1 [Nombre2]" (p. ej. "AGUDELO PITA
+// ELDER DANIEL" → "Elder"). Con 4+ palabras se asume 2 apellidos y se toma la
+// 3ra; con menos, se ajusta proporcionalmente.
+const primerNombre = computed(() => {
+  const partes = (session.value?.name || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '';
+  const idx = partes.length >= 3 ? 2 : partes.length - 1;
+  const nombre = partes[idx] || '';
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+});
 
 const cardClass = computed(() =>
   isDark.value
@@ -188,6 +191,10 @@ const selectRole = (path) => router.push(path);
 </script>
 
 <style scoped>
+/* Bloque <style> de un SFC = su propio contexto de PostCSS, separado de
+   style.css — en Tailwind v4 hace falta @reference para que @apply funcione. */
+@reference "tailwindcss";
+
 .role-card {
   @apply backdrop-blur-xl p-8 rounded-3xl flex flex-col items-center gap-5 transition-all duration-500 border relative overflow-hidden;
 }

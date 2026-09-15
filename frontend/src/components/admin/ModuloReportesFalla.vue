@@ -109,7 +109,7 @@
           </div>
 
           <!-- Acción -->
-          <div class="w-[90px] shrink-0 flex justify-end">
+          <div class="w-[90px] shrink-0 flex justify-end items-center gap-1.5">
             <button
               v-if="!r.resuelto"
               @click="marcarResuelto(r)"
@@ -122,10 +122,45 @@
             <span v-else class="rf-done-label" :class="isDark ? 'text-white/20' : 'text-slate-300'">
               <i class="fas fa-check-double text-[9px]"></i>
             </span>
+            <button
+              @click="confirmarEliminar(r)"
+              class="rf-delete-btn"
+              :class="isDark ? 'rf-delete-dark' : 'rf-delete-light'"
+              title="Eliminar reporte"
+            >
+              <i class="fas fa-trash-can text-[9px]"></i>
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- ── MODAL CONFIRMAR ELIMINAR ──────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="rf-toast">
+        <div v-if="reporteAEliminar" class="rf-modal-overlay" @click.self="reporteAEliminar = null">
+          <div class="rf-modal" :class="isDark ? 'rf-modal-dark' : 'rf-modal-light'">
+            <div class="rf-modal-head" :class="isDark ? 'rf-mhead-dark' : 'rf-mhead-light'">
+              <i class="fas fa-triangle-exclamation text-red-400 text-[12px]"></i>
+              <p class="rf-modal-title" :class="isDark ? 'text-white' : 'text-slate-800'">Eliminar reporte</p>
+            </div>
+            <div class="rf-modal-body">
+              <p class="rf-modal-text" :class="isDark ? 'text-slate-300' : 'text-slate-600'">
+                ¿Eliminar el reporte de <strong>{{ reporteAEliminar?.nombre }}</strong>? Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div class="rf-modal-foot" :class="isDark ? 'rf-mfoot-dark' : 'rf-mfoot-light'">
+              <button @click="reporteAEliminar = null" class="rf-btn-ghost" :class="isDark ? 'rf-ghost-dark' : 'rf-ghost-light'">
+                Cancelar
+              </button>
+              <button @click="eliminarReporte" class="rf-btn-danger">
+                <i class="fas fa-trash-can text-[9px]"></i> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
@@ -140,6 +175,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 const reportes  = ref([]);
 const cargando  = ref(false);
 const showStats = ref(false);
+const reporteAEliminar = ref(null);
 
 const pendientes = computed(() => reportes.value.filter(r => !r.resuelto).length);
 const resueltos  = computed(() => reportes.value.filter(r =>  r.resuelto).length);
@@ -162,6 +198,20 @@ const marcarResuelto = async (r) => {
     r.resuelto = true;
   } catch (e) {
     console.error('Error al resolver reporte:', e);
+  }
+};
+
+const confirmarEliminar = (r) => { reporteAEliminar.value = r; };
+
+const eliminarReporte = async () => {
+  if (!reporteAEliminar.value) return;
+  try {
+    await axios.delete(`${API_URL}/reportes-falla/${reporteAEliminar.value.id}`);
+    reportes.value = reportes.value.filter(r => r.id !== reporteAEliminar.value.id);
+  } catch (e) {
+    console.error('Error al eliminar reporte:', e);
+  } finally {
+    reporteAEliminar.value = null;
   }
 };
 
@@ -363,4 +413,69 @@ onMounted(cargar);
 .rf-resolve-light:hover { background: #f0fdf4; border-color: #6ee7b7; }
 
 .rf-done-label { font-size: 12px; }
+
+/* ── BOTÓN ELIMINAR ───────────────────────────────────────── */
+.rf-delete-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; border: 1px solid;
+  cursor: pointer; transition: all .15s; flex-shrink: 0;
+}
+.rf-delete-dark  { background: transparent; border-color: rgba(239,68,68,.25); color: #f87171; }
+.rf-delete-dark:hover  { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.5); }
+.rf-delete-light { background: #fff; border-color: #fecaca; color: #ef4444; }
+.rf-delete-light:hover { background: #fef2f2; border-color: #fca5a5; }
+
+/* ── MODAL ELIMINAR ───────────────────────────────────────── */
+.rf-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(0,0,0,.55);
+}
+.rf-modal {
+  width: 100%; max-width: 380px;
+  border-radius: 14px; border: 1px solid; overflow: hidden;
+}
+.rf-modal-dark  { background: #18181b; border-color: rgba(255,255,255,.08); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.rf-modal-light { background: #fff;    border-color: #e2e8f0;              box-shadow: 0 24px 60px rgba(0,0,0,.15); }
+
+.rf-modal-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid;
+}
+.rf-mhead-dark  { border-color: rgba(255,255,255,.08); }
+.rf-mhead-light { border-color: #f1f5f9; }
+.rf-modal-title { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+
+.rf-modal-body { padding: 14px 18px; }
+.rf-modal-text { font-size: 11px; line-height: 1.6; }
+
+.rf-modal-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 18px; border-top: 1px solid;
+}
+.rf-mfoot-dark  { border-color: rgba(255,255,255,.06); }
+.rf-mfoot-light { border-color: #f1f5f9; }
+
+.rf-btn-ghost {
+  padding: 6px 14px; border-radius: 8px; border: 1px solid;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  cursor: pointer; transition: all .15s; background: transparent;
+}
+.rf-ghost-dark  { border-color: rgba(255,255,255,.12); color: #94a3b8; }
+.rf-ghost-dark:hover  { color: #fff; background: rgba(255,255,255,.06); }
+.rf-ghost-light { border-color: #e2e8f0; color: #64748b; }
+.rf-ghost-light:hover { border-color: #cbd5e1; color: #1e293b; }
+
+.rf-btn-danger {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px; border: none;
+  background: #ef4444; color: #fff;
+  font-size: 10px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer; transition: all .15s;
+}
+.rf-btn-danger:hover { background: #dc2626; }
+
+.rf-toast-enter-active, .rf-toast-leave-active { transition: all .2s ease; }
+.rf-toast-enter-from, .rf-toast-leave-to { opacity: 0; }
 </style>

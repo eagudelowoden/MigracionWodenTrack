@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap');
 
+/* Este archivo se importa suelto (no encadenado desde style.css), y usa
+   @apply — en Tailwind v4 hace falta @reference para que sepa qué utilidades
+   existen sin volver a generar el CSS base completo acá. */
+@reference "tailwindcss";
+
 /* Clase de utilidad personalizada */
 .font-mono-custom {
   font-family: 'JetBrains Mono', monospace !important;

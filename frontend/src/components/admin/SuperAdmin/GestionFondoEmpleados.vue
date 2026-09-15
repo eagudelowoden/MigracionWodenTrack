@@ -40,7 +40,7 @@
 
       <!-- Lista de fondos -->
       <div v-for="fondo in fondos" :key="fondo.id"
-        class="rounded-xl border overflow-hidden"
+        class="rounded-2xl border shadow-sm overflow-hidden"
         :class="isDark ? 'bg-[#0d1117] border-[#222938]' : 'bg-white border-slate-200'">
 
         <!-- Cabecera del fondo -->

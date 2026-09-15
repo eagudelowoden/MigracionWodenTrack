@@ -60,6 +60,23 @@ export function useSyncCron() {
     }
   };
 
+  // ── Cancelar sincronización en curso ────────────────────────────────────────
+  const cancelarSync = async () => {
+    error.value = null;
+    try {
+      const res = await apiFetch(`${API}/cancelar`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || 'No se pudo cancelar la sincronización.');
+      }
+      config.value = await res.json();
+      await fetchHistorial();
+    } catch (e) {
+      error.value = e.message;
+      throw e;
+    }
+  };
+
   // ── Países disponibles en Odoo ─────────────────────────────────────────────
   const fetchPaises = async () => {
     try {
@@ -113,6 +130,7 @@ export function useSyncCron() {
     fetchConfig,
     guardarConfig,
     ejecutarAhora,
+    cancelarSync,
     fetchHistorial,
     fetchPaises,
     estadoColor,

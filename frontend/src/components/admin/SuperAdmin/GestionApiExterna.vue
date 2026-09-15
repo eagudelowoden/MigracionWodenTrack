@@ -201,6 +201,143 @@
       </div>
 
       <!-- ─── TAB: DOCUMENTACIÓN ─────────────────────────────────── -->
+      <!-- ─── TAB: OFFBOARDING IT ────────────────────────────────── -->
+      <div v-if="tab === 'offboarding'" class="api-section">
+
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-circle-info text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Qué expone</span>
+          </div>
+          <div class="api-card-body">
+            <p class="api-nota" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+              Permite que un sistema externo responda el checklist del módulo
+              <strong>IT</strong> del proceso de Offboarding (Paz y Salvo).
+              Los módulos <strong>SST</strong> y <strong>Capital Humano</strong> no se exponen: se siguen
+              respondiendo solo desde WodenTrack.
+              Usa las <strong>mismas credenciales Bearer</strong> de la pestaña Credenciales, y lo que
+              se guarda por aquí aparece igual en la pantalla de Consultas.
+            </p>
+          </div>
+        </div>
+
+        <!-- Endpoints -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-route text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Endpoints</span>
+          </div>
+          <div class="api-table-wrap">
+            <div class="api-thead" :class="isDark ? 'api-thead-dark' : 'api-thead-light'">
+              <span class="api-th w-16">Método</span>
+              <span class="api-th w-72">Ruta</span>
+              <span class="api-th flex-1">Para qué</span>
+            </div>
+            <div class="api-tbody">
+              <div v-for="e in endpointsOffb" :key="e.ruta" class="api-tr" :class="isDark ? 'api-tr-dark' : 'api-tr-light'">
+                <div class="w-16 shrink-0"><code class="api-param-name">{{ e.metodo }}</code></div>
+                <div class="w-72 shrink-0"><code class="api-param-name">{{ e.ruta }}</code></div>
+                <div class="flex-1 text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">{{ e.desc }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preguntas vigentes -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-list-check text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">
+              Preguntas vigentes de IT ({{ preguntasIt.length }})
+            </span>
+            <button @click="cargarPreguntasIt" class="api-copy-text-btn" :class="isDark ? 'api-copy-text-dark' : 'api-copy-text-light'">
+              <i class="fas fa-rotate text-[8px]"></i> Recargar
+            </button>
+          </div>
+          <div class="api-card-body">
+            <p class="api-nota" :class="isDark ? 'text-slate-400' : 'text-slate-600'">
+              Estos <strong>id</strong> son los que el sistema externo debe enviar en <code>respuestas</code>.
+              Cambian si se edita el checklist, por eso conviene leerlos de
+              <code>/checklist-it</code> en cada corrida y no dejarlos fijos en el código.
+            </p>
+          </div>
+          <div class="api-table-wrap">
+            <div class="api-thead" :class="isDark ? 'api-thead-dark' : 'api-thead-light'">
+              <span class="api-th w-16">id</span>
+              <span class="api-th flex-1">Pregunta</span>
+            </div>
+            <div class="api-tbody">
+              <div v-if="!preguntasIt.length" class="api-tr" :class="isDark ? 'api-tr-dark' : 'api-tr-light'">
+                <div class="flex-1 text-[11px] opacity-60">Sin preguntas configuradas para IT.</div>
+              </div>
+              <div v-for="p in preguntasIt" :key="p.id" class="api-tr" :class="isDark ? 'api-tr-dark' : 'api-tr-light'">
+                <div class="w-16 shrink-0"><code class="api-param-name">{{ p.id }}</code></div>
+                <div class="flex-1 text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">{{ p.texto }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flujo curl -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-terminal text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Flujo completo (curl)</span>
+            <button @click="copiarTexto(ejemploOffbCurl)" class="api-copy-text-btn" :class="isDark ? 'api-copy-text-dark' : 'api-copy-text-light'">
+              <i class="fas fa-copy text-[8px]"></i> Copiar
+            </button>
+          </div>
+          <div class="api-card-body">
+            <pre class="api-pre api-pre-sky">{{ ejemploOffbCurl }}</pre>
+          </div>
+        </div>
+
+        <!-- Python -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fab fa-python text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Ejemplo Python</span>
+            <button @click="copiarTexto(ejemploOffbPython)" class="api-copy-text-btn" :class="isDark ? 'api-copy-text-dark' : 'api-copy-text-light'">
+              <i class="fas fa-copy text-[8px]"></i> Copiar
+            </button>
+          </div>
+          <div class="api-card-body">
+            <pre class="api-pre api-pre-yellow">{{ ejemploOffbPython }}</pre>
+          </div>
+        </div>
+
+        <!-- Respuesta -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-code text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Respuesta al guardar</span>
+          </div>
+          <div class="api-card-body">
+            <pre class="api-pre api-pre-slate">{{ ejemploOffbRespuesta }}</pre>
+          </div>
+        </div>
+
+        <!-- Errores -->
+        <div class="api-card" :class="isDark ? 'api-card-dark' : 'api-card-light'">
+          <div class="api-card-head" :class="isDark ? 'api-card-head-dark' : 'api-card-head-light'">
+            <i class="fas fa-triangle-exclamation text-[10px]" style="color:#FF8F00"></i>
+            <span class="api-card-title" :class="isDark ? 'text-white' : 'text-slate-700'">Códigos de error</span>
+          </div>
+          <div class="api-table-wrap">
+            <div class="api-thead" :class="isDark ? 'api-thead-dark' : 'api-thead-light'">
+              <span class="api-th w-16">HTTP</span>
+              <span class="api-th flex-1">Cuándo ocurre</span>
+            </div>
+            <div class="api-tbody">
+              <div v-for="e in erroresOffb" :key="e.code" class="api-tr" :class="isDark ? 'api-tr-dark' : 'api-tr-light'">
+                <div class="w-16 shrink-0"><code class="api-param-name">{{ e.code }}</code></div>
+                <div class="flex-1 text-[11px]" :class="isDark ? 'text-slate-400' : 'text-slate-600'">{{ e.desc }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="tab === 'docs'" class="api-section">
 
         <!-- URL Base -->
@@ -366,6 +503,7 @@ const tabs = [
   { key: 'credenciales', icon: 'fas fa-key',        label: 'Credenciales'    },
   { key: 'campos',       icon: 'fas fa-table-list',  label: 'Campos expuestos'},
   { key: 'docs',         icon: 'fas fa-book-open',   label: 'Documentación'   },
+  { key: 'offboarding',  icon: 'fas fa-user-minus',  label: 'Offboarding IT'  },
 ];
 const tab = ref('credenciales');
 
@@ -566,7 +704,107 @@ const guardarCampos = async () => {
   finally { savingCampos.value = false; }
 };
 
-onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos()]); });
+
+// ── Offboarding IT ──────────────────────────────────────────────────────────
+// Base del endpoint externo de offboarding. Cuelga de la misma raíz de API
+// Externa, así que comparte credenciales y token.
+const offbBase = computed(() => `${apiBase.value}/offboarding`);
+
+const endpointsOffb = [
+  { metodo: 'GET',  ruta: '/api-externa/offboarding/checklist-it', desc: 'Preguntas activas del checklist de IT, con su id.' },
+  { metodo: 'GET',  ruta: '/api-externa/offboarding/pendientes',   desc: 'Renuncias aprobadas y estado de su offboarding. Filtros: cedula, fechaInicio, fechaFin.' },
+  { metodo: 'POST', ruta: '/api-externa/offboarding/it',           desc: 'Guarda las respuestas de IT para la cédula indicada.' },
+];
+
+const erroresOffb = [
+  { code: 401, desc: 'Token ausente, inválido o credencial desactivada.' },
+  { code: 400, desc: 'Falta cedula o respuestas, hay valores que no son true/false, o un id de pregunta no existe.' },
+  { code: 404, desc: 'La cédula no tiene una renuncia aprobada.' },
+  { code: 409, desc: 'La renuncia existe, pero el proceso de offboarding aún no se ha iniciado en WodenTrack. Debe abrirse primero desde Consultas.' },
+];
+
+// Se leen del checklist real para que los id mostrados sean los vigentes.
+const preguntasIt = ref([]);
+
+const cargarPreguntasIt = async () => {
+  try {
+    const r = await apiFetch(`${API_URL}/offboarding/checklist?modulo=it`);
+    const data = await r.json();
+    preguntasIt.value = Array.isArray(data) ? data : [];
+  } catch {
+    preguntasIt.value = [];
+  }
+};
+
+const ejemploOffbCurl = computed(() => `# 1 · Obtener el token (o cópialo de la pestaña Credenciales)
+curl -X POST ${apiBase.value}/auth \\
+  -H "Content-Type: application/json" \\
+  -d '{"username": "mi_usuario", "password": "mi_password"}'
+
+# 2 · Leer las preguntas del checklist de IT
+curl "${offbBase.value}/checklist-it" \\
+  -H "Authorization: Bearer <TOKEN>"
+
+# 3 · Ver el estado del offboarding de una persona
+curl "${offbBase.value}/pendientes?cedula=1035851539" \\
+  -H "Authorization: Bearer <TOKEN>"
+
+# 4 · Responder el checklist (las llaves son los id del paso 2)
+curl -X POST "${offbBase.value}/it" \\
+  -H "Authorization: Bearer <TOKEN>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+        "cedula": "1035851539",
+        "por": "Sistema de Inventario TI",
+        "respuestas": { "6": true, "7": true, "8": false }
+      }'`);
+
+const ejemploOffbPython = computed(() => `import requests
+
+BASE  = "${offbBase.value}"
+TOKEN = "mi_token_aqui"          # de la pestaña Credenciales
+H     = {"Authorization": f"Bearer {TOKEN}"}
+
+# 1) Las preguntas vigentes. No fijes los id en el código: cambian si
+#    alguien edita el checklist desde WodenTrack.
+preguntas = requests.get(f"{BASE}/checklist-it", headers=H).json()["preguntas"]
+for p in preguntas:
+    print(p["id"], p["texto"])
+
+# 2) Verificar que el proceso esté iniciado (si no, el POST responde 409)
+cedula = "1035851539"
+info = requests.get(f"{BASE}/pendientes", params={"cedula": cedula}, headers=H).json()
+if not info["data"] or not info["data"][0]["iniciado"]:
+    raise SystemExit("El offboarding aún no se ha iniciado en WodenTrack")
+
+# 3) Responder. Se puede mandar solo una parte: se fusiona con lo ya guardado.
+respuestas = {str(p["id"]): True for p in preguntas}
+
+r = requests.post(
+    f"{BASE}/it",
+    headers=H,
+    json={"cedula": cedula, "por": "Sistema de Inventario TI", "respuestas": respuestas},
+)
+
+if r.status_code == 409:
+    print("Proceso no iniciado:", r.json()["error"])
+else:
+    d = r.json()
+    print(f"Respondidas {d['respondidas']}/{d['total_preguntas']}")
+    print("Módulo IT completo:", d["modulo_completo"])
+    print("Proceso completo:", d["proceso_completo"])`);
+
+const ejemploOffbRespuesta = `{
+  "ok": true,
+  "paz_salvo_id": 12,
+  "respondidas": 11,
+  "total_preguntas": 11,
+  "modulo_completo": true,     // todas las preguntas de IT respondidas
+  "proceso_completo": true,    // además SST y Capital Humano ya estaban listos
+  "por": "Sistema de Inventario TI"
+}`;
+
+onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos(), cargarPreguntasIt()]); });
 </script>
 
 <style scoped>
@@ -668,6 +906,19 @@ onMounted(async () => { await Promise.all([fetchCredenciales(), fetchCampos()]);
 }
 
 .api-card-body { padding: 14px; }
+
+/* ── LOADING / EMPTY ──────────────────────────────────────── */
+.api-loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 14px;
+  font-size: 14px;
+}
+.api-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 36px 14px;
+}
+.api-empty-icon { font-size: 24px; }
+.api-empty-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 
 .api-card-foot {
   padding: 10px 14px; border-top: 1px solid; display: flex; justify-content: flex-end;

@@ -159,6 +159,43 @@ export class SuperAdminSyncCronService implements OnModuleInit {
     }
   }
 
+  // ── Cancelar sincronización en curso ─────────────────────────────────────────
+  // No puede abortar la petición HTTP que Odoo tenga colgada, pero libera el
+  // estado "running" para que el usuario pueda volver a intentarlo.
+  async cancelarSync(): Promise<SyncCronConfig> {
+    const config = await this.obtenerConfig();
+    if (config.ultimo_estado !== 'running') {
+      throw new Error('No hay ninguna sincronización en curso para cancelar.');
+    }
+
+    const fin = new Date();
+    const inicio = config.ultimo_inicio ?? fin;
+    const duracion = Math.round((fin.getTime() - inicio.getTime()) / 1000);
+
+    config.ultimo_estado = 'error';
+    config.ultimo_error = 'Sincronización cancelada manualmente por el administrador.';
+    config.ultimo_fin = fin;
+    config.ultima_duracion_seg = duracion;
+    await this.configRepo.save(config);
+
+    const logAbierto = await this.logRepo.findOne({
+      where: { estado: 'running' },
+      order: { inicio: 'DESC' },
+    });
+    if (logAbierto) {
+      logAbierto.estado = 'error';
+      logAbierto.error = 'Cancelada manualmente por el administrador.';
+      logAbierto.fin = fin;
+      logAbierto.duracion_seg = Math.round(
+        (fin.getTime() - logAbierto.inicio.getTime()) / 1000,
+      );
+      await this.logRepo.save(logAbierto);
+    }
+
+    this.logger.warn('[SyncCron] Sincronización cancelada manualmente.');
+    return config;
+  }
+
   // ── Lógica principal de sincronización ──────────────────────────────────────
 
   async ejecutarSync(origen: 'auto' | 'manual' = 'manual'): Promise<SyncCronLog> {

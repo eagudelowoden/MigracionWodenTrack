@@ -25,6 +25,9 @@ import { ApiCampoConfig } from '../api-externa/entities/api-campo-config.entity'
 import { RecordatorioMalla } from '../recordatorios/entities/recordatorio.entity';
 import { WfsmSerial } from '../wfsm/entities/wfsm-serial.entity';
 import { WfsmSyncEstado } from '../wfsm/entities/wfsm-sync-estado.entity';
+import { CentroCosto } from '../estructura-organizacional/entities/centro-costo.entity';
+import { SegmentoEstructura } from '../estructura-organizacional/entities/segmento-estructura.entity';
+import { SegmentacionArea } from '../estructura-organizacional/entities/segmentacion-area.entity';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -32,7 +35,16 @@ export const getDatabaseConfig = (
   const host = configService.get<string>('DB_HOST');
   const db = configService.get<string>('DB_NAME');
   const esProduccion = configService.get<string>('NODE_ENV') === 'production';
-  console.log(`🔌 DB conectando a: ${host} / base: ${db}`);
+  // OJO: NODE_ENV=development NO implica base de datos descartable — el
+  // .env.development actual apunta a la MISMA base compartida de QA
+  // (WodenTrackTest). Por eso `synchronize` no puede depender solo del
+  // string NODE_ENV: se controla con DB_SYNCHRONIZE explícito por archivo
+  // .env, y si no está definido, por defecto es `false` (seguro). Solo un
+  // .env que apunte a una base realmente descartable debe traer
+  // DB_SYNCHRONIZE=true a propósito.
+  const synchronizeEnv = configService.get<string>('DB_SYNCHRONIZE');
+  const synchronize = synchronizeEnv !== undefined ? synchronizeEnv === 'true' : false;
+  console.log(`🔌 DB conectando a: ${host} / base: ${db} / synchronize: ${synchronize}`);
   return {
     type: 'mssql',
     host,
@@ -75,12 +87,17 @@ export const getDatabaseConfig = (
       // WFSM (seriales recuperados)
       WfsmSerial,
       WfsmSyncEstado,
+      // Estructura organizacional (segmentación + centros de costo)
+      CentroCosto,
+      SegmentoEstructura,
+      SegmentacionArea,
     ],
     autoLoadEntities: true,
-    // En producción NO se auto-altera el esquema: un cambio de entidad podría
-    // borrar columnas/datos en caliente sin revisión. Los cambios de esquema
-    // en prod se aplican a mano (ALTER TABLE), igual que ya se viene haciendo.
-    synchronize: !esProduccion,
+    // NO se auto-altera el esquema salvo que el .env del ambiente lo pida
+    // explícitamente con DB_SYNCHRONIZE=true (ver comentario arriba, junto a
+    // `synchronizeEnv`). Un cambio de entidad con synchronize:true podría
+    // borrar columnas/datos en caliente sin revisión.
+    synchronize,
     // En producción solo error/warn: 'logging: true' imprime CADA query con
     // sus parámetros y ahoga los errores reales entre miles de líneas de ruido.
     logging: esProduccion ? ['error', 'warn'] : true,

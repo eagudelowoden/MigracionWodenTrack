@@ -274,12 +274,23 @@ export class HorasExtraCronService implements OnModuleInit {
     const fin = config.hora_fin ?? 20;
     const rango = ini === fin ? `${ini}` : `${ini}-${fin}`;
     const cronExpr = `${min} ${rango} * * *`;
-    this.logger.log(`Registrando cron horas extra: "${cronExpr}"`);
-    const job = new CronJob(cronExpr, () => {
-      this.encolarRango('Cron automático').catch((e) =>
-        this.logger.error('Error en cron de horas extra:', e),
-      );
-    });
+    this.logger.log(`Registrando cron horas extra: "${cronExpr}" (America/Bogota)`);
+    const job = new CronJob(
+      cronExpr,
+      () => {
+        this.encolarRango('Cron automático').catch((e) =>
+          this.logger.error('Error en cron de horas extra:', e),
+        );
+      },
+      null, // onComplete
+      false, // start (se arranca explícitamente más abajo)
+      // Zona horaria FIJA en Bogotá: sin esto, la librería `cron` interpreta
+      // hora_inicio/hora_fin en la zona horaria del SISTEMA OPERATIVO del
+      // servidor. Si el servidor no está configurado en hora Colombia (p. ej.
+      // un servidor en UTC), el cron dispara a horas completamente distintas
+      // de las configuradas en Super Admin.
+      'America/Bogota',
+    );
     this.scheduler.addCronJob(CRON_JOB_NAME, job);
     job.start();
   }

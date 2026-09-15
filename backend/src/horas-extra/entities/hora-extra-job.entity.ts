@@ -84,9 +84,9 @@ export class HoraExtraJob {
   @Column({ type: 'datetime2', nullable: true })
   finished_at: Date | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime2', default: () => 'SYSUTCDATETIME()' })
   created_at: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'datetime2', default: () => 'SYSUTCDATETIME()' })
   updated_at: Date;
 }

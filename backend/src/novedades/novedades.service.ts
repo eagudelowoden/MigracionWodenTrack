@@ -924,6 +924,47 @@ export class NovedadesService {
     }
   }
 
+  private async streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream as any) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  /** Lee un soporte (local o S3) a memoria para adjuntarlo al correo. Nunca lanza: si el
+   * archivo no se puede leer, el correo se envía igual pero sin adjunto. */
+  private async leerArchivoParaAdjunto(
+    storageKey: string,
+    storageMode: string,
+    nombreOriginal: string | null,
+    mime: string | null,
+  ): Promise<{ filename: string; content: Buffer; contentType: string } | undefined> {
+    try {
+      if (storageMode === 's3') {
+        if (!this.bucket) return undefined;
+        const obj = await this.s3.send(
+          new GetObjectCommand({ Bucket: this.bucket, Key: storageKey }),
+        );
+        const content = await this.streamToBuffer(obj.Body as NodeJS.ReadableStream);
+        return {
+          filename: nombreOriginal || 'soporte',
+          content,
+          contentType: mime || 'application/octet-stream',
+        };
+      }
+      const filePath = path.join(this.localDir, storageKey);
+      if (!fs.existsSync(filePath)) return undefined;
+      return {
+        filename: nombreOriginal || 'soporte',
+        content: fs.readFileSync(filePath),
+        contentType: mime || 'application/octet-stream',
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   private async buildCorreoPayload(
     novedad: Novedad,
     aprobadoPor: string,
@@ -931,7 +972,11 @@ export class NovedadesService {
     motivo: string,
     rol: 'jefe' | 'rrhh',
   ) {
-    // Buscar primer archivo adjunto
+    // Buscar primer archivo adjunto: primero el sistema nuevo (novedad_archivos,
+    // soporta local y S3); si no hay ninguno ahí, cae al sistema legacy
+    // (soporteStorageKey directo en la entidad Novedad) — novedades viejas solo
+    // tienen soporte guardado ahí, y antes de este cambio simplemente no se
+    // adjuntaban al correo.
     const archivos = await this.archivoRepo.find({
       where: { novedadId: novedad.id },
       order: { id: 'ASC' },
@@ -942,15 +987,20 @@ export class NovedadesService {
     let attachment:
       | { filename: string; content: Buffer; contentType: string }
       | undefined;
-    if (archivo && archivo.storageMode === 'local') {
-      const filePath = path.join(this.localDir, archivo.storageKey);
-      if (fs.existsSync(filePath)) {
-        attachment = {
-          filename: archivo.nombreOriginal,
-          content: fs.readFileSync(filePath),
-          contentType: archivo.mime || 'application/octet-stream',
-        };
-      }
+    if (archivo) {
+      attachment = await this.leerArchivoParaAdjunto(
+        archivo.storageKey,
+        archivo.storageMode,
+        archivo.nombreOriginal,
+        archivo.mime,
+      );
+    } else if (novedad.soporteStorageKey) {
+      attachment = await this.leerArchivoParaAdjunto(
+        novedad.soporteStorageKey,
+        novedad.soporteStorageMode,
+        novedad.soporteNombreOriginal,
+        novedad.soporteMime,
+      );
     }
 
     return {

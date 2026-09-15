@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  web.config del sitio IIS de PRODUCCIÓN (track.woden.com.co, puerto 443).
+
+  ┌─ TOPOLOGÍA: producción NO es igual a QA ───────────────────────────────────┐
+  │  QA          IIS:8086  ──proxy──>  Node HTTP  127.0.0.1:3001               │
+  │  PRODUCCIÓN  IIS:443   sirve SOLO el frontend                              │
+  │              Node HTTPS  track.woden.com.co:8443  atiende la API directo   │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  Por eso acá NO hay regla de reverse proxy a la API: el frontend arma su
+  VITE_API_URL apuntando a ":8443" y habla directo con el backend. IIS solo
+  entrega los archivos estáticos del SPA.
+
+  CONSECUENCIA IMPORTANTE: el puerto 443 no conoce NINGUNA ruta del backend.
+  Todo lo que pidas a https://track.woden.com.co/<ruta-de-api> cae en el
+  fallback de SPA (regla 3) y devuelve index.html con HTTP 200 — no falla, que
+  es lo traicionero. Por eso cualquier URL pública que el backend le entregue a
+  un cliente (APP_BASE_URL, por ejemplo) DEBE llevar el ":8443".
+
+  Dos correcciones frente a la versión anterior:
+
+  1. "Modo Mantenimiento": la condición de REMOTE_ADDR estaba con
+     negate="false", que invierte la regla — el mantenimiento se le mostraba
+     ÚNICAMENTE a la IP listada, mientras el resto de la empresa seguía
+     navegando normal. Lo correcto es negate="true": mantenimiento para todos
+     MENOS esa IP, que es la del administrador para poder verificar el sitio.
+     El bug estaba dormido porque la regla tiene enabled="false".
+
+  2. "WebSocketProxy": reescribía a http://18.217.246.39:8443/socket.io/ —
+     HTTP plano contra un puerto que habla HTTPS. Ese destino no responde
+     (HTTP 000) y por eso IIS devolvía 502 Bad Gateway. Dos arreglos:
+       · http:// → https://  (es el error real; la IP sí era la correcta,
+         track.woden.com.co resuelve a 18.217.246.39)
+       · la IP → el hostname, para que ARR pueda validar el certificado TLS,
+         que está emitido a nombre de track.woden.com.co y no de la IP.
+     Hoy ningún cliente la usa (el frontend y la app Ionic abren el socket
+     directo contra :8443), así que es una ruta de respaldo: sirve si alguna
+     vez se apunta VITE_API_URL al mismo origen, o para usuarios en redes
+     corporativas que bloqueen el puerto 8443 de salida.
+-->
+<configuration>
+  <system.webServer>
+
+    <webSocket enabled="true" />
+
+    <staticContent>
+      <clientCache cacheControlMode="DisableCache" />
+    </staticContent>
+
+    <httpProtocol>
+      <customHeaders>
+        <add name="Cache-Control" value="no-cache, no-store, must-revalidate" />
+        <add name="Pragma" value="no-cache" />
+        <add name="Expires" value="-1" />
+      </customHeaders>
+    </httpProtocol>
+
+    <rewrite>
+      <rules>
+        <!--
+          1. Modo Mantenimiento. Para activarlo: enabled="true".
+          La IP de REMOTE_ADDR es la del administrador y va con negate="true"
+          para que sea la única que SÍ puede seguir navegando el sitio real.
+        -->
+        <rule name="Modo Mantenimiento" enabled="false" stopProcessing="true">
+          <match url="^(.*)$" />
+          <conditions>
+            <add input="{SCRIPT_NAME}" pattern="^/mantenimiento.html" negate="true" />
+            <add input="{REQUEST_FILENAME}" pattern=".*\.js|.*\.css|.*\.png|.*\.jpg|.*\.svg" negate="true" />
+            <add input="{REMOTE_ADDR}" pattern="152.200.241.168" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/mantenimiento.html" />
+        </rule>
+
+        <!--
+          2. Reverse proxy de Socket.io hacia el backend.
+          https:// y por hostname — con http:// o con la IP, ARR no logra el
+          handshake TLS y el resultado es 502.
+        -->
+        <rule name="WebSocketProxy" stopProcessing="true">
+          <match url="socket.io/(.*)" />
+          <action type="Rewrite" url="https://track.woden.com.co:8443/socket.io/{R:1}" />
+        </rule>
+
+        <!--
+          3. SPA Fallback (History Mode del frontend).
+          Todo lo que no sea un archivo o carpeta real se sirve como
+          index.html. OJO: por eso una ruta de API pedida al 443 devuelve el
+          SPA con HTTP 200 en vez de fallar — ver la nota de topología arriba.
+        -->
+        <rule name="Handle History Mode" stopProcessing="true">
+          <match url="(.*)" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/" />
+        </rule>
+      </rules>
+    </rewrite>
+
+  </system.webServer>
+</configuration>

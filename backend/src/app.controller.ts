@@ -22,6 +22,20 @@ export class AppController {
     return { version: v };
   }
 
+  /**
+   * Expone SOLO el nombre del entorno (.env activo) y el nombre de la base
+   * de datos — nunca host, usuario, contraseña ni ninguna otra credencial.
+   * Sirve para que el SuperAdmin confirme a simple vista si está parado en
+   * desarrollo, QA o producción antes de ejecutar una acción sensible.
+   */
+  @Get('entorno')
+  getEntorno() {
+    return {
+      entorno: process.env.NODE_ENV || 'development',
+      database: process.env.DB_NAME || null,
+    };
+  }
+
   @Public()
   @Get('mantenimiento')
   getMantenimiento() {

@@ -2,7 +2,7 @@
   <div class="novedades-container-main h-full animate-in fade-in duration-500 flex flex-col gap-2">
 
     <!-- Toolbar (Vercel compacto) -->
-    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-md border"
+    <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-2xl border shadow-sm"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex items-center gap-2">
@@ -27,6 +27,12 @@
               : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
             <i class="fas fa-location-dot text-[8px]"></i> GPS
           </button>
+          <button v-if="puedeVerCrudo" @click="tabActiva = 'crudo'"
+            class="h-5 px-2.5 rounded text-[10px] font-semibold transition-all flex items-center gap-1" :class="tabActiva === 'crudo'
+              ? 'bg-amber-500 text-white'
+              : (isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-700')">
+            <i class="fas fa-database text-[8px]"></i> Datos Directos
+          </button>
         </div>
       </div>
 
@@ -46,46 +52,28 @@
         </button>
 
         <!-- Rango de fechas -->
-        <div class="flex items-center gap-2 h-7 px-2 rounded-[5px] border transition-all" :class="[
-          filterHoy ? 'opacity-40 pointer-events-none' : '',
-          isDark ? 'bg-[#0B0F19] border-[#222938]' : 'bg-white border-slate-200'
-        ]">
-          <input v-model="startDate" type="date"
-            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
-            :class="isDark ? 'text-white' : 'text-slate-700'">
-          <div class="w-px h-3" :class="isDark ? 'bg-[#222938]' : 'bg-slate-300'"></div>
-          <input v-model="endDate" type="date"
-            class="bg-transparent text-[11px] font-medium outline-none cursor-pointer w-[100px]"
-            :class="isDark ? 'text-white' : 'text-slate-700'">
+        <div class="flex items-center gap-1.5 transition-all"
+          :class="filterHoy ? 'opacity-40 pointer-events-none' : ''">
+          <DatePicker v-model="startDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+            inputClass="!h-7 !text-[11px] !w-[104px] !py-0" />
+          <span class="text-[10px] opacity-40" :class="isDark ? 'text-white' : 'text-slate-500'">→</span>
+          <DatePicker v-model="endDateObj" dateFormat="dd/mm/yy" showIcon iconDisplay="input"
+            inputClass="!h-7 !text-[11px] !w-[104px] !py-0" />
         </div>
 
         <!-- Departamento -->
         <template v-if="hasPerm('admin.filtro_departamento') || hasPerm('admin.ver_todo')">
-          <div class="relative">
-            <select v-model="selectedDepartment"
-              class="h-7 pl-2.5 pr-7 text-[11px] font-medium rounded-[5px] border outline-none appearance-none cursor-pointer w-36 transition-all"
-              :class="isDark
-                ? 'bg-[#0B0F19] border-[#222938] text-white focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-                : 'bg-white border-slate-200 text-slate-700 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-              <option value="">Todos los departamentos</option>
-              <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-            </select>
-            <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] pointer-events-none"
-              :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          </div>
+          <Select v-model="departamentoSelectValue" :options="departments" filter showClear
+            placeholder="Todos los departamentos" inputClass="!h-7 !text-[11px]" style="width: 170px" />
         </template>
 
         <!-- Search -->
-        <div class="relative">
-          <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]"
-            :class="isDark ? 'text-[#888888]' : 'text-slate-400'"></i>
-          <input v-model="search" type="text" placeholder="Nombre o cédula…"
-            @keyup.enter="fetchReporte()"
-            class="h-7 pl-7 pr-2.5 text-[11px] font-medium rounded-[5px] border outline-none w-44 transition-all"
-            :class="isDark
-              ? 'bg-[#0B0F19] border-[#222938] text-white placeholder:text-[#5a5a5a] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'
-              : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]'">
-        </div>
+        <IconField>
+          <InputIcon class="pi pi-search text-[10px]" />
+          <InputText v-model="search" placeholder="Nombre o cédula…"
+            @keyup.enter="tabActiva === 'crudo' ? fetchCrudoDiagnostico() : fetchReporte()" class="!h-7 !text-[11px]"
+            style="width: 176px" />
+        </IconField>
 
         <!-- Acciones -->
         <div class="flex items-center gap-1.5 border-l pl-1.5 ml-0.5"
@@ -99,20 +87,23 @@
             <i class="fas fa-filter-circle-xmark text-[10px]"></i>
           </button>
 
-          <button @click="fetchReporte"
+          <button @click="tabActiva === 'crudo' ? fetchCrudoDiagnostico() : fetchReporte()"
             class="h-7 w-7 rounded-[5px] border flex items-center justify-center transition-all" :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#f5f5f7] hover:text-white hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-[#1e2538] hover:bg-black hover:text-white hover:border-black'"
             title="Buscar">
-            <i class="fas fa-magnifying-glass text-[10px]" :class="{ 'fa-spin': loading }"></i>
+            <i class="fas fa-magnifying-glass text-[10px]"
+              :class="{ 'fa-spin': tabActiva === 'crudo' ? loadingCrudo : loading }"></i>
           </button>
 
-          <button @click="downloadReport" :disabled="loading || reportData.length === 0"
+          <button @click="tabActiva === 'crudo' ? crudoRef?.descargarCrudo() : downloadReport()"
+            :disabled="tabActiva === 'crudo' ? loadingCrudo : (loading || reportData.length === 0)"
             class="flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] border text-[11px] font-medium transition-all active:scale-[0.98] disabled:opacity-50"
             :class="isDark
               ? 'bg-[#0B0F19] border-[#222938] text-[#E2E8F0] hover:bg-white/[0.03] hover:border-[#3B82F6]/40'
               : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'">
-            <i :class="loading ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'" class="text-[10px]"></i>
+            <i :class="(tabActiva === 'crudo' ? loadingCrudo : loading) ? 'fas fa-circle-notch fa-spin' : 'fas fa-file-excel'"
+              class="text-[10px]"></i>
             <span>Excel</span>
           </button>
         </div>
@@ -120,17 +111,16 @@
     </div>
 
     <!-- Error de validación de rango -->
-    <div v-if="errorMsg"
-      class="px-3 py-2 rounded-md text-[11px] font-medium flex items-center gap-2 border" :class="isDark
-        ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
-        : 'bg-red-50 border-red-200 text-red-700'">
+    <div v-if="errorMsg" class="px-3 py-2 rounded-xl text-[11px] font-medium flex items-center gap-2 border" :class="isDark
+      ? 'bg-[#dc2626]/[0.08] border-[#dc2626]/30 text-[#f87171]'
+      : 'bg-red-50 border-red-200 text-red-700'">
       <i class="fas fa-circle-exclamation text-[11px]"></i>
       {{ errorMsg }}
     </div>
 
     <!-- Tabla -->
     <div v-if="tabActiva === 'odoo'"
-      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      class="table-wrapper flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -247,27 +237,39 @@
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
-                  <span :class="getStatusClass(item.c_entrada)"
+
+                  <!-- Primer span (Estado) con color de texto condicional -->
+                  <span :class="[getStatusClass(item.c_entrada), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_entrada || 'OK' }}
                   </span>
-                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+
+                  <!-- Segundo span (Fuente) con color de texto condicional -->
+                  <span v-if="item.fuente"
+                    :class="[getFuenteClass(item.fuente), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
+
                 </div>
               </td>
 
               <td class="px-4 py-3 text-right border-b" :class="isDark ? 'border-[#222938]' : 'border-slate-100'">
                 <div class="flex items-center justify-end gap-1 flex-wrap">
-                  <span :class="getStatusClass(item.c_salida)"
+
+                  <!-- Primer span (Salida) con el cambio aplicado -->
+                  <span :class="[getStatusClass(item.c_salida), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border tracking-widest bg-opacity-10">
                     {{ item.c_salida || 'OK' }}
                   </span>
-                  <span v-if="item.fuente" :class="getFuenteClass(item.fuente)"
+
+                  <!-- Segundo span (Fuente) con el cambio aplicado también -->
+                  <span v-if="item.fuente"
+                    :class="[getFuenteClass(item.fuente), isDark ? 'text-white' : 'text-[#031953]']"
                     class="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase border tracking-widest">
                     {{ item.fuente === 'BIOMÉTRICO' ? '⬡ BIOMÉTRICO' : '⬡ APP' }}
                   </span>
+
                 </div>
               </td>
             </tr>
@@ -312,7 +314,7 @@
 
     <!-- ── TABLA MARCACIONES ECUADOR GPS ─────────────────────────────────── -->
     <div v-if="tabActiva === 'ecuador'"
-      class="table-wrapper flex-1 overflow-hidden rounded-md border flex flex-col relative"
+      class="table-wrapper flex-1 overflow-hidden rounded-2xl border shadow-sm flex flex-col relative"
       :class="isDark ? 'bg-[#161B26] border-[#222938]' : 'bg-white border-slate-200'">
 
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar scroll-smooth">
@@ -448,6 +450,12 @@
         </button>
       </div>
     </div>
+
+    <!-- ── PESTAÑA DATOS CRUDOS — reutiliza el mismo componente del panel
+         SuperAdmin, así no hay dos implementaciones distintas de lo mismo. ── -->
+    <div v-if="tabActiva === 'crudo'" class="flex-1 overflow-hidden flex flex-col">
+      <GestionDatosCrudos ref="crudoRef" :isDark="isDark" :embedded="true" :sharedState="cargarAsistencias" />
+    </div>
   </div>
 </template>
 
@@ -455,8 +463,14 @@
 import { apiFetch } from '@/utils/apiFetch.js';
 import axios from 'axios';
 import { onMounted, watch, ref, computed } from 'vue';
+import DatePicker from 'primevue/datepicker';
+import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import { useCargarAsistencias } from '../../composables/UserLogica/cargarAsistencias';
 import { useAttendance } from '../../composables/UserLogica/useAttendance';
+import GestionDatosCrudos from './SuperAdmin/GestionDatosCrudos.vue';
 import '../../assets/css/reporteTabla.css';
 
 const props = defineProps({
@@ -464,6 +478,11 @@ const props = defineProps({
   company: String
 });
 
+// Se guarda el objeto completo (no solo lo desestructurado) para poder
+// pasárselo tal cual a <GestionDatosCrudos :sharedState="..."> — así la
+// pestaña "Crudo" reutiliza EXACTAMENTE las mismas refs (filtros, scope de
+// área/segmento) en vez de tener su propia copia independiente.
+const cargarAsistencias = useCargarAsistencias();
 const {
   reportData,
   search,
@@ -478,11 +497,43 @@ const {
   clearFilters,
   selectedArea,
   selectedSegmento,
+  selectedEmployeeId,
   selectedCompany,
   errorMsg,
   chunkProgress,
   loadingProgress,
-} = useCargarAsistencias();
+  loadingCrudo,
+  fetchCrudoDiagnostico,
+} = cargarAsistencias;
+
+// ── Puentes PrimeVue ──────────────────────────────────────────────────────
+// startDate/endDate/selectedDepartment son strings (los consume tal cual el
+// composable compartido y GestionDatosCrudos vía :sharedState) — DatePicker y
+// Select de PrimeVue trabajan con Date/null, así que se traducen acá sin
+// tocar el tipo real de esos refs.
+function strToDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function dateToStr(d) {
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const startDateObj = computed({
+  get: () => strToDate(startDate.value),
+  set: (d) => { startDate.value = dateToStr(d); filterHoy.value = false; },
+});
+const endDateObj = computed({
+  get: () => strToDate(endDate.value),
+  set: (d) => { endDate.value = dateToStr(d); filterHoy.value = false; },
+});
+const departamentoSelectValue = computed({
+  get: () => selectedDepartment.value || null,
+  set: (v) => { selectedDepartment.value = v || ''; },
+});
+
+const crudoRef = ref(null);
 
 const { isDark: isDarkTheme } = useAttendance();
 
@@ -527,16 +578,22 @@ onMounted(async () => {
         const perfil = await resp.json();
         userProfile.value = perfil;
 
-        // Responsable de segmento → filtrar por segmento (ve TODOS los del segmento).
-        // Coordinador con coord.ver_segmento → también ve todo el segmento (sin ser responsable).
-        // Responsable de área → filtrar solo por área.
-        // Enviar ambos a la vez causaría un AND en el backend, reduciendo los resultados.
+        // Por defecto SIEMPRE va acotado a su propia área Y segmento (AND en el
+        // backend → solo ve su equipo exacto). Responsable de segmento o
+        // coordinador con coord.ver_segmento son la ÚNICA excepción: ven TODO
+        // el segmento sin acotar por área.
         const esResponsableSegmento = session.permisos?.['novedades.ver_segmento'] === true;
         const esCoordSegmento = !esResponsableSegmento && session.permisos?.['coord.ver_segmento'] === true;
         if ((esResponsableSegmento || esCoordSegmento) && perfil.segmento?.id) {
           selectedSegmento.value = perfil.segmento.id;
         } else if (perfil.area?.id) {
           selectedArea.value = perfil.area.id;
+          if (perfil.segmento?.id) selectedSegmento.value = perfil.segmento.id;
+        } else if (perfil.segmento?.id) {
+          // Tiene segmento pero NO área: filtrar solo por segmento lo mostraría
+          // a TODO el segmento sin quedar acotado por nada más. Sin área con la
+          // que intersectar, se restringe a que solo se vea a sí mismo.
+          selectedEmployeeId.value = idLogueado;
         }
       }
     } catch (e) {
@@ -589,13 +646,27 @@ const formatSoloHora = (value) => {
 
 const getStatusClass = (status) => {
   if (!status || status.toUpperCase() === 'OK')
-    return 'bg-[#16a34a]/[0.10] text-[#16a34a] border-[#16a34a]/30 dark:text-[#4ade80]';
+    return props.isDark
+      ? 'bg-[#16a34a]/[0.10] text-[#4ade80] border-[#16a34a]/30'
+      : 'bg-[#16a34a]/[0.10] text-[#16a34a] border-[#16a34a]/30';
 
   const s = status.toUpperCase();
   if (s.includes('TARDE') || s.includes('INCUMPLIDO'))
-    return 'bg-[#dc2626]/[0.10] text-[#dc2626] border-[#dc2626]/30 dark:text-[#f87171]';
+    return props.isDark
+      ? 'bg-[#dc2626]/[0.10] text-[#f87171] border-[#dc2626]/30'
+      : 'bg-[#dc2626]/[0.10] text-[#dc2626] border-[#dc2626]/30';
 
-  return 'bg-[#3B82F6]/[0.10] text-[#3B82F6] border-[#3B82F6]/30 dark:text-[#60A5FA]';
+  // "N/A" no es un estado real (falta el dato), no un aviso: se muestra
+  // neutro en vez del azul informativo para no competir visualmente con
+  // estados como "NO PROGRAMADO".
+  if (s === 'N/A')
+    return props.isDark
+      ? 'bg-white/[0.04] text-slate-300 border-white/10'
+      : 'bg-slate-100 text-slate-500 border-slate-200';
+
+  return props.isDark
+    ? 'bg-[#3B82F6]/[0.10] text-[#60A5FA] border-[#3B82F6]/30'
+    : 'bg-[#3B82F6]/[0.10] text-[#3B82F6] border-[#3B82F6]/30';
 };
 
 const getFuenteClass = (fuente) => {
@@ -609,6 +680,12 @@ const tabActiva = ref('odoo');
 // 'ecuador.ver_marcaciones' (o los super admin), sin importar la compañía.
 const puedeVerGps = computed(() =>
   !!session.isSuperAdmin || hasPerm('ecuador.ver_marcaciones')
+);
+
+// Mismo permiso que la pestaña "Datos Crudos" del panel SuperAdmin — un solo
+// slug controla el acceso en los dos lugares donde aparece esta vista.
+const puedeVerCrudo = computed(() =>
+  !!session.isSuperAdmin || hasPerm('super.datoscrudos')
 );
 
 const API_URL = import.meta.env.VITE_API_URL;

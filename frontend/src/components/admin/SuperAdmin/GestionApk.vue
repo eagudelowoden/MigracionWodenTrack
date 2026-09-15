@@ -17,6 +17,27 @@
 
         <div class="apk-card-body">
 
+          <!-- Versión publicada actualmente -->
+          <div v-if="apkData?.exists" class="apk-current" :class="isDark ? 'apk-current-dark' : 'apk-current-light'">
+            <div class="apk-current-info">
+              <span class="apk-current-badge">v{{ apkData.version }}</span>
+              <div class="apk-current-text">
+                <p class="apk-current-size" :class="isDark ? 'text-white/70' : 'text-slate-600'">
+                  {{ apkData.size }} MB
+                </p>
+                <p class="apk-current-date" :class="isDark ? 'text-white/30' : 'text-slate-400'">
+                  Subido {{ formatDate(apkData.lastUpdate) }}
+                </p>
+              </div>
+            </div>
+            <button @click="handleDelete" :disabled="isDeleting" class="apk-current-del" title="Eliminar APK publicada">
+              <i class="text-[10px]" :class="isDeleting ? 'fas fa-circle-notch fa-spin' : 'fas fa-trash-alt'"></i>
+            </button>
+          </div>
+          <div v-else class="apk-current apk-current-empty" :class="isDark ? 'apk-current-dark' : 'apk-current-light'">
+            <span :class="isDark ? 'text-white/30' : 'text-slate-400'">Sin versión publicada</span>
+          </div>
+
           <!-- Zone de carga de archivo -->
           <div @click="!isUploading && $refs.fileInput.click()"
             class="apk-dropzone"
@@ -212,15 +233,33 @@ import { useApkRepo } from '../../../composables/adminLogica/useApkRepo';
 const props = defineProps({ isDark: Boolean });
 const emit  = defineEmits(['success', 'error']);
 
-const { apkData, fetchApkInfo, subirApk, guardarNovedades } = useApkRepo();
+const { apkData, fetchApkInfo, subirApk, eliminarApk, guardarNovedades } = useApkRepo();
 
 const selectedFile  = ref(null);
 const localChangelog = ref([]);
+const isDeleting = ref(false);
 
 // 'idle' | 'uploading' | 'publishing' | 'success' | 'error'
 const uploadStatus = ref('idle');
 // 'idle' | 'saving' | 'saved' | 'error'
 const saveStatus   = ref('idle');
+
+const formatDate = (d) => d ? new Date(d).toLocaleString('es-CO', {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+}) : '—';
+
+const handleDelete = async () => {
+  if (!confirm(`¿Eliminar la versión v${apkData.value?.version} publicada? Las personas dejarán de poder descargarla hasta que subas una nueva.`)) return;
+  isDeleting.value = true;
+  try {
+    await eliminarApk();
+    emit('success', 'APK eliminada correctamente');
+  } catch {
+    emit('error', 'Error al eliminar el APK');
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 const isUploading = computed(() =>
   uploadStatus.value === 'uploading' || uploadStatus.value === 'publishing'
@@ -315,6 +354,32 @@ onMounted(async () => {
   transition: background .15s;
 }
 .apk-add-btn:hover { background: rgba(16,185,129,.25); }
+
+/* ── VERSIÓN ACTUAL ───────────────────────────────────────── */
+.apk-current {
+  display: flex; align-items: center; justify-content: space-between;
+  border-radius: 10px; padding: 10px 12px; border: 1px solid;
+}
+.apk-current-dark  { background: rgba(255,255,255,.02); border-color: rgba(255,255,255,.07); }
+.apk-current-light { background: #f8fafc; border-color: #e2e8f0; }
+.apk-current-empty { justify-content: center; font-size: 11px; font-weight: 500; padding: 12px; }
+
+.apk-current-info { display: flex; align-items: center; gap: 10px; }
+.apk-current-badge {
+  font-size: 11px; font-weight: 800; color: #10b981;
+  background: rgba(16,185,129,.12); padding: 3px 9px; border-radius: 99px;
+}
+.apk-current-text { display: flex; flex-direction: column; }
+.apk-current-size { font-size: 11px; font-weight: 700; }
+.apk-current-date { font-size: 10px; margin-top: 1px; }
+
+.apk-current-del {
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(239,68,68,.2);
+  color: #f87171; background: transparent; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; transition: background .15s;
+}
+.apk-current-del:hover:not(:disabled) { background: rgba(239,68,68,.12); }
+.apk-current-del:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ── DROPZONE ─────────────────────────────────────────────── */
 .apk-dropzone {

@@ -23,6 +23,7 @@ export function useCargarAsistencias() {
   const rawData = ref([]);
   const selectedArea = ref(null);
   const selectedSegmento = ref(null);
+  const selectedEmployeeId = ref(null);
   const filterHoy = ref(true);
   const abortController = ref(null);
   const errorMsg = ref("");
@@ -94,6 +95,8 @@ export function useCargarAsistencias() {
       if (selectedSegmento.value)
         url.searchParams.append("segmento_id", selectedSegmento.value);
     }
+    if (selectedEmployeeId.value)
+      url.searchParams.append("employee_id", selectedEmployeeId.value);
 
     return url.toString();
   };
@@ -234,8 +237,20 @@ export function useCargarAsistencias() {
   const reporteParaPantalla = computed(() => {
     // 1. Deduplicar LOG CRUDO (lógica original)
     const logCrudoMap = new Map();
-    const base = filteredReport.value.filter((item) => {
+    const noLog = filteredReport.value.filter((item) => {
       if (item.tipo !== "LOG CRUDO") return true;
+      // Una fila que YA llega emparejada (entrada Y salida reales) es un turno
+      // completo resuelto por el backend → pasa directo, sin deduplicar. Si se
+      // deduplica, dos turnos DISTINTOS del mismo día (ej. uno de mediodía y
+      // uno nocturno que arranca esa misma noche) comparten la clave
+      // empleado+fecha y colapsan en una sola fila: la entrada queda la del
+      // turno de mediodía y la salida la del nocturno, el span supera las 14h
+      // y la guarda de abajo la reescribe como una única "entrada sin salida".
+      if (
+        item.check_in && item.check_in !== "N/A" &&
+        item.check_out && item.check_out !== "N/A"
+      )
+        return true;
       const key = `${item.empleado}_${item.fecha}`;
       const itemTs = item.check_out || item.check_in;
       if (!logCrudoMap.has(key)) {
@@ -251,6 +266,7 @@ export function useCargarAsistencias() {
           fila._bestExit = itemTs;
         }
       }
+      return false;
     });
 
     // Aplicar _bestExit como check_out solo si es distinto de check_in
@@ -279,10 +295,25 @@ export function useCargarAsistencias() {
       return fila;
     });
 
+    const base = [...noLog, ...logCrudoFinal];
+
     // 2. Agrupar por empleado+fecha: múltiples toques biométricos sin check_out
-    //    colapsan en una fila → primer toque = entrada, último = salida
+    //    colapsan en una fila → primer toque = entrada, último = salida.
+    //    Las filas que YA llegan completas y emparejadas (check_in + check_out
+    //    reales, turno "Finalizado") se dejan pasar directo sin agrupar — si no,
+    //    dos turnos reales y distintos del mismo día (ej: uno de mediodía y uno
+    //    nocturno que empieza el mismo día) se fusionan en un solo turno falso
+    //    de ~17h, tomando la entrada más temprana y la salida más tardía.
     const mapa = new Map();
+    const yaEmparejadas = [];
     for (const item of base) {
+      const completo =
+        item.check_in && item.check_in !== "N/A" &&
+        item.check_out && item.check_out !== "N/A";
+      if (completo) {
+        yaEmparejadas.push({ ...item });
+        continue;
+      }
       const key = `${item.cc || item.empleado}__${item.fecha}`;
       if (!mapa.has(key)) {
         mapa.set(key, { ...item });
@@ -301,9 +332,14 @@ export function useCargarAsistencias() {
           fila.check_out = itemMax;
           fila.c_salida = (item.check_out && item.check_out !== "N/A") ? item.c_salida : "";
         }
+        // Si hay marcación biométrica para este empleado+fecha, prevalece sobre
+        // el "APLICATIVO" hardcodeado de hr.attendance (fuente real y verificable).
+        if (item.fuente === "BIOMÉTRICO") {
+          fila.fuente = "BIOMÉTRICO";
+        }
       }
     }
-    return [...mapa.values()];
+    return [...yaEmparejadas, ...mapa.values()];
   });
 
   // ─── Descarga Excel ──────────────────────────────────────────────────────────
@@ -494,6 +530,7 @@ export function useCargarAsistencias() {
     selectedCompany,
     selectedArea,
     selectedSegmento,
+    selectedEmployeeId,
     departments,
     errorMsg,
     chunkProgress,
