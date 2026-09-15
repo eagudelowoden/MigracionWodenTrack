@@ -36,5 +36,8 @@ import { UsuariosModule } from '../usuarios/usuarios.module';
     OffboardingCronController,
   ],
   providers: [NovedadesService, PazSalvoService, PazSalvoChecklistService, OffboardingCronService],
+  // PazSalvoService se exporta para que ApiExternaModule exponga el checklist
+  // de IT por API sin duplicar la lógica de guardado.
+  exports: [PazSalvoService],
 })
 export class NovedadesModule {}
