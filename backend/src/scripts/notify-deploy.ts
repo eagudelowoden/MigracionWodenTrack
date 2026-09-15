@@ -70,14 +70,22 @@ async function main() {
   const reporte = leerReporteEsquema();
   const tablasHtml = tablaEsquemaHtml(reporte?.tablas ?? []);
 
+  let transporter: nodemailer.Transporter | undefined;
   try {
-    const transporter = nodemailer.createTransport({
+    transporter = nodemailer.createTransport({
       host: process.env.DEPLOY_MAIL_HOST || process.env.MAIL_HOST || 'smtp.office365.com',
       port: Number(process.env.DEPLOY_MAIL_PORT || process.env.MAIL_PORT) || 587,
       secure: false,
       requireTLS: true,
       auth: { user: mailUser, pass: mailPass },
       tls: { rejectUnauthorized: false },
+      // Sin timeouts, nodemailer espera indefinidamente si el SMTP no responde:
+      // el catch de abajo nunca se ejecuta y el paso del pipeline lo termina
+      // matando su command_timeout, marcando en rojo un despliegue que ya
+      // había terminado bien. Con esto falla rápido y el aviso se omite.
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     });
 
     const html = `
@@ -131,17 +139,33 @@ async function main() {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"Despliegue WodenTrack" <${mailUser}>`,
-      to: process.env.MAIL_ALERT_TO,
-      subject: `✅ Despliegue exitoso — ${ambiente}`,
-      html,
-    });
+    // Tope duro además de los timeouts del transporte: cubre cuelgues que no
+    // son del socket (DNS lento, por ejemplo) y garantiza terminar muy por
+    // debajo del command_timeout del pipeline.
+    const LIMITE_MS = 45000;
+    await Promise.race([
+      transporter.sendMail({
+        from: `"Despliegue WodenTrack" <${mailUser}>`,
+        to: process.env.MAIL_ALERT_TO,
+        subject: `✅ Despliegue exitoso — ${ambiente}`,
+        html,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`sin respuesta del SMTP en ${LIMITE_MS / 1000}s`)), LIMITE_MS),
+      ),
+    ]);
     console.log(`📧 Aviso de despliegue exitoso enviado a ${process.env.MAIL_ALERT_TO}`);
   } catch (e: any) {
     // Nunca tumbar el despliegue por un fallo de correo — el deploy ya sucedió.
     console.error(`📧 No se pudo enviar el aviso de despliegue (no crítico): ${e.message}`);
+  } finally {
+    // Cierra el socket del SMTP: si queda abierto, el proceso de Node no
+    // termina y el paso se cuelga aunque el correo sí se haya enviado.
+    try { transporter?.close(); } catch { /* sin importancia */ }
   }
 }
 
-main();
+main()
+  .catch((e) => console.error(`📧 Aviso de despliegue fallido (no crítico): ${e?.message}`))
+  // Salida explícita en 0: el despliegue ya ocurrió, el aviso es informativo.
+  .finally(() => process.exit(0));
